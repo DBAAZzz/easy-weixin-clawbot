@@ -1,0 +1,51 @@
+{
+  "name": "@clawbot/agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./skills/registry": {
+      "import": "./dist/skills/registry.js",
+      "types": "./dist/skills/registry.d.ts"
+    },
+    "./skills/types": {
+      "import": "./dist/skills/types.js",
+      "types": "./dist/skills/types.d.ts"
+    },
+    "./skills/installer": {
+      "import": "./dist/skills/installer.js",
+      "types": "./dist/skills/installer.d.ts"
+    },
+    "./tools/registry": {
+      "import": "./dist/tools/registry.js",
+      "types": "./dist/tools/registry.d.ts"
+    },
+    "./tools/types": {
+      "import": "./dist/tools/types.js",
+      "types": "./dist/tools/types.d.ts"
+    },
+    "./tools/installer": {
+      "import": "./dist/tools/installer.js",
+      "types": "./dist/tools/installer.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "test": "tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@mariozechner/pi-ai": "^0.62.0",
+    "yaml": "^2.8.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Account {
+  id           String         @id @db.Text
+  displayName  String?        @map("display_name") @db.Text
+  lastSeenAt   DateTime?      @map("last_seen_at") @db.Timestamptz(6)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  conversations Conversation[]
+  messages      Message[]
+
+  @@map("accounts")
+}
+
+model Conversation {
+  id             BigInt    @id @default(autoincrement())
+  accountId      String    @map("account_id") @db.Text
+  conversationId String    @map("conversation_id") @db.Text
+  title          String?   @db.Text
+  lastMessageAt  DateTime? @map("last_message_at") @db.Timestamptz(6)
+  messageCount   Int       @default(0) @map("message_count")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  account        Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, conversationId], map: "conversations_account_id_conversation_id_key")
+  @@index([accountId], map: "idx_conversations_account")
+  @@map("conversations")
+}
+
+model Message {
+  id             BigInt   @id @default(autoincrement())
+  accountId      String   @map("account_id") @db.Text
+  conversationId String   @map("conversation_id") @db.Text
+  seq            Int
+  role           String   @db.Text
+  contentText    String?  @map("content_text") @db.Text
+  payload        Json
+  mediaType      String?  @map("media_type") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, conversationId, seq], map: "messages_account_id_conversation_id_seq_key")
+  @@index([accountId, conversationId, id], map: "idx_messages_lookup")
+  @@map("messages")
+}

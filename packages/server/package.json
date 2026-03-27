@@ -1,0 +1,33 @@
+{
+  "name": "@clawbot/server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "test": "tsx --test src/**/*.test.ts",
+    "start": "node dist/index.js",
+    "prisma:generate": "tsx src/prisma-cli.ts generate --schema prisma/schema.prisma",
+    "prisma:push": "tsx src/prisma-cli.ts db push --schema prisma/schema.prisma",
+    "prisma:validate": "tsx src/prisma-cli.ts validate --schema prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@andresaya/edge-tts": "^1.8.0",
+    "@clawbot/agent": "workspace:*",
+    "@clawbot/shared": "workspace:*",
+    "@hono/node-server": "^1.19.11",
+    "@mariozechner/pi-ai": "^0.62.0",
+    "@prisma/client": "^6.19.2",
+    "dotenv": "^16.4.7",
+    "hono": "^4.12.9",
+    "qrcode-terminal": "^0.12.0",
+    "weixin-agent-sdk": "^0.2.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.2",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

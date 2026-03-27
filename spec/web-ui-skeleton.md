@@ -1,0 +1,83 @@
+# Web UI 骨架设计理念
+
+## 总基调
+
+无装饰、数据优先的工具型界面。视觉层级完全由**间距 + 字重 + 透明度**驱动，不依赖色块或卡片堆叠。整体观感接近 Linear / Raycast —— 冷灰底色上浮着半透明毛玻璃面板。
+
+---
+
+## 1. 层级模型（由外到内）
+
+```
+body 纹理底（渐变 + 网格 + 光晕）
+  └─ AppShell（sidebar | content 两栏 grid）
+       ├─ Sidebar — 半透明面板，backdrop-blur，无边框
+       └─ Content — 无容器，直接贴在 body 纹理上
+            └─ Page 区域 — 响应式 padding 递增
+                 └─ 数据区 — border-b 线性分割，无卡片包裹
+```
+
+核心原则：**不包就不包**。内容区不额外套卡片容器；列表项之间只用 `border-b` 做分割线，而非各自独立成卡片。
+
+## 2. 圆角规则
+
+| 场景 | 圆角值 | 说明 |
+|------|--------|------|
+| 必须区分模块的容器 | `rounded-lg` | 仅用于需要"这是一个独立区域"的语义场合 |
+| 按钮 / 输入框 | `rounded-[14px]` | 统一交互元素的视觉锚点 |
+| 气泡 / 大交互区 | `rounded-[16px]` | 消息气泡、侧栏导航激活态 |
+| Badge / 状态点 | `rounded-full` | 药丸形，永远全圆 |
+
+不属于上述场景的元素 —— 不加圆角。
+
+## 3. 分割手法
+
+- **主分割**：`border-b border-[var(--line)]`，8% 透明度的墨色线，几乎看不见但能感知。
+- **强分割**：`border-[var(--line-strong)]`，仅在整个页面层级的主要区域边界使用。
+- **虚线分割**：`border-dashed`，空状态 / 占位提示。
+- **不用**：`box-shadow` 做分割、色块背景做分割。
+
+## 4. 面板与背景
+
+采用 `rgba` + `backdrop-blur` 的半透明面板体系，不用纯白：
+
+- `--panel: rgba(255,255,255,0.78)` — 标准面板
+- `--panel-strong: rgba(255,255,255,0.92)` — 需要更高对比时
+- `--sidebar: rgba(247,250,251,0.86)` — 侧栏
+
+body 本身带渐变 + 28px 网格纹理 + 角落光晕，面板浮在这层纹理之上形成玻璃感。
+
+## 5. 色彩极简
+
+整个界面只有一个语义色：
+
+- **Accent**：`#156e63`（青绿），用于在线状态、主按钮、焦点环、选中态。
+- 其余全部走灰阶：`--ink` → `--muted-strong` → `--muted` → `--line`。
+
+不引入 warning / danger / info 色板；Badge 的 online/offline 用 emerald/slate 两色足够。
+
+## 6. 响应式策略
+
+| 断点 | 布局行为 |
+|------|----------|
+| 默认（移动） | 单列 flex 堆叠，padding `p-4` |
+| `lg:` | 展开为 grid 两栏（sidebar + content），padding `p-6` |
+| `xl:` | sidebar 加宽，padding `p-8` |
+
+切换方式：`hidden lg:grid` / `lg:hidden`，桌面与移动渲染不同的 DOM 块，而非同一 DOM 响应式折叠。
+
+## 7. 列表项模式
+
+列表项（账号、会话）不是独立卡片，而是**行级元素 + border-b 分割**：
+
+- hover 时整行加极浅背景色（`hover:bg-[rgba(21,110,99,0.04)]`）
+- 激活态用左侧竖条（`w-[3px] bg-[var(--accent)]`）标记
+- 最后一项 `last:border-b-0`，不留多余线
+
+## 8. 动效克制
+
+- 统一缓动函数：`cubic-bezier(0.16, 1, 0.3, 1)` — 快起慢收
+- 入场：`reveal-up`，0.55s 上滑渐入，列表项按 40ms 间隔错开
+- hover：`duration-200`，仅做 translate / 背景色过渡
+- 按钮：hover 上浮 0.5px，active 下压 1px
+- 不做：路由切换动画、弹窗 / 抽屉滑入、skeleton 以外的 loading 动画

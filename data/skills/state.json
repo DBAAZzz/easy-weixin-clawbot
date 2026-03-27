@@ -1,0 +1,16 @@
+{
+  "items": {
+    "persona_professional": {
+      "enabled": false,
+      "installedAt": "2026-03-27T06:17:30.607Z"
+    },
+    "summarizer": {
+      "enabled": false,
+      "installedAt": "2026-03-27T06:17:30.607Z"
+    },
+    "translator": {
+      "enabled": false,
+      "installedAt": "2026-03-27T06:17:30.607Z"
+    }
+  }
+}

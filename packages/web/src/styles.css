@@ -1,0 +1,185 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --font-sans:
+    "Outfit",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Segoe UI",
+    sans-serif;
+  --font-mono:
+    "JetBrains Mono",
+    "SFMono-Regular",
+    "Menlo",
+    "Monaco",
+    monospace;
+  --paper: #f4f7f8;
+  --surface: #edf2f4;
+  --panel: rgba(255, 255, 255, 0.78);
+  --panel-strong: rgba(255, 255, 255, 0.92);
+  --sidebar: rgba(247, 250, 251, 0.86);
+  --ink: #15202b;
+  --ink-soft: #233140;
+  --muted: #667383;
+  --muted-strong: #4b5969;
+  --accent: #156e63;
+  --accent-strong: #0f5b52;
+  --accent-soft: rgba(21, 110, 99, 0.1);
+  --line: rgba(21, 32, 43, 0.08);
+  --line-strong: rgba(21, 32, 43, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 14px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top right, rgba(21, 110, 99, 0.12), transparent 26%),
+    radial-gradient(circle at left 10% top 8%, rgba(82, 149, 177, 0.1), transparent 24%),
+    linear-gradient(180deg, #f6f8f9 0%, #edf2f4 100%);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01" 1, "cv01" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.48;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.38) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.38) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 72%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: auto 0 0 auto;
+  width: 40vw;
+  height: 40vw;
+  pointer-events: none;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(21, 110, 99, 0.08), transparent 70%);
+  filter: blur(36px);
+  transform: translate(18%, 18%);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+}
+
+::selection {
+  background: rgba(21, 110, 99, 0.16);
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(21, 32, 43, 0.18);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes rise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes statusPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.22);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+}
+
+.ui-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(211, 219, 226, 0.5), rgba(225, 231, 236, 0.7));
+}
+
+.ui-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  animation: shimmer 1.7s ease-in-out infinite;
+}
+
+.reveal-up {
+  opacity: 0;
+  animation: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.status-dot {
+  animation: statusPulse 2.4s ease-in-out infinite;
+}

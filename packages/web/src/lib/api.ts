@@ -79,6 +79,13 @@ export function fetchAccounts(): Promise<AccountSummary[]> {
   return request<AccountSummary[]>("/api/accounts");
 }
 
+export function updateAccountAlias(accountId: string, alias: string | null): Promise<{ success: boolean }> {
+  return request<{ success: boolean }>(`/api/accounts/${encodeURIComponent(accountId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ alias }),
+  });
+}
+
 export function fetchCapabilities(): Promise<CapabilityCollection> {
   return request<CapabilityCollection>("/api/capabilities");
 }

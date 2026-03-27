@@ -17,6 +17,7 @@ export interface ToolDef {
 export interface AccountRow {
   id: string;
   display_name: string | null;
+  alias: string | null;
   last_seen_at: string | null;
   created_at: string;
   is_online: boolean;
@@ -29,6 +30,8 @@ export interface AccountSummary extends AccountRow {
 export interface ConversationRow {
   id: number;
   account_id: string;
+  account_alias: string | null;
+  account_display_name: string | null;
   conversation_id: string;
   title: string | null;
   last_message_at: string | null;

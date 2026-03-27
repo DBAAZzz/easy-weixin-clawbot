@@ -204,7 +204,7 @@ export function DashboardPage() {
                   </p>
                 </div>
               ) : (
-                visibleAccounts.map((account) => <AccountCard key={account.id} account={account} />)
+                visibleAccounts.map((account) => <AccountCard key={account.id} account={account} onUpdate={refresh} />)
               )}
             </div>
           ) : null}

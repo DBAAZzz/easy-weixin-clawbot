@@ -60,8 +60,8 @@ export function Sidebar(props: {
       label: "工作台",
       items: [
         { to: "/", label: "账号列表", icon: <HomeIcon className="size-4" /> },
-        { to: "/tools", label: "Tool 管理", icon: <TerminalIcon className="size-4" /> },
-        { to: "/skills", label: "技能管理", icon: <PuzzleIcon className="size-4" /> },
+        { to: "/tools", label: "工具列表", icon: <TerminalIcon className="size-4" /> },
+        { to: "/skills", label: "技能列表", icon: <PuzzleIcon className="size-4" /> },
         { to: "/login", label: "连接 clawbot", icon: <ScanIcon className="size-4" /> },
       ],
     },

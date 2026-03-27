@@ -44,93 +44,91 @@ export function ConversationPage() {
     conversationTitle.trim().slice(0, 1).toUpperCase() || 'C'
 
   return (
-    <div className='h-full overflow-hidden border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]'>
-      <div className='grid h-full min-h-[640px] lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]'>
-        <aside className='flex min-h-0 flex-col border-r border-[var(--line)] bg-[rgba(246,249,250,0.78)]'>
-          <div className='border-b border-[var(--line)] px-4 py-3'>
-            <div className='flex items-start justify-between gap-3'>
-              <div className='min-w-0'>
-                <p className='text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]'>
-                  账号
-                </p>
-                <h2 className='mt-1.5 break-all text-[16px] font-medium text-[var(--ink)]'>
-                  {accountId ?? '未知账号'}
-                </h2>
-                <p className='mt-1 text-[11px] text-[var(--muted)]'>
-                  {formatCount(conversations.length)} 条会话
-                </p>
-              </div>
-
-              <Button variant='outline' size='sm' onClick={refresh}>
-                <ActivityIcon className='size-4' />
-                刷新
-              </Button>
+    <div className='grid h-full min-h-[640px] overflow-hidden rounded-lg border border-[var(--line-strong)] lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]'>
+      <aside className='flex min-h-0 flex-col border-r border-[var(--line)] bg-[rgba(246,249,250,0.78)] backdrop-blur-sm'>
+        <div className='border-b border-[var(--line)] px-4 py-3'>
+          <div className='flex items-start justify-between gap-3'>
+            <div className='min-w-0'>
+              <p className='text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]'>
+                账号
+              </p>
+              <h2 className='mt-1.5 break-all text-[16px] font-medium text-[var(--ink)]'>
+                {conversations[0]?.account_alias || conversations[0]?.account_display_name || accountId || '未知账号'}
+              </h2>
+              <p className='mt-1 text-[11px] text-[var(--muted)]'>
+                {formatCount(conversations.length)} 条会话
+              </p>
             </div>
 
-            {error ? (
-              <div className='mt-3 border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-3 py-2 text-[11px] leading-5 text-red-700'>
-                加载会话列表失败：{error}
-              </div>
-            ) : null}
-          </div>
-
-          {loading && conversations.length === 0 ? (
-            <div className='space-y-2 p-4'>
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  key={index}
-                  className='ui-skeleton h-[64px] rounded-[10px]'
-                />
-              ))}
-            </div>
-          ) : (
-            <ConversationList
-              conversations={conversations}
-              selectedConversationId={selectedConversationId}
-              onSelect={(conversationId) =>
-                setSearchParams({ conversation: conversationId })
-              }
-            />
-          )}
-        </aside>
-
-        <section className='flex min-h-0 flex-col'>
-          <div className='flex items-center justify-between gap-4 border-b border-[var(--line)] px-4 py-3'>
-            <div className='flex min-w-0 items-center gap-3'>
-              <span className='flex size-9 shrink-0 items-center justify-center rounded-full bg-[rgba(21,110,99,0.1)] text-[12px] font-semibold text-[var(--accent-strong)]'>
-                {conversationBadge}
-              </span>
-              <div className='min-w-0'>
-                <p className='truncate text-[14px] font-medium text-[var(--ink)]'>
-                  {conversationTitle}
-                </p>
-                <p className='mt-0.5 text-[11px] text-[var(--muted)]'>
-                  {conversationMeta}
-                </p>
-              </div>
-            </div>
-
-            <Button size='sm' variant='outline' onClick={messages.refresh}>
+            <Button variant='outline' size='sm' onClick={refresh}>
               <ActivityIcon className='size-4' />
-              刷新消息
+              刷新
             </Button>
           </div>
 
-          {messages.error ? (
-            <div className='border-b border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-2.5 text-[11px] leading-5 text-red-700'>
-              加载消息失败：{messages.error}
+          {error ? (
+            <div className='mt-3 border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-3 py-2 text-[11px] leading-5 text-red-700'>
+              加载会话列表失败：{error}
             </div>
           ) : null}
+        </div>
 
-          <MessageList
-            messages={messages.messages}
-            loading={messages.loading}
-            loadingMore={messages.loadingMore}
-            hasMore={messages.hasMore}
-            onLoadMore={messages.loadMore}
+        {loading && conversations.length === 0 ? (
+          <div className='space-y-0 p-4'>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className='ui-skeleton h-16 border-b border-[var(--line)] last:border-b-0'
+              />
+            ))}
+          </div>
+        ) : (
+          <ConversationList
+            conversations={conversations}
+            selectedConversationId={selectedConversationId}
+            onSelect={(conversationId) =>
+              setSearchParams({ conversation: conversationId })
+            }
           />
-        </section>
-      </div>
+        )}
+      </aside>
+
+      <section className='flex min-h-0 flex-col bg-[rgba(255,255,255,0.74)] backdrop-blur-sm'>
+        <div className='flex items-center justify-between gap-4 border-b border-[var(--line)] px-4 py-3'>
+          <div className='flex min-w-0 items-center gap-3'>
+            <span className='flex size-9 shrink-0 items-center justify-center rounded-xl bg-[rgba(21,110,99,0.1)] text-[12px] font-semibold text-[var(--accent-strong)]'>
+              {conversationBadge}
+            </span>
+            <div className='min-w-0'>
+              <p className='truncate text-[14px] font-medium text-[var(--ink)]'>
+                {conversationTitle}
+              </p>
+              <p className='mt-0.5 text-[11px] text-[var(--muted)]'>
+                {conversationMeta}
+              </p>
+            </div>
+          </div>
+
+          <Button size='sm' variant='outline' onClick={messages.refresh}>
+            <ActivityIcon className='size-4' />
+            刷新消息
+          </Button>
+        </div>
+
+        {messages.error ? (
+          <div className='border-b border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-2.5 text-[11px] leading-5 text-red-700'>
+            加载消息失败：{messages.error}
+          </div>
+        ) : null}
+
+        <MessageList
+          messages={messages.messages}
+          loading={messages.loading}
+          loadingMore={messages.loadingMore}
+          hasMore={messages.hasMore}
+          onLoadMore={messages.loadMore}
+        />
+      </section>
     </div>
   )
 }

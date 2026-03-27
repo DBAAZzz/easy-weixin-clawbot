@@ -1,9 +1,10 @@
 import { closeSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const LOCK_DIR = join(homedir(), ".openclaw", "openclaw-weixin", "locks");
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const LOCK_DIR = join(REPO_ROOT, "data", "locks");
 
 type LockFilePayload = {
   accountId: string;

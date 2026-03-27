@@ -1,11 +1,28 @@
 import type { AccountSummary } from "@clawbot/shared";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { formatCount, formatDateTime, formatRelativeTime } from "../lib/format.js";
 import { cn } from "../lib/cn.js";
 import { Badge } from "./ui/badge.js";
-import { ArrowRightIcon, ChatIcon } from "./ui/icons.js";
+import { ArrowRightIcon, ChatIcon, PencilIcon, CheckIcon, XIcon } from "./ui/icons.js";
+import { updateAccountAlias } from "../lib/api.js";
 
-export function AccountCard({ account }: { account: AccountSummary }) {
+export function AccountCard({ account, onUpdate }: { account: AccountSummary; onUpdate?: () => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [alias, setAlias] = useState(account.alias ?? "");
+
+  const handleSave = async () => {
+    try {
+      await updateAccountAlias(account.id, alias || null);
+      setIsEditing(false);
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to update alias:", error);
+    }
+  };
+
+  const displayName = account.alias || account.display_name || "未命名账号";
+
   return (
     <Link to={`/accounts/${encodeURIComponent(account.id)}`} className="group block">
       <article className="border-b border-[var(--line)] last:border-b-0 transition duration-200 hover:bg-[rgba(21,110,99,0.04)]">
@@ -20,10 +37,47 @@ export function AccountCard({ account }: { account: AccountSummary }) {
                 )}
               />
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-[12px] font-medium text-[var(--ink)]">
-                {account.display_name ?? "未命名账号"}
-              </p>
+            <div className="min-w-0 flex-1">
+              {isEditing ? (
+                <div className="flex items-center gap-1.5" onClick={(e) => e.preventDefault()}>
+                  <input
+                    type="text"
+                    value={alias}
+                    onChange={(e) => setAlias(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSave();
+                      if (e.key === "Escape") { setAlias(account.alias ?? ""); setIsEditing(false); }
+                    }}
+                    className="w-96 h-7 rounded-lg border border-[var(--accent)] bg-white px-2 text-[12px] font-medium text-[var(--ink)] outline-none ring-2 ring-[rgba(21,110,99,0.14)]"
+                    placeholder="设置别名"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSave}
+                    className="flex size-7 items-center justify-center rounded-md border border-[var(--line-strong)] bg-white text-emerald-600 transition hover:bg-emerald-50"
+                  >
+                    <CheckIcon className="size-4" />
+                  </button>
+                  <button
+                    onClick={() => { setAlias(account.alias ?? ""); setIsEditing(false); }}
+                    className="flex size-7 items-center justify-center rounded-md border border-[var(--line-strong)] bg-white text-[var(--muted)] transition hover:bg-slate-50"
+                  >
+                    <XIcon className="size-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="group/name flex items-center gap-1.5">
+                  <p className="truncate text-[12px] font-medium text-[var(--ink)]">
+                    {displayName}
+                  </p>
+                  <button
+                    onClick={(e) => { e.preventDefault(); setIsEditing(true); }}
+                    className="opacity-0 transition group-hover/name:opacity-100 flex size-6 items-center justify-center rounded text-[var(--muted)] hover:bg-white/60 hover:text-[var(--ink)]"
+                  >
+                    <PencilIcon className="size-3.5" />
+                  </button>
+                </div>
+              )}
               <p className="mt-0.5 truncate font-[var(--font-mono)] text-[10px] text-[var(--muted)]">
                 {account.id}
               </p>
@@ -57,13 +111,44 @@ export function AccountCard({ account }: { account: AccountSummary }) {
 
         <div className="flex flex-col gap-3 px-4 py-4 lg:hidden">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-[12px] font-medium text-[var(--ink)]">
-                {account.display_name ?? "未命名账号"}
-              </p>
-              <p className="mt-0.5 break-all font-[var(--font-mono)] text-[10px] text-[var(--muted)]">
-                {account.id}
-              </p>
+            <div className="min-w-0 flex-1">
+              {isEditing ? (
+                <div className="flex flex-col gap-2" onClick={(e) => e.preventDefault()}>
+                  <input
+                    type="text"
+                    value={alias}
+                    onChange={(e) => setAlias(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--accent)] bg-white px-2.5 py-1.5 text-[12px] font-medium text-[var(--ink)] outline-none ring-2 ring-[rgba(21,110,99,0.14)]"
+                    placeholder="设置别名"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={handleSave} className="flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+                      <CheckIcon className="size-3.5" /> 保存
+                    </button>
+                    <button onClick={() => { setAlias(account.alias ?? ""); setIsEditing(false); }} className="flex items-center gap-1 text-[11px] text-[var(--muted)]">
+                      <XIcon className="size-3.5" /> 取消
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate text-[12px] font-medium text-[var(--ink)]">
+                      {displayName}
+                    </p>
+                    <button
+                      onClick={(e) => { e.preventDefault(); setIsEditing(true); }}
+                      className="flex size-5 items-center justify-center rounded text-[var(--muted)]"
+                    >
+                      <PencilIcon className="size-5" />
+                    </button>
+                  </div>
+                  <p className="mt-0.5 break-all font-[var(--font-mono)] text-[10px] text-[var(--muted)]">
+                    {account.id}
+                  </p>
+                </>
+              )}
             </div>
             <Badge tone={account.is_online ? "online" : "offline"}>
               {account.is_online ? "在线" : "离线"}

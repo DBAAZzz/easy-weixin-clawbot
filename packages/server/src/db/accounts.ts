@@ -74,6 +74,7 @@ export async function listAccounts(): Promise<AccountSummary[]> {
       {
         id: row.id,
         display_name: row.displayName,
+        alias: row.alias,
         last_seen_at: row.lastSeenAt ? toIso(row.lastSeenAt) : null,
         created_at: toIso(row.createdAt),
       },
@@ -85,4 +86,11 @@ export async function listAccounts(): Promise<AccountSummary[]> {
 export async function getAccount(accountId: string): Promise<AccountSummary | null> {
   const summary = (await listAccounts()).find((row) => row.id === accountId);
   return summary ?? null;
+}
+
+export async function updateAccountAlias(accountId: string, alias: string | null): Promise<void> {
+  await getPrisma().account.update({
+    where: { id: accountId },
+    data: { alias },
+  });
 }

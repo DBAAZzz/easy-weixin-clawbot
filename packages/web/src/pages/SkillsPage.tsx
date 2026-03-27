@@ -1,407 +1,456 @@
 import { startTransition, useDeferredValue, useEffect, useState } from "react";
-import type { MarkdownSource } from "@clawbot/shared";
+import type { MarkdownSource, SkillInfo } from "@clawbot/shared";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
-import { ActivityIcon, PuzzleIcon, SearchIcon } from "../components/ui/icons.js";
+import {
+  ActivityIcon,
+  PuzzleIcon,
+  SearchIcon,
+  XIcon,
+} from "../components/ui/icons.js";
 import { useAsyncResource } from "../hooks/use-async-resource.js";
 import { useSkills } from "../hooks/useSkills.js";
+import { fetchSkillSource } from "../lib/api.js";
 import { cn } from "../lib/cn.js";
 import { formatCount } from "../lib/format.js";
-import { fetchSkillSource } from "../lib/api.js";
 
-const EDITOR_CLASSNAME =
-  "min-h-[220px] w-full rounded-[16px] border border-[var(--line-strong)] bg-[rgba(255,255,255,0.82)] px-3.5 py-3 font-[var(--font-mono)] text-[12px] leading-6 text-[var(--ink)] outline-none transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[rgba(21,110,99,0.14)]";
+function formatActivationLabel(activation: SkillInfo["activation"]) {
+  return activation === "always" ? "Always-On" : "On-Demand";
+}
+
+function formatOriginLabel(origin: SkillInfo["origin"]) {
+  return origin === "builtin" ? "内置" : "用户层";
+}
+
+function SkillAvatar(props: { origin: SkillInfo["origin"] }) {
+  return (
+    <span
+      className={cn(
+        "flex size-10 shrink-0 items-center justify-center rounded-[14px] border bg-[rgba(247,250,251,0.92)]",
+        props.origin === "builtin"
+          ? "border-[var(--line)] text-[var(--ink)]"
+          : "border-[rgba(21,110,99,0.12)] text-[var(--accent-strong)]"
+      )}
+    >
+      <PuzzleIcon className="size-[18px]" />
+    </span>
+  );
+}
+
+function SkillToggle(props: {
+  enabled: boolean;
+  busy: boolean;
+  onToggle: () => void | Promise<void>;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={props.busy}
+      aria-label={props.enabled ? "停用 skill" : "启用 skill"}
+      aria-pressed={props.enabled}
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => {
+        event.stopPropagation();
+        void props.onToggle();
+      }}
+      className={cn(
+        "relative inline-flex h-8 w-[50px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
+        props.enabled
+          ? "border-[rgba(28,100,242,0.14)] bg-[#1c84f2]"
+          : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.38)]"
+      )}
+    >
+      <span
+        className={cn(
+          "size-6 rounded-full bg-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          props.enabled ? "translate-x-[18px]" : "translate-x-0"
+        )}
+      />
+    </button>
+  );
+}
+
+function SkillCard(props: {
+  skill: SkillInfo;
+  index: number;
+  busy: boolean;
+  onOpen: () => void;
+  onToggle: () => void | Promise<void>;
+}) {
+  const metadata = [
+    `版本 ${props.skill.version}`,
+    formatActivationLabel(props.skill.activation),
+    formatOriginLabel(props.skill.origin),
+  ];
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-haspopup="dialog"
+      aria-label={`查看 ${props.skill.name} 详情`}
+      onClick={props.onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          props.onOpen();
+        }
+      }}
+      className="reveal-up group flex min-h-[108px] cursor-pointer items-center gap-3 rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)] md:px-4"
+      style={{ animationDelay: `${props.index * 40}ms` }}
+    >
+      <SkillAvatar origin={props.skill.origin} />
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
+            {props.skill.name}
+          </h3>
+          <Badge
+            tone="muted"
+            className="border-transparent bg-[rgba(21,110,99,0.08)] px-2 py-1 text-[9px] tracking-[0.08em] text-[var(--accent-strong)]"
+          >
+            {formatActivationLabel(props.skill.activation)}
+          </Badge>
+        </div>
+
+        <p className="mt-1 truncate text-[12px] leading-5 text-[var(--muted-strong)]">
+          {props.skill.summary}
+        </p>
+
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--muted)]">
+          {metadata.map((item, index) => (
+            <span key={item} className="flex items-center gap-2">
+              {index > 0 ? <span className="size-1 rounded-full bg-[var(--line-strong)]" /> : null}
+              <span>{item}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <SkillToggle enabled={props.skill.enabled} busy={props.busy} onToggle={props.onToggle} />
+        <span className="text-[10px] font-medium text-[var(--muted)]">
+          {props.skill.enabled ? "已启用" : "已停用"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function DetailItem(props: { label: string; value: string }) {
+  return (
+    <div className="rounded-[18px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-3">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">{props.label}</p>
+      <p className="mt-1.5 text-[13px] font-medium text-[var(--ink)]">{props.value}</p>
+    </div>
+  );
+}
+
+function SkillDetailModal(props: {
+  skill: SkillInfo;
+  source: { data: MarkdownSource | null; loading: boolean; error: string | null };
+  toggleBusy: boolean;
+  onClose: () => void;
+  onToggle: () => void | Promise<void>;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
+      <button
+        type="button"
+        aria-label="关闭 skill 详情"
+        onClick={props.onClose}
+        className="absolute inset-0 bg-[rgba(15,23,42,0.24)] backdrop-blur-[8px]"
+      />
+
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="skill-detail-title"
+        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[30px] border border-[rgba(21,32,43,0.1)] bg-[rgba(255,255,255,0.96)] shadow-[0_40px_120px_-56px_rgba(15,23,42,0.52)]"
+      >
+        <div className="border-b border-[var(--line)] px-5 py-4 md:px-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-4">
+              <SkillAvatar origin={props.skill.origin} />
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+                  Skill Detail
+                </p>
+                <h3
+                  id="skill-detail-title"
+                  className="mt-1.5 truncate text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]"
+                >
+                  {props.skill.name}
+                </h3>
+                <p className="mt-2 max-w-2xl text-[13px] leading-6 text-[var(--muted-strong)]">
+                  {props.skill.summary}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={props.onClose}
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-white/80 text-[var(--muted-strong)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
+            >
+              <XIcon className="size-4" />
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Badge tone={props.skill.enabled ? "online" : "offline"}>
+              {props.skill.enabled ? "已启用" : "已停用"}
+            </Badge>
+            <Badge tone="muted">{formatActivationLabel(props.skill.activation)}</Badge>
+            <Badge tone="muted">{formatOriginLabel(props.skill.origin)}</Badge>
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6">
+          <div className="grid gap-3 md:grid-cols-2">
+            <DetailItem label="Version" value={props.skill.version} />
+            <DetailItem label="Activation" value={formatActivationLabel(props.skill.activation)} />
+            <DetailItem label="Source" value={formatOriginLabel(props.skill.origin)} />
+            <DetailItem label="Status" value={props.skill.enabled ? "已启用" : "已停用"} />
+          </div>
+
+          <div className="rounded-[22px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Markdown Source
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--muted)]">
+                  详情弹窗里直接查看当前运行中的 skill 定义。
+                </p>
+              </div>
+
+              <Button
+                size="sm"
+                variant={props.skill.enabled ? "outline" : "primary"}
+                disabled={props.toggleBusy}
+                onClick={() => void props.onToggle()}
+              >
+                {props.skill.enabled ? "停用 Skill" : "启用 Skill"}
+              </Button>
+            </div>
+
+            <div className="mt-4">
+              {props.source.loading ? (
+                <div className="space-y-2">
+                  <div className="ui-skeleton h-4 rounded-[8px]" />
+                  <div className="ui-skeleton h-4 rounded-[8px]" />
+                  <div className="ui-skeleton h-4 rounded-[8px]" />
+                  <div className="ui-skeleton h-28 rounded-[14px]" />
+                </div>
+              ) : (
+                <pre className="max-h-[320px] overflow-auto rounded-[18px] border border-[var(--line)] bg-[rgba(255,255,255,0.94)] px-4 py-3 text-[11px] leading-6 text-[var(--ink-soft)]">
+                  {props.source.error
+                    ? `加载源码失败：${props.source.error}`
+                    : props.source.data?.markdown ?? "暂无源码"}
+                </pre>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function SkillsPage() {
-  const { skills, loading, error, refresh, install, update, enable, disable, remove } = useSkills();
+  const { skills, loading, error, refresh, enable, disable } = useSkills();
   const [query, setQuery] = useState("");
-  const [selectedName, setSelectedName] = useState<string | null>(null);
-  const [draftMarkdown, setDraftMarkdown] = useState("");
-  const [sourceRevision, setSourceRevision] = useState(0);
-  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [activeSkillName, setActiveSkillName] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [busyAction, setBusyAction] = useState<"save" | "toggle" | "delete" | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [pendingToggleName, setPendingToggleName] = useState<string | null>(null);
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const filteredSkills = skills.filter((skill) => {
     if (!normalizedQuery) return true;
 
-    return (
-      skill.name.toLowerCase().includes(normalizedQuery) ||
-      skill.summary.toLowerCase().includes(normalizedQuery) ||
-      skill.activation.toLowerCase().includes(normalizedQuery)
-    );
+    return [
+      skill.name,
+      skill.summary,
+      skill.activation,
+      skill.origin,
+      skill.author ?? "",
+    ].some((value) => value.toLowerCase().includes(normalizedQuery));
   });
-  const selectedSkill = filteredSkills.find((skill) => skill.name === selectedName) ?? null;
+  const activeSkill = skills.find((skill) => skill.name === activeSkillName) ?? null;
   const source = useAsyncResource<MarkdownSource>(
-    selectedName ? () => fetchSkillSource(selectedName) : null,
-    [selectedName, sourceRevision]
+    activeSkillName ? () => fetchSkillSource(activeSkillName) : null,
+    [activeSkillName]
   );
 
   useEffect(() => {
-    if (!filteredSkills.length) {
-      setSelectedName(null);
-      return;
-    }
+    if (!activeSkillName) return;
 
-    if (!selectedName || !filteredSkills.some((skill) => skill.name === selectedName)) {
-      setSelectedName(filteredSkills[0]?.name ?? null);
+    if (!skills.some((skill) => skill.name === activeSkillName)) {
+      setActiveSkillName(null);
     }
-  }, [filteredSkills, selectedName]);
+  }, [activeSkillName, skills]);
 
   useEffect(() => {
-    if (!selectedName) {
-      setDraftMarkdown("");
-      return;
+    if (!activeSkillName) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setActiveSkillName(null);
+      }
     }
 
-    if (source.data?.markdown) {
-      setDraftMarkdown(source.data.markdown);
-    }
-  }, [selectedName, source.data?.markdown]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeSkillName]);
 
   const enabledCount = skills.filter((skill) => skill.enabled).length;
   const alwaysOnCount = skills.filter((skill) => skill.activation === "always").length;
-  const userCount = skills.filter((skill) => skill.origin === "user").length;
-  const stats = [
-    { label: "Skill 总数", value: formatCount(skills.length), hint: "当前已安装" },
-    { label: "启用中", value: formatCount(enabledCount), hint: "可被加载或常驻注入" },
-    { label: "Always-On", value: formatCount(alwaysOnCount), hint: "直接进 system prompt" },
-    { label: "用户层", value: formatCount(userCount), hint: "可编辑覆盖" },
-  ];
+  const onDemandCount = skills.length - alwaysOnCount;
 
-  async function refreshAll() {
-    setMutationError(null);
+  async function handleRefresh() {
     setNotice(null);
+    setMutationError(null);
     refresh();
-    setSourceRevision((value) => value + 1);
   }
 
-  async function handleToggle() {
-    if (!selectedSkill) return;
-
-    setMutationError(null);
+  async function handleToggle(skill: SkillInfo) {
     setNotice(null);
-    setBusyAction("toggle");
+    setMutationError(null);
+    setPendingToggleName(skill.name);
 
     try {
-      const result = selectedSkill.enabled
-        ? await disable(selectedSkill.name)
-        : await enable(selectedSkill.name);
+      const result = skill.enabled ? await disable(skill.name) : await enable(skill.name);
       setNotice(`${result.name} 已${result.enabled ? "启用" : "停用"}`);
-      setSourceRevision((value) => value + 1);
     } catch (reason) {
       setMutationError(reason instanceof Error ? reason.message : String(reason));
     } finally {
-      setBusyAction(null);
-    }
-  }
-
-  async function handleSave() {
-    if (!draftMarkdown.trim()) {
-      setMutationError("请先输入或载入 Markdown");
-      return;
-    }
-
-    setMutationError(null);
-    setNotice(null);
-    setBusyAction("save");
-
-    try {
-      const result = selectedSkill
-        ? await update(selectedSkill.name, draftMarkdown)
-        : await install(draftMarkdown);
-      setSelectedName(result.name);
-      setNotice(`${result.name} 已保存到 user 层`);
-      setSourceRevision((value) => value + 1);
-    } catch (reason) {
-      setMutationError(reason instanceof Error ? reason.message : String(reason));
-    } finally {
-      setBusyAction(null);
-    }
-  }
-
-  async function handleRemove() {
-    if (!selectedSkill || selectedSkill.origin !== "user") return;
-
-    setMutationError(null);
-    setNotice(null);
-    setBusyAction("delete");
-
-    try {
-      await remove(selectedSkill.name);
-      setNotice(`${selectedSkill.name} 的 user 版本已删除`);
-      setSourceRevision((value) => value + 1);
-    } catch (reason) {
-      setMutationError(reason instanceof Error ? reason.message : String(reason));
-    } finally {
-      setBusyAction(null);
+      setPendingToggleName(null);
     }
   }
 
   return (
-    <div className="space-y-3 md:space-y-4">
-      <section className="space-y-3">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">Skills</p>
-            <h2 className="mt-1.5 text-[20px] text-[var(--ink)]">Skill 管理</h2>
-            <p className="mt-1 max-w-2xl text-[12px] leading-5 text-[var(--muted)]">
-              Markdown 驱动的知识技能目录。常驻 skill 直接进入 system prompt，按需 skill
-              通过 `use_skill` 在对话中加载。
-            </p>
-          </div>
+    <>
+      <div className="space-y-5">
+        <section className="space-y-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">Skills</p>
+              <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">已安装技能</h2>
+              <p className="mt-1 max-w-2xl text-[13px] leading-6 text-[var(--muted)]">
+                直接查看当前运行中的 skill 列表。点击条目打开详情弹窗，启停操作保留在列表层。
+              </p>
+            </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => setSelectedName(null)} variant="outline">
-              新建草稿
-            </Button>
-            <Button size="sm" onClick={() => void refreshAll()}>
+            <Button size="sm" onClick={() => void handleRefresh()}>
               <ActivityIcon className="size-4" />
               刷新列表
             </Button>
           </div>
-        </div>
 
-        <div className="overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]">
-          <div className="grid divide-y divide-[var(--line)] md:grid-cols-4 md:divide-x md:divide-y-0">
-            {stats.map((stat) => (
-              <div key={stat.label} className="px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                  {stat.label}
-                </p>
-                <p className="mt-1.5 font-[var(--font-mono)] text-[18px] font-semibold text-[var(--ink)]">
-                  {stat.value}
-                </p>
-                <p className="mt-0.5 text-[11px] text-[var(--muted)]">{stat.hint}</p>
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="relative w-full xl:max-w-[360px]">
+              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="搜索 skill 名称、摘要或来源"
+                className="h-10 rounded-[14px] pl-10"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+              <Badge tone="muted">已安装 {formatCount(skills.length)}</Badge>
+              <Badge tone="muted">启用 {formatCount(enabledCount)}</Badge>
+              <Badge tone="muted">Always-On {formatCount(alwaysOnCount)}</Badge>
+              <Badge tone="muted">On-Demand {formatCount(onDemandCount)}</Badge>
+            </div>
+          </div>
+        </section>
+
+        {error ? (
+          <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+            加载 skill 列表失败：{error}
+          </div>
+        ) : null}
+
+        {mutationError ? (
+          <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+            操作失败：{mutationError}
+          </div>
+        ) : null}
+
+        {notice ? (
+          <div className="rounded-[18px] border border-[rgba(21,110,99,0.14)] bg-[rgba(240,253,250,0.92)] px-4 py-3 text-[12px] leading-6 text-[var(--accent-strong)]">
+            {notice}
+          </div>
+        ) : null}
+
+        {loading ? (
+          <section className="grid gap-4 xl:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.8)] px-3.5 py-3.5 md:px-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="ui-skeleton size-10 rounded-[14px]" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="ui-skeleton h-5 rounded-[8px]" />
+                    <div className="ui-skeleton h-4 rounded-[8px]" />
+                    <div className="ui-skeleton h-3 w-2/3 rounded-full" />
+                  </div>
+                  <div className="ui-skeleton h-8 w-[50px] rounded-full" />
+                </div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
+          </section>
+        ) : null}
 
-      {error ? (
-        <div className="border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
-          加载 skill 列表失败：{error}
-        </div>
-      ) : null}
+        {!loading && filteredSkills.length === 0 ? (
+          <section className="rounded-[28px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-10 text-center">
+            <p className="text-[15px] font-medium text-[var(--ink)]">没有匹配到 skill</p>
+            <p className="mt-2 text-[12px] leading-6 text-[var(--muted)]">
+              可以尝试清空搜索词，回到完整的已安装列表继续查看。
+            </p>
+          </section>
+        ) : null}
 
-      {mutationError ? (
-        <div className="border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
-          操作失败：{mutationError}
-        </div>
-      ) : null}
-
-      {notice ? (
-        <div className="border border-[rgba(21,110,99,0.14)] bg-[rgba(240,253,250,0.92)] px-4 py-3 text-[12px] leading-6 text-[var(--accent-strong)]">
-          {notice}
-        </div>
-      ) : null}
-
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.95fr)]">
-        <div className="overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]">
-          <div className="border-b border-[var(--line)] px-3 py-3 md:px-4">
-            <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-                <div className="relative w-full sm:w-[300px]">
-                  <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
-                  <Input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="搜索名称、摘要或 activation"
-                    className="h-9 rounded-[8px] pl-10"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 rounded-[14px] border border-dashed border-[var(--line)] bg-white/42 px-3 py-2 text-[11px] text-[var(--muted)]">
-                  <PuzzleIcon className="size-4 text-[var(--muted-strong)]" />
-                  <span>skills 来自运行中的 markdown installer</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
-                <PuzzleIcon className="size-4 text-[var(--muted-strong)]" />
-                <span>当前筛选结果 {formatCount(filteredSkills.length)} 个 skill</span>
-              </div>
+        {!loading && filteredSkills.length > 0 ? (
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
+              <PuzzleIcon className="size-4 text-[var(--muted-strong)]" />
+              <span>当前展示 {formatCount(filteredSkills.length)} 个已安装 skill</span>
             </div>
-          </div>
 
-          {loading ? (
-            <div>
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="grid gap-3 border-b border-[var(--line)] px-4 py-3 last:border-b-0"
-                >
-                  <div className="ui-skeleton h-5 rounded-[8px]" />
-                  <div className="ui-skeleton h-3 rounded-full" />
-                </div>
+            <div className="grid gap-4 xl:grid-cols-2">
+              {filteredSkills.map((skill, index) => (
+                <SkillCard
+                  key={skill.name}
+                  skill={skill}
+                  index={index}
+                  busy={pendingToggleName === skill.name}
+                  onOpen={() => startTransition(() => setActiveSkillName(skill.name))}
+                  onToggle={() => handleToggle(skill)}
+                />
               ))}
             </div>
-          ) : null}
+          </section>
+        ) : null}
+      </div>
 
-          {!loading && filteredSkills.length === 0 ? (
-            <div className="px-5 py-9 text-center">
-              <p className="text-[13px] text-[var(--ink)]">没有匹配到 skill</p>
-              <p className="mt-1.5 text-[12px] text-[var(--muted)]">
-                可以尝试清空搜索词，或者直接在右侧粘贴 Markdown 安装新技能。
-              </p>
-            </div>
-          ) : null}
-
-          {!loading && filteredSkills.length > 0 ? (
-            <div>
-              {filteredSkills.map((skill, index) => {
-                const isSelected = skill.name === selectedSkill?.name;
-
-                return (
-                  <button
-                    key={skill.name}
-                    type="button"
-                    onClick={() => startTransition(() => setSelectedName(skill.name))}
-                    className={cn(
-                      "relative block w-full border-b border-[var(--line)] px-4 py-3 text-left last:border-b-0 hover:bg-[rgba(21,110,99,0.04)]",
-                      isSelected && "bg-[rgba(21,110,99,0.05)]"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "absolute inset-y-3 left-0 w-[3px] rounded-full",
-                        isSelected ? "bg-[var(--accent)]" : "bg-transparent"
-                      )}
-                    />
-                    <div className="reveal-up min-w-0" style={{ animationDelay: `${index * 30}ms` }}>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-[var(--font-mono)] text-[13px] font-medium text-[var(--ink)]">
-                          {skill.name}
-                        </p>
-                        <Badge tone={skill.enabled ? "online" : "offline"}>
-                          {skill.enabled ? "已启用" : "已停用"}
-                        </Badge>
-                        <Badge tone="muted">{skill.origin}</Badge>
-                        <Badge tone="muted">{skill.activation}</Badge>
-                      </div>
-                      <p className="mt-2 text-[12px] leading-6 text-[var(--muted-strong)]">
-                        {skill.summary}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]">
-            <div className="border-b border-[var(--line)] px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                Detail
-              </p>
-              <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">
-                {selectedSkill ? selectedSkill.name : "新建 Skill 草稿"}
-              </h3>
-            </div>
-
-            <div className="space-y-4 px-4 py-4">
-              {selectedSkill ? (
-                <>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge tone={selectedSkill.enabled ? "online" : "offline"}>
-                      {selectedSkill.enabled ? "已启用" : "已停用"}
-                    </Badge>
-                    <Badge tone="muted">版本 {selectedSkill.version}</Badge>
-                    <Badge tone="muted">{selectedSkill.origin}</Badge>
-                    <Badge tone="muted">{selectedSkill.activation}</Badge>
-                  </div>
-
-                  <p className="text-[12px] leading-6 text-[var(--muted-strong)]">
-                    {selectedSkill.summary}
-                  </p>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant={selectedSkill.enabled ? "outline" : "primary"}
-                      disabled={busyAction !== null}
-                      onClick={() => void handleToggle()}
-                    >
-                      {selectedSkill.enabled ? "停用 Skill" : "启用 Skill"}
-                    </Button>
-                    {selectedSkill.origin === "user" ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busyAction !== null}
-                        onClick={() => void handleRemove()}
-                      >
-                        删除 user 版本
-                      </Button>
-                    ) : null}
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                        Source Preview
-                      </p>
-                      {source.loading ? (
-                        <span className="text-[11px] text-[var(--muted)]">读取中</span>
-                      ) : null}
-                    </div>
-                    <pre className="max-h-[260px] overflow-auto rounded-[16px] border border-[var(--line)] bg-[rgba(246,249,250,0.92)] px-3.5 py-3 text-[11px] leading-6 text-[var(--ink-soft)]">
-                      {source.error
-                        ? `加载源码失败：${source.error}`
-                        : source.data?.markdown ?? "暂无源码"}
-                    </pre>
-                  </div>
-                </>
-              ) : (
-                <p className="text-[12px] leading-6 text-[var(--muted)]">
-                  右侧编辑区支持直接粘贴 Markdown 安装新 skill。选择左侧条目后，会自动载入源码并保存到
-                  user 层。
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]">
-            <div className="border-b border-[var(--line)] px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">Editor</p>
-              <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">保存到 User 层</h3>
-            </div>
-
-            <div className="space-y-3 px-4 py-4">
-              <textarea
-                value={draftMarkdown}
-                onChange={(event) => setDraftMarkdown(event.target.value)}
-                className={EDITOR_CLASSNAME}
-                placeholder="粘贴 skill markdown。若当前选中条目，则会按该名称保存到 user 层。"
-              />
-
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" disabled={busyAction !== null} onClick={() => void handleSave()}>
-                  {selectedSkill ? "覆盖到 user 层" : "安装新 Skill"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busyAction !== null}
-                  onClick={() => {
-                    setSelectedName(null);
-                    setDraftMarkdown("");
-                    setMutationError(null);
-                    setNotice(null);
-                  }}
-                >
-                  清空草稿
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
+      {activeSkill ? (
+        <SkillDetailModal
+          skill={activeSkill}
+          source={source}
+          toggleBusy={pendingToggleName === activeSkill.name}
+          onClose={() => setActiveSkillName(null)}
+          onToggle={() => handleToggle(activeSkill)}
+        />
+      ) : null}
+    </>
   );
 }

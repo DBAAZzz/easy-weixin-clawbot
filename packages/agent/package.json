@@ -3,36 +3,36 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
     },
     "./skills/registry": {
-      "import": "./dist/skills/registry.js",
-      "types": "./dist/skills/registry.d.ts"
+      "import": "./src/skills/registry.ts",
+      "types": "./src/skills/registry.ts"
     },
     "./skills/types": {
-      "import": "./dist/skills/types.js",
-      "types": "./dist/skills/types.d.ts"
+      "import": "./src/skills/types.ts",
+      "types": "./src/skills/types.ts"
     },
     "./skills/installer": {
-      "import": "./dist/skills/installer.js",
-      "types": "./dist/skills/installer.d.ts"
+      "import": "./src/skills/installer.ts",
+      "types": "./src/skills/installer.ts"
     },
     "./tools/registry": {
-      "import": "./dist/tools/registry.js",
-      "types": "./dist/tools/registry.d.ts"
+      "import": "./src/tools/registry.ts",
+      "types": "./src/tools/registry.ts"
     },
     "./tools/types": {
-      "import": "./dist/tools/types.js",
-      "types": "./dist/tools/types.d.ts"
+      "import": "./src/tools/types.ts",
+      "types": "./src/tools/types.ts"
     },
     "./tools/installer": {
-      "import": "./dist/tools/installer.js",
-      "types": "./dist/tools/installer.d.ts"
+      "import": "./src/tools/installer.ts",
+      "types": "./src/tools/installer.ts"
     }
   },
   "scripts": {

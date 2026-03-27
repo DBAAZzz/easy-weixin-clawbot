@@ -1,5 +1,5 @@
 import type { Hono } from "hono";
-import { getAccount, listAccounts } from "../../db/accounts.js";
+import { getAccount, listAccounts, updateAccountAlias } from "../../db/accounts.js";
 
 export function registerAccountRoutes(app: Hono) {
   app.get("/api/accounts", async (c) => {
@@ -13,5 +13,17 @@ export function registerAccountRoutes(app: Hono) {
     }
 
     return c.json({ data: account });
+  });
+
+  app.patch("/api/accounts/:accountId", async (c) => {
+    const accountId = c.req.param("accountId");
+    const body = await c.req.json();
+
+    if (typeof body.alias !== "string" && body.alias !== null) {
+      return c.json({ error: "alias must be string or null" }, 400);
+    }
+
+    await updateAccountAlias(accountId, body.alias);
+    return c.json({ success: true });
   });
 }

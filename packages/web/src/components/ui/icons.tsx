@@ -102,6 +102,32 @@ export function ScanIcon(props: IconProps) {
   );
 }
 
+export function PencilIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 20h4l10.5-10.5a2.83 2.83 0 0 0-4-4L4 16v4Z" />
+      <path d="m14.5 5.5 4 4" />
+    </BaseIcon>
+  );
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M20 6 9 17l-5-5" />
+    </BaseIcon>
+  );
+}
+
+export function XIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </BaseIcon>
+  );
+}
+
 export function SearchIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

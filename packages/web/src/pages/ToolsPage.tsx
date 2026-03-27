@@ -1,423 +1,488 @@
 import { startTransition, useDeferredValue, useEffect, useState } from "react";
-import type { MarkdownSource } from "@clawbot/shared";
+import type { MarkdownSource, ToolInfo } from "@clawbot/shared";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
-import { ActivityIcon, SearchIcon, TerminalIcon } from "../components/ui/icons.js";
+import {
+  ActivityIcon,
+  SearchIcon,
+  TerminalIcon,
+  XIcon,
+} from "../components/ui/icons.js";
 import { useAsyncResource } from "../hooks/use-async-resource.js";
 import { useTools } from "../hooks/useTools.js";
+import { fetchToolSource } from "../lib/api.js";
 import { cn } from "../lib/cn.js";
 import { formatCount } from "../lib/format.js";
-import { fetchToolSource } from "../lib/api.js";
 
-const EDITOR_CLASSNAME =
-  "min-h-[220px] w-full rounded-[16px] border border-[var(--line-strong)] bg-[rgba(255,255,255,0.82)] px-3.5 py-3 font-[var(--font-mono)] text-[12px] leading-6 text-[var(--ink)] outline-none transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[rgba(21,110,99,0.14)]";
+function formatOriginLabel(origin: ToolInfo["origin"]) {
+  return origin === "builtin" ? "内置" : "用户层";
+}
+
+function ToolAvatar(props: { origin: ToolInfo["origin"] }) {
+  return (
+    <span
+      className={cn(
+        "flex size-10 shrink-0 items-center justify-center rounded-[14px] border bg-[rgba(247,250,251,0.92)]",
+        props.origin === "builtin"
+          ? "border-[var(--line)] text-[var(--ink)]"
+          : "border-[rgba(21,110,99,0.12)] text-[var(--accent-strong)]"
+      )}
+    >
+      <TerminalIcon className="size-[18px]" />
+    </span>
+  );
+}
+
+function ToolToggle(props: {
+  enabled: boolean;
+  busy: boolean;
+  onToggle: () => void | Promise<void>;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={props.busy}
+      aria-label={props.enabled ? "停用 tool" : "启用 tool"}
+      aria-pressed={props.enabled}
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => {
+        event.stopPropagation();
+        void props.onToggle();
+      }}
+      className={cn(
+        "relative inline-flex h-8 w-[50px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
+        props.enabled
+          ? "border-[rgba(28,100,242,0.14)] bg-[#1c84f2]"
+          : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.38)]"
+      )}
+    >
+      <span
+        className={cn(
+          "size-6 rounded-full bg-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          props.enabled ? "translate-x-[18px]" : "translate-x-0"
+        )}
+      />
+    </button>
+  );
+}
+
+function ParameterChip(props: { name: string }) {
+  return (
+    <span className="rounded-full border border-[var(--line)] bg-white/78 px-2 py-1 font-[var(--font-mono)] text-[9px] tracking-[0.04em] text-[var(--muted-strong)]">
+      {props.name}
+    </span>
+  );
+}
+
+function ToolCard(props: {
+  tool: ToolInfo;
+  index: number;
+  busy: boolean;
+  onOpen: () => void;
+  onToggle: () => void | Promise<void>;
+}) {
+  const metadata = [
+    `版本 ${props.tool.version}`,
+    props.tool.handler,
+    formatOriginLabel(props.tool.origin),
+  ];
+  const previewParameters = props.tool.parameterNames.slice(0, 3);
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-haspopup="dialog"
+      aria-label={`查看 ${props.tool.name} 详情`}
+      onClick={props.onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          props.onOpen();
+        }
+      }}
+      className="reveal-up group flex min-h-[108px] cursor-pointer items-center gap-3 rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)] md:px-4"
+      style={{ animationDelay: `${props.index * 40}ms` }}
+    >
+      <ToolAvatar origin={props.tool.origin} />
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
+            {props.tool.name}
+          </h3>
+          <Badge
+            tone="muted"
+            className="border-transparent bg-[rgba(21,110,99,0.08)] px-2 py-1 text-[9px] tracking-[0.08em] text-[var(--accent-strong)]"
+          >
+            {props.tool.handler}
+          </Badge>
+        </div>
+
+        <p className="mt-1 truncate text-[12px] leading-5 text-[var(--muted-strong)]">
+          {props.tool.summary}
+        </p>
+
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--muted)]">
+          {metadata.map((item, index) => (
+            <span key={item} className="flex items-center gap-2">
+              {index > 0 ? <span className="size-1 rounded-full bg-[var(--line-strong)]" /> : null}
+              <span>{item}</span>
+            </span>
+          ))}
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {previewParameters.length > 0 ? (
+            previewParameters.map((name) => <ParameterChip key={name} name={name} />)
+          ) : (
+            <span className="text-[10px] text-[var(--muted)]">无参数</span>
+          )}
+          {props.tool.parameterNames.length > previewParameters.length ? (
+            <span className="text-[10px] text-[var(--muted)]">
+              +{props.tool.parameterNames.length - previewParameters.length} more
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <ToolToggle enabled={props.tool.enabled} busy={props.busy} onToggle={props.onToggle} />
+        <span className="text-[10px] font-medium text-[var(--muted)]">
+          {props.tool.enabled ? "已启用" : "已停用"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function DetailItem(props: { label: string; value: string }) {
+  return (
+    <div className="rounded-[18px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-3">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">{props.label}</p>
+      <p className="mt-1.5 text-[13px] font-medium text-[var(--ink)]">{props.value}</p>
+    </div>
+  );
+}
+
+function ToolDetailModal(props: {
+  tool: ToolInfo;
+  source: { data: MarkdownSource | null; loading: boolean; error: string | null };
+  toggleBusy: boolean;
+  onClose: () => void;
+  onToggle: () => void | Promise<void>;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
+      <button
+        type="button"
+        aria-label="关闭 tool 详情"
+        onClick={props.onClose}
+        className="absolute inset-0 bg-[rgba(15,23,42,0.24)] backdrop-blur-[8px]"
+      />
+
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tool-detail-title"
+        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[30px] border border-[rgba(21,32,43,0.1)] bg-[rgba(255,255,255,0.96)] shadow-[0_40px_120px_-56px_rgba(15,23,42,0.52)]"
+      >
+        <div className="border-b border-[var(--line)] px-5 py-4 md:px-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-4">
+              <ToolAvatar origin={props.tool.origin} />
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+                  Tool Detail
+                </p>
+                <h3
+                  id="tool-detail-title"
+                  className="mt-1.5 truncate text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]"
+                >
+                  {props.tool.name}
+                </h3>
+                <p className="mt-2 max-w-2xl text-[13px] leading-6 text-[var(--muted-strong)]">
+                  {props.tool.summary}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={props.onClose}
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-white/80 text-[var(--muted-strong)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
+            >
+              <XIcon className="size-4" />
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Badge tone={props.tool.enabled ? "online" : "offline"}>
+              {props.tool.enabled ? "已启用" : "已停用"}
+            </Badge>
+            <Badge tone="muted">{formatOriginLabel(props.tool.origin)}</Badge>
+            <Badge tone="muted">{props.tool.handler}</Badge>
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6">
+          <div className="grid gap-3 md:grid-cols-2">
+            <DetailItem label="Version" value={props.tool.version} />
+            <DetailItem label="Handler" value={props.tool.handler} />
+            <DetailItem label="Source" value={formatOriginLabel(props.tool.origin)} />
+            <DetailItem label="Status" value={props.tool.enabled ? "已启用" : "已停用"} />
+          </div>
+
+          <div className="rounded-[22px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+              Parameters
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {props.tool.parameterNames.length > 0 ? (
+                props.tool.parameterNames.map((name) => <ParameterChip key={name} name={name} />)
+              ) : (
+                <span className="text-[12px] text-[var(--muted)]">当前 tool 无参数</span>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[22px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Markdown Source
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--muted)]">
+                  详情弹窗里直接查看当前运行中的 tool 定义。
+                </p>
+              </div>
+
+              <Button
+                size="sm"
+                variant={props.tool.enabled ? "outline" : "primary"}
+                disabled={props.toggleBusy}
+                onClick={() => void props.onToggle()}
+              >
+                {props.tool.enabled ? "停用 Tool" : "启用 Tool"}
+              </Button>
+            </div>
+
+            <div className="mt-4">
+              {props.source.loading ? (
+                <div className="space-y-2">
+                  <div className="ui-skeleton h-4 rounded-[8px]" />
+                  <div className="ui-skeleton h-4 rounded-[8px]" />
+                  <div className="ui-skeleton h-4 rounded-[8px]" />
+                  <div className="ui-skeleton h-28 rounded-[14px]" />
+                </div>
+              ) : (
+                <pre className="max-h-[320px] overflow-auto rounded-[18px] border border-[var(--line)] bg-[rgba(255,255,255,0.94)] px-4 py-3 text-[11px] leading-6 text-[var(--ink-soft)]">
+                  {props.source.error
+                    ? `加载源码失败：${props.source.error}`
+                    : props.source.data?.markdown ?? "暂无源码"}
+                </pre>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function ToolsPage() {
-  const { tools, loading, error, refresh, install, update, enable, disable, remove } = useTools();
+  const { tools, loading, error, refresh, enable, disable } = useTools();
   const [query, setQuery] = useState("");
-  const [selectedName, setSelectedName] = useState<string | null>(null);
-  const [draftMarkdown, setDraftMarkdown] = useState("");
-  const [sourceRevision, setSourceRevision] = useState(0);
-  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [activeToolName, setActiveToolName] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [busyAction, setBusyAction] = useState<"save" | "toggle" | "delete" | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [pendingToggleName, setPendingToggleName] = useState<string | null>(null);
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const filteredTools = tools.filter((tool) => {
     if (!normalizedQuery) return true;
 
-    return (
-      tool.name.toLowerCase().includes(normalizedQuery) ||
-      tool.summary.toLowerCase().includes(normalizedQuery) ||
-      tool.handler.toLowerCase().includes(normalizedQuery) ||
-      tool.parameterNames.some((name) => name.toLowerCase().includes(normalizedQuery))
-    );
+    return [
+      tool.name,
+      tool.summary,
+      tool.handler,
+      tool.origin,
+      tool.author ?? "",
+      ...tool.parameterNames,
+    ].some((value) => value.toLowerCase().includes(normalizedQuery));
   });
-  const selectedTool = filteredTools.find((tool) => tool.name === selectedName) ?? null;
+  const activeTool = tools.find((tool) => tool.name === activeToolName) ?? null;
   const source = useAsyncResource<MarkdownSource>(
-    selectedName ? () => fetchToolSource(selectedName) : null,
-    [selectedName, sourceRevision]
+    activeToolName ? () => fetchToolSource(activeToolName) : null,
+    [activeToolName]
   );
 
   useEffect(() => {
-    if (!filteredTools.length) {
-      setSelectedName(null);
-      return;
-    }
+    if (!activeToolName) return;
 
-    if (!selectedName || !filteredTools.some((tool) => tool.name === selectedName)) {
-      setSelectedName(filteredTools[0]?.name ?? null);
+    if (!tools.some((tool) => tool.name === activeToolName)) {
+      setActiveToolName(null);
     }
-  }, [filteredTools, selectedName]);
+  }, [activeToolName, tools]);
 
   useEffect(() => {
-    if (!selectedName) {
-      setDraftMarkdown("");
-      return;
+    if (!activeToolName) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setActiveToolName(null);
+      }
     }
 
-    if (source.data?.markdown) {
-      setDraftMarkdown(source.data.markdown);
-    }
-  }, [selectedName, source.data?.markdown]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeToolName]);
 
   const enabledCount = tools.filter((tool) => tool.enabled).length;
   const userCount = tools.filter((tool) => tool.origin === "user").length;
-  const builtinCount = tools.length - userCount;
   const handlerCount = new Set(tools.map((tool) => tool.handler)).size;
-  const stats = [
-    { label: "Tool 总数", value: formatCount(tools.length), hint: "当前已安装" },
-    { label: "启用中", value: formatCount(enabledCount), hint: "会注册给 LLM" },
-    { label: "用户层", value: formatCount(userCount), hint: "可直接编辑覆盖" },
-    { label: "Handler", value: formatCount(handlerCount), hint: "allowlist 数量" },
-  ];
 
-  async function refreshAll() {
-    setMutationError(null);
+  async function handleRefresh() {
     setNotice(null);
+    setMutationError(null);
     refresh();
-    setSourceRevision((value) => value + 1);
   }
 
-  async function handleToggle() {
-    if (!selectedTool) return;
-
-    setMutationError(null);
+  async function handleToggle(tool: ToolInfo) {
     setNotice(null);
-    setBusyAction("toggle");
+    setMutationError(null);
+    setPendingToggleName(tool.name);
 
     try {
-      const result = selectedTool.enabled
-        ? await disable(selectedTool.name)
-        : await enable(selectedTool.name);
+      const result = tool.enabled ? await disable(tool.name) : await enable(tool.name);
       setNotice(`${result.name} 已${result.enabled ? "启用" : "停用"}`);
-      setSourceRevision((value) => value + 1);
     } catch (reason) {
       setMutationError(reason instanceof Error ? reason.message : String(reason));
     } finally {
-      setBusyAction(null);
-    }
-  }
-
-  async function handleSave() {
-    if (!draftMarkdown.trim()) {
-      setMutationError("请先输入或载入 Markdown");
-      return;
-    }
-
-    setMutationError(null);
-    setNotice(null);
-    setBusyAction("save");
-
-    try {
-      const result = selectedTool
-        ? await update(selectedTool.name, draftMarkdown)
-        : await install(draftMarkdown);
-      setSelectedName(result.name);
-      setNotice(`${result.name} 已保存到 user 层`);
-      setSourceRevision((value) => value + 1);
-    } catch (reason) {
-      setMutationError(reason instanceof Error ? reason.message : String(reason));
-    } finally {
-      setBusyAction(null);
-    }
-  }
-
-  async function handleRemove() {
-    if (!selectedTool || selectedTool.origin !== "user") return;
-
-    setMutationError(null);
-    setNotice(null);
-    setBusyAction("delete");
-
-    try {
-      await remove(selectedTool.name);
-      setNotice(`${selectedTool.name} 的 user 版本已删除`);
-      setSourceRevision((value) => value + 1);
-    } catch (reason) {
-      setMutationError(reason instanceof Error ? reason.message : String(reason));
-    } finally {
-      setBusyAction(null);
+      setPendingToggleName(null);
     }
   }
 
   return (
-    <div className="space-y-3 md:space-y-4">
-      <section className="space-y-3">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">Tools</p>
-            <h2 className="mt-1.5 text-[20px] text-[var(--ink)]">Tool 管理</h2>
-            <p className="mt-1 max-w-2xl text-[12px] leading-5 text-[var(--muted)]">
-              Markdown 驱动的可执行工具目录。右侧可查看源码、启停，以及把定义保存到 user
-              层覆盖内置版本。
-            </p>
-          </div>
+    <>
+      <div className="space-y-5">
+        <section className="space-y-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">Tools</p>
+              <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">已安装工具</h2>
+              <p className="mt-1 max-w-2xl text-[13px] leading-6 text-[var(--muted)]">
+                直接查看当前运行中的 tool 列表。点击条目打开详情弹窗，启停操作保留在列表层。
+              </p>
+            </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => setSelectedName(null)} variant="outline">
-              新建草稿
-            </Button>
-            <Button size="sm" onClick={() => void refreshAll()}>
+            <Button size="sm" onClick={() => void handleRefresh()}>
               <ActivityIcon className="size-4" />
               刷新列表
             </Button>
           </div>
-        </div>
 
-        <div className="overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]">
-          <div className="grid divide-y divide-[var(--line)] md:grid-cols-4 md:divide-x md:divide-y-0">
-            {stats.map((stat) => (
-              <div key={stat.label} className="px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                  {stat.label}
-                </p>
-                <p className="mt-1.5 font-[var(--font-mono)] text-[18px] font-semibold text-[var(--ink)]">
-                  {stat.value}
-                </p>
-                <p className="mt-0.5 text-[11px] text-[var(--muted)]">{stat.hint}</p>
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="relative w-full xl:max-w-[360px]">
+              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="搜索 tool 名称、摘要、handler 或参数"
+                className="h-10 rounded-[14px] pl-10"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+              <Badge tone="muted">已安装 {formatCount(tools.length)}</Badge>
+              <Badge tone="muted">启用 {formatCount(enabledCount)}</Badge>
+              <Badge tone="muted">用户层 {formatCount(userCount)}</Badge>
+              <Badge tone="muted">Handler {formatCount(handlerCount)}</Badge>
+            </div>
+          </div>
+        </section>
+
+        {error ? (
+          <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+            加载 tool 列表失败：{error}
+          </div>
+        ) : null}
+
+        {mutationError ? (
+          <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+            操作失败：{mutationError}
+          </div>
+        ) : null}
+
+        {notice ? (
+          <div className="rounded-[18px] border border-[rgba(21,110,99,0.14)] bg-[rgba(240,253,250,0.92)] px-4 py-3 text-[12px] leading-6 text-[var(--accent-strong)]">
+            {notice}
+          </div>
+        ) : null}
+
+        {loading ? (
+          <section className="grid gap-4 xl:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.8)] px-3.5 py-3.5 md:px-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="ui-skeleton size-10 rounded-[14px]" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="ui-skeleton h-5 rounded-[8px]" />
+                    <div className="ui-skeleton h-4 rounded-[8px]" />
+                    <div className="ui-skeleton h-3 w-2/3 rounded-full" />
+                  </div>
+                  <div className="ui-skeleton h-8 w-[50px] rounded-full" />
+                </div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
+          </section>
+        ) : null}
 
-      {error ? (
-        <div className="border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
-          加载 tool 列表失败：{error}
-        </div>
-      ) : null}
+        {!loading && filteredTools.length === 0 ? (
+          <section className="rounded-[28px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-10 text-center">
+            <p className="text-[15px] font-medium text-[var(--ink)]">没有匹配到 tool</p>
+            <p className="mt-2 text-[12px] leading-6 text-[var(--muted)]">
+              可以尝试清空搜索词，回到完整的已安装列表继续查看。
+            </p>
+          </section>
+        ) : null}
 
-      {mutationError ? (
-        <div className="border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
-          操作失败：{mutationError}
-        </div>
-      ) : null}
-
-      {notice ? (
-        <div className="border border-[rgba(21,110,99,0.14)] bg-[rgba(240,253,250,0.92)] px-4 py-3 text-[12px] leading-6 text-[var(--accent-strong)]">
-          {notice}
-        </div>
-      ) : null}
-
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.95fr)]">
-        <div className="overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]">
-          <div className="border-b border-[var(--line)] px-3 py-3 md:px-4">
-            <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-                <div className="relative w-full sm:w-[300px]">
-                  <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
-                  <Input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="搜索名称、摘要、handler 或参数"
-                    className="h-9 rounded-[8px] pl-10"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 rounded-[14px] border border-dashed border-[var(--line)] bg-white/42 px-3 py-2 text-[11px] text-[var(--muted)]">
-                  <TerminalIcon className="size-4 text-[var(--muted-strong)]" />
-                  <span>tools 来自运行中的 markdown installer</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
-                <TerminalIcon className="size-4 text-[var(--muted-strong)]" />
-                <span>当前筛选结果 {formatCount(filteredTools.length)} 个 tool</span>
-              </div>
+        {!loading && filteredTools.length > 0 ? (
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
+              <TerminalIcon className="size-4 text-[var(--muted-strong)]" />
+              <span>当前展示 {formatCount(filteredTools.length)} 个已安装 tool</span>
             </div>
-          </div>
 
-          {loading ? (
-            <div>
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="grid gap-3 border-b border-[var(--line)] px-4 py-3 last:border-b-0"
-                >
-                  <div className="ui-skeleton h-5 rounded-[8px]" />
-                  <div className="ui-skeleton h-3 rounded-full" />
-                </div>
+            <div className="grid gap-4 xl:grid-cols-2">
+              {filteredTools.map((tool, index) => (
+                <ToolCard
+                  key={tool.name}
+                  tool={tool}
+                  index={index}
+                  busy={pendingToggleName === tool.name}
+                  onOpen={() => startTransition(() => setActiveToolName(tool.name))}
+                  onToggle={() => handleToggle(tool)}
+                />
               ))}
             </div>
-          ) : null}
+          </section>
+        ) : null}
+      </div>
 
-          {!loading && filteredTools.length === 0 ? (
-            <div className="px-5 py-9 text-center">
-              <p className="text-[13px] text-[var(--ink)]">没有匹配到 tool</p>
-              <p className="mt-1.5 text-[12px] text-[var(--muted)]">
-                可以尝试清空搜索词，或者直接在右侧粘贴 Markdown 安装新工具。
-              </p>
-            </div>
-          ) : null}
-
-          {!loading && filteredTools.length > 0 ? (
-            <div>
-              {filteredTools.map((tool, index) => {
-                const isSelected = tool.name === selectedTool?.name;
-
-                return (
-                  <button
-                    key={tool.name}
-                    type="button"
-                    onClick={() => startTransition(() => setSelectedName(tool.name))}
-                    className={cn(
-                      "relative block w-full border-b border-[var(--line)] px-4 py-3 text-left last:border-b-0 hover:bg-[rgba(21,110,99,0.04)]",
-                      isSelected && "bg-[rgba(21,110,99,0.05)]"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "absolute inset-y-3 left-0 w-[3px] rounded-full",
-                        isSelected ? "bg-[var(--accent)]" : "bg-transparent"
-                      )}
-                    />
-                    <div className="reveal-up min-w-0" style={{ animationDelay: `${index * 30}ms` }}>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-[var(--font-mono)] text-[13px] font-medium text-[var(--ink)]">
-                          {tool.name}
-                        </p>
-                        <Badge tone={tool.enabled ? "online" : "offline"}>
-                          {tool.enabled ? "已启用" : "已停用"}
-                        </Badge>
-                        <Badge tone="muted">{tool.origin}</Badge>
-                        <Badge tone="muted">{tool.handler}</Badge>
-                      </div>
-                      <p className="mt-2 text-[12px] leading-6 text-[var(--muted-strong)]">
-                        {tool.summary}
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {tool.parameterNames.length > 0 ? (
-                          tool.parameterNames.map((name) => (
-                            <span
-                              key={name}
-                              className="rounded-full border border-[var(--line)] bg-white/64 px-2.5 py-1 text-[10px] font-[var(--font-mono)] text-[var(--muted-strong)]"
-                            >
-                              {name}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-[11px] text-[var(--muted)]">无参数</span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]">
-            <div className="border-b border-[var(--line)] px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                Detail
-              </p>
-              <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">
-                {selectedTool ? selectedTool.name : "新建 Tool 草稿"}
-              </h3>
-            </div>
-
-            <div className="space-y-4 px-4 py-4">
-              {selectedTool ? (
-                <>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge tone={selectedTool.enabled ? "online" : "offline"}>
-                      {selectedTool.enabled ? "已启用" : "已停用"}
-                    </Badge>
-                    <Badge tone="muted">版本 {selectedTool.version}</Badge>
-                    <Badge tone="muted">{selectedTool.origin}</Badge>
-                    <Badge tone="muted">{selectedTool.handler}</Badge>
-                  </div>
-
-                  <p className="text-[12px] leading-6 text-[var(--muted-strong)]">
-                    {selectedTool.summary}
-                  </p>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant={selectedTool.enabled ? "outline" : "primary"}
-                      disabled={busyAction !== null}
-                      onClick={() => void handleToggle()}
-                    >
-                      {selectedTool.enabled ? "停用 Tool" : "启用 Tool"}
-                    </Button>
-                    {selectedTool.origin === "user" ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busyAction !== null}
-                        onClick={() => void handleRemove()}
-                      >
-                        删除 user 版本
-                      </Button>
-                    ) : null}
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                        Source Preview
-                      </p>
-                      {source.loading ? (
-                        <span className="text-[11px] text-[var(--muted)]">读取中</span>
-                      ) : null}
-                    </div>
-                    <pre className="max-h-[260px] overflow-auto rounded-[16px] border border-[var(--line)] bg-[rgba(246,249,250,0.92)] px-3.5 py-3 text-[11px] leading-6 text-[var(--ink-soft)]">
-                      {source.error
-                        ? `加载源码失败：${source.error}`
-                        : source.data?.markdown ?? "暂无源码"}
-                    </pre>
-                  </div>
-                </>
-              ) : (
-                <p className="text-[12px] leading-6 text-[var(--muted)]">
-                  右侧编辑区支持直接粘贴 Markdown 安装新 tool。选择左侧条目后，会自动载入源码并保存到
-                  user 层。
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]">
-            <div className="border-b border-[var(--line)] px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">Editor</p>
-              <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">保存到 User 层</h3>
-            </div>
-
-            <div className="space-y-3 px-4 py-4">
-              <textarea
-                value={draftMarkdown}
-                onChange={(event) => setDraftMarkdown(event.target.value)}
-                className={EDITOR_CLASSNAME}
-                placeholder="粘贴 tool markdown。若当前选中条目，则会按该名称保存到 user 层。"
-              />
-
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" disabled={busyAction !== null} onClick={() => void handleSave()}>
-                  {selectedTool ? "覆盖到 user 层" : "安装新 Tool"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busyAction !== null}
-                  onClick={() => {
-                    setSelectedName(null);
-                    setDraftMarkdown("");
-                    setMutationError(null);
-                    setNotice(null);
-                  }}
-                >
-                  清空草稿
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
+      {activeTool ? (
+        <ToolDetailModal
+          tool={activeTool}
+          source={source}
+          toggleBusy={pendingToggleName === activeTool.name}
+          onClose={() => setActiveToolName(null)}
+          onToggle={() => handleToggle(activeTool)}
+        />
+      ) : null}
+    </>
   );
 }

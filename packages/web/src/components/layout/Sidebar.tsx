@@ -6,7 +6,6 @@ import { formatCount, formatDuration } from "../../lib/format.js";
 import {
   ActivityIcon,
   HomeIcon,
-  LinkIcon,
   PuzzleIcon,
   QueueIcon,
   ScanIcon,
@@ -44,7 +43,7 @@ export function Sidebar(props: {
   health?: HealthStatus;
   healthLoading: boolean;
 }) {
-  const onlineCount = props.accounts.filter((account) => account.is_online).length;
+  const activeCount = props.accounts.filter((account) => !account.deprecated).length;
   const runtimeLabel = props.healthLoading
     ? "读取中"
     : props.health
@@ -104,13 +103,8 @@ export function Sidebar(props: {
           <p className="px-2 text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">系统</p>
           <div className="mt-2 grid gap-1">
             <SidebarStatusRow
-              label="服务状态"
-              value={props.health?.logged_in ? "已连接" : props.healthLoading ? "读取中" : "待连接"}
-              icon={<LinkIcon className="size-4" />}
-            />
-            <SidebarStatusRow
-              label="在线账号"
-              value={formatCount(onlineCount)}
+              label="活跃账号"
+              value={formatCount(activeCount)}
               icon={<ActivityIcon className="size-4" />}
             />
             <SidebarStatusRow

@@ -1,7 +1,7 @@
 import type { AccountSummary } from "@clawbot/shared";
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import { formatCount, formatDateTime, formatRelativeTime } from "../lib/format.js";
+import { formatCount, formatDateTime } from "../lib/format.js";
 import { cn } from "../lib/cn.js";
 import { Badge } from "./ui/badge.js";
 import { ArrowRightIcon, ChatIcon, PencilIcon, CheckIcon, XIcon } from "./ui/icons.js";
@@ -22,6 +22,8 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
   };
 
   const displayName = account.alias || account.display_name || "未命名账号";
+  const statusTone = account.deprecated ? "offline" : "online";
+  const statusLabel = account.deprecated ? "已废弃" : "活跃";
 
   return (
     <Link to={`/accounts/${encodeURIComponent(account.id)}`} className="group block">
@@ -33,7 +35,7 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
               <span
                 className={cn(
                   "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border border-white",
-                  account.is_online ? "bg-emerald-500 status-dot" : "bg-slate-300"
+                  account.deprecated ? "bg-slate-300" : "bg-emerald-500 status-dot"
                 )}
               />
             </div>
@@ -85,8 +87,8 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
           </div>
 
           <div>
-            <Badge tone={account.is_online ? "online" : "offline"}>
-              {account.is_online ? "在线" : "离线"}
+            <Badge tone={statusTone}>
+              {statusLabel}
             </Badge>
           </div>
 
@@ -95,11 +97,8 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
           </div>
 
           <div>
-            <p className="text-[12px] text-[var(--ink)]">
-              {account.is_online ? "当前在线" : formatRelativeTime(account.last_seen_at)}
-            </p>
-            <p className="mt-0.5 font-[var(--font-mono)] text-[10px] text-[var(--muted)]">
-              {formatDateTime(account.last_seen_at ?? account.created_at)}
+            <p className="font-[var(--font-mono)] text-[10px] text-[var(--muted)]">
+              {formatDateTime(account.created_at)}
             </p>
           </div>
 
@@ -150,8 +149,8 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
                 </>
               )}
             </div>
-            <Badge tone={account.is_online ? "online" : "offline"}>
-              {account.is_online ? "在线" : "离线"}
+            <Badge tone={statusTone}>
+              {statusLabel}
             </Badge>
           </div>
 
@@ -163,9 +162,9 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
               </p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">最近活跃</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">创建时间</p>
               <p className="mt-0.5 text-[12px] text-[var(--ink)]">
-                {account.is_online ? "当前在线" : formatRelativeTime(account.last_seen_at)}
+                {formatDateTime(account.created_at)}
               </p>
             </div>
           </div>
@@ -173,7 +172,7 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
           <div className="flex items-center justify-between border-t border-[var(--line)] pt-3">
             <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
               <ChatIcon className="size-4 text-[var(--muted-strong)]" />
-              <span>{account.is_online ? "可进入会话" : "查看历史记录"}</span>
+              <span>查看历史记录</span>
             </div>
             <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--ink)]">
               进入

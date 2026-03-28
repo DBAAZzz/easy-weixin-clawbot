@@ -17,10 +17,10 @@ import { buttonClassName } from "../components/ui/button.js";
 export function DashboardPage() {
   const { accounts, loading, error, refresh } = useAccounts();
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"all" | "online" | "offline">("all");
+  const [status, setStatus] = useState<"all" | "active" | "deprecated">("all");
   const deferredQuery = useDeferredValue(query);
-  const onlineCount = accounts.filter((account) => account.is_online).length;
-  const offlineCount = accounts.length - onlineCount;
+  const activeCount = accounts.filter((account) => !account.deprecated).length;
+  const deprecatedCount = accounts.length - activeCount;
   const totalConversations = accounts.reduce(
     (sum, account) => sum + account.conversation_count,
     0
@@ -28,8 +28,8 @@ export function DashboardPage() {
   const normalized = deferredQuery.trim().toLowerCase();
   const visibleAccounts = [...accounts]
     .filter((account) => {
-      if (status === "online" && !account.is_online) return false;
-      if (status === "offline" && account.is_online) return false;
+      if (status === "active" && account.deprecated) return false;
+      if (status === "deprecated" && !account.deprecated) return false;
 
       if (!normalized) return true;
 
@@ -38,8 +38,9 @@ export function DashboardPage() {
       return displayName.includes(normalized) || id.includes(normalized);
     })
     .sort((left, right) => {
-      if (left.is_online !== right.is_online) {
-        return Number(right.is_online) - Number(left.is_online);
+      // 活跃账号排前面
+      if (left.deprecated !== right.deprecated) {
+        return Number(left.deprecated) - Number(right.deprecated);
       }
 
       if (left.conversation_count !== right.conversation_count) {
@@ -50,8 +51,8 @@ export function DashboardPage() {
     });
   const stats = [
     { label: "纳管账号", value: formatCount(accounts.length), hint: "账号总数" },
-    { label: "在线账号", value: formatCount(onlineCount), hint: "保持连接" },
-    { label: "离线账号", value: formatCount(offlineCount), hint: "待重新连接" },
+    { label: "活跃账号", value: formatCount(activeCount), hint: "保持连接" },
+    { label: "已废弃", value: formatCount(deprecatedCount), hint: "已被新扫码替代" },
     { label: "归档会话", value: formatCount(totalConversations), hint: "全部会话数" },
   ];
 
@@ -122,8 +123,8 @@ export function DashboardPage() {
               <div className="flex flex-wrap gap-1.5">
                 {[
                   { key: "all", label: "全部" },
-                  { key: "online", label: "在线" },
-                  { key: "offline", label: "离线" },
+                  { key: "active", label: "活跃" },
+                  { key: "deprecated", label: "已废弃" },
                 ].map((item) => (
                   <button
                     key={item.key}
@@ -190,7 +191,7 @@ export function DashboardPage() {
                 <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">账号</p>
                 <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">状态</p>
                 <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">会话数</p>
-                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">最近活跃</p>
+                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">创建时间</p>
                 <p className="text-right text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
                   操作
                 </p>
@@ -200,7 +201,7 @@ export function DashboardPage() {
                 <div className="px-5 py-9 text-center">
                   <p className="text-[13px] text-[var(--ink)]">没有匹配到账号</p>
                   <p className="mt-1.5 text-[12px] text-[var(--muted)]">
-                    可以尝试清空搜索词，或者切换在线状态筛选。
+                    可以尝试清空搜索词，或者切换状态筛选。
                   </p>
                 </div>
               ) : (

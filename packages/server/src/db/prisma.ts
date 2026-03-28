@@ -19,10 +19,10 @@ function requirePassword(): string {
 
 function buildDatabaseUrl() {
   const user = process.env.SUPABASE_DB_USER ?? DEFAULT_SUPABASE_DB_USER;
-  const host = process.env.SUPABASE_POOL_HOST ?? DEFAULT_SUPABASE_POOL_HOST;
+  const host = process.env.SUPABASE_DIRECT_HOST ?? DEFAULT_SUPABASE_DIRECT_HOST;
   const dbName = process.env.SUPABASE_DB_NAME ?? DEFAULT_SUPABASE_DB_NAME;
   const password = encodeURIComponent(requirePassword());
-  return `postgresql://${user}:${password}@${host}:6543/${dbName}?pgbouncer=true`;
+  return `postgresql://${user}:${password}@${host}:5432/${dbName}`;
 }
 
 function buildDirectUrl() {

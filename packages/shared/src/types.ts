@@ -18,9 +18,8 @@ export interface AccountRow {
   id: string;
   display_name: string | null;
   alias: string | null;
-  last_seen_at: string | null;
+  deprecated: boolean;
   created_at: string;
-  is_online: boolean;
 }
 
 export interface AccountSummary extends AccountRow {
@@ -114,7 +113,6 @@ export interface HealthStatus {
   status: "ok";
   uptime_ms: number;
   started_at: string;
-  logged_in: boolean;
   running_accounts: string[];
   pending_message_writes: number;
 }

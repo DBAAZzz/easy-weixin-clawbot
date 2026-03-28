@@ -2,6 +2,7 @@ import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { createApiApp } from "./api/index.js";
 import { skillInstaller, toolInstaller, validateConfig } from "./ai.js";
+import { upsertAccount } from "./db/accounts.js";
 import { createLoginManager } from "./login/login-manager.js";
 import { createBotRuntime } from "./runtime.js";
 
@@ -12,7 +13,7 @@ await runtime.bootstrap();
 
 const loginManager = createLoginManager({
   onSuccess: async (accountId) => {
-    await runtime.syncAccountsFromDisk();
+    await upsertAccount(accountId);
     runtime.ensureAccountStarted(accountId);
   },
 });

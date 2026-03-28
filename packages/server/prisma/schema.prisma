@@ -12,7 +12,7 @@ model Account {
   id           String         @id @db.Text
   displayName  String?        @map("display_name") @db.Text
   alias        String?        @db.Text
-  lastSeenAt   DateTime?      @map("last_seen_at") @db.Timestamptz(6)
+  deprecated   Boolean        @default(false)
   createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   conversations Conversation[]
   messages      Message[]

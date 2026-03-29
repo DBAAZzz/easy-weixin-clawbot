@@ -112,6 +112,18 @@ export function nextSeq(accountId: string, conversationId: string): number {
   return next;
 }
 
+/**
+ * Evict a conversation from memory only — DB is untouched.
+ * Used when rotating to a new session so the old effectiveConvId
+ * doesn't linger in the in-memory store.
+ */
+export function evictConversation(accountId: string, conversationId: string): void {
+  const conversationKey = key(accountId, conversationId);
+  store.delete(conversationKey);
+  seqCounters.delete(conversationKey);
+  loading.delete(conversationKey);
+}
+
 export function clearConversation(accountId: string, conversationId: string): void {
   const conversationKey = key(accountId, conversationId);
   store.delete(conversationKey);

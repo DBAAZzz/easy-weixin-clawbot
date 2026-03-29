@@ -14,8 +14,9 @@ model Account {
   alias        String?        @db.Text
   deprecated   Boolean        @default(false)
   createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  conversations Conversation[]
-  messages      Message[]
+  conversations  Conversation[]
+  messages       Message[]
+  sessionRoutes  SessionRoute[]
 
   @@map("accounts")
 }
@@ -33,6 +34,18 @@ model Conversation {
   @@unique([accountId, conversationId], map: "conversations_account_id_conversation_id_key")
   @@index([accountId], map: "idx_conversations_account")
   @@map("conversations")
+}
+
+model SessionRoute {
+  id              BigInt   @id @default(autoincrement())
+  accountId       String   @map("account_id") @db.Text
+  wechatConvId    String   @map("wechat_conv_id") @db.Text
+  effectiveConvId String   @map("effective_conv_id") @db.Text
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account         Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, wechatConvId], map: "session_routes_account_id_wechat_conv_id_key")
+  @@map("session_routes")
 }
 
 model Message {

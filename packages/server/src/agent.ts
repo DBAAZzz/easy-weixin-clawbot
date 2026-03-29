@@ -5,6 +5,7 @@ import { chat } from "./ai.js";
 import { builtinCommands } from "./commands/builtins.js";
 import { CommandRegistry } from "./commands/registry.js";
 import { clearConversation, evictConversation, withConversationLock } from "./conversation.js";
+import { deleteRoute, getRoute, upsertRoute } from "./db/session-routes.js";
 import { log } from "./logger.js";
 import { TTS_CACHE_DIR } from "./paths.js";
 import { getTTSProvider } from "./services/tts/index.js";
@@ -13,25 +14,31 @@ const commandRegistry = new CommandRegistry();
 commandRegistry.registerAll(builtinCommands);
 
 /**
- * Maps wechatConvId → current effectiveConvId per account.
+ * In-memory cache of wechatConvId → effectiveConvId per account.
  * Key: `${accountId}::${wechatConvId}`
- * Default: effectiveConvId === wechatConvId (first session).
- * After /reset: effectiveConvId = `${wechatConvId}#${timestamp}` — a new DB conversation.
+ * Populated lazily from DB on first use; persisted to DB on /reset so the
+ * mapping survives server restarts.
  */
-const sessionRoutes = new Map<string, string>();
+const sessionCache = new Map<string, string>();
 
-function getEffectiveConvId(accountId: string, wechatConvId: string): string {
+async function getEffectiveConvId(accountId: string, wechatConvId: string): Promise<string> {
   const k = `${accountId}::${wechatConvId}`;
-  if (!sessionRoutes.has(k)) sessionRoutes.set(k, wechatConvId);
-  return sessionRoutes.get(k)!;
+  if (sessionCache.has(k)) return sessionCache.get(k)!;
+
+  // Cache miss — check DB (populated on /reset, null if no reset has occurred)
+  const persisted = await getRoute(accountId, wechatConvId);
+  const effective = persisted ?? wechatConvId;
+  sessionCache.set(k, effective);
+  return effective;
 }
 
-function rotateSession(accountId: string, wechatConvId: string): string {
+async function rotateSession(accountId: string, wechatConvId: string): Promise<string> {
   const k = `${accountId}::${wechatConvId}`;
-  const oldEffective = sessionRoutes.get(k) ?? wechatConvId;
+  const oldEffective = sessionCache.get(k) ?? wechatConvId;
   const newEffective = `${wechatConvId}#${Date.now()}`;
   evictConversation(accountId, oldEffective);
-  sessionRoutes.set(k, newEffective);
+  sessionCache.set(k, newEffective);
+  await upsertRoute(accountId, wechatConvId, newEffective);
   return newEffective;
 }
 
@@ -67,7 +74,7 @@ export function createAgent(accountId: string): Agent {
       log.recv(accountId, req.conversationId, req.text, req.media?.type);
 
       const startedAt = Date.now();
-      const effectiveConvId = getEffectiveConvId(accountId, req.conversationId);
+      const effectiveConvId = await getEffectiveConvId(accountId, req.conversationId);
 
       // 内置命令拦截（不经过 LLM）
       const dispatched = commandRegistry.tryDispatch(req.text);
@@ -78,10 +85,7 @@ export function createAgent(accountId: string): Agent {
           args: dispatched.args,
           startedAt,
           commands: commandRegistry.list(),
-          rotateSession: () => {
-            rotateSession(accountId, req.conversationId);
-            return Promise.resolve();
-          },
+          rotateSession: () => rotateSession(accountId, req.conversationId).then(() => undefined),
         });
         log.send(accountId, req.conversationId, reply.text ?? "");
         return reply;
@@ -100,10 +104,14 @@ export function createAgent(accountId: string): Agent {
     },
 
     clearSession(wechatConvId: string) {
-      const effective = getEffectiveConvId(accountId, wechatConvId);
+      const k = `${accountId}::${wechatConvId}`;
+      const effective = sessionCache.get(k) ?? wechatConvId;
       log.clear(accountId, wechatConvId);
       clearConversation(accountId, effective);
-      sessionRoutes.delete(`${accountId}::${wechatConvId}`);
+      sessionCache.delete(k);
+      void deleteRoute(accountId, wechatConvId).catch((err) => {
+        log.error(`deleteRoute(${accountId}/${wechatConvId})`, err);
+      });
     },
   };
 }

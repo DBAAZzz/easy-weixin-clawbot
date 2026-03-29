@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    dependencies:
+      weixin-agent-sdk:
+        specifier: ^0.2.0
+        version: 0.2.0
 
   packages/agent:
     dependencies:
@@ -54,8 +58,8 @@ importers:
         specifier: ^0.12.0
         version: 0.12.0
       weixin-agent-sdk:
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.3.0
+        version: 0.3.0
     devDependencies:
       prisma:
         specifier: ^6.19.2
@@ -1603,6 +1607,10 @@ packages:
 
   weixin-agent-sdk@0.2.0:
     resolution: {integrity: sha512-uTx8Q4+27O1pusd5LOp3PFGEY6/13UgFkcQ4xYwaXKEKjbsv+gfGzEC6orIbUCOJ4fBx/YpNYGHViBHjWT/5wQ==}
+    engines: {node: '>=22'}
+
+  weixin-agent-sdk@0.3.0:
+    resolution: {integrity: sha512-+6cH3PwB2NObIY5t+nli26RqAo+w9pKJlrhu4B2tWB2kIqDXT1fIYdevajfuPG0JWc0GP7u/DAF6umjkOq2G3w==}
     engines: {node: '>=22'}
 
   ws@8.20.0:
@@ -3312,6 +3320,10 @@ snapshots:
   web-streams-polyfill@3.3.3: {}
 
   weixin-agent-sdk@0.2.0:
+    dependencies:
+      qrcode-terminal: 0.12.0
+
+  weixin-agent-sdk@0.3.0:
     dependencies:
       qrcode-terminal: 0.12.0
 

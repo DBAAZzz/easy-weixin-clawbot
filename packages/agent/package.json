@@ -33,12 +33,24 @@
     "./tools/installer": {
       "import": "./src/tools/installer.ts",
       "types": "./src/tools/installer.ts"
+    },
+    "./mcp/types": {
+      "import": "./src/mcp/types.ts",
+      "types": "./src/mcp/types.ts"
+    },
+    "./mcp/stdio-client": {
+      "import": "./src/mcp/stdio-client.ts",
+      "types": "./src/mcp/stdio-client.ts"
+    },
+    "./mcp/tool-adapter": {
+      "import": "./src/mcp/tool-adapter.ts",
+      "types": "./src/mcp/tool-adapter.ts"
     }
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "test": "tsx --test src/**/*.test.ts"
+    "test": "tsx --test 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@mariozechner/pi-ai": "^0.62.0",

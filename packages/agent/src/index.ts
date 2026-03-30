@@ -25,4 +25,14 @@ export type {
   ToolSource,
 } from "./tools/types.js";
 export { createToolRegistry } from "./tools/registry.js";
+export { createCompositeToolRegistry } from "./tools/composite-registry.js";
 export { createToolInstaller } from "./tools/installer.js";
+export type {
+  McpRemoteTool,
+  McpToolBinding,
+  McpToolCallResult,
+  StdioMcpClient,
+  StdioMcpClientOptions,
+} from "./mcp/types.js";
+export { createStdioMcpClient } from "./mcp/stdio-client.js";
+export { createMcpToolSnapshotItem } from "./mcp/tool-adapter.js";

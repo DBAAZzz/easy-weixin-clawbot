@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { spawn } from "node:child_process";
-import { ensurePrismaUrls } from "./db/prisma.js";
+import { ensurePrismaUrls } from "./db/prisma-env.js";
 
 const { databaseUrl, directUrl } = ensurePrismaUrls();
 const args = process.argv.slice(2);

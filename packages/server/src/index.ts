@@ -1,12 +1,16 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { createApiApp } from "./api/index.js";
-import { skillInstaller, toolInstaller, validateConfig } from "./ai.js";
+import { mcpToolRegistry, skillInstaller, toolInstaller, validateConfig } from "./ai.js";
 import { upsertAccount } from "./db/accounts.js";
 import { createLoginManager } from "./login/login-manager.js";
+import { createMcpManager } from "./mcp/manager.js";
 import { createBotRuntime } from "./runtime.js";
 
 validateConfig();
+
+const mcpManager = createMcpManager(mcpToolRegistry);
+await mcpManager.bootstrap();
 
 const runtime = createBotRuntime();
 await runtime.bootstrap();
@@ -24,6 +28,7 @@ const app = createApiApp({
   loginManager,
   toolInstaller,
   skillInstaller,
+  mcpManager,
   startedAt,
 });
 
@@ -42,6 +47,7 @@ async function shutdown(signal: string) {
   shuttingDown = true;
 
   console.log(`Received ${signal}, shutting down...`);
+  await mcpManager.shutdown();
   await runtime.shutdown();
   server.close();
   process.exit(0);

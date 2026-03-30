@@ -53,7 +53,7 @@ function ToolToggle(props: {
       className={cn(
         "relative inline-flex h-8 w-[50px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
         props.enabled
-          ? "border-[rgba(28,100,242,0.14)] bg-[#1c84f2]"
+          ? "border-[rgba(28,100,242,0.14)] bg-[var(--accent)]"
           : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.38)]"
       )}
     >

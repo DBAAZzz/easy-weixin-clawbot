@@ -48,6 +48,47 @@ model SessionRoute {
   @@map("session_routes")
 }
 
+model McpServer {
+  id         BigInt   @id @default(autoincrement())
+  name       String   @db.Text
+  slug       String   @unique @db.Text
+  transport  String   @db.Text
+  command    String   @db.Text
+  argsJson   Json     @map("args_json")
+  envJson    Json     @map("env_json")
+  cwd        String?  @db.Text
+  enabled    Boolean  @default(true)
+  status     String   @default("disconnected") @db.Text
+  lastError  String?  @map("last_error") @db.Text
+  lastSeenAt DateTime? @map("last_seen_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  tools      McpTool[]
+
+  @@index([enabled], map: "idx_mcp_servers_enabled")
+  @@map("mcp_servers")
+}
+
+model McpTool {
+  id         BigInt   @id @default(autoincrement())
+  serverId   BigInt   @map("server_id")
+  remoteName String   @map("remote_name") @db.Text
+  localName  String   @map("local_name") @db.Text
+  summary    String?  @db.Text
+  inputSchema Json    @map("input_schema")
+  enabled    Boolean  @default(true)
+  lastSeenAt DateTime? @map("last_seen_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  server     McpServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([serverId, remoteName], map: "mcp_tools_server_id_remote_name_key")
+  @@unique([localName], map: "mcp_tools_local_name_key")
+  @@index([serverId], map: "idx_mcp_tools_server")
+  @@index([enabled], map: "idx_mcp_tools_enabled")
+  @@map("mcp_tools")
+}
+
 model Message {
   id             BigInt   @id @default(autoincrement())
   accountId      String   @map("account_id") @db.Text

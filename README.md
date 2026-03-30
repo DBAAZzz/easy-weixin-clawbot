@@ -45,7 +45,7 @@ packages/
 data/
 ├── skills/builtin/   # 内置技能（翻译、摘要、专业人设）
 ├── skills/user/      # 用户安装的技能
-├── tools/builtin/    # 内置工具（web-search、opencli）
+├── tools/builtin/    # 内置工具（opencli）
 └── tools/user/       # 用户安装的工具
 ```
 

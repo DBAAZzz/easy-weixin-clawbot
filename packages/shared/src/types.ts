@@ -101,6 +101,45 @@ export interface CapabilityCollection {
   skills: SkillInfo[];
 }
 
+export type McpTransport = "stdio";
+
+export type McpServerStatus =
+  | "connected"
+  | "connecting"
+  | "disconnected"
+  | "error";
+
+export interface McpServerInfo {
+  id: string;
+  name: string;
+  slug: string;
+  transport: McpTransport;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  cwd: string | null;
+  enabled: boolean;
+  status: McpServerStatus;
+  last_error: string | null;
+  last_seen_at: string | null;
+  created_at: string;
+  updated_at: string;
+  tool_count: number;
+}
+
+export interface McpToolInfo {
+  id: string;
+  server_id: string;
+  server_name: string;
+  server_slug: string;
+  remote_name: string;
+  local_name: string;
+  summary: string | null;
+  input_schema: Record<string, unknown>;
+  enabled: boolean;
+  last_seen_at: string | null;
+}
+
 export type LoginState =
   | { status: "idle" }
   | { status: "qr_ready"; qr_text: string }

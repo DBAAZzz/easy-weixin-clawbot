@@ -6,11 +6,7 @@ settings:
 
 importers:
 
-  .:
-    dependencies:
-      weixin-agent-sdk:
-        specifier: ^0.2.0
-        version: 0.2.0
+  .: {}
 
   packages/agent:
     dependencies:
@@ -1604,10 +1600,6 @@ packages:
   web-streams-polyfill@3.3.3:
     resolution: {integrity: sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw==}
     engines: {node: '>= 8'}
-
-  weixin-agent-sdk@0.2.0:
-    resolution: {integrity: sha512-uTx8Q4+27O1pusd5LOp3PFGEY6/13UgFkcQ4xYwaXKEKjbsv+gfGzEC6orIbUCOJ4fBx/YpNYGHViBHjWT/5wQ==}
-    engines: {node: '>=22'}
 
   weixin-agent-sdk@0.3.0:
     resolution: {integrity: sha512-+6cH3PwB2NObIY5t+nli26RqAo+w9pKJlrhu4B2tWB2kIqDXT1fIYdevajfuPG0JWc0GP7u/DAF6umjkOq2G3w==}
@@ -3318,10 +3310,6 @@ snapshots:
       yaml: 2.8.3
 
   web-streams-polyfill@3.3.3: {}
-
-  weixin-agent-sdk@0.2.0:
-    dependencies:
-      qrcode-terminal: 0.12.0
 
   weixin-agent-sdk@0.3.0:
     dependencies:

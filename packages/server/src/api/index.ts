@@ -4,11 +4,13 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import type { LoginManager } from "../login/login-manager.js";
+import type { McpManager } from "../mcp/manager.js";
 import type { BotRuntime } from "../runtime.js";
 import { registerAccountRoutes } from "./routes/accounts.js";
 import { registerConversationRoutes } from "./routes/conversations.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerLoginRoutes } from "./routes/login.js";
+import { registerMcpRoutes } from "./routes/mcp.js";
 import { registerMessageRoutes } from "./routes/messages.js";
 import { registerSkillRoutes } from "./routes/skills.js";
 import { registerToolRoutes } from "./routes/tools.js";
@@ -18,6 +20,7 @@ export interface ApiDependencies {
   loginManager: LoginManager;
   toolInstaller: ToolInstaller;
   skillInstaller: SkillInstaller;
+  mcpManager: McpManager;
   startedAt: Date;
 }
 
@@ -59,6 +62,7 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerLoginRoutes(app, dependencies.loginManager);
   registerToolRoutes(app, dependencies.toolInstaller);
   registerSkillRoutes(app, dependencies.skillInstaller, dependencies.toolInstaller);
+  registerMcpRoutes(app, dependencies.mcpManager);
 
   app.onError((error, c) => {
     console.error("[api] unhandled error", error);

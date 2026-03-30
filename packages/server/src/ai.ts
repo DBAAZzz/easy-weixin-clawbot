@@ -1,4 +1,5 @@
 import {
+  createCompositeToolRegistry,
   createAgentRunner,
   createSkillInstaller,
   createSkillRegistry,
@@ -21,7 +22,7 @@ import type { ChatResponse } from "weixin-agent-sdk";
 import { isDebugEnabled } from "./commands/debug.js";
 import { ensureHistoryLoaded, getHistory, nextSeq, rollbackMessages } from "./conversation.js";
 import { queuePersistMessage } from "./db/messages.js";
-import { ensurePrismaUrls } from "./db/prisma.js";
+import { ensurePrismaUrls } from "./db/prisma-env.js";
 import { log } from "./logger.js";
 import {
   DOWNLOADS_DIR,
@@ -145,8 +146,10 @@ const model: Model<any> = (() => {
   return resolvedModel;
 })();
 
-export const toolRegistry = createToolRegistry();
-export const toolInstaller = createToolInstaller(toolRegistry);
+export const localToolRegistry = createToolRegistry();
+export const mcpToolRegistry = createToolRegistry();
+export const toolRegistry = createCompositeToolRegistry(localToolRegistry, mcpToolRegistry);
+export const toolInstaller = createToolInstaller(localToolRegistry);
 export const skillRegistry = createSkillRegistry();
 export const skillInstaller = createSkillInstaller(skillRegistry);
 

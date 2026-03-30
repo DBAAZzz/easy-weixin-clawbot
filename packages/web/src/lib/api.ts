@@ -7,11 +7,14 @@ import type {
   LegacySkillInfo,
   LoginState,
   MarkdownSource,
+  McpServerInfo,
+  McpToolInfo,
   MessageRow,
   PaginatedResponse,
   SkillInfo,
   ToolInfo,
 } from "@clawbot/shared";
+import type { McpServerRequestPayload } from "./mcp-form.js";
 
 const API_SECRET = import.meta.env.VITE_API_SECRET;
 
@@ -138,6 +141,72 @@ export function removeTool(name: string): Promise<{ name: string }> {
 
 export function fetchSkills(): Promise<SkillInfo[]> {
   return request<SkillInfo[]>("/api/skills");
+}
+
+export function fetchMcpServers(): Promise<McpServerInfo[]> {
+  return request<McpServerInfo[]>("/api/mcp/servers");
+}
+
+export function createMcpServer(payload: McpServerRequestPayload): Promise<McpServerInfo> {
+  return request<McpServerInfo>("/api/mcp/servers", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateMcpServer(
+  id: string,
+  payload: McpServerRequestPayload
+): Promise<McpServerInfo> {
+  return request<McpServerInfo>(`/api/mcp/servers/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function refreshMcpServer(id: string): Promise<McpServerInfo> {
+  return request<McpServerInfo>(`/api/mcp/servers/${encodeURIComponent(id)}/refresh`, {
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function enableMcpServer(id: string): Promise<McpServerInfo> {
+  return request<McpServerInfo>(`/api/mcp/servers/${encodeURIComponent(id)}/enable`, {
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function disableMcpServer(id: string): Promise<McpServerInfo> {
+  return request<McpServerInfo>(`/api/mcp/servers/${encodeURIComponent(id)}/disable`, {
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function deleteMcpServer(id: string): Promise<{ id: string }> {
+  return request<{ id: string }>(`/api/mcp/servers/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchMcpTools(): Promise<McpToolInfo[]> {
+  return request<McpToolInfo[]>("/api/mcp/tools");
+}
+
+export function enableMcpTool(id: string): Promise<McpToolInfo> {
+  return request<McpToolInfo>(`/api/mcp/tools/${encodeURIComponent(id)}/enable`, {
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function disableMcpTool(id: string): Promise<McpToolInfo> {
+  return request<McpToolInfo>(`/api/mcp/tools/${encodeURIComponent(id)}/disable`, {
+    method: "POST",
+    body: "{}",
+  });
 }
 
 export function fetchSkillSource(name: string): Promise<MarkdownSource> {

@@ -6,6 +6,7 @@ import { formatCount, formatDuration } from "../../lib/format.js";
 import {
   ActivityIcon,
   HomeIcon,
+  LinkIcon,
   PuzzleIcon,
   QueueIcon,
   ScanIcon,
@@ -59,6 +60,7 @@ export function Sidebar(props: {
       label: "工作台",
       items: [
         { to: "/", label: "账号列表", icon: <HomeIcon className="size-4" /> },
+        { to: "/mcp", label: "MCP Servers", icon: <LinkIcon className="size-4" /> },
         { to: "/tools", label: "工具列表", icon: <TerminalIcon className="size-4" /> },
         { to: "/skills", label: "技能列表", icon: <PuzzleIcon className="size-4" /> },
         { to: "/login", label: "连接 clawbot", icon: <ScanIcon className="size-4" /> },

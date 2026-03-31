@@ -16,7 +16,9 @@ import type {
 } from "@clawbot/shared";
 import type { McpServerRequestPayload } from "./mcp-form.js";
 
-const API_SECRET = import.meta.env.VITE_API_SECRET;
+function getAuthToken(): string | null {
+  return localStorage.getItem("auth_token");
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
@@ -25,14 +27,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers.set("Content-Type", "application/json");
   }
 
-  if (API_SECRET) {
-    headers.set("Authorization", `Bearer ${API_SECRET}`);
+  const token = getAuthToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(path, {
     ...init,
     headers,
   });
+
+  if (response.status === 401) {
+    localStorage.removeItem("auth_token");
+    window.location.href = "/auth/login";
+    throw new Error("Unauthorized");
+  }
 
   const payload = (await response.json().catch(() => ({ error: "invalid response" }))) as ApiResponse<T>;
 
@@ -50,14 +59,21 @@ async function requestPaginated<T>(path: string, init?: RequestInit): Promise<Pa
     headers.set("Content-Type", "application/json");
   }
 
-  if (API_SECRET) {
-    headers.set("Authorization", `Bearer ${API_SECRET}`);
+  const token = getAuthToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(path, {
     ...init,
     headers,
   });
+
+  if (response.status === 401) {
+    localStorage.removeItem("auth_token");
+    window.location.href = "/auth/login";
+    throw new Error("Unauthorized");
+  }
 
   const payload = (await response.json().catch(() => ({ error: "invalid response" }))) as
     | PaginatedResponse<T>
@@ -278,4 +294,11 @@ export function fetchLoginStatus(): Promise<LoginState> {
 
 export function cancelLogin(): Promise<LoginState> {
   return request<LoginState>("/api/login/cancel", { method: "POST", body: "{}" });
+}
+
+export function login(username: string, password: string): Promise<{ token: string; expiresIn: string }> {
+  return request<{ token: string; expiresIn: string }>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
 }

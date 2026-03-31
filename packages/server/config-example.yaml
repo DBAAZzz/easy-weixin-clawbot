@@ -1,0 +1,6 @@
+# Authentication Configuration
+auth:
+  username: admin
+  password: admin123
+  jwtSecret: change-me-to-a-random-secret-key-in-production
+  tokenExpiry: 24h

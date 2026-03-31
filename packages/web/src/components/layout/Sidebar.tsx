@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import type { AccountSummary, HealthStatus } from "@clawbot/shared";
 import { cn } from "../../lib/cn.js";
 import { formatCount, formatDuration } from "../../lib/format.js";
@@ -7,6 +7,7 @@ import {
   ActivityIcon,
   HomeIcon,
   LinkIcon,
+  LogOutIcon,
   PuzzleIcon,
   QueueIcon,
   ScanIcon,
@@ -44,6 +45,7 @@ export function Sidebar(props: {
   health?: HealthStatus;
   healthLoading: boolean;
 }) {
+  const navigate = useNavigate();
   const activeCount = props.accounts.filter((account) => !account.deprecated).length;
   const runtimeLabel = props.healthLoading
     ? "读取中"
@@ -67,6 +69,11 @@ export function Sidebar(props: {
       ],
     },
   ];
+
+  const handleLogout = () => {
+    localStorage.removeItem("auth_token");
+    navigate("/auth/login", { replace: true });
+  };
 
   return (
     <aside className="h-[100dvh] overflow-hidden border-r border-[var(--line)] bg-[linear-gradient(180deg,rgba(247,250,251,0.94),rgba(241,245,247,0.98))]">
@@ -101,7 +108,7 @@ export function Sidebar(props: {
 
         <div className="mt-4 border-t border-[var(--line)]" />
 
-        <div className="mt-4 flex-1 px-1">
+        <div className="mt-4 px-1">
           <p className="px-2 text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">系统</p>
           <div className="mt-2 grid gap-1">
             <SidebarStatusRow
@@ -122,8 +129,18 @@ export function Sidebar(props: {
           </div>
 
           <div className="mt-4 rounded-[16px] border border-dashed border-[var(--line)] bg-white/42 px-4 py-4 text-[13px] leading-6 text-[var(--muted)]">
-            账号列表统一在“账号列表”页面查看，侧栏仅保留导航与系统状态。
+            账号列表统一在"账号列表"页面查看，侧栏仅保留导航与系统状态。
           </div>
+        </div>
+
+        <div className="mt-auto px-1 pt-4">
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-[16px] border border-[var(--line)] bg-white/55 px-3 py-2.5 text-[13px] text-[var(--muted-strong)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/72 hover:text-[var(--ink)]"
+          >
+            <LogOutIcon className="size-4" />
+            <span>退出登录</span>
+          </button>
         </div>
       </div>
     </aside>

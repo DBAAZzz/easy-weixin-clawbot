@@ -1,12 +1,14 @@
-import type { MiddlewareHandler } from "hono";
 import type { SkillInstaller, ToolInstaller } from "@clawbot/agent";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { loadAuthConfig } from "../config/auth.js";
 import type { LoginManager } from "../login/login-manager.js";
 import type { McpManager } from "../mcp/manager.js";
 import type { BotRuntime } from "../runtime.js";
+import { createAuthMiddleware } from "./middleware/auth.js";
 import { registerAccountRoutes } from "./routes/accounts.js";
+import { registerAuthRoutes } from "./routes/auth.js";
 import { registerConversationRoutes } from "./routes/conversations.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerLoginRoutes } from "./routes/login.js";
@@ -24,27 +26,9 @@ export interface ApiDependencies {
   startedAt: Date;
 }
 
-const auth: MiddlewareHandler = async (c, next) => {
-  if (c.req.method === "OPTIONS") {
-    await next();
-    return;
-  }
-
-  const secret = process.env.API_SECRET;
-  if (!secret) {
-    return c.json({ error: "API_SECRET is not configured" }, 500);
-  }
-
-  const token = c.req.header("Authorization")?.replace(/^Bearer\s+/i, "");
-  if (token !== secret) {
-    return c.json({ error: "unauthorized" }, 401);
-  }
-
-  await next();
-};
-
 export function createApiApp(dependencies: ApiDependencies) {
   const app = new Hono();
+  const authConfig = loadAuthConfig();
 
   app.use(
     "*",
@@ -53,7 +37,12 @@ export function createApiApp(dependencies: ApiDependencies) {
     })
   );
   app.use("*", logger());
-  app.use("/api/*", auth);
+
+  // Register auth routes (no JWT required)
+  registerAuthRoutes(app, authConfig);
+
+  // Apply JWT middleware to all other API routes
+  app.use("/api/*", createAuthMiddleware(authConfig.jwtSecret));
 
   registerHealthRoutes(app, dependencies);
   registerAccountRoutes(app);

@@ -65,6 +65,9 @@ pnpm install
 
 # 复制环境配置
 cp .env.example .env
+
+# 复制服务端认证配置（本地使用，不提交仓库）
+cp packages/server/config-example.yaml packages/server/config.yaml
 ```
 
 ### 配置 `.env`
@@ -84,13 +87,26 @@ DIRECT_URL=postgresql://...
 
 # API 服务
 API_PORT=3001
-API_SECRET=your-random-secret  # Web 后台鉴权用
 WEB_ORIGIN=http://localhost:5173
 
 # TTS（可选）
 TTS_PROVIDER=edge-tts
 TTS_DEFAULT_VOICE=zh-CN-XiaoxiaoNeural
 ```
+
+### 配置 `packages/server/config.yaml`
+
+`packages/server/config.yaml` 是服务端本地认证配置文件，已被 `packages/server/.gitignore` 忽略，不会提交到仓库。仓库内的 `packages/server/config-example.yaml` 提供了示例模板。
+
+```yaml
+auth:
+  username: admin
+  password: change-this-password
+  jwtSecret: change-me-to-a-random-secret-key-in-production
+  tokenExpiry: 24h
+```
+
+请按你的环境修改用户名、密码和 `jwtSecret`，再启动服务。
 
 ### 启动
 
@@ -103,6 +119,8 @@ pnpm dev:agent    # Agent 编译监听
 pnpm dev:server   # API 服务 + 机器人运行时（localhost:3001）
 pnpm dev:web      # Web 后台（localhost:5173）
 ```
+
+启动后访问 `http://localhost:5173/auth/login`，使用 `packages/server/config.yaml` 中配置的用户名和密码登录 Web 后台。
 
 ### 构建 & 生产运行
 
@@ -165,7 +183,7 @@ pnpm start
 
 ## API 接口
 
-所有接口需要 `Authorization: Bearer <API_SECRET>` 鉴权。
+`POST /api/auth/login` 无需鉴权；其余接口需要 `Authorization: Bearer <JWT_TOKEN>` 鉴权。
 
 ### 系统
 
@@ -186,6 +204,7 @@ pnpm start
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
+| POST | `/api/auth/login` | 使用 `config.yaml` 中的用户名和密码换取 JWT Token |
 | POST | `/api/login/start` | 触发微信登录 |
 | GET | `/api/login/status` | 轮询登录状态 + 二维码 |
 | POST | `/api/login/cancel` | 取消登录 |

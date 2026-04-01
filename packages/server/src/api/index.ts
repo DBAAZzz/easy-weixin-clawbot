@@ -16,6 +16,7 @@ import { registerMcpRoutes } from "./routes/mcp.js";
 import { registerMessageRoutes } from "./routes/messages.js";
 import { registerSkillRoutes } from "./routes/skills.js";
 import { registerToolRoutes } from "./routes/tools.js";
+import { registerWebhookRoutes } from "./routes/webhooks.js";
 
 export interface ApiDependencies {
   runtime: BotRuntime;
@@ -41,8 +42,19 @@ export function createApiApp(dependencies: ApiDependencies) {
   // Register auth routes (no JWT required)
   registerAuthRoutes(app, authConfig);
 
-  // Apply JWT middleware to all other API routes
-  app.use("/api/*", createAuthMiddleware(authConfig.jwtSecret));
+  // Register webhook routes (use their own Bearer token auth, not JWT)
+  registerWebhookRoutes(app);
+
+  // Apply JWT middleware to all API routes except webhook delivery endpoint
+  app.use("/api/*", async (c, next) => {
+    // POST /api/webhooks is the webhook delivery endpoint, uses its own Bearer token auth
+    if (c.req.method === "POST" && c.req.path === "/api/webhooks") {
+      await next();
+      return;
+    }
+    const middleware = createAuthMiddleware(authConfig.jwtSecret);
+    return middleware(c, next);
+  });
 
   registerHealthRoutes(app, dependencies);
   registerAccountRoutes(app);

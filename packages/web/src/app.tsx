@@ -7,6 +7,8 @@ import { LoginPage } from "./pages/LoginPage.js";
 import { McpPage } from "./pages/McpPage.js";
 import { SkillsPage } from "./pages/SkillsPage.js";
 import { ToolsPage } from "./pages/ToolsPage.js";
+import { WebhookLogsPage } from "./pages/WebhookLogsPage.js";
+import { WebhooksPage } from "./pages/WebhooksPage.js";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem("auth_token");
@@ -31,6 +33,8 @@ export function App() {
           <Route path="/mcp" element={<McpPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/skills" element={<SkillsPage />} />
+          <Route path="/webhooks" element={<WebhooksPage />} />
+          <Route path="/webhooks/:source/logs" element={<WebhookLogsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

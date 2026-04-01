@@ -13,6 +13,7 @@ import {
   ScanIcon,
   StackIcon,
   TerminalIcon,
+  WebhookIcon,
 } from "../ui/icons.js";
 
 function navClassName(isActive: boolean) {
@@ -65,6 +66,7 @@ export function Sidebar(props: {
         { to: "/mcp", label: "MCP Servers", icon: <LinkIcon className="size-4" /> },
         { to: "/tools", label: "工具列表", icon: <TerminalIcon className="size-4" /> },
         { to: "/skills", label: "技能列表", icon: <PuzzleIcon className="size-4" /> },
+        { to: "/webhooks", label: "Webhooks", icon: <WebhookIcon className="size-4" /> },
         { to: "/login", label: "连接 clawbot", icon: <ScanIcon className="size-4" /> },
       ],
     },

@@ -17,6 +17,7 @@ model Account {
   conversations  Conversation[]
   messages       Message[]
   sessionRoutes  SessionRoute[]
+  webhookPermissions WebhookAccountPermission[]
 
   @@map("accounts")
 }
@@ -105,4 +106,51 @@ model Message {
   @@unique([accountId, conversationId, seq], map: "messages_account_id_conversation_id_seq_key")
   @@index([accountId, conversationId, id], map: "idx_messages_lookup")
   @@map("messages")
+}
+
+model WebhookToken {
+  id          BigInt                      @id @default(autoincrement())
+  source      String                      @unique @db.Text
+  tokenHash   String                      @map("token_hash") @db.Text
+  tokenPrefix String                      @map("token_prefix") @db.Text
+  description String?                     @db.Text
+  enabled     Boolean                     @default(true)
+  createdAt   DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastUsedAt  DateTime?                   @map("last_used_at") @db.Timestamptz(6)
+  permissions WebhookAccountPermission[]
+  logs        WebhookLog[]
+
+  @@index([tokenHash], map: "idx_webhook_tokens_hash")
+  @@map("webhook_tokens")
+}
+
+model WebhookAccountPermission {
+  tokenId   BigInt       @map("token_id")
+  accountId String       @map("account_id") @db.Text
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  token     WebhookToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  account   Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@id([tokenId, accountId])
+  @@index([accountId], map: "idx_webhook_permissions_account")
+  @@map("webhook_account_permissions")
+}
+
+model WebhookLog {
+  id             BigInt       @id @default(autoincrement())
+  tokenId        BigInt       @map("token_id")
+  accountId      String       @map("account_id") @db.Text
+  conversationId String       @map("conversation_id") @db.Text
+  content        String       @db.Text
+  status         String       @db.Text
+  error          String?      @db.Text
+  idempotencyKey String?      @map("idempotency_key") @db.Text
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  token          WebhookToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  @@index([tokenId, createdAt(sort: Desc)], map: "idx_webhook_logs_token")
+  @@index([accountId, createdAt(sort: Desc)], map: "idx_webhook_logs_account")
+  @@index([idempotencyKey], map: "idx_webhook_logs_idempotency")
+  @@map("webhook_logs")
 }

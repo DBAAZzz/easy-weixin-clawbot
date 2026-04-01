@@ -302,3 +302,113 @@ export function login(username: string, password: string): Promise<{ token: stri
     body: JSON.stringify({ username, password }),
   });
 }
+
+// ── Webhooks ──
+
+export interface WebhookTokenInfo {
+  source: string;
+  tokenPrefix: string;
+  description: string | null;
+  accountIds: string[];
+  enabled: boolean;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export interface WebhookLogEntry {
+  accountId: string;
+  conversationId: string;
+  status: string;
+  error: string | null;
+  createdAt: string;
+}
+
+export type WebhookMessageType = "text" | "image";
+
+export type WebhookTestRequest =
+  | {
+      accountId: string;
+      conversationId: string;
+      type: "text";
+      text: string;
+    }
+  | {
+      accountId: string;
+      conversationId: string;
+      type: "image";
+      imageUrl: string;
+      text?: string;
+    };
+
+/** Raw request helper for webhook endpoints that return plain JSON (not wrapped in { data }). */
+async function webhookRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  if (!headers.has("Content-Type") && init?.method && init.method !== "GET") {
+    headers.set("Content-Type", "application/json");
+  }
+  const token = getAuthToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const response = await fetch(path, { ...init, headers });
+  if (response.status === 401) {
+    localStorage.removeItem("auth_token");
+    window.location.href = "/auth/login";
+    throw new Error("Unauthorized");
+  }
+  const payload = await response.json().catch(() => ({ error: "invalid response" }));
+  if (!response.ok || payload.error) {
+    throw new Error(payload.error ?? payload.message ?? `request failed with status ${response.status}`);
+  }
+  return payload as T;
+}
+
+export function fetchWebhookTokens(): Promise<{ data: WebhookTokenInfo[] }> {
+  return webhookRequest<{ data: WebhookTokenInfo[] }>("/api/webhooks/tokens");
+}
+
+export function createWebhookToken(params: {
+  source: string;
+  description?: string;
+  accountIds: string[];
+}): Promise<{ token: string; source: string; accountIds: string[]; enabled: boolean; createdAt: string }> {
+  return webhookRequest("/api/webhooks/tokens", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+}
+
+export function toggleWebhookToken(source: string, enabled: boolean): Promise<{ success: boolean }> {
+  return webhookRequest(`/api/webhooks/tokens/${encodeURIComponent(source)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ enabled }),
+  });
+}
+
+export function rotateWebhookToken(source: string): Promise<{ token: string; source: string; rotatedAt: string }> {
+  return webhookRequest(`/api/webhooks/tokens/${encodeURIComponent(source)}/rotate`, {
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function deleteWebhookToken(source: string): Promise<{ success: boolean }> {
+  return webhookRequest(`/api/webhooks/tokens/${encodeURIComponent(source)}`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchWebhookLogs(source: string, limit = 20): Promise<{ data: WebhookLogEntry[] }> {
+  return webhookRequest<{ data: WebhookLogEntry[] }>(
+    `/api/webhooks/tokens/${encodeURIComponent(source)}/logs?limit=${limit}`
+  );
+}
+
+export function testWebhookToken(
+  source: string,
+  payload: WebhookTestRequest
+): Promise<{ success: boolean; messageId: string; type: WebhookMessageType }> {
+  return webhookRequest(`/api/webhooks/tokens/${encodeURIComponent(source)}/test`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

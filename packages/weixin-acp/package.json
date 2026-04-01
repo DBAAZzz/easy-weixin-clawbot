@@ -1,0 +1,48 @@
+{
+  "name": "weixin-acp",
+  "version": "0.6.0",
+  "description": "WeChat + ACP (Agent Client Protocol) adapter — connect any ACP agent to WeChat",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "weixin-acp": "dist/main.mjs"
+  },
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "^0.17.0",
+    "@zed-industries/claude-agent-acp": "^0.23.0",
+    "@zed-industries/codex-acp": "^0.10.0",
+    "cross-spawn": "^7.0.6",
+    "weixin-agent-sdk": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "prepublishOnly": "pnpm run build",
+    "login": "tsx main.ts login",
+    "start": "tsx main.ts start",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/cross-spawn": "^6.0.6",
+    "@types/node": "^22.0.0",
+    "tsdown": "^0.21.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.8.0"
+  }
+}

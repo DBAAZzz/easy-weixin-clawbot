@@ -28,6 +28,7 @@ model Conversation {
   title          String?   @db.Text
   lastMessageAt  DateTime? @map("last_message_at") @db.Timestamptz(6)
   messageCount   Int       @default(0) @map("message_count")
+  contextToken   String?   @map("context_token") @db.Text
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   account        Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
 

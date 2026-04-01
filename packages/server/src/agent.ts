@@ -5,6 +5,7 @@ import { chat } from "./ai.js";
 import { builtinCommands } from "./commands/builtins.js";
 import { CommandRegistry } from "./commands/registry.js";
 import { clearConversation, evictConversation, withConversationLock } from "./conversation.js";
+import { updateContextToken } from "./db/conversations.js";
 import { deleteRoute, getRoute, upsertRoute } from "./db/session-routes.js";
 import { log } from "./logger.js";
 import { TTS_CACHE_DIR } from "./paths.js";
@@ -72,6 +73,12 @@ export function createAgent(accountId: string): Agent {
   return {
     async chat(req: ChatRequest): Promise<ChatResponse> {
       log.recv(accountId, req.conversationId, req.text, req.media?.type);
+      // Save contextToken to database for proactive push
+      if (req.contextToken) {
+        void updateContextToken(accountId, req.conversationId, req.contextToken).catch((err) => {
+          log.error(`updateContextToken(${accountId}/${req.conversationId})`, err);
+        });
+      }
 
       const startedAt = Date.now();
       const effectiveConvId = await getEffectiveConvId(accountId, req.conversationId);

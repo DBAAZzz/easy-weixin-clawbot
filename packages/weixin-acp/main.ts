@@ -13,7 +13,7 @@
  *   npx weixin-acp start -- node ./my-agent.js
  */
 
-import { isLoggedIn, login, logout, start } from "weixin-agent-sdk";
+import { isLoggedIn, login, logout, start } from "@clawbot/weixin-agent-sdk";
 
 import { AcpAgent } from "./src/acp-agent.js";
 

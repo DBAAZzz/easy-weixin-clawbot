@@ -4,6 +4,7 @@ import { Button } from "../components/ui/button.js";
 import { Card } from "../components/ui/card.js";
 import { Input } from "../components/ui/input.js";
 import { login } from "../lib/api.js";
+import logoUrl from "../assets/images/logo.png";
 
 export function AuthLoginPage() {
   const [username, setUsername] = useState("");
@@ -32,7 +33,8 @@ export function AuthLoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4">
       <Card className="w-full max-w-[380px]">
         <div className="mb-6 text-center">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+          <img src={logoUrl} alt="Clawbot" className="mx-auto size-16 rounded-[18px] object-cover" />
+          <p className="mt-3 text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
             Clawbot
           </p>
           <h1 className="mt-1.5 text-[20px] text-[var(--ink)]">登录</h1>

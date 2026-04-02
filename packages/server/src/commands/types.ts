@@ -1,4 +1,4 @@
-import type { ChatResponse } from "weixin-agent-sdk";
+import type { ChatResponse } from "@clawbot/weixin-agent-sdk";
 
 export interface CommandContext {
   accountId: string;

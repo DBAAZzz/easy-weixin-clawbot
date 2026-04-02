@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-import type { ChatRequest } from "weixin-agent-sdk";
+import type { ChatRequest } from "@clawbot/weixin-agent-sdk";
 import type { ContentBlock } from "@agentclientprotocol/sdk";
 
 /**

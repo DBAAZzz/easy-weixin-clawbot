@@ -35,6 +35,9 @@ importers:
       '@clawbot/shared':
         specifier: workspace:*
         version: link:../shared
+      '@clawbot/weixin-agent-sdk':
+        specifier: workspace:*
+        version: link:../weixin-agent-sdk
       '@hono/node-server':
         specifier: ^1.19.11
         version: 1.19.11(hono@4.12.9)
@@ -59,9 +62,6 @@ importers:
       qrcode-terminal:
         specifier: ^0.12.0
         version: 0.12.0
-      weixin-agent-sdk:
-        specifier: workspace:*
-        version: link:../weixin-agent-sdk
     devDependencies:
       '@types/js-yaml':
         specifier: ^4.0.9
@@ -130,6 +130,9 @@ importers:
       '@agentclientprotocol/sdk':
         specifier: ^0.17.0
         version: 0.17.1(zod@4.3.6)
+      '@clawbot/weixin-agent-sdk':
+        specifier: workspace:*
+        version: link:../weixin-agent-sdk
       '@zed-industries/claude-agent-acp':
         specifier: ^0.23.0
         version: 0.23.1
@@ -139,9 +142,6 @@ importers:
       cross-spawn:
         specifier: ^7.0.6
         version: 7.0.6
-      weixin-agent-sdk:
-        specifier: workspace:*
-        version: link:../weixin-agent-sdk
     devDependencies:
       '@types/cross-spawn':
         specifier: ^6.0.6

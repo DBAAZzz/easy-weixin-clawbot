@@ -9,7 +9,7 @@
     "dev:agent": "pnpm -F @clawbot/agent dev",
     "dev:server": "pnpm -F @clawbot/server dev",
     "dev:web": "pnpm -F @clawbot/web dev",
-    "build": "pnpm -F weixin-agent-sdk build && pnpm -F weixin-acp build && pnpm -F @clawbot/shared build && pnpm -F @clawbot/agent build && pnpm -F @clawbot/server build && pnpm -F @clawbot/web build",
+    "build": "pnpm -F @clawbot/weixin-agent-sdk build && pnpm -F weixin-acp build && pnpm -F @clawbot/shared build && pnpm -F @clawbot/agent build && pnpm -F @clawbot/server build && pnpm -F @clawbot/web build",
     "test:agent": "pnpm -F @clawbot/agent test",
     "test:server": "pnpm -F @clawbot/server test",
     "start": "pnpm -F @clawbot/server start",

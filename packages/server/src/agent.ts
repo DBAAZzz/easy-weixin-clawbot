@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import type { Agent, ChatRequest, ChatResponse } from "weixin-agent-sdk";
+import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk";
 import { chat } from "./ai.js";
 import { builtinCommands } from "./commands/builtins.js";
 import { CommandRegistry } from "./commands/registry.js";

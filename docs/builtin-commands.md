@@ -48,7 +48,7 @@ help.ts            不 import registry，通过 CommandContext.commands 拿只�
 ```typescript
 // types.ts — 纯类型，零运行时依赖
 
-import type { ChatResponse } from "weixin-agent-sdk";
+import type { ChatResponse } from "@clawbot/weixin-agent-sdk";
 
 interface CommandContext {
   /** 当前微信账号 ID */

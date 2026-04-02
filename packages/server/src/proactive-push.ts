@@ -1,4 +1,4 @@
-import { sendMessageWeixin, resolveWeixinAccount } from "weixin-agent-sdk";
+import { sendMessageWeixin, resolveWeixinAccount } from "@clawbot/weixin-agent-sdk";
 import { getContextToken } from "./db/conversations.js";
 import { log } from "./logger.js";
 

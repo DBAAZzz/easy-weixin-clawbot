@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import type { ChatResponse } from "weixin-agent-sdk";
+import type { ChatResponse } from "@clawbot/weixin-agent-sdk";
 import type { SessionNotification } from "@agentclientprotocol/sdk";
 
 const ACP_MEDIA_OUT_DIR = "/tmp/weixin-agent/media/acp-out";

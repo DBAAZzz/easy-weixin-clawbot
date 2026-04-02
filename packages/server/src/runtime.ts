@@ -1,4 +1,4 @@
-import { start } from "weixin-agent-sdk";
+import { start } from "@clawbot/weixin-agent-sdk";
 import { createAgent } from "./agent.js";
 import { deprecateAccount, getActiveAccountIds, upsertAccount } from "./db/accounts.js";
 import { drainMessageQueue } from "./db/messages.js";

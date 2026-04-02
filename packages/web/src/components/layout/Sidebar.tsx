@@ -15,6 +15,7 @@ import {
   TerminalIcon,
   WebhookIcon,
 } from "../ui/icons.js";
+import logoUrl from "../../assets/images/logo.png";
 
 function navClassName(isActive: boolean) {
   return cn(
@@ -81,9 +82,7 @@ export function Sidebar(props: {
     <aside className="h-[100dvh] overflow-hidden border-r border-[var(--line)] bg-[linear-gradient(180deg,rgba(247,250,251,0.94),rgba(241,245,247,0.98))]">
       <div className="flex h-full flex-col overflow-y-auto px-3 py-4 md:px-4 md:py-5">
         <div className="flex items-center gap-3 rounded-[18px] px-3 py-2.5">
-          <span className="flex size-10 items-center justify-center rounded-[14px] bg-[var(--ink)] text-white shadow-[0_16px_34px_-22px_rgba(15,23,42,0.45)]">
-            <StackIcon className="size-4" />
-          </span>
+          <img src={logoUrl} alt="Clawbot" className="size-10 rounded-[14px] object-cover shadow-[0_16px_34px_-22px_rgba(15,23,42,0.45)]" />
           <div className="min-w-0">
             <p className="text-[14px] font-semibold text-[var(--ink)]">Clawbot</p>
             <p className="mt-0.5 text-[11px] text-[var(--muted)]">Operator Console</p>

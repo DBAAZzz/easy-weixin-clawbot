@@ -18,7 +18,7 @@ import {
 } from "@mariozechner/pi-ai";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path";
-import type { ChatResponse } from "weixin-agent-sdk";
+import type { ChatResponse } from "@clawbot/weixin-agent-sdk";
 import { isDebugEnabled } from "./commands/debug.js";
 import { ensureHistoryLoaded, getHistory, nextSeq, rollbackMessages } from "./conversation.js";
 import { queuePersistMessage } from "./db/messages.js";

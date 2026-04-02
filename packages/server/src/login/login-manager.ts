@@ -1,4 +1,4 @@
-import { login } from "weixin-agent-sdk";
+import { login } from "@clawbot/weixin-agent-sdk";
 import type { LoginState } from "@clawbot/shared";
 import { log } from "../logger.js";
 import { captureStdout, isTerminalQrText } from "./qr-capture.js";

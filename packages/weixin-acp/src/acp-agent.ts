@@ -1,4 +1,4 @@
-import type { Agent, ChatRequest, ChatResponse } from "weixin-agent-sdk";
+import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk";
 import type { SessionId } from "@agentclientprotocol/sdk";
 
 import type { AcpAgentOptions } from "./types.js";

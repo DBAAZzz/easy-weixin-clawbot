@@ -6,7 +6,7 @@ import {
   resolveWeixinAccount,
   sendMessageWeixin,
   sendWeixinMediaFile,
-} from "weixin-agent-sdk";
+} from "@clawbot/weixin-agent-sdk";
 import { log } from "../logger.js";
 import type { NormalizedWebhookMessage } from "./payload.js";
 

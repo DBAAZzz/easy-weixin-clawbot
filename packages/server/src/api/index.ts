@@ -40,21 +40,25 @@ export function createApiApp(dependencies: ApiDependencies) {
   app.use("*", logger());
 
   // Register auth routes (no JWT required)
-  registerAuthRoutes(app, authConfig);
+  if (authConfig) {
+    registerAuthRoutes(app, authConfig);
+  }
 
   // Register webhook routes (use their own Bearer token auth, not JWT)
   registerWebhookRoutes(app);
 
   // Apply JWT middleware to all API routes except webhook delivery endpoint
-  app.use("/api/*", async (c, next) => {
-    // POST /api/webhooks is the webhook delivery endpoint, uses its own Bearer token auth
-    if (c.req.method === "POST" && c.req.path === "/api/webhooks") {
-      await next();
-      return;
-    }
-    const middleware = createAuthMiddleware(authConfig.jwtSecret);
-    return middleware(c, next);
-  });
+  if (authConfig) {
+    app.use("/api/*", async (c, next) => {
+      // POST /api/webhooks is the webhook delivery endpoint, uses its own Bearer token auth
+      if (c.req.method === "POST" && c.req.path === "/api/webhooks") {
+        await next();
+        return;
+      }
+      const middleware = createAuthMiddleware(authConfig.jwtSecret);
+      return middleware(c, next);
+    });
+  }
 
   registerHealthRoutes(app, dependencies);
   registerAccountRoutes(app);

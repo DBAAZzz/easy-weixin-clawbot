@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import yaml from "js-yaml";
 
@@ -9,13 +9,20 @@ export interface AuthConfig {
   tokenExpiry: string;
 }
 
-export function loadAuthConfig(): AuthConfig {
+export function loadAuthConfig(): AuthConfig | undefined {
   const configPath = resolve(process.cwd(), "config.yaml");
+
+  if (!existsSync(configPath)) {
+    console.error(`[auth] config.yaml not found at ${configPath}, authentication disabled.`);
+    return undefined;
+  }
+
   const content = readFileSync(configPath, "utf-8");
-  const config = yaml.load(content) as { auth: AuthConfig };
+  const config = yaml.load(content) as { auth?: AuthConfig };
 
   if (!config.auth) {
-    throw new Error("Missing auth configuration in config.yaml");
+    console.warn("[auth] Missing auth section in config.yaml, authentication disabled.");
+    return undefined;
   }
 
   return config.auth;

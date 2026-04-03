@@ -154,3 +154,53 @@ model WebhookLog {
   @@index([idempotencyKey], map: "idx_webhook_logs_idempotency")
   @@map("webhook_logs")
 }
+
+model Trace {
+  id             BigInt      @id @default(autoincrement())
+  traceId        String      @unique @map("trace_id") @db.Text
+  accountId      String      @map("account_id") @db.Text
+  conversationId String      @map("conversation_id") @db.Text
+  totalMs        Int         @map("total_ms")
+  llmRounds      Int         @map("llm_rounds")
+  toolCalls      Int         @map("tool_calls")
+  inputTokens    Int         @map("input_tokens")
+  outputTokens   Int         @map("output_tokens")
+  stopReason     String      @map("stop_reason") @db.Text
+  error          String?     @db.Text
+  flags          String      @default("") @db.Text
+  sampled        Boolean     @default(true)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  spans          TraceSpan[]
+
+  @@index([accountId, createdAt(sort: Desc)], map: "idx_traces_account_created")
+  @@index([conversationId, createdAt(sort: Desc)], map: "idx_traces_conversation_created")
+  @@index([flags, createdAt(sort: Desc)], map: "idx_traces_flags_created")
+  @@index([sampled, createdAt(sort: Desc)], map: "idx_traces_sampled_created")
+  @@map("traces")
+}
+
+model TraceSpan {
+  id           BigInt    @id @default(autoincrement())
+  traceId      String    @map("trace_id") @db.Text
+  spanId       String    @map("span_id") @db.Text
+  parentSpanId String?   @map("parent_span_id") @db.Text
+  name         String    @db.Text
+  startTime    DateTime  @map("start_time") @db.Timestamptz(6)
+  durationMs   Int       @map("duration_ms")
+  status       String    @db.Text
+  toolName     String?   @map("tool_name") @db.Text
+  model        String?   @db.Text
+  inputTokens  Int?      @map("input_tokens")
+  outputTokens Int?      @map("output_tokens")
+  stopReason   String?   @map("stop_reason") @db.Text
+  errorMessage String?   @map("error_message") @db.Text
+  payload      String?   @db.Text
+  trace        Trace     @relation(fields: [traceId], references: [traceId], onDelete: Cascade)
+
+  @@unique([traceId, spanId], map: "trace_spans_trace_id_span_id_key")
+  @@index([traceId], map: "idx_trace_spans_trace")
+  @@index([name, startTime(sort: Desc)], map: "idx_trace_spans_name_start")
+  @@index([toolName, status], map: "idx_trace_spans_tool_status")
+  @@index([status, startTime(sort: Desc)], map: "idx_trace_spans_status_start")
+  @@map("trace_spans")
+}

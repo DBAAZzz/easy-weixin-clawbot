@@ -10,6 +10,10 @@ import type {
   McpServerInfo,
   McpToolInfo,
   MessageRow,
+  ObservabilityOverview,
+  ObservabilityTraceDetail,
+  ObservabilityTraceSummary,
+  ObservabilityWindow,
   PaginatedResponse,
   SkillInfo,
   ToolInfo,
@@ -88,6 +92,20 @@ async function requestPaginated<T>(path: string, init?: RequestInit): Promise<Pa
   }
 
   return payload as PaginatedResponse<T>;
+}
+
+function toQueryString(
+  entries: Record<string, string | number | undefined | null>
+): string {
+  const search = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(entries)) {
+    if (value === undefined || value === null || value === "") continue;
+    search.set(key, String(value));
+  }
+
+  const query = search.toString();
+  return query ? `?${query}` : "";
 }
 
 export function fetchHealth(): Promise<HealthStatus> {
@@ -272,15 +290,49 @@ export function fetchMessages(
   conversationId: string,
   options?: { before?: number; limit?: number }
 ): Promise<PaginatedResponse<MessageRow>> {
-  const search = new URLSearchParams();
-  if (options?.limit) search.set("limit", String(options.limit));
-  if (options?.before) search.set("before", String(options.before));
-
-  const query = search.toString();
-  const suffix = query ? `?${query}` : "";
+  const suffix = toQueryString({
+    limit: options?.limit,
+    before: options?.before,
+  });
 
   return requestPaginated<MessageRow>(
     `/api/accounts/${encodeURIComponent(accountId)}/conversations/${encodeURIComponent(conversationId)}/messages${suffix}`
+  );
+}
+
+export function fetchObservabilityOverview(
+  window: ObservabilityWindow
+): Promise<ObservabilityOverview> {
+  return request<ObservabilityOverview>(
+    `/api/observability/overview${toQueryString({ window })}`
+  );
+}
+
+export function fetchObservabilityTraces(options: {
+  window: ObservabilityWindow;
+  limit?: number;
+  cursor?: number;
+  flag?: string;
+  status?: "ok" | "error";
+  query?: string;
+}): Promise<PaginatedResponse<ObservabilityTraceSummary>> {
+  return requestPaginated<ObservabilityTraceSummary>(
+    `/api/observability/traces${toQueryString({
+      window: options.window,
+      limit: options.limit,
+      cursor: options.cursor,
+      flag: options.flag,
+      status: options.status,
+      query: options.query,
+    })}`
+  );
+}
+
+export function fetchObservabilityTrace(
+  traceId: string
+): Promise<ObservabilityTraceDetail> {
+  return request<ObservabilityTraceDetail>(
+    `/api/observability/traces/${encodeURIComponent(traceId)}`
   );
 }
 

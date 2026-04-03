@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import type { HealthStatus } from "@clawbot/shared";
 import { getPendingMessageWriteCount } from "../../db/messages.js";
+import { observabilityService } from "../../observability/service.js";
 import type { ApiDependencies } from "../index.js";
 
 export function registerHealthRoutes(app: Hono, dependencies: ApiDependencies) {
@@ -11,6 +12,7 @@ export function registerHealthRoutes(app: Hono, dependencies: ApiDependencies) {
       started_at: dependencies.startedAt.toISOString(),
       running_accounts: dependencies.runtime.getRunningAccountIds(),
       pending_message_writes: getPendingMessageWriteCount(),
+      pending_trace_writes: observabilityService.getPendingWriteCount(),
     };
 
     return c.json({ data: payload });

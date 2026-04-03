@@ -53,6 +53,7 @@
     "test": "tsx --test 'src/**/*.test.ts'"
   },
   "dependencies": {
+    "@clawbot/observability": "workspace:*",
     "@mariozechner/pi-ai": "^0.62.0",
     "yaml": "^2.8.3"
   },

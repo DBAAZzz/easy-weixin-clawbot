@@ -1,3 +1,5 @@
+import { getTraceId } from "@clawbot/observability";
+
 const RESET = "\x1b[0m";
 const DIM = "\x1b[2m";
 const CYAN = "\x1b[36m";
@@ -11,7 +13,10 @@ function ts() {
 }
 
 function prefix(color: string, tag: string) {
-  return `${ts()} ${color}[${tag}]${RESET}`;
+  const traceId = getTraceId();
+  const traceSuffix =
+    traceId === "no-trace" ? `${DIM}[trace:none]${RESET}` : `${DIM}[trace:${traceId.slice(-8)}]${RESET}`;
+  return `${ts()} ${color}[${tag}]${RESET} ${traceSuffix}`;
 }
 
 function acct(accountId: string) {

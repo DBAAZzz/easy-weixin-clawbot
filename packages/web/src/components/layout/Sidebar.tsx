@@ -8,6 +8,7 @@ import {
   HomeIcon,
   LinkIcon,
   LogOutIcon,
+  PulseIcon,
   PuzzleIcon,
   QueueIcon,
   ScanIcon,
@@ -59,11 +60,17 @@ export function Sidebar(props: {
     : props.health
       ? formatCount(props.health.pending_message_writes)
       : "--";
+  const traceQueueLabel = props.healthLoading
+    ? "读取中"
+    : props.health
+      ? formatCount(props.health.pending_trace_writes)
+      : "--";
   const menuSections = [
     {
       label: "工作台",
       items: [
         { to: "/", label: "账号列表", icon: <HomeIcon className="size-4" /> },
+        { to: "/observability", label: "Observability", icon: <PulseIcon className="size-4" /> },
         { to: "/mcp", label: "MCP Servers", icon: <LinkIcon className="size-4" /> },
         { to: "/tools", label: "工具列表", icon: <TerminalIcon className="size-4" /> },
         { to: "/skills", label: "技能列表", icon: <PuzzleIcon className="size-4" /> },
@@ -121,6 +128,11 @@ export function Sidebar(props: {
               label="待写入"
               value={queueLabel}
               icon={<QueueIcon className="size-4" />}
+            />
+            <SidebarStatusRow
+              label="Trace 队列"
+              value={traceQueueLabel}
+              icon={<PulseIcon className="size-4" />}
             />
             <SidebarStatusRow
               label="运行时长"

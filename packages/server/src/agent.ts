@@ -1,5 +1,11 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import {
+  getActiveTrace,
+  runWithTrace,
+  withSpan,
+  withSpanSync,
+} from "@clawbot/observability";
 import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk";
 import { chat } from "./ai.js";
 import { builtinCommands } from "./commands/builtins.js";
@@ -8,6 +14,7 @@ import { clearConversation, evictConversation, withConversationLock } from "./co
 import { updateContextToken } from "./db/conversations.js";
 import { deleteRoute, getRoute, upsertRoute } from "./db/session-routes.js";
 import { log } from "./logger.js";
+import { observabilityService } from "./observability/service.js";
 import { TTS_CACHE_DIR } from "./paths.js";
 import { getTTSProvider } from "./services/tts/index.js";
 
@@ -83,29 +90,79 @@ export function createAgent(accountId: string): Agent {
       const startedAt = Date.now();
       const effectiveConvId = await getEffectiveConvId(accountId, req.conversationId);
 
-      // 内置命令拦截（不经过 LLM）
-      const dispatched = commandRegistry.tryDispatch(req.text);
-      if (dispatched) {
-        const reply = await dispatched.command.execute({
-          accountId,
-          conversationId: effectiveConvId,
-          args: dispatched.args,
-          startedAt,
-          commands: commandRegistry.list(),
-          rotateSession: () => rotateSession(accountId, req.conversationId).then(() => undefined),
-        });
-        log.send(accountId, req.conversationId, reply.text ?? "");
-        return reply;
-      }
-
-      return withConversationLock(accountId, effectiveConvId, async () => {
+      return runWithTrace(accountId, effectiveConvId, async () => {
         try {
-          const reply = await chat(accountId, effectiveConvId, req.text, req.media, startedAt);
-          log.send(accountId, req.conversationId, reply.text ?? "");
-          return reply;
+          withSpanSync(
+            "message.receive",
+            {
+              hasMedia: Boolean(req.media),
+              textLength: req.text.length,
+            },
+            () => undefined,
+          );
+
+          // 内置命令拦截（不经过 LLM）
+          const dispatched = withSpanSync(
+            "command.dispatch",
+            { textLength: req.text.length },
+            (span) => {
+              const result = commandRegistry.tryDispatch(req.text);
+              span.addAttributes({
+                matched: Boolean(result),
+                commandName: result?.command.name ?? "none",
+              });
+              return result;
+            },
+          );
+
+          if (dispatched) {
+            const reply = await withSpan(
+              "command.execute",
+              { commandName: dispatched.command.name },
+              async () =>
+                dispatched.command.execute({
+                  accountId,
+                  conversationId: effectiveConvId,
+                  args: dispatched.args,
+                  startedAt,
+                  commands: commandRegistry.list(),
+                  rotateSession: () =>
+                    rotateSession(accountId, req.conversationId).then(() => undefined),
+                }),
+            );
+
+            return withSpanSync(
+              "message.send",
+              { hasText: Boolean(reply.text), hasMedia: Boolean(reply.media) },
+              () => {
+                log.send(accountId, req.conversationId, reply.text ?? "");
+                return reply;
+              },
+            );
+          }
+
+          const reply = await withSpan("conversation.lock", {}, async () =>
+            withConversationLock(accountId, effectiveConvId, async () =>
+              chat(accountId, effectiveConvId, req.text, req.media, startedAt),
+            ),
+          );
+
+          return withSpanSync(
+            "message.send",
+            { hasText: Boolean(reply.text), hasMedia: Boolean(reply.media) },
+            () => {
+              log.send(accountId, req.conversationId, reply.text ?? "");
+              return reply;
+            },
+          );
         } catch (err) {
           log.error(`chat(${accountId}/${req.conversationId})`, err);
           return { text: "抱歉，出了点问题，请稍后再试。" };
+        } finally {
+          const trace = getActiveTrace();
+          if (trace && trace.getSpans().length > 0) {
+            observabilityService.queuePersistTrace(trace.summarize(), trace.getSpans());
+          }
         }
       });
     },

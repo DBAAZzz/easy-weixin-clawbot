@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import React, { type SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -25,11 +25,40 @@ export function ActivityIcon(props: IconProps) {
   );
 }
 
+export function PulseIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M3 12h4l2.2-4.5 4.1 9 2.1-4.5H21" />
+      <path d="M6 5h12" opacity="0.35" />
+      <path d="M6 19h12" opacity="0.35" />
+    </BaseIcon>
+  );
+}
+
 export function ArrowRightIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
       <path d="M5 12h14" />
       <path d="m13 6 6 6-6 6" />
+    </BaseIcon>
+  );
+}
+
+export function BoltIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M13 2 5 13h5l-1 9 8-11h-5l1-9Z" />
+    </BaseIcon>
+  );
+}
+
+export function BookIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M6 4.5h9.5A2.5 2.5 0 0 1 18 7v12.5H8.5A2.5 2.5 0 0 0 6 22V4.5Z" />
+      <path d="M6 4.5A2.5 2.5 0 0 0 3.5 7v11A2.5 2.5 0 0 0 6 20.5H18" />
+      <path d="M9 8h5" />
+      <path d="M9 11h5" />
     </BaseIcon>
   );
 }
@@ -224,4 +253,11 @@ export function KeyIcon(props: IconProps) {
   );
 }
 
-
+export function LockIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 1 1 8 0v3" />
+    </BaseIcon>
+  );
+}

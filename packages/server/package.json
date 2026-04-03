@@ -16,6 +16,7 @@
   "dependencies": {
     "@andresaya/edge-tts": "^1.8.0",
     "@clawbot/agent": "workspace:*",
+    "@clawbot/observability": "workspace:*",
     "@clawbot/shared": "workspace:*",
     "@hono/node-server": "^1.19.11",
     "@mariozechner/pi-ai": "^0.62.0",

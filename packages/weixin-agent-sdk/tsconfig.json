@@ -11,6 +11,6 @@
     "isolatedModules": true,
     "declaration": true
   },
-  "include": ["index.ts", "src/**/*.ts"],
+  "include": ["index.ts", "src/**/*.ts", "src/**/*.d.ts"],
   "exclude": ["node_modules"]
 }

@@ -13,6 +13,20 @@ const timeFormatter = new Intl.DateTimeFormat("zh-CN", {
 });
 
 const numberFormatter = new Intl.NumberFormat("zh-CN");
+const decimalFormatter = new Intl.NumberFormat("zh-CN", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+const compactNumberFormatter = new Intl.NumberFormat("zh-CN", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+const usdFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 export function formatDateTime(value?: string | null) {
   if (!value) return "暂无记录";
@@ -65,4 +79,25 @@ export function formatDuration(value?: number | null) {
 
 export function formatCount(value: number) {
   return numberFormatter.format(value);
+}
+
+export function formatMs(value?: number | null) {
+  if (typeof value !== "number" || Number.isNaN(value)) return "--";
+  if (value >= 1000) return `${decimalFormatter.format(value / 1000)}s`;
+  return `${numberFormatter.format(Math.round(value))}ms`;
+}
+
+export function formatPercent(value?: number | null) {
+  if (typeof value !== "number" || Number.isNaN(value)) return "--";
+  return `${decimalFormatter.format(value * 100)}%`;
+}
+
+export function formatTokens(value?: number | null) {
+  if (typeof value !== "number" || Number.isNaN(value)) return "--";
+  return compactNumberFormatter.format(value);
+}
+
+export function formatUsd(value?: number | null) {
+  if (typeof value !== "number" || Number.isNaN(value)) return "--";
+  return usdFormatter.format(value);
 }

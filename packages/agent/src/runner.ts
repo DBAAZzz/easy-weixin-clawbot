@@ -1,6 +1,7 @@
 import {
   complete,
   type AssistantMessage,
+  type ImageContent,
   type Message,
   type Model,
   type Tool,
@@ -8,6 +9,14 @@ import {
   type ToolResultMessage,
   Type,
 } from "@mariozechner/pi-ai";
+import {
+  llmErrorsTotal,
+  llmLatencyMs,
+  sanitize,
+  toolCallsTotal,
+  toolLatencyMs,
+  withSpan,
+} from "@clawbot/observability";
 import type { SkillRegistry } from "./skills/types.js";
 import type { ToolRegistry, ToolContent } from "./tools/types.js";
 import {
@@ -71,6 +80,79 @@ function toErrorText(error: unknown): string {
   return String(error);
 }
 
+function serializeMessage(message: Message): unknown {
+  if (message.role === "user") {
+    return {
+      role: message.role,
+      timestamp: message.timestamp,
+      content:
+        typeof message.content === "string"
+          ? message.content
+          : message.content.map((block) => {
+              if (block.type === "image") {
+                return {
+                  type: "image",
+                  mimeType: block.mimeType,
+                  data: `[base64:${block.data.length} chars]`,
+                } satisfies ImageContent;
+              }
+              return block;
+            }),
+    };
+  }
+
+  if (message.role === "assistant") {
+    return {
+      role: message.role,
+      model: message.model,
+      provider: message.provider,
+      stopReason: message.stopReason,
+      errorMessage: message.errorMessage,
+      usage: message.usage,
+      timestamp: message.timestamp,
+      content: message.content,
+    };
+  }
+
+  return {
+    role: message.role,
+    toolCallId: message.toolCallId,
+    toolName: message.toolName,
+    isError: message.isError,
+    timestamp: message.timestamp,
+    content: message.content.map((block) =>
+      block.type === "image"
+        ? {
+            type: "image",
+            mimeType: block.mimeType,
+            data: `[base64:${block.data.length} chars]`,
+          }
+        : block,
+    ),
+  } satisfies Partial<ToolResultMessage>;
+}
+
+function snapshotMessages(messages: Message[]): string {
+  return sanitize(JSON.stringify(messages.map(serializeMessage), null, 2));
+}
+
+function snapshotAssistantMessage(message: AssistantMessage): string {
+  return sanitize(
+    JSON.stringify(
+      {
+        model: message.model,
+        provider: message.provider,
+        stopReason: message.stopReason,
+        errorMessage: message.errorMessage,
+        usage: message.usage,
+        content: message.content,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
 function buildSystemPrompt(basePrompt: string, skills: SkillRegistry): string {
   const snapshot = skills.current();
   let systemPrompt = basePrompt;
@@ -131,15 +213,46 @@ export function createAgentRunner(
 
       callbacks.onRoundStart?.(round);
 
-      const response = await complete(
-        config.model,
-        {
-          systemPrompt: buildSystemPrompt(config.systemPrompt, skills),
-          messages: workingHistory,
-          tools: [...tools.current().tools, USE_SKILL_TOOL],
-        },
-        config.apiKey ? { apiKey: config.apiKey, signal } : { signal },
-      );
+      const llmStartedAt = Date.now();
+      let response: AssistantMessage;
+      try {
+        response = await withSpan(
+          "llm.call",
+          { model: config.model.id, round },
+          async (span) => {
+            const result = await complete(
+              config.model,
+              {
+                systemPrompt: buildSystemPrompt(config.systemPrompt, skills),
+                messages: workingHistory,
+                tools: [...tools.current().tools, USE_SKILL_TOOL],
+              },
+              config.apiKey ? { apiKey: config.apiKey, signal } : { signal },
+            );
+
+            span.addAttributes({
+              inputTokens: result.usage.input,
+              outputTokens: result.usage.output,
+              stopReason: result.stopReason,
+              promptSnapshot: snapshotMessages(workingHistory),
+              completionSnapshot: snapshotAssistantMessage(result),
+            });
+
+            return result;
+          },
+        );
+      } catch (error) {
+        llmErrorsTotal.inc({
+          error_type:
+            error instanceof Error && error.name === "AbortError" ? "aborted" : "error",
+        });
+        throw error;
+      }
+
+      llmLatencyMs.observe({ model: response.model }, Date.now() - llmStartedAt);
+      if (response.stopReason === "error" || response.stopReason === "aborted") {
+        llmErrorsTotal.inc({ error_type: response.stopReason });
+      }
 
       workingHistory.push(response);
       callbacks.onMessage(response);
@@ -152,22 +265,32 @@ export function createAgentRunner(
 
       const toolResults = await Promise.all(
         toolCalls.map(async (toolCall) => {
+          const toolStartedAt = Date.now();
           try {
-            const content =
-              toolCall.name === USE_SKILL_TOOL.name
-                ? await skillRuntime.execute(
-                    typeof toolCall.arguments.skill_name === "string"
-                      ? toolCall.arguments.skill_name.trim()
-                      : "",
-                  )
-                : await tools.execute(
-                    toolCall.name,
-                    toolCall.arguments,
-                    createToolContext(signal, timeoutMs),
-                  );
+            const content = await withSpan(
+              "tool.execute",
+              { toolName: toolCall.name },
+              async () =>
+                toolCall.name === USE_SKILL_TOOL.name
+                  ? skillRuntime.execute(
+                      typeof toolCall.arguments.skill_name === "string"
+                        ? toolCall.arguments.skill_name.trim()
+                        : "",
+                    )
+                  : tools.execute(
+                      toolCall.name,
+                      toolCall.arguments,
+                      createToolContext(signal, timeoutMs),
+                    ),
+            );
+
+            toolCallsTotal.inc({ tool_name: toolCall.name, status: "ok" });
+            toolLatencyMs.observe({ tool_name: toolCall.name }, Date.now() - toolStartedAt);
 
             return buildToolResult(toolCall.id, toolCall.name, content, false);
           } catch (error) {
+            toolCallsTotal.inc({ tool_name: toolCall.name, status: "error" });
+            toolLatencyMs.observe({ tool_name: toolCall.name }, Date.now() - toolStartedAt);
             return buildToolResult(
               toolCall.id,
               toolCall.name,

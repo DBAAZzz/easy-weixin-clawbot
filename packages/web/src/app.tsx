@@ -5,6 +5,8 @@ import { ConversationPage } from "./pages/ConversationPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { LoginPage } from "./pages/LoginPage.js";
 import { McpPage } from "./pages/McpPage.js";
+import { ObservabilityPage } from "./pages/ObservabilityPage.js";
+import { ObservabilityTracePage } from "./pages/ObservabilityTracePage.js";
 import { SkillsPage } from "./pages/SkillsPage.js";
 import { ToolsPage } from "./pages/ToolsPage.js";
 import { WebhookLogsPage } from "./pages/WebhookLogsPage.js";
@@ -28,6 +30,8 @@ export function App() {
           }
         >
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/observability" element={<ObservabilityPage />} />
+          <Route path="/observability/traces/:traceId" element={<ObservabilityTracePage />} />
           <Route path="/accounts/:accountId" element={<ConversationPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/mcp" element={<McpPage />} />

@@ -5,6 +5,10 @@ import { logger } from "hono/logger";
 import { loadAuthConfig } from "../config/auth.js";
 import type { LoginManager } from "../login/login-manager.js";
 import type { McpManager } from "../mcp/manager.js";
+import {
+  observabilityService,
+  type ObservabilityRouteService,
+} from "../observability/service.js";
 import type { BotRuntime } from "../runtime.js";
 import { createAuthMiddleware } from "./middleware/auth.js";
 import { registerAccountRoutes } from "./routes/accounts.js";
@@ -14,6 +18,7 @@ import { registerHealthRoutes } from "./routes/health.js";
 import { registerLoginRoutes } from "./routes/login.js";
 import { registerMcpRoutes } from "./routes/mcp.js";
 import { registerMessageRoutes } from "./routes/messages.js";
+import { registerObservabilityRoutes } from "./routes/observability.js";
 import { registerSkillRoutes } from "./routes/skills.js";
 import { registerToolRoutes } from "./routes/tools.js";
 import { registerWebhookRoutes } from "./routes/webhooks.js";
@@ -24,12 +29,14 @@ export interface ApiDependencies {
   toolInstaller: ToolInstaller;
   skillInstaller: SkillInstaller;
   mcpManager: McpManager;
+  observability?: ObservabilityRouteService;
   startedAt: Date;
 }
 
 export function createApiApp(dependencies: ApiDependencies) {
   const app = new Hono();
   const authConfig = loadAuthConfig();
+  const observability = dependencies.observability ?? observabilityService;
 
   app.use(
     "*",
@@ -68,6 +75,7 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerToolRoutes(app, dependencies.toolInstaller);
   registerSkillRoutes(app, dependencies.skillInstaller, dependencies.toolInstaller);
   registerMcpRoutes(app, dependencies.mcpManager);
+  registerObservabilityRoutes(app, observability);
 
   app.onError((error, c) => {
     console.error("[api] unhandled error", error);

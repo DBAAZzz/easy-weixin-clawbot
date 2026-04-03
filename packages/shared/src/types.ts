@@ -154,4 +154,85 @@ export interface HealthStatus {
   started_at: string;
   running_accounts: string[];
   pending_message_writes: number;
+  pending_trace_writes: number;
+}
+
+export type ObservabilityWindow = "24h" | "7d" | "30d";
+
+export interface ObservabilityOverview {
+  window: ObservabilityWindow;
+  totals: {
+    requests: number;
+    avg_duration_ms: number;
+    error_rate: number;
+    token_total: number;
+    estimated_cost_usd: number;
+    sampled_traces: number;
+  };
+  latency_ms: {
+    p50: number;
+    p95: number;
+    p99: number;
+  };
+  round_distribution: Array<{
+    bucket: string;
+    count: number;
+    ratio: number;
+  }>;
+  top_tools: Array<{
+    tool_name: string;
+    count: number;
+    ratio: number;
+    error_rate: number;
+    p95_ms: number;
+  }>;
+  flag_counts: Array<{
+    flag: "error" | "max_rounds" | "slow" | "expensive";
+    count: number;
+    ratio: number;
+  }>;
+}
+
+export interface ObservabilityTraceSummary {
+  id: number;
+  trace_id: string;
+  account_id: string;
+  conversation_id: string;
+  total_ms: number;
+  llm_rounds: number;
+  tool_calls: number;
+  input_tokens: number;
+  output_tokens: number;
+  stop_reason: string;
+  error: string | null;
+  flags: string[];
+  sampled: boolean;
+  created_at: string;
+}
+
+export interface ObservabilitySpanPayload {
+  prompt: string;
+  completion: string;
+}
+
+export interface ObservabilityTraceSpan {
+  id: number;
+  trace_id: string;
+  span_id: string;
+  parent_span_id: string | null;
+  name: string;
+  start_time: string;
+  duration_ms: number;
+  status: "ok" | "error";
+  tool_name: string | null;
+  model: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  stop_reason: string | null;
+  error_message: string | null;
+  payload: ObservabilitySpanPayload | null;
+}
+
+export interface ObservabilityTraceDetail extends ObservabilityTraceSummary {
+  spans: ObservabilityTraceSpan[];
 }

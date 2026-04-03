@@ -71,11 +71,19 @@ export interface SpanData {
   spanId: string;
   parentSpanId: string | null;
   name: string;
-  startTime: number;      // Date.now()
+  startTime: number;      // Date.now()，UTC 毫秒时间戳
   duration: number;        // ms
   status: "ok" | "error";
   attributes: Record<string, string | number | boolean>;
 }
+
+// ⚠️ 时间约定：
+// SpanData.startTime 使用 number 类型（Date.now() UTC 毫秒时间戳），
+// 数据库 TraceSpan.startTime 使用 DateTime 类型。
+// 写入时通过 new Date(s.startTime) 转换——Date.now() 返回的是 UTC 时间戳，
+// new Date() 构造也基于 UTC，因此转换本身不受本地时区影响。
+// 但需确保数据库连接的时区配置为 UTC（Prisma 默认行为），
+// 避免数据库层面的隐式时区转换导致偏差。
 
 // ============================================================
 // 2. TraceContext —— 一次请求的完整上下文
@@ -170,26 +178,46 @@ export function getTraceId(): string {
  *     return tools.execute(name, args);
  *   });
  */
+/**
+ * SpanContext：传入 fn 的参数，允许在执行过程中追加 attributes
+ *
+ * 典型场景：LLM 调用的 inputTokens / outputTokens 要等 API 返回后才知道，
+ * 不能在 withSpan 调用时通过 initialAttrs 传入。通过 addAttributes 方法，
+ * fn 内部可以在任意时刻把后置信息追加回 span。
+ */
+export interface SpanContext {
+  /** 追加 / 覆盖当前 span 的 attributes */
+  addAttributes(attrs: Record<string, string | number | boolean>): void;
+}
+
 export async function withSpan<T>(
   name: string,
   attributes: Record<string, string | number | boolean>,
-  fn: () => Promise<T>,
+  fn: (span: SpanContext) => Promise<T>,
 ): Promise<T> {
   const store = storage.getStore();
   if (!store) {
     // 没有 trace 上下文，直接执行（不埋点）
-    return fn();
+    return fn({ addAttributes: () => {} });
   }
 
   const spanId = randomUUID();
   const parentSpanId = store.currentSpanId;
   const startTime = Date.now();
 
+  // 可变引用，fn 内部可以通过 spanCtx.addAttributes() 追加
+  const mergedAttrs = { ...attributes };
+  const spanCtx: SpanContext = {
+    addAttributes(attrs) {
+      Object.assign(mergedAttrs, attrs);
+    },
+  };
+
   try {
     // 把当前 span 设为子作用域的 parent
     const result = await storage.run(
       { trace: store.trace, currentSpanId: spanId },
-      fn,
+      () => fn(spanCtx),
     );
     store.trace.addSpan({
       spanId,
@@ -198,7 +226,7 @@ export async function withSpan<T>(
       startTime,
       duration: Date.now() - startTime,
       status: "ok",
-      attributes,
+      attributes: mergedAttrs,
     });
     return result;
   } catch (error) {
@@ -210,7 +238,7 @@ export async function withSpan<T>(
       duration: Date.now() - startTime,
       status: "error",
       attributes: {
-        ...attributes,
+        ...mergedAttrs,
         error: error instanceof Error ? error.message : String(error),
       },
     });
@@ -224,21 +252,27 @@ export async function withSpan<T>(
 export function withSpanSync<T>(
   name: string,
   attributes: Record<string, string | number | boolean>,
-  fn: () => T,
+  fn: (span: SpanContext) => T,
 ): T {
   const store = storage.getStore();
-  if (!store) return fn();
+  if (!store) return fn({ addAttributes: () => {} });
 
   const spanId = randomUUID();
   const parentSpanId = store.currentSpanId;
   const startTime = Date.now();
+  const mergedAttrs = { ...attributes };
+  const spanCtx: SpanContext = {
+    addAttributes(attrs) {
+      Object.assign(mergedAttrs, attrs);
+    },
+  };
 
   try {
-    const result = fn();
+    const result = fn(spanCtx);
     store.trace.addSpan({
       spanId, parentSpanId, name, startTime,
       duration: Date.now() - startTime,
-      status: "ok", attributes,
+      status: "ok", attributes: mergedAttrs,
     });
     return result;
   } catch (error) {
@@ -247,7 +281,7 @@ export function withSpanSync<T>(
       duration: Date.now() - startTime,
       status: "error",
       attributes: {
-        ...attributes,
+        ...mergedAttrs,
         error: error instanceof Error ? error.message : String(error),
       },
     });
@@ -284,8 +318,16 @@ async function handleMessage(accountId, conversationId, req) {
   return runWithTrace(accountId, conversationId, async () => {
     // 任意深度直接用 withSpan，父子关系自动建立
     const result = await withSpan("agent.chat", {}, async () => {
-      await withSpan("history.load", { cacheHit: true }, loadHistory);
-      return withSpan("llm.call", { model: "claude-4" }, callLLM);
+      await withSpan("history.load", { cacheHit: true }, () => loadHistory());
+      return withSpan("llm.call", { model: "claude-4" }, async (span) => {
+        const resp = await callLLM();
+        // API 返回后，通过 addAttributes 追加 token 信息
+        span.addAttributes({
+          inputTokens: resp.usage.input_tokens,
+          outputTokens: resp.usage.output_tokens,
+        });
+        return resp;
+      });
     });
     // result 已经在正确的 span 树下
   });
@@ -295,7 +337,7 @@ async function handleMessage(accountId, conversationId, req) {
 async function executeTools(toolCalls) {
   return Promise.all(toolCalls.map((tc) =>
     // withSpan 自动获取上下文，并行分支各自独立
-    withSpan("tool.execute", { toolName: tc.name }, () =>
+    withSpan("tool.execute", { toolName: tc.name }, async () =>
       tools.execute(tc.name, tc.arguments, ctx),
     ),
   ));
@@ -645,7 +687,7 @@ import { queuePersistTrace } from "./db/traces.js";
 async chat(req: ChatRequest): Promise<ChatResponse> {
   return runWithTrace(accountId, req.conversationId, async () => {
     // 内置命令拦截
-    const dispatched = withSpanSync("command.dispatch", {}, () =>
+    const dispatched = withSpanSync("command.dispatch", {}, (_span) =>
       commandRegistry.tryDispatch(req.text),
     );
     if (dispatched) {
@@ -653,7 +695,7 @@ async chat(req: ChatRequest): Promise<ChatResponse> {
     }
 
     // 正常 LLM 流程
-    return withSpan("conversation.lock", {}, () =>
+    return withSpan("conversation.lock", {}, async () =>
       withConversationLock(accountId, req.conversationId, async () => {
         const reply = await chat(accountId, req.conversationId, /* ... */);
 
@@ -680,7 +722,7 @@ const toolResults = await Promise.all(
     withSpan(
       "tool.execute",
       { toolName: toolCall.name },
-      async () => {
+      async (_span) => {
         const content = await tools.execute(
           toolCall.name,
           toolCall.arguments,
@@ -705,15 +747,19 @@ import { withSpan } from "../trace.js";
 const response = await withSpan(
   "llm.call",
   { model: modelId, round },
-  async () => {
+  async (span) => {
     const resp = await model.chat(messages);
-    // attributes 在 span 结束时已记录，prompt/completion 需额外处理
+    // API 返回后，通过 span.addAttributes 追加后置信息
+    span.addAttributes({
+      inputTokens: resp.usage.input_tokens,
+      outputTokens: resp.usage.output_tokens,
+      stopReason: resp.stop_reason,
+      latencyMs: resp.metrics?.latency_ms ?? 0,
+    });
+    // prompt/completion 记录由采样策略决定是否写入 payload 字段
     return resp;
   },
 );
-
-// prompt/completion 记录（在 onMessage 回调中）
-// 由采样策略决定是否写入 payload 字段
 ```
 
 ### 落库逻辑：异步缓冲 + 批量写入
@@ -829,6 +875,7 @@ async function flushTraceQueue(): Promise<void> {
           spanId: s.spanId,
           parentSpanId: s.parentSpanId,
           name: s.name,
+          // UTC 毫秒时间戳 → Date 对象，Prisma 以 UTC 写入数据库
           startTime: new Date(s.startTime),
           durationMs: s.duration,
           status: s.status,

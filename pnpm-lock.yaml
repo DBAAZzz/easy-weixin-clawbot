@@ -10,6 +10,9 @@ importers:
 
   packages/agent:
     dependencies:
+      '@clawbot/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@mariozechner/pi-ai':
         specifier: ^0.62.0
         version: 0.62.0(ws@8.20.0)(zod@4.3.6)
@@ -24,6 +27,18 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  packages/observability:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.19.15
+        version: 22.19.15
+      tsx:
+        specifier: ^4.19.3
+        version: 4.21.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/server:
     dependencies:
       '@andresaya/edge-tts':
@@ -32,6 +47,9 @@ importers:
       '@clawbot/agent':
         specifier: workspace:*
         version: link:../agent
+      '@clawbot/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@clawbot/shared':
         specifier: workspace:*
         version: link:../shared
@@ -3383,7 +3401,7 @@ snapshots:
   '@types/jsonwebtoken@9.0.10':
     dependencies:
       '@types/ms': 2.1.0
-      '@types/node': 25.5.0
+      '@types/node': 22.19.15
 
   '@types/ms@2.1.0': {}
 
@@ -3931,7 +3949,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 25.5.0
+      '@types/node': 22.19.15
       long: 5.3.2
 
   proxy-agent@6.5.0:

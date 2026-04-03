@@ -16,6 +16,7 @@ import {
   type ToolResultMessage,
   type UserMessage,
 } from "@mariozechner/pi-ai";
+import { withSpan } from "@clawbot/observability";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path";
 import type { ChatResponse } from "@clawbot/weixin-agent-sdk";
@@ -289,114 +290,136 @@ export async function chat(
   },
   startedAt = Date.now(),
 ): Promise<ChatResponse> {
-  await ensureHistoryLoaded(accountId, conversationId);
-  const history = getHistory(accountId, conversationId);
+  return withSpan(
+    "agent.chat",
+    { model: MODEL_ID, hasMedia: Boolean(media) },
+    async () => {
+      await withSpan(
+        "history.load",
+        { conversationId, accountId },
+        async () => {
+          await ensureHistoryLoaded(accountId, conversationId);
+        },
+      );
 
-  const userContent: (TextContent | ImageContent)[] = [
-    { type: "text", text: text || "(no text)" },
-  ];
+      const history = getHistory(accountId, conversationId);
 
-  if (media?.type === "image") {
-    const buf = readFileSync(media.filePath);
-    const mimeType = detectImageMime(buf) ?? media.mimeType;
-    const data = buf.toString("base64");
-    if (mimeType !== media.mimeType) {
-      console.log(`[ai] image mimeType corrected: ${media.mimeType} → ${mimeType}`);
-    }
-    userContent.push({
-      type: "image",
-      data,
-      mimeType: mimeType as ImageContent["mimeType"],
-    });
-  }
+      const userContent: (TextContent | ImageContent)[] = [
+        { type: "text", text: text || "(no text)" },
+      ];
 
-  const userMessage: UserMessage = {
-    role: "user",
-    content: userContent,
-    timestamp: Date.now(),
-  };
-
-  history.push(userMessage);
-  queuePersistMessage({
-    accountId,
-    conversationId,
-    message: userMessage,
-    seq: nextSeq(accountId, conversationId),
-    mediaSourcePath: media?.type === "image" ? media.filePath : undefined,
-  });
-
-  const pendingToolArgs = new Map<string, Record<string, unknown>>();
-  let rounds = 0;
-  let messagesAddedInRun = 0;
-
-  const result = await runner.run(history, {
-    onRoundStart(round) {
-      rounds = round;
-      log.llm(accountId, round);
-    },
-
-    onMessage(message: Message) {
-      // Skip persisting empty assistant messages (error responses from provider)
-      const isEmptyAssistant =
-        message.role === "assistant" && message.content.length === 0;
-
-      history.push(message);
-      messagesAddedInRun++;
-
-      if (!isEmptyAssistant) {
-        queuePersistMessage({
-          accountId,
-          conversationId,
-          message,
-          seq: nextSeq(accountId, conversationId),
+      if (media?.type === "image") {
+        const buf = readFileSync(media.filePath);
+        const mimeType = detectImageMime(buf) ?? media.mimeType;
+        const data = buf.toString("base64");
+        if (mimeType !== media.mimeType) {
+          console.log(`[ai] image mimeType corrected: ${media.mimeType} → ${mimeType}`);
+        }
+        userContent.push({
+          type: "image",
+          data,
+          mimeType: mimeType as ImageContent["mimeType"],
         });
       }
 
-      if (message.role === "assistant") {
-        for (const block of message.content) {
-          if (block.type === "toolCall") {
-            pendingToolArgs.set(block.id, block.arguments);
+      const userMessage: UserMessage = {
+        role: "user",
+        content: userContent,
+        timestamp: Date.now(),
+      };
+
+      history.push(userMessage);
+      queuePersistMessage({
+        accountId,
+        conversationId,
+        message: userMessage,
+        seq: nextSeq(accountId, conversationId),
+        mediaSourcePath: media?.type === "image" ? media.filePath : undefined,
+      });
+
+      const pendingToolArgs = new Map<string, Record<string, unknown>>();
+      let rounds = 0;
+      let messagesAddedInRun = 0;
+
+      const result = await runner.run(history, {
+        onRoundStart(round) {
+          rounds = round;
+          log.llm(accountId, round);
+        },
+
+        onMessage(message: Message) {
+          // Skip persisting empty assistant messages (error responses from provider)
+          const isEmptyAssistant =
+            message.role === "assistant" && message.content.length === 0;
+
+          history.push(message);
+          messagesAddedInRun++;
+
+          if (!isEmptyAssistant) {
+            queuePersistMessage({
+              accountId,
+              conversationId,
+              message,
+              seq: nextSeq(accountId, conversationId),
+            });
           }
-        }
-        return;
+
+          if (message.role === "assistant") {
+            for (const block of message.content) {
+              if (block.type === "toolCall") {
+                pendingToolArgs.set(block.id, block.arguments);
+              }
+            }
+            return;
+          }
+
+          if (message.role === "toolResult") {
+            log.tool(
+              message.toolName,
+              pendingToolArgs.get(message.toolCallId) ?? {},
+              extractToolResultText(message),
+            );
+            pendingToolArgs.delete(message.toolCallId);
+          }
+        },
+      });
+
+      if (result.status !== "aborted") {
+        log.done(accountId, rounds, Date.now() - startedAt);
       }
 
-      if (message.role === "toolResult") {
-        log.tool(
-          message.toolName,
-          pendingToolArgs.get(message.toolCallId) ?? {},
-          extractToolResultText(message),
-        );
-        pendingToolArgs.delete(message.toolCallId);
+      switch (result.status) {
+        case "completed": {
+          const msg = result.finalMessage;
+          const text = extractAssistantText(msg);
+
+          // If the LLM returned an error or completely empty response, roll back
+          // ALL messages added during this run (including the user message) from
+          // both memory and DB so the conversation stays clean.
+          if (!text && msg.stopReason !== "stop") {
+            console.warn(
+              `[ai] error response — rolling back ${messagesAddedInRun} message(s) from memory + DB. ` +
+                `stopReason: ${msg.stopReason} | errorMessage: ${(msg as any).errorMessage ?? "(none)"}`,
+            );
+            await rollbackMessages(accountId, conversationId, messagesAddedInRun);
+          }
+
+          return finalizeReply(text, "抱歉，出了点问题，请稍后再试。", {
+            accountId,
+            conversationId,
+            startedAt,
+            rounds,
+          });
+        }
+        case "max_rounds":
+          return finalizeReply(
+            extractAssistantText(result.lastMessage),
+            "抱歉，这次问题我还没处理完。",
+            { accountId, conversationId, startedAt, rounds },
+          );
+        case "aborted":
+          return { text: "请求已取消。" };
       }
     },
-  });
-
-  if (result.status !== "aborted") {
-    log.done(accountId, rounds, Date.now() - startedAt);
-  }
-
-  switch (result.status) {
-    case "completed": {
-      const msg = result.finalMessage;
-      const text = extractAssistantText(msg);
-
-      // If the LLM returned an error or completely empty response, roll back
-      // ALL messages added during this run (including the user message) from
-      // both memory and DB so the conversation stays clean.
-      if (!text && msg.stopReason !== "stop") {
-        console.warn(
-          `[ai] error response — rolling back ${messagesAddedInRun} message(s) from memory + DB. ` +
-          `stopReason: ${msg.stopReason} | errorMessage: ${(msg as any).errorMessage ?? "(none)"}`,
-        );
-        await rollbackMessages(accountId, conversationId, messagesAddedInRun);
-      }
-
-      return finalizeReply(text, "抱歉，出了点问题，请稍后再试。", { accountId, conversationId, startedAt, rounds });
-    }
-    case "max_rounds":
-      return finalizeReply(extractAssistantText(result.lastMessage), "抱歉，这次问题我还没处理完。", { accountId, conversationId, startedAt, rounds });
-    case "aborted":
-      return { text: "请求已取消。" };
-  }
+  );
 }

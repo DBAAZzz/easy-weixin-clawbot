@@ -5,6 +5,7 @@ import { mcpToolRegistry, skillInstaller, toolInstaller, validateConfig } from "
 import { upsertAccount } from "./db/accounts.js";
 import { createLoginManager } from "./login/login-manager.js";
 import { createMcpManager } from "./mcp/manager.js";
+import { observabilityService } from "./observability/service.js";
 import { createBotRuntime } from "./runtime.js";
 
 validateConfig();
@@ -14,6 +15,16 @@ await mcpManager.bootstrap();
 
 const runtime = createBotRuntime();
 await runtime.bootstrap();
+await observabilityService.cleanupExpired().catch((error) => {
+  console.warn("[observability] cleanup failed during startup", error);
+});
+
+const observabilityCleanupTimer = setInterval(() => {
+  void observabilityService.cleanupExpired().catch((error) => {
+    console.warn("[observability] scheduled cleanup failed", error);
+  });
+}, 12 * 60 * 60 * 1000);
+observabilityCleanupTimer.unref?.();
 
 const loginManager = createLoginManager({
   onSuccess: async (accountId) => {
@@ -49,6 +60,10 @@ async function shutdown(signal: string) {
   console.log(`Received ${signal}, shutting down...`);
   await mcpManager.shutdown();
   await runtime.shutdown();
+  await observabilityService.flush().catch((error) => {
+    console.warn("[observability] flush failed during shutdown", error);
+  });
+  clearInterval(observabilityCleanupTimer);
   server.close();
   process.exit(0);
 }

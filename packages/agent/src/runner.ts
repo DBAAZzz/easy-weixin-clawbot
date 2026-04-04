@@ -270,18 +270,37 @@ export function createAgentRunner(
             const content = await withSpan(
               "tool.execute",
               { toolName: toolCall.name },
-              async () =>
-                toolCall.name === USE_SKILL_TOOL.name
-                  ? skillRuntime.execute(
-                      typeof toolCall.arguments.skill_name === "string"
-                        ? toolCall.arguments.skill_name.trim()
-                        : "",
-                    )
-                  : tools.execute(
-                      toolCall.name,
-                      toolCall.arguments,
-                      createToolContext(signal, timeoutMs),
+              async (span) => {
+                const result =
+                  toolCall.name === USE_SKILL_TOOL.name
+                    ? await skillRuntime.execute(
+                        typeof toolCall.arguments.skill_name === "string"
+                          ? toolCall.arguments.skill_name.trim()
+                          : "",
+                      )
+                    : await tools.execute(
+                        toolCall.name,
+                        toolCall.arguments,
+                        createToolContext(signal, timeoutMs),
+                      );
+
+                span.addAttributes({
+                  promptSnapshot: sanitize(JSON.stringify(toolCall.arguments, null, 2)),
+                  completionSnapshot: sanitize(
+                    JSON.stringify(
+                      result.map((block) =>
+                        block.type === "image"
+                          ? { type: "image", data: `[base64:${block.data.length} chars]` }
+                          : block,
+                      ),
+                      null,
+                      2,
                     ),
+                  ),
+                });
+
+                return result;
+              },
             );
 
             toolCallsTotal.inc({ tool_name: toolCall.name, status: "ok" });

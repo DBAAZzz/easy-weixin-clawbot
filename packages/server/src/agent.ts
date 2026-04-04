@@ -17,6 +17,7 @@ import { log } from "./logger.js";
 import { observabilityService } from "./observability/service.js";
 import { TTS_CACHE_DIR } from "./paths.js";
 import { getTTSProvider } from "./services/tts/index.js";
+import { createHandoffAnchors } from "./tape/index.js";
 
 const commandRegistry = new CommandRegistry();
 commandRegistry.registerAll(builtinCommands);
@@ -44,6 +45,14 @@ async function rotateSession(accountId: string, wechatConvId: string): Promise<s
   const k = `${accountId}::${wechatConvId}`;
   const oldEffective = sessionCache.get(k) ?? wechatConvId;
   const newEffective = `${wechatConvId}#${Date.now()}`;
+
+  // Create handoff anchors to bridge old → new branch memories
+  try {
+    await createHandoffAnchors(accountId, oldEffective, newEffective);
+  } catch (err) {
+    console.warn("[tape] handoff anchor creation failed:", err);
+  }
+
   evictConversation(accountId, oldEffective);
   sessionCache.set(k, newEffective);
   await upsertRoute(accountId, wechatConvId, newEffective);
@@ -97,6 +106,7 @@ export function createAgent(accountId: string): Agent {
             {
               hasMedia: Boolean(req.media),
               textLength: req.text.length,
+              promptSnapshot: req.text,
             },
             () => undefined,
           );
@@ -133,7 +143,7 @@ export function createAgent(accountId: string): Agent {
 
             return withSpanSync(
               "message.send",
-              { hasText: Boolean(reply.text), hasMedia: Boolean(reply.media) },
+              { hasText: Boolean(reply.text), hasMedia: Boolean(reply.media), completionSnapshot: reply.text ?? "" },
               () => {
                 log.send(accountId, req.conversationId, reply.text ?? "");
                 return reply;
@@ -149,7 +159,7 @@ export function createAgent(accountId: string): Agent {
 
           return withSpanSync(
             "message.send",
-            { hasText: Boolean(reply.text), hasMedia: Boolean(reply.media) },
+            { hasText: Boolean(reply.text), hasMedia: Boolean(reply.media), completionSnapshot: reply.text ?? "" },
             () => {
               log.send(accountId, req.conversationId, reply.text ?? "");
               return reply;

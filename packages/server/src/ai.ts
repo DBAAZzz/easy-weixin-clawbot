@@ -32,6 +32,13 @@ import {
   TOOLS_BUILTIN_DIR,
   TOOLS_USER_DIR,
 } from "./paths.js";
+import {
+  emptyState,
+  recall,
+  compactIfNeeded,
+  formatMemoryForPrompt,
+  fireExtractAndRecord,
+} from "./tape/index.js";
 import { detectImageMime } from "./utils/index.js";
 
 mkdirSync(DOWNLOADS_DIR, { recursive: true });
@@ -294,18 +301,34 @@ export async function chat(
     "agent.chat",
     { model: MODEL_ID, hasMedia: Boolean(media) },
     async () => {
-      await withSpan(
-        "history.load",
-        { conversationId, accountId },
-        async () => {
-          await ensureHistoryLoaded(accountId, conversationId);
-        },
-      );
+      // Load message history and tape memory in parallel
+      const [, [sessionMemory, globalMemory]] = await Promise.all([
+        withSpan("history.load", { conversationId, accountId }, () =>
+          ensureHistoryLoaded(accountId, conversationId),
+        ),
+        withSpan("tape.recall", { conversationId, accountId }, () =>
+          Promise.all([
+            recall(accountId, conversationId),
+            recall(accountId, "__global__"),
+          ]).catch((err) => {
+            console.warn("[tape] recall failed, proceeding without memory:", err);
+            return [emptyState(), emptyState()] as const;
+          }),
+        ),
+      ]);
 
       const history = getHistory(accountId, conversationId);
 
+      const memoryContext = formatMemoryForPrompt(globalMemory, sessionMemory);
+      const now = new Date();
+      const timePrefix = `[当前时间: ${now.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", weekday: "short" })}]\n`;
+
+      const textParts = [timePrefix];
+      if (memoryContext) textParts.push(memoryContext + "\n");
+      textParts.push(text || "(no text)");
+
       const userContent: (TextContent | ImageContent)[] = [
-        { type: "text", text: text || "(no text)" },
+        { type: "text", text: textParts.join("") },
       ];
 
       if (media?.type === "image") {
@@ -391,20 +414,36 @@ export async function chat(
       switch (result.status) {
         case "completed": {
           const msg = result.finalMessage;
-          const text = extractAssistantText(msg);
+          const replyText = extractAssistantText(msg);
 
           // If the LLM returned an error or completely empty response, roll back
           // ALL messages added during this run (including the user message) from
           // both memory and DB so the conversation stays clean.
-          if (!text && msg.stopReason !== "stop") {
+          if (!replyText && msg.stopReason !== "stop") {
             console.warn(
               `[ai] error response — rolling back ${messagesAddedInRun} message(s) from memory + DB. ` +
                 `stopReason: ${msg.stopReason} | errorMessage: ${(msg as any).errorMessage ?? "(none)"}`,
             );
             await rollbackMessages(accountId, conversationId, messagesAddedInRun);
+          } else {
+            // Tape: fire-and-forget LLM-based memory extraction + record
+            // Runs async after response — does not block user reply
+            fireExtractAndRecord(
+              model,
+              accountId,
+              conversationId,
+              { userText: text, assistantText: replyText },
+              `agent:${MODEL_ID}`,
+              EXPLICIT_API_KEY,
+            );
+
+            // Compact if threshold reached (fast, synchronous check)
+            withSpan("tape.compact", { branch: conversationId }, () =>
+              compactIfNeeded(accountId, conversationId),
+            ).catch((err) => console.warn("[tape] compact failed:", err));
           }
 
-          return finalizeReply(text, "抱歉，出了点问题，请稍后再试。", {
+          return finalizeReply(replyText, "抱歉，出了点问题，请稍后再试。", {
             accountId,
             conversationId,
             startedAt,

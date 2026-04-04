@@ -7,6 +7,7 @@ import { createLoginManager } from "./login/login-manager.js";
 import { createMcpManager } from "./mcp/manager.js";
 import { observabilityService } from "./observability/service.js";
 import { createBotRuntime } from "./runtime.js";
+import { purgeCompacted } from "./tape/index.js";
 
 validateConfig();
 
@@ -22,6 +23,11 @@ await observabilityService.cleanupExpired().catch((error) => {
 const observabilityCleanupTimer = setInterval(() => {
   void observabilityService.cleanupExpired().catch((error) => {
     console.warn("[observability] scheduled cleanup failed", error);
+  });
+  void purgeCompacted(30).then((count) => {
+    if (count > 0) console.log(`[tape] purged ${count} compacted entries`);
+  }).catch((error) => {
+    console.warn("[tape] scheduled purge failed", error);
   });
 }, 12 * 60 * 60 * 1000);
 observabilityCleanupTimer.unref?.();

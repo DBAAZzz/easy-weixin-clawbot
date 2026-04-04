@@ -18,6 +18,8 @@ model Account {
   messages       Message[]
   sessionRoutes  SessionRoute[]
   webhookPermissions WebhookAccountPermission[]
+  tapeEntries    TapeEntry[]
+  tapeAnchors    TapeAnchor[]
 
   @@map("accounts")
 }
@@ -203,4 +205,66 @@ model TraceSpan {
   @@index([toolName, status], map: "idx_trace_spans_tool_status")
   @@index([status, startTime(sort: Desc)], map: "idx_trace_spans_status_start")
   @@map("trace_spans")
+}
+
+// ─── Tape Memory System ───────────────────────────────────────────────
+
+model TapeEntry {
+  id         BigInt   @id @default(autoincrement())
+  eid        String   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId  String   @map("account_id") @db.Text
+  branch     String   @db.Text
+
+  // tape.systems Entry fields
+  type       String   @db.Text                           // 'record' | 'anchor'
+  category   String   @db.Text                           // 'fact' | 'preference' | 'decision' | 'summary'
+
+  // Fact payload: structured as Fragment array
+  payload    Json
+
+  // Meta
+  actor      String   @db.Text                           // 'user:{accountId}' | 'agent:{modelId}' | 'system'
+  source     String?  @db.Text                           // 'chat' | 'tool:{toolName}' | 'compact'
+
+  // Optional hash chain for integrity (single-trust system, nullable)
+  prevHash   String?  @map("prev_hash") @db.Text
+
+  compacted  Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, branch, type], map: "idx_tape_branch_type")
+  @@index([accountId, branch, createdAt], map: "idx_tape_branch_created")
+  @@index([accountId, branch, compacted], map: "idx_tape_branch_compacted")
+  @@map("tape_entries")
+}
+
+/// Anchor: state checkpoint separated from Entry for distinct query patterns and schema
+model TapeAnchor {
+  id             BigInt   @id @default(autoincrement())
+  aid            String   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId      String   @map("account_id") @db.Text
+  branch         String   @db.Text
+
+  // checkpoint | handoff | decision
+  anchorType     String   @map("anchor_type") @db.Text
+
+  // Folded state snapshot
+  snapshot       Json
+
+  // Entry eids that produced this snapshot (traceability)
+  manifest       String[] @default([])
+
+  // Predecessor anchor aids (DAG for branching/merging)
+  predecessors   String[] @default([])
+
+  // Last Entry eid covered by this anchor (recall incremental start point)
+  lastEntryEid   String?  @map("last_entry_eid") @db.Uuid
+
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, branch, anchorType], map: "idx_anchor_branch_type")
+  @@index([accountId, branch, createdAt], map: "idx_anchor_branch_created")
+  @@map("tape_anchors")
 }

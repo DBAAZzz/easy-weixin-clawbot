@@ -8,6 +8,7 @@ import { createMcpManager } from "./mcp/manager.js";
 import { observabilityService } from "./observability/service.js";
 import { createBotRuntime } from "./runtime.js";
 import { purgeCompacted } from "./tape/index.js";
+import { schedulerManager } from "./scheduler/index.js";
 
 validateConfig();
 
@@ -16,6 +17,9 @@ await mcpManager.bootstrap();
 
 const runtime = createBotRuntime();
 await runtime.bootstrap();
+await schedulerManager.bootstrap().catch((error) => {
+  console.warn("[scheduler] bootstrap failed:", error);
+});
 await observabilityService.cleanupExpired().catch((error) => {
   console.warn("[observability] cleanup failed during startup", error);
 });
@@ -64,6 +68,7 @@ async function shutdown(signal: string) {
   shuttingDown = true;
 
   console.log(`Received ${signal}, shutting down...`);
+  await schedulerManager.shutdown();
   await mcpManager.shutdown();
   await runtime.shutdown();
   await observabilityService.flush().catch((error) => {

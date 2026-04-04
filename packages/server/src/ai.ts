@@ -156,7 +156,11 @@ const model: Model<any> = (() => {
 
 export const localToolRegistry = createToolRegistry();
 export const mcpToolRegistry = createToolRegistry();
-export const toolRegistry = createCompositeToolRegistry(localToolRegistry, mcpToolRegistry);
+
+// Scheduler tools are registered programmatically (not from markdown files)
+import { schedulerToolRegistry } from "./scheduler/index.js";
+
+export const toolRegistry = createCompositeToolRegistry(localToolRegistry, mcpToolRegistry, schedulerToolRegistry);
 export const toolInstaller = createToolInstaller(localToolRegistry);
 export const skillRegistry = createSkillRegistry();
 export const skillInstaller = createSkillInstaller(skillRegistry);

@@ -18,6 +18,7 @@
     "@clawbot/agent": "workspace:*",
     "@clawbot/observability": "workspace:*",
     "@clawbot/shared": "workspace:*",
+    "@clawbot/weixin-agent-sdk": "workspace:*",
     "@hono/node-server": "^1.19.11",
     "@mariozechner/pi-ai": "^0.62.0",
     "@prisma/client": "^6.19.2",
@@ -25,8 +26,8 @@
     "hono": "^4.12.9",
     "js-yaml": "^4.1.1",
     "jsonwebtoken": "^9.0.3",
-    "qrcode-terminal": "^0.12.0",
-    "@clawbot/weixin-agent-sdk": "workspace:*"
+    "node-cron": "^4.2.1",
+    "qrcode-terminal": "^0.12.0"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

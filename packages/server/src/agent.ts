@@ -8,8 +8,10 @@ import {
 } from "@clawbot/observability";
 import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk";
 import { chat } from "./ai.js";
+import { sendProactiveMessage } from "./proactive-push.js";
 import { builtinCommands } from "./commands/builtins.js";
 import { CommandRegistry } from "./commands/registry.js";
+import { scheduleCommand, setSchedulerContext, findUnpushedRuns, markRunPushed } from "./scheduler/index.js";
 import { clearConversation, evictConversation, withConversationLock } from "./conversation.js";
 import { updateContextToken } from "./db/conversations.js";
 import { deleteRoute, getRoute, upsertRoute } from "./db/session-routes.js";
@@ -21,6 +23,7 @@ import { createHandoffAnchors } from "./tape/index.js";
 
 const commandRegistry = new CommandRegistry();
 commandRegistry.registerAll(builtinCommands);
+commandRegistry.register(scheduleCommand);
 
 /**
  * In-memory cache of wechatConvId → effectiveConvId per account.
@@ -84,6 +87,28 @@ async function synthesizeReply(text: string): Promise<string | undefined> {
   }
 }
 
+/**
+ * Deliver any scheduler task results that couldn't be pushed
+ * (e.g. contextToken was expired). Now that the user has sent a message
+ * and refreshed their contextToken, we can deliver them.
+ */
+async function deliverUnpushedRuns(accountId: string, conversationId: string): Promise<void> {
+  const runs = await findUnpushedRuns(accountId, conversationId);
+  if (runs.length === 0) return;
+
+  for (const run of runs) {
+    if (!run.result) continue;
+    try {
+      const header = `📬 [定时任务 #${run.task.seq}「${run.task.name}」补发结果]\n`;
+      await sendProactiveMessage(accountId, conversationId, header + run.result);
+      await markRunPushed(run.id);
+    } catch (err) {
+      console.warn(`[scheduler] failed to deliver unpushed run ${run.id}:`, (err as Error).message);
+      break; // If push fails again, stop trying — token might still be bad
+    }
+  }
+}
+
 /** Create an Agent bound to a specific WeChat account. */
 export function createAgent(accountId: string): Agent {
   return {
@@ -93,6 +118,11 @@ export function createAgent(accountId: string): Agent {
       if (req.contextToken) {
         void updateContextToken(accountId, req.conversationId, req.contextToken).catch((err) => {
           log.error(`updateContextToken(${accountId}/${req.conversationId})`, err);
+        });
+
+        // Deliver any unpushed scheduler results now that contextToken is fresh
+        void deliverUnpushedRuns(accountId, req.conversationId).catch((err) => {
+          log.error(`deliverUnpushedRuns(${accountId}/${req.conversationId})`, err);
         });
       }
 
@@ -151,11 +181,14 @@ export function createAgent(accountId: string): Agent {
             );
           }
 
+          // Inject scheduler context so scheduler tools know the active account/conversation
+          setSchedulerContext({ accountId, conversationId: req.conversationId });
           const reply = await withSpan("conversation.lock", {}, async () =>
             withConversationLock(accountId, effectiveConvId, async () =>
               chat(accountId, effectiveConvId, req.text, req.media, startedAt),
             ),
           );
+          setSchedulerContext(null);
 
           return withSpanSync(
             "message.send",

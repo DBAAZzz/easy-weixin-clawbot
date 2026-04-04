@@ -207,6 +207,50 @@ model TraceSpan {
   @@map("trace_spans")
 }
 
+// ─── Scheduler ────────────────────────────────────────────────────────
+
+model ScheduledTask {
+  id             BigInt    @id @default(autoincrement())
+  taskId         String    @unique @default(dbgenerated("gen_random_uuid()")) @map("task_id") @db.Uuid
+  accountId      String    @map("account_id") @db.Text
+  conversationId String    @map("conversation_id") @db.Text
+  seq            Int                                         // per-account auto-increment short ID
+  name           String    @db.Text
+  prompt         String    @db.Text
+  cron           String    @db.Text
+  timezone       String    @default("Asia/Shanghai") @db.Text
+  enabled        Boolean   @default(true)
+  status         String    @default("idle") @db.Text         // idle | running | error | paused
+  lastRunAt      DateTime? @map("last_run_at") @db.Timestamptz(6)
+  nextRunAt      DateTime? @map("next_run_at") @db.Timestamptz(6)
+  lastError      String?   @map("last_error") @db.Text
+  runCount       Int       @default(0) @map("run_count")
+  failStreak     Int       @default(0) @map("fail_streak")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  runs           ScheduledTaskRun[]
+
+  @@unique([accountId, seq], map: "scheduled_tasks_account_id_seq_key")
+  @@index([accountId, enabled], map: "idx_scheduled_tasks_account_enabled")
+  @@map("scheduled_tasks")
+}
+
+model ScheduledTaskRun {
+  id         BigInt   @id @default(autoincrement())
+  taskId     BigInt   @map("task_id")
+  status     String   @db.Text                               // success | error | timeout | skipped
+  prompt     String   @db.Text
+  result     String?  @db.Text
+  durationMs Int?     @map("duration_ms")
+  error      String?  @db.Text
+  pushed     Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  task       ScheduledTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt(sort: Desc)], map: "idx_scheduled_task_runs_task")
+  @@map("scheduled_task_runs")
+}
+
 // ─── Tape Memory System ───────────────────────────────────────────────
 
 model TapeEntry {

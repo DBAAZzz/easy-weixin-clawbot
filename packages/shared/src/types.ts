@@ -237,6 +237,50 @@ export interface ObservabilityTraceDetail extends ObservabilityTraceSummary {
   spans: ObservabilityTraceSpan[];
 }
 
+export type TapeGraphCategory = "fact" | "preference" | "decision";
+export type TapeGraphScope = "global" | "session";
+export type TapeGraphEdgeType = "co_occurrence" | "prefix_cluster";
+
+export interface TapeGraphNode {
+  id: string;
+  key: string;
+  label: string;
+  category: TapeGraphCategory;
+  value: unknown;
+  confidence?: number;
+  scope: TapeGraphScope;
+  branch: string;
+  sourceEid: string;
+  updatedAt: string;
+}
+
+export interface TapeGraphEdge {
+  source: string;
+  target: string;
+  type: TapeGraphEdgeType;
+  weight: number;
+}
+
+export interface TapeGraphGroup {
+  id: string;
+  label: string;
+  type: "group";
+  branch: string;
+  children: string[];
+}
+
+export interface TapeGraphResponse {
+  nodes: TapeGraphNode[];
+  edges: TapeGraphEdge[];
+  groups: TapeGraphGroup[];
+  meta: {
+    accountId: string;
+    branch: string;
+    totalEntries: number;
+    generatedAt: string;
+  };
+}
+
 // ── Model Config ────────────────────────────────────────────────────
 
 export interface ModelConfigDto {

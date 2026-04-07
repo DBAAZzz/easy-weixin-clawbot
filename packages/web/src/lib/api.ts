@@ -17,6 +17,7 @@ import type {
   ObservabilityWindow,
   PaginatedResponse,
   SkillInfo,
+  TapeGraphResponse,
   ToolInfo,
 } from "@clawbot/shared";
 import type { McpServerRequestPayload } from "./mcp-form.js";
@@ -284,6 +285,15 @@ export function removeSkill(name: string): Promise<{ name: string }> {
 
 export function fetchConversations(accountId: string): Promise<ConversationRow[]> {
   return request<ConversationRow[]>(`/api/accounts/${encodeURIComponent(accountId)}/conversations`);
+}
+
+export function fetchTapeGraph(
+  accountId: string,
+  branch = "__global__",
+): Promise<TapeGraphResponse> {
+  return request<TapeGraphResponse>(
+    `/api/tape/graph${toQueryString({ accountId, branch })}`
+  );
 }
 
 export function fetchMessages(

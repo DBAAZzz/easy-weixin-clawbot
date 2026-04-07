@@ -44,10 +44,46 @@ export class PrismaTapeStore implements TapeStore {
     });
     return rows.map((r) => ({
       eid: r.eid,
+      branch: r.branch,
       category: r.category,
       payload: r.payload,
       createdAt: r.createdAt,
     }));
+  }
+
+  async findAllEntries(accountId: string, branch: string): Promise<TapeEntryRow[]> {
+    const rows = await getPrisma().tapeEntry.findMany({
+      where: {
+        accountId,
+        ...(branch === "*" ? {} : { branch }),
+      },
+      orderBy: [{ branch: "asc" }, { createdAt: "asc" }],
+    });
+
+    return rows.map((r) => ({
+      eid: r.eid,
+      branch: r.branch,
+      category: r.category,
+      payload: r.payload,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  async listBranches(accountId: string): Promise<string[]> {
+    const [entryBranches, anchorBranches] = await Promise.all([
+      getPrisma().tapeEntry.findMany({
+        where: { accountId },
+        distinct: ["branch"],
+        select: { branch: true },
+      }),
+      getPrisma().tapeAnchor.findMany({
+        where: { accountId },
+        distinct: ["branch"],
+        select: { branch: true },
+      }),
+    ]);
+
+    return [...new Set([...entryBranches, ...anchorBranches].map((row) => row.branch))].sort();
   }
 
   async findLatestAnchor(

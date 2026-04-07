@@ -22,3 +22,11 @@ export {
 export { queueRecordEntry, getPendingTapeWriteCount } from "./queue.js";
 
 export { fireExtractAndRecord } from "./extractor.js";
+
+export type {
+  TapeGraphNode,
+  TapeGraphEdge,
+  TapeGraphGroup,
+  TapeGraphResponse,
+} from "./graph.js";
+export { buildTapeGraphSnapshot, generateTapeGraph } from "./graph.js";

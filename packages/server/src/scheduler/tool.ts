@@ -67,16 +67,20 @@ const createScheduledTaskTool: ToolSnapshotItem = {
   description:
     "创建一个定时任务。到时间后自动执行 AI Prompt 并将结果推送到当前会话。" +
     "需要将用户的自然语言需求转换为 cron 表达式和明确的 prompt。" +
+    "支持两种类型：once（单次执行后自动停止）和 recurring（按 cron 重复执行）。" +
     "最小执行间隔为 30 分钟。",
   parameters: Type.Object({
     name: Type.String({ description: "任务名称（简短描述，如「科技新闻摘要」）" }),
+    type: Type.Optional(Type.Union([Type.Literal("once"), Type.Literal("recurring")], {
+      description: '任务类型：once（单次执行）或 recurring（重复执行），默认 recurring',
+    })),
     cron: Type.String({ description: '标准 5 位 cron 表达式，如 "0 9 * * *"（每天9点）' }),
     prompt: Type.String({ description: "每次执行时发送给 AI 的 prompt" }),
     timezone: Type.Optional(Type.String({ description: "时区，默认 Asia/Shanghai" })),
   }),
   async execute(args) {
-    const { name, cron: cronExpr, prompt, timezone } = args as {
-      name: string; cron: string; prompt: string; timezone?: string;
+    const { name, type, cron: cronExpr, prompt, timezone } = args as {
+      name: string; type?: "once" | "recurring"; cron: string; prompt: string; timezone?: string;
     };
 
     if (!validate(cronExpr)) {
@@ -89,20 +93,24 @@ const createScheduledTaskTool: ToolSnapshotItem = {
     const ctx = getCurrentSchedulerContext();
     if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
 
+    const taskType = type ?? "recurring";
     const task = await createTask({
       accountId: ctx.accountId,
       conversationId: ctx.conversationId,
       name,
       prompt,
+      type: taskType,
       cron: cronExpr,
       timezone,
     });
 
     activate(task);
 
+    const typeLabel = taskType === "once" ? "单次" : "重复";
     return textResult(
       `✅ 定时任务已创建\n` +
       `📌 名称：${task.name}\n` +
+      `📋 类型：${typeLabel}\n` +
       `⏰ 时间：${task.cron}（${task.timezone}）\n` +
       `📝 Prompt：${task.prompt}\n` +
       `🔢 编号：#${task.seq}`,
@@ -190,7 +198,8 @@ const listScheduledTasksTool: ToolSnapshotItem = {
       const statusIcon = t.enabled
         ? t.status === "paused" ? "⏸️" : "▶️"
         : "⏹️";
-      return `${statusIcon} #${t.seq} ${t.name} — ${t.cron}（${t.timezone}）`;
+      const typeLabel = t.type === "once" ? "[单次]" : "[重复]";
+      return `${statusIcon} #${t.seq} ${typeLabel} ${t.name} — ${t.cron}（${t.timezone}）`;
     });
     return textResult("📋 定时任务列表：\n" + lines.join("\n"));
   },

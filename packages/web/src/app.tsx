@@ -6,6 +6,7 @@ import { DashboardPage } from "./pages/DashboardPage.js";
 import { LoginPage } from "./pages/LoginPage.js";
 import { McpPage } from "./pages/McpPage.js";
 import { ObservabilityPage } from "./pages/ObservabilityPage.js";
+import { ScheduledTasksPage } from "./pages/ScheduledTasksPage.js";
 import { ObservabilityTracePage } from "./pages/ObservabilityTracePage.js";
 import { SkillsPage } from "./pages/SkillsPage.js";
 import { ToolsPage } from "./pages/ToolsPage.js";
@@ -39,6 +40,7 @@ export function App() {
           <Route path="/skills" element={<SkillsPage />} />
           <Route path="/webhooks" element={<WebhooksPage />} />
           <Route path="/webhooks/:source/logs" element={<WebhookLogsPage />} />
+          <Route path="/scheduled-tasks" element={<ScheduledTasksPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -73,14 +73,25 @@ export async function executeTask(task: ScheduledTask): Promise<void> {
   const newFailStreak = isFailure ? task.failStreak + 1 : 0;
   const shouldPause = newFailStreak >= MAX_FAIL_STREAK;
 
-  await setTaskStatus(task.id, shouldPause ? "paused" : "idle", {
+  // Once-type tasks: auto-disable after execution (regardless of success/failure)
+  const isOnce = task.type === "once";
+
+  await setTaskStatus(task.id, isOnce ? "idle" : shouldPause ? "paused" : "idle", {
     lastRunAt: new Date(),
     lastError: isFailure ? error : null,
     failStreak: newFailStreak,
     runCount: { increment: 1 },
+    ...(isOnce ? { enabled: false } : {}),
   });
 
-  if (shouldPause) {
+  if (isOnce) {
+    // Lazy import to avoid circular dependency (manager → executor → manager)
+    const { deactivate } = await import("./manager.js");
+    deactivate(task.id);
+    console.log(
+      `[scheduler] once-task #${task.seq} (${task.accountId}) completed and auto-disabled`,
+    );
+  } else if (shouldPause) {
     console.warn(
       `[scheduler] task #${task.seq} (${task.accountId}) auto-paused after ${MAX_FAIL_STREAK} consecutive failures`,
     );

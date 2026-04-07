@@ -5,6 +5,7 @@ import { cn } from "../../lib/cn.js";
 import { formatCount, formatDuration } from "../../lib/format.js";
 import {
   ActivityIcon,
+  ClockIcon,
   HomeIcon,
   LinkIcon,
   LogOutIcon,
@@ -75,6 +76,7 @@ export function Sidebar(props: {
         { to: "/tools", label: "工具列表", icon: <TerminalIcon className="size-4" /> },
         { to: "/skills", label: "技能列表", icon: <PuzzleIcon className="size-4" /> },
         { to: "/webhooks", label: "Webhooks", icon: <WebhookIcon className="size-4" /> },
+        { to: "/scheduled-tasks", label: "定时任务", icon: <ClockIcon className="size-4" /> },
         { to: "/login", label: "连接 clawbot", icon: <ScanIcon className="size-4" /> },
       ],
     },
@@ -139,10 +141,6 @@ export function Sidebar(props: {
               value={runtimeLabel}
               icon={<StackIcon className="size-4" />}
             />
-          </div>
-
-          <div className="mt-4 rounded-[16px] border border-dashed border-[var(--line)] bg-white/42 px-4 py-4 text-[13px] leading-6 text-[var(--muted)]">
-            账号列表统一在"账号列表"页面查看，侧栏仅保留导航与系统状态。
           </div>
         </div>
 

@@ -20,6 +20,7 @@ export async function createTask(input: CreateTaskInput): Promise<ScheduledTask>
       seq,
       name: input.name,
       prompt: input.prompt,
+      type: input.type ?? "recurring",
       cron: input.cron,
       timezone: input.timezone ?? "Asia/Shanghai",
     },
@@ -73,7 +74,7 @@ export async function listEnabledTasks(): Promise<ScheduledTask[]> {
 export async function setTaskStatus(
   id: bigint,
   status: string,
-  extra?: { lastRunAt?: Date; nextRunAt?: Date; lastError?: string | null; failStreak?: number; runCount?: { increment: number } },
+  extra?: { lastRunAt?: Date; nextRunAt?: Date; lastError?: string | null; failStreak?: number; runCount?: { increment: number }; enabled?: boolean },
 ): Promise<void> {
   await getPrisma().scheduledTask.update({
     where: { id },

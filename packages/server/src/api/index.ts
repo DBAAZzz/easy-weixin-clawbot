@@ -19,6 +19,7 @@ import { registerLoginRoutes } from "./routes/login.js";
 import { registerMcpRoutes } from "./routes/mcp.js";
 import { registerMessageRoutes } from "./routes/messages.js";
 import { registerObservabilityRoutes } from "./routes/observability.js";
+import { registerScheduledTaskRoutes } from "./routes/scheduled-tasks.js";
 import { registerSkillRoutes } from "./routes/skills.js";
 import { registerToolRoutes } from "./routes/tools.js";
 import { registerWebhookRoutes } from "./routes/webhooks.js";
@@ -76,6 +77,7 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerSkillRoutes(app, dependencies.skillInstaller, dependencies.toolInstaller);
   registerMcpRoutes(app, dependencies.mcpManager);
   registerObservabilityRoutes(app, observability);
+  registerScheduledTaskRoutes(app);
 
   app.onError((error, c) => {
     console.error("[api] unhandled error", error);

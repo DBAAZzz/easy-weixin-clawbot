@@ -33,7 +33,8 @@ export const scheduleCommand: Command = {
           const icon = t.enabled
             ? t.status === "paused" ? "⏸️" : "▶️"
             : "⏹️";
-          return `${icon} #${t.seq} ${t.name} — ${t.cron}`;
+          const typeLabel = t.type === "once" ? "[单次]" : "[重复]";
+          return `${icon} #${t.seq} ${typeLabel} ${t.name} — ${t.cron}`;
         });
         return { text: "📋 定时任务：\n" + lines.join("\n") };
       }
@@ -43,9 +44,11 @@ export const scheduleCommand: Command = {
         const task = await getTaskBySeq(ctx.accountId, seq);
         if (!task) return { text: `❌ 未找到任务 #${seq}` };
 
+        const typeLabel = task.type === "once" ? "单次" : "重复";
         return {
           text: [
             `📌 #${task.seq} ${task.name}`,
+            `📋 类型：${typeLabel}`,
             `⏰ ${task.cron}（${task.timezone}）`,
             `📝 ${task.prompt}`,
             `状态：${task.status} | 启用：${task.enabled ? "是" : "否"}`,

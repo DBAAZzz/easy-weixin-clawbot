@@ -217,6 +217,7 @@ model ScheduledTask {
   seq            Int                                         // per-account auto-increment short ID
   name           String    @db.Text
   prompt         String    @db.Text
+  type           String    @default("recurring") @db.Text    // once | recurring
   cron           String    @db.Text
   timezone       String    @default("Asia/Shanghai") @db.Text
   enabled        Boolean   @default(true)

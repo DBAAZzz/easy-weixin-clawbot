@@ -68,102 +68,116 @@ function WebhookTokenCard(props: {
   onRotate: () => void;
   onDelete: () => void;
 }) {
+  const accountLabels = props.token.accountIds.map((id) => {
+    const acct = props.accounts.find((a) => a.id === id);
+    return acct?.alias || acct?.display_name || id.slice(0, 12);
+  });
+
   return (
-    <div className="reveal-up group rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] px-4 py-4 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)] md:px-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-[14px] border border-[var(--line)] bg-[rgba(247,250,251,0.92)] text-[var(--ink)]">
-            <KeyIcon className="size-[18px]" />
-          </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
-                {props.token.source}
-              </p>
-              <Badge tone={props.token.enabled ? "online" : "offline"}>
-                {props.token.enabled ? "启用中" : "已停用"}
-              </Badge>
-            </div>
-            <p className="mt-1 text-[12px] leading-5 text-[var(--muted-strong)]">
-              {props.token.description || "未填写描述，建议补充来源说明便于区分。"}
-            </p>
+    <div className="reveal-up group rounded-[20px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)]">
+      {/* ── Row 1: icon + source (desc)    toggle + badge ── */}
+      <div className="flex items-center gap-3 px-5 pt-4">
+        <span
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-[12px] border transition",
+            props.token.enabled
+              ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+              : "border-[var(--line)] bg-[rgba(148,163,184,0.08)] text-[var(--muted)]"
+          )}
+        >
+          <KeyIcon className="size-4" />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-[13px] font-semibold tracking-[-0.02em] text-[var(--ink)]">
+              {props.token.source}
+            </span>
           </div>
+          <p className="mt-0.5 truncate text-[11px] text-[var(--muted)]">
+            {props.token.description || "未填写描述"}
+          </p>
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <div className="flex shrink-0 items-center gap-2">
+          <Badge tone={props.token.enabled ? "online" : "offline"}>
+            {props.token.enabled ? "启用" : "停用"}
+          </Badge>
           <TokenToggle
             enabled={props.token.enabled}
             busy={props.busy}
             onToggle={props.onToggle}
           />
-          <span className="text-[10px] font-medium text-[var(--muted)]">
-            {props.token.enabled ? "已启用" : "已停用"}
-          </span>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--muted)]">
-        <span className="font-mono text-[var(--muted-strong)]">{props.token.tokenPrefix}...</span>
-        <span className="size-1 rounded-full bg-[var(--line-strong)]" />
-        <span>{formatCount(props.token.accountIds.length)} 个账号</span>
-        <span className="size-1 rounded-full bg-[var(--line-strong)]" />
-        <span>
-          {props.token.lastUsedAt
-            ? `最近使用 ${formatDateTime(props.token.lastUsedAt)}`
-            : "未使用"}
-        </span>
+      {/* ── Row 2-3: 2-column info grid ── */}
+      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 px-5 text-[12px]">
+        <div className="text-[var(--muted-strong)]">
+          <span className="text-[var(--muted)]">Token：</span>
+          <span className="font-mono text-[11px]">{props.token.tokenPrefix}...</span>
+        </div>
+        <div className="text-[var(--muted-strong)]">
+          <span className="text-[var(--muted)]">授权账号：</span>
+          {formatCount(props.token.accountIds.length)} 个
+        </div>
+        <div className="text-[var(--muted-strong)]">
+          <span className="text-[var(--muted)]">最近使用：</span>
+          {props.token.lastUsedAt ? formatDateTime(props.token.lastUsedAt) : "从未使用"}
+        </div>
+        <div className="text-[var(--muted-strong)]">
+          <span className="text-[var(--muted)]">创建时间：</span>
+          {formatDateTime(props.token.createdAt)}
+        </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {props.token.accountIds.map((id) => {
-          const acct = props.accounts.find((account) => account.id === id);
-          return (
-            <span
-              key={id}
-              className="rounded-full bg-[rgba(21,110,99,0.08)] px-2.5 py-0.5 text-[11px] text-[var(--accent-strong)]"
-            >
-              {acct?.alias || acct?.display_name || id.slice(0, 12)}
-            </span>
-          );
-        })}
+      {/* ── Authorized accounts pills ── */}
+      <div className="mt-2 flex flex-wrap gap-1 px-5 pb-3.5">
+        {accountLabels.map((label, i) => (
+          <span
+            key={props.token.accountIds[i]}
+            className="rounded-full bg-[rgba(21,110,99,0.06)] px-2 py-0.5 text-[10px] text-[var(--accent-strong)]"
+          >
+            {label}
+          </span>
+        ))}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--line)]/60 pt-3">
-        <Button
-          size="sm"
-          variant="ghost"
-          className="cursor-pointer bg-[rgba(247,250,251,0.82)] hover:bg-white"
+      {/* ── Action bar ── */}
+      <div className="flex items-center border-t border-[var(--line)]/40 px-4 py-1.5">
+        <button
+          type="button"
           onClick={props.onOpenTest}
+          className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-[var(--muted-strong)] transition hover:bg-[rgba(21,110,99,0.06)] hover:text-[var(--accent-strong)]"
         >
           <ActivityIcon className="size-3.5" />
           测试
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="cursor-pointer bg-[rgba(247,250,251,0.82)] hover:bg-white"
+        </button>
+        <button
+          type="button"
           onClick={props.onOpenLogs}
+          className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-[var(--muted-strong)] transition hover:bg-[rgba(21,110,99,0.06)] hover:text-[var(--accent-strong)]"
         >
-          日志详情
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="cursor-pointer bg-[rgba(247,250,251,0.82)] hover:bg-white"
+          <WebhookIcon className="size-3.5" />
+          日志
+        </button>
+        <button
+          type="button"
           onClick={props.onRotate}
+          className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-[var(--muted-strong)] transition hover:bg-[rgba(21,110,99,0.06)] hover:text-[var(--accent-strong)]"
         >
           <RefreshIcon className="size-3.5" />
-          轮换 Token
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="cursor-pointer bg-[rgba(254,242,242,0.86)] text-red-500 hover:bg-[rgba(254,226,226,0.96)] hover:text-red-600"
+          轮换
+        </button>
+        <div className="flex-1" />
+        <button
+          type="button"
           onClick={props.onDelete}
+          className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-red-500 transition hover:bg-red-50 hover:text-red-600"
         >
           <TrashIcon className="size-3.5" />
           删除
-        </Button>
+        </button>
       </div>
     </div>
   );

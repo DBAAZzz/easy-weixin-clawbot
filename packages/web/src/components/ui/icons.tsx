@@ -1,4 +1,4 @@
-import React, { type SVGProps } from "react";
+import type { SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -258,6 +258,88 @@ export function LockIcon(props: IconProps) {
     <BaseIcon {...props}>
       <rect x="5" y="11" width="14" height="10" rx="2" />
       <path d="M8 11V8a4 4 0 1 1 8 0v3" />
+    </BaseIcon>
+  );
+}
+
+export function ClockIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 3" />
+    </BaseIcon>
+  );
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="m6 9 6 6 6-6" />
+    </BaseIcon>
+  );
+}
+
+export function ChevronUpIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="m18 15-6-6-6 6" />
+    </BaseIcon>
+  );
+}
+
+export function HistoryIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M12 7v5l4 2" />
+    </BaseIcon>
+  );
+}
+
+export function AlertCircleIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v4" />
+      <path d="M12 16h.01" />
+    </BaseIcon>
+  );
+}
+
+export function CheckCircleIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <path d="m9 11 3 3L22 4" />
+    </BaseIcon>
+  );
+}
+
+export function PlayIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M5 5l14 7-14 7V5z" />
+    </BaseIcon>
+  );
+}
+
+export function PauseIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="6" y="4" width="4" height="16" />
+      <rect x="14" y="4" width="4" height="16" />
+    </BaseIcon>
+  );
+}
+
+export function CalendarIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <path d="M16 2v4" />
+      <path d="M8 2v4" />
+      <path d="M3 10h18" />
     </BaseIcon>
   );
 }

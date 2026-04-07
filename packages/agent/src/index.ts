@@ -36,3 +36,75 @@ export type {
 } from "./mcp/types.js";
 export { createStdioMcpClient } from "./mcp/stdio-client.js";
 export { createMcpToolSnapshotItem } from "./mcp/tool-adapter.js";
+
+// ── Ports (dependency injection interfaces) ─────────────────────────
+export {
+  setMessageStore,
+  getMessageStore,
+  setTapeStore,
+  getTapeStore,
+  setSchedulerStore,
+  getSchedulerStore,
+  setPushService,
+  getPushService,
+} from "./ports/index.js";
+export type {
+  MessageStore,
+  RestoredHistory,
+  PersistMessageParams,
+  TapeStore,
+  TapeEntryRow,
+  TapeAnchorRow,
+  SchedulerStore,
+  ScheduledTaskRow,
+  ScheduledTaskRunRow,
+  PushService,
+} from "./ports/index.js";
+
+// ── Tape (memory system) ────────────────────────────────────────────
+export {
+  emptyState,
+  recall,
+  compactIfNeeded,
+  createHandoffAnchors,
+  formatMemoryForPrompt,
+  fireExtractAndRecord,
+  queueRecordEntry,
+  getPendingTapeWriteCount,
+} from "./tape/index.js";
+export type {
+  TapeState,
+  TapeFact,
+  TapePreference,
+  TapeDecision,
+  RecordParams,
+} from "./tape/index.js";
+
+// ── Conversation (history management) ───────────────────────────────
+export {
+  ensureHistoryLoaded,
+  getHistory,
+  nextSeq,
+  evictConversation,
+  clearConversation,
+  withConversationLock,
+  rollbackMessages,
+} from "./conversation/index.js";
+
+// ── Commands ────────────────────────────────────────────────────────
+export { CommandRegistry } from "./commands/registry.js";
+export { builtinCommands } from "./commands/builtins.js";
+export { isDebugEnabled } from "./commands/debug.js";
+export type { Command, CommandContext } from "./commands/types.js";
+
+// ── Scheduler ───────────────────────────────────────────────────────
+export {
+  schedulerManager,
+  schedulerToolRegistry,
+  setSchedulerContext,
+  scheduleCommand,
+} from "./scheduler/index.js";
+
+// ── Chat orchestration ──────────────────────────────────────────────
+export { chat } from "./chat.js";
+export { extractMediaFromText, resolveFilePath } from "./media.js";

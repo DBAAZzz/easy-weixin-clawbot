@@ -237,7 +237,7 @@ function TaskRunsModal({
                 </div>
               ))}
             </div>
-          ) : runs.length === 0 ? (
+          ) : !runs || runs.length === 0 ? (
             <div className="rounded-[28px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-10 text-center">
               <HistoryIcon className="mx-auto size-8 text-[var(--muted)]" />
               <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">暂无运行记录</p>
@@ -247,7 +247,7 @@ function TaskRunsModal({
             </div>
           ) : (
             <div className="space-y-3">
-              {runs.map((run) => (
+              {runs!.map((run) => (
                 <div
                   key={run.id}
                   className="rounded-[18px] border border-[rgba(21,32,43,0.08)] bg-[rgba(247,250,251,0.84)] px-4 py-4 transition hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)]"

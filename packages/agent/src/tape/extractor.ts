@@ -3,20 +3,10 @@
  *
  * Runs asynchronously after response delivery (fire-and-forget) to avoid
  * blocking the user-facing response path.
- *
- * Extraction categories:
- * - fact: objective information about the user or their context
- * - preference: user likes/dislikes, habits, style choices
- * - decision: choices made during conversation that may matter later
- *
- * Branch routing:
- * - __global__: persistent facts & preferences (name, dietary, language, etc.)
- * - session branch: task-specific context, temporary decisions
  */
 
 import { complete, type Model } from "@mariozechner/pi-ai";
 import { withSpan } from "@clawbot/observability";
-import { log } from "../logger.js";
 import { queueRecordEntry } from "./queue.js";
 import type { RecordParams, Fragment } from "./types.js";
 
@@ -205,10 +195,10 @@ export function fireExtractAndRecord(
             `${records.filter((r) => r.scope === "session").length} session)`,
         );
       } catch (err) {
-        log.error(`tape.extract(${accountId}/${sessionBranch})`, err);
+        console.error(`[tape] extract error (${accountId}/${sessionBranch}):`, err);
       }
     },
   ).catch((err) => {
-    log.error(`tape.extract span(${accountId}/${sessionBranch})`, err);
+    console.error(`[tape] extract span error (${accountId}/${sessionBranch}):`, err);
   });
 }

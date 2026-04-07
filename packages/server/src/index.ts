@@ -7,8 +7,8 @@ import { createLoginManager } from "./login/login-manager.js";
 import { createMcpManager } from "./mcp/manager.js";
 import { observabilityService } from "./observability/service.js";
 import { createBotRuntime } from "./runtime.js";
-import { purgeCompacted } from "./tape/index.js";
-import { schedulerManager } from "./scheduler/index.js";
+import { schedulerManager } from "@clawbot/agent";
+import { purgeCompacted } from "@clawbot/agent/tape";
 
 validateConfig();
 

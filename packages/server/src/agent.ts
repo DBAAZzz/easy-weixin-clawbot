@@ -7,19 +7,25 @@ import {
   withSpanSync,
 } from "@clawbot/observability";
 import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk";
-import { chat } from "./ai.js";
+import {
+  chat,
+  CommandRegistry,
+  builtinCommands,
+  scheduleCommand,
+  setSchedulerContext,
+  clearConversation,
+  evictConversation,
+  withConversationLock,
+  createHandoffAnchors,
+} from "@clawbot/agent";
+import { getSchedulerStore } from "@clawbot/agent/ports";
 import { sendProactiveMessage } from "./proactive-push.js";
-import { builtinCommands } from "./commands/builtins.js";
-import { CommandRegistry } from "./commands/registry.js";
-import { scheduleCommand, setSchedulerContext, findUnpushedRuns, markRunPushed } from "./scheduler/index.js";
-import { clearConversation, evictConversation, withConversationLock } from "./conversation.js";
 import { updateContextToken } from "./db/conversations.js";
 import { deleteRoute, getRoute, upsertRoute } from "./db/session-routes.js";
 import { log } from "./logger.js";
 import { observabilityService } from "./observability/service.js";
 import { TTS_CACHE_DIR } from "./paths.js";
 import { getTTSProvider } from "./services/tts/index.js";
-import { createHandoffAnchors } from "./tape/index.js";
 
 const commandRegistry = new CommandRegistry();
 commandRegistry.registerAll(builtinCommands);
@@ -28,8 +34,6 @@ commandRegistry.register(scheduleCommand);
 /**
  * In-memory cache of wechatConvId → effectiveConvId per account.
  * Key: `${accountId}::${wechatConvId}`
- * Populated lazily from DB on first use; persisted to DB on /reset so the
- * mapping survives server restarts.
  */
 const sessionCache = new Map<string, string>();
 
@@ -37,7 +41,6 @@ async function getEffectiveConvId(accountId: string, wechatConvId: string): Prom
   const k = `${accountId}::${wechatConvId}`;
   if (sessionCache.has(k)) return sessionCache.get(k)!;
 
-  // Cache miss — check DB (populated on /reset, null if no reset has occurred)
   const persisted = await getRoute(accountId, wechatConvId);
   const effective = persisted ?? wechatConvId;
   sessionCache.set(k, effective);
@@ -66,7 +69,6 @@ mkdirSync(TTS_CACHE_DIR, { recursive: true });
 
 /**
  * Synthesize reply text to an audio file and return its path.
- * Returns undefined if TTS fails (non-fatal — text reply still goes through).
  */
 async function synthesizeReply(text: string): Promise<string | undefined> {
   try {
@@ -88,12 +90,11 @@ async function synthesizeReply(text: string): Promise<string | undefined> {
 }
 
 /**
- * Deliver any scheduler task results that couldn't be pushed
- * (e.g. contextToken was expired). Now that the user has sent a message
- * and refreshed their contextToken, we can deliver them.
+ * Deliver any scheduler task results that couldn't be pushed.
  */
 async function deliverUnpushedRuns(accountId: string, conversationId: string): Promise<void> {
-  const runs = await findUnpushedRuns(accountId, conversationId);
+  const store = getSchedulerStore();
+  const runs = await store.findUnpushedRuns(accountId, conversationId);
   if (runs.length === 0) return;
 
   for (const run of runs) {
@@ -101,10 +102,10 @@ async function deliverUnpushedRuns(accountId: string, conversationId: string): P
     try {
       const header = `📬 [定时任务 #${run.task.seq}「${run.task.name}」补发结果]\n`;
       await sendProactiveMessage(accountId, conversationId, header + run.result);
-      await markRunPushed(run.id);
+      await store.markRunPushed(run.id);
     } catch (err) {
       console.warn(`[scheduler] failed to deliver unpushed run ${run.id}:`, (err as Error).message);
-      break; // If push fails again, stop trying — token might still be bad
+      break;
     }
   }
 }
@@ -120,7 +121,6 @@ export function createAgent(accountId: string): Agent {
           log.error(`updateContextToken(${accountId}/${req.conversationId})`, err);
         });
 
-        // Deliver any unpushed scheduler results now that contextToken is fresh
         void deliverUnpushedRuns(accountId, req.conversationId).catch((err) => {
           log.error(`deliverUnpushedRuns(${accountId}/${req.conversationId})`, err);
         });

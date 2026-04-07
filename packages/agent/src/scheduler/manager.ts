@@ -1,7 +1,6 @@
 import { schedule, validate, type ScheduledTask as CronTask } from "node-cron";
-import { listEnabledTasks, getTaskById } from "./db.js";
+import { getSchedulerStore, type ScheduledTaskRow } from "../ports/scheduler-store.js";
 import { executeTask } from "./executor.js";
-import type { ScheduledTask } from "./types.js";
 
 /** Missed-tick recovery window: only compensate if within this many ms. */
 const MISSED_TICK_WINDOW_MS = 30 * 60 * 1000;
@@ -17,7 +16,7 @@ function taskKey(id: bigint): string {
 }
 
 /** Activate a single task: register its cron job. */
-export function activate(task: ScheduledTask): void {
+export function activate(task: ScheduledTaskRow): void {
   const key = taskKey(task.id);
 
   // Deactivate existing job if any
@@ -40,8 +39,9 @@ export function activate(task: ScheduledTask): void {
 
       entry.running = true;
       try {
+        const store = getSchedulerStore();
         // Re-fetch task to get latest state (might have been paused/disabled)
-        const current = await getTaskById(task.id);
+        const current = await store.getTaskById(task.id);
         if (!current || !current.enabled || current.status === "paused") {
           return;
         }
@@ -76,7 +76,8 @@ export function deactivate(id: bigint): void {
  * and compensate for missed ticks during downtime.
  */
 export async function bootstrap(): Promise<void> {
-  const tasks = await listEnabledTasks();
+  const store = getSchedulerStore();
+  const tasks = await store.listEnabledTasks();
 
   if (tasks.length === 0) {
     console.log("[scheduler] no enabled tasks found");
@@ -100,7 +101,6 @@ export async function bootstrap(): Promise<void> {
           console.log(
             `[scheduler] compensating missed tick for task #${task.seq} (missed by ${Math.round(missedBy / 1000)}s)`,
           );
-          // Fire-and-forget compensation execution
           void executeTask(task).catch((err) =>
             console.error(`[scheduler] compensation execution failed for task #${task.seq}:`, err),
           );

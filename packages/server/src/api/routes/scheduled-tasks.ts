@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
-import { listTasks, listRuns, getTaskBySeq, updateTask } from "../../scheduler/db.js";
-import { activate, deactivate } from "../../scheduler/manager.js";
-import type { ScheduledTask, ScheduledTaskRun } from "../../scheduler/types.js";
+import { getSchedulerStore } from "@clawbot/agent/ports";
+import type { ScheduledTaskRow, ScheduledTaskRunRow } from "@clawbot/agent/ports";
+import { schedulerManager } from "@clawbot/agent";
 
 export interface ScheduledTaskDto {
   id: string;
@@ -20,8 +20,6 @@ export interface ScheduledTaskDto {
   lastError: string | null;
   runCount: number;
   failStreak: number;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface ScheduledTaskRunDto {
@@ -35,9 +33,9 @@ export interface ScheduledTaskRunDto {
   createdAt: string;
 }
 
-function toTaskDto(task: ScheduledTask): ScheduledTaskDto {
+function toTaskDto(task: ScheduledTaskRow): ScheduledTaskDto {
   return {
-    id: task.taskId,
+    id: task.id.toString(),
     seq: task.seq,
     accountId: task.accountId,
     conversationId: task.conversationId,
@@ -53,12 +51,10 @@ function toTaskDto(task: ScheduledTask): ScheduledTaskDto {
     lastError: task.lastError,
     runCount: task.runCount,
     failStreak: task.failStreak,
-    createdAt: task.createdAt.toISOString(),
-    updatedAt: task.updatedAt.toISOString(),
   };
 }
 
-function toRunDto(run: ScheduledTaskRun): ScheduledTaskRunDto {
+function toRunDto(run: ScheduledTaskRunRow): ScheduledTaskRunDto {
   return {
     id: run.id.toString(),
     status: run.status,
@@ -75,18 +71,20 @@ export function registerScheduledTaskRoutes(app: Hono) {
   // List all scheduled tasks (with optional account filter)
   app.get("/api/scheduled-tasks", async (c) => {
     const accountId = c.req.query("accountId");
+    const store = getSchedulerStore();
 
     try {
-      let tasks: ScheduledTask[];
+      let tasks: ScheduledTaskRow[];
 
       if (accountId) {
-        tasks = await listTasks(accountId);
+        tasks = await store.listTasks(accountId);
       } else {
-        // Get all tasks - we need to add a new function for this
+        // Get all tasks via Prisma directly (no port method for listing all)
         const { getPrisma } = await import("../../db/prisma.js");
-        tasks = await getPrisma().scheduledTask.findMany({
+        const rows = await getPrisma().scheduledTask.findMany({
           orderBy: { createdAt: "desc" },
         });
+        tasks = rows as unknown as ScheduledTaskRow[];
       }
 
       return c.json({ data: tasks.map(toTaskDto) });
@@ -106,7 +104,8 @@ export function registerScheduledTaskRoutes(app: Hono) {
     }
 
     try {
-      const task = await getTaskBySeq(accountId, seq);
+      const store = getSchedulerStore();
+      const task = await store.getTaskBySeq(accountId, seq);
       if (!task) {
         return c.json({ error: "Task not found" }, 404);
       }
@@ -133,20 +132,21 @@ export function registerScheduledTaskRoutes(app: Hono) {
         return c.json({ error: "Missing or invalid 'enabled' field" }, 400);
       }
 
-      const task = await getTaskBySeq(accountId, seq);
+      const store = getSchedulerStore();
+      const task = await store.getTaskBySeq(accountId, seq);
       if (!task) {
         return c.json({ error: "Task not found" }, 404);
       }
 
-      const updated = await updateTask(accountId, seq, { enabled: body.enabled });
+      const updated = await store.updateTask(accountId, seq, { enabled: body.enabled });
       if (!updated) {
         return c.json({ error: "Failed to update task" }, 500);
       }
 
       if (updated.enabled) {
-        activate(updated);
+        schedulerManager.activate(updated);
       } else {
-        deactivate(updated.id);
+        schedulerManager.deactivate(updated.id);
       }
 
       return c.json({ data: toTaskDto(updated) });
@@ -167,12 +167,13 @@ export function registerScheduledTaskRoutes(app: Hono) {
     }
 
     try {
-      const task = await getTaskBySeq(accountId, seq);
+      const store = getSchedulerStore();
+      const task = await store.getTaskBySeq(accountId, seq);
       if (!task) {
         return c.json({ error: "Task not found" }, 404);
       }
 
-      const runs = await listRuns(task.id, limit);
+      const runs = await store.listRuns(task.id, limit);
       return c.json({ data: runs.map(toRunDto) });
     } catch (error) {
       console.error("[scheduled-tasks] failed to list runs:", error);

@@ -102,6 +102,7 @@ test("capability routes expose tools, skills, and legacy tool compatibility", as
     loginManager: {} as never,
     toolInstaller: createToolInstallerStub(),
     skillInstaller: createSkillInstallerStub(),
+    mcpManager: {} as never,
     startedAt: new Date("2026-03-27T00:00:00.000Z"),
   });
 

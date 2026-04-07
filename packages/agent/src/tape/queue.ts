@@ -4,7 +4,6 @@
  * Fire-and-forget from the hot path; retries with exponential backoff.
  */
 
-import { log } from "../logger.js";
 import { record } from "./service.js";
 import type { RecordParams } from "./types.js";
 
@@ -37,8 +36,8 @@ async function flushQueue(): Promise<void> {
     } catch (error) {
       current.attempts += 1;
       const backoffMs = Math.min(30_000, 1_000 * 2 ** Math.min(current.attempts, 5));
-      log.error(
-        `tape.record(${current.accountId}/${current.branch}/${current.params.category})`,
+      console.error(
+        `[tape] record error (${current.accountId}/${current.branch}/${current.params.category}):`,
         error,
       );
       retryTimer = setTimeout(() => {

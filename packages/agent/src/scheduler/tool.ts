@@ -1,14 +1,8 @@
 import { Type } from "@mariozechner/pi-ai";
-import { createToolRegistry } from "@clawbot/agent";
-import type { ToolSnapshotItem, ToolContent } from "@clawbot/agent/tools/types";
+import { createToolRegistry } from "../tools/registry.js";
+import type { ToolSnapshotItem, ToolContent } from "../tools/types.js";
 import { validate } from "node-cron";
-import {
-  createTask,
-  updateTask,
-  deleteTask,
-  listTasks,
-  getTaskBySeq,
-} from "./db.js";
+import { getSchedulerStore } from "../ports/scheduler-store.js";
 import { activate, deactivate } from "./manager.js";
 import { executeTask } from "./executor.js";
 
@@ -93,8 +87,9 @@ const createScheduledTaskTool: ToolSnapshotItem = {
     const ctx = getCurrentSchedulerContext();
     if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
 
+    const store = getSchedulerStore();
     const taskType = type ?? "recurring";
-    const task = await createTask({
+    const task = await store.createTask({
       accountId: ctx.accountId,
       conversationId: ctx.conversationId,
       name,
@@ -146,7 +141,8 @@ const updateScheduledTaskTool: ToolSnapshotItem = {
       }
     }
 
-    const updated = await updateTask(ctx.accountId, seq, {
+    const store = getSchedulerStore();
+    const updated = await store.updateTask(ctx.accountId, seq, {
       name, cron: cronExpr, prompt, timezone, enabled,
     });
 
@@ -174,11 +170,12 @@ const deleteScheduledTaskTool: ToolSnapshotItem = {
     const ctx = getCurrentSchedulerContext();
     if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
 
-    const task = await getTaskBySeq(ctx.accountId, seq);
+    const store = getSchedulerStore();
+    const task = await store.getTaskBySeq(ctx.accountId, seq);
     if (!task) return textResult(`❌ 未找到任务 #${seq}`);
 
     deactivate(task.id);
-    await deleteTask(ctx.accountId, seq);
+    await store.deleteTask(ctx.accountId, seq);
     return textResult(`✅ 任务 #${seq}「${task.name}」已删除`);
   },
 };
@@ -191,7 +188,8 @@ const listScheduledTasksTool: ToolSnapshotItem = {
     const ctx = getCurrentSchedulerContext();
     if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
 
-    const tasks = await listTasks(ctx.accountId);
+    const store = getSchedulerStore();
+    const tasks = await store.listTasks(ctx.accountId);
     if (tasks.length === 0) return textResult("📋 暂无定时任务。");
 
     const lines = tasks.map((t) => {
@@ -216,7 +214,8 @@ const runScheduledTaskTool: ToolSnapshotItem = {
     const ctx = getCurrentSchedulerContext();
     if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
 
-    const task = await getTaskBySeq(ctx.accountId, seq);
+    const store = getSchedulerStore();
+    const task = await store.getTaskBySeq(ctx.accountId, seq);
     if (!task) return textResult(`❌ 未找到任务 #${seq}`);
 
     // Fire-and-forget execution

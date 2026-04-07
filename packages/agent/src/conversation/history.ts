@@ -1,7 +1,11 @@
+/**
+ * In-memory conversation history management with per-conversation locking.
+ *
+ * DB operations go through the MessageStore port interface.
+ */
+
 import type { Message } from "@mariozechner/pi-ai";
-import { restoreHistory } from "./db/messages.js";
-import { getPrisma } from "./db/prisma.js";
-import { log } from "./logger.js";
+import { getMessageStore } from "../ports/message-store.js";
 
 /**
  * Per-account conversation stores.
@@ -73,9 +77,10 @@ export async function ensureHistoryLoaded(
   }
 
   if (!loading.has(conversationKey)) {
+    const messageStore = getMessageStore();
     loading.set(
       conversationKey,
-      restoreHistory(accountId, conversationId)
+      messageStore.restoreHistory(accountId, conversationId)
         .then(({ messages, maxSeq }) => {
           store.set(conversationKey, messages);
           seqCounters.set(conversationKey, maxSeq);
@@ -131,12 +136,9 @@ export function clearConversation(accountId: string, conversationId: string): vo
   loading.delete(conversationKey);
 
   // Also clear from DB so corrupted messages don't get reloaded
-  getPrisma().message.deleteMany({
-    where: { accountId, conversationId },
-  }).then((result) => {
-    log.clear(accountId, `${conversationId} (deleted ${result.count} DB rows)`);
-  }).catch((err) => {
-    log.error(`clearConversation DB(${accountId}/${conversationId})`, err);
+  const messageStore = getMessageStore();
+  messageStore.clearMessages(accountId, conversationId).catch((err) => {
+    console.error(`[conversation] clearMessages DB error (${accountId}/${conversationId}):`, err);
   });
 }
 
@@ -158,20 +160,7 @@ export async function rollbackMessages(
   const currentSeq = seqCounters.get(conversationKey) ?? 0;
   seqCounters.set(conversationKey, Math.max(0, currentSeq - removedCount));
 
-  // Delete from DB: remove the highest-seq rows for this conversation
-  try {
-    const rows = await getPrisma().message.findMany({
-      where: { accountId, conversationId },
-      orderBy: { seq: "desc" },
-      take: removedCount,
-      select: { id: true },
-    });
-    if (rows.length > 0) {
-      await getPrisma().message.deleteMany({
-        where: { id: { in: rows.map((r) => r.id) } },
-      });
-    }
-  } catch (err) {
-    log.error(`rollbackMessages(${accountId}/${conversationId}, ${count})`, err);
-  }
+  // Roll back in DB
+  const messageStore = getMessageStore();
+  await messageStore.rollbackMessages(accountId, conversationId, removedCount);
 }

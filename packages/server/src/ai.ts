@@ -1,3 +1,10 @@
+/**
+ * Bootstrap — reads env, creates agent runner, injects port implementations.
+ *
+ * After migration, this file no longer contains chat() or media logic.
+ * Those live in @clawbot/agent.
+ */
+
 import {
   createCompositeToolRegistry,
   createAgentRunner,
@@ -5,25 +12,19 @@ import {
   createSkillRegistry,
   createToolInstaller,
   createToolRegistry,
+  setMessageStore,
+  setTapeStore,
+  setSchedulerStore,
+  setPushService,
+  schedulerToolRegistry,
 } from "@clawbot/agent";
-import {
-  getModel,
-  type AssistantMessage,
-  type ImageContent,
-  type Message,
-  type Model,
-  type TextContent,
-  type ToolResultMessage,
-  type UserMessage,
-} from "@mariozechner/pi-ai";
-import { withSpan } from "@clawbot/observability";
-import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
-import { basename, dirname, extname, join } from "node:path";
-import type { ChatResponse } from "@clawbot/weixin-agent-sdk";
-import { isDebugEnabled } from "./commands/debug.js";
-import { ensureHistoryLoaded, getHistory, nextSeq, rollbackMessages } from "./conversation.js";
-import { queuePersistMessage } from "./db/messages.js";
+import { setChatDeps } from "@clawbot/agent/chat";
+import { getModel, type Model } from "@mariozechner/pi-ai";
+import { mkdirSync } from "node:fs";
 import { ensurePrismaUrls } from "./db/prisma-env.js";
+import { PrismaMessageStore } from "./db/message-store.impl.js";
+import { PrismaTapeStore } from "./db/tape-store.impl.js";
+import { PrismaSchedulerStore } from "./db/scheduler-store.impl.js";
 import { log } from "./logger.js";
 import {
   DOWNLOADS_DIR,
@@ -32,16 +33,11 @@ import {
   TOOLS_BUILTIN_DIR,
   TOOLS_USER_DIR,
 } from "./paths.js";
-import {
-  emptyState,
-  recall,
-  compactIfNeeded,
-  formatMemoryForPrompt,
-  fireExtractAndRecord,
-} from "./tape/index.js";
-import { detectImageMime } from "./utils/index.js";
+import { sendProactiveMessage } from "./proactive-push.js";
 
 mkdirSync(DOWNLOADS_DIR, { recursive: true });
+
+// ── Env config ─────────────────────────────────────────────────────
 
 const PROVIDER = process.env.LLM_PROVIDER ?? "anthropic";
 const MODEL_ID = process.env.LLM_MODEL ?? "claude-sonnet-4-20250514";
@@ -71,13 +67,10 @@ const MEDIA_SEND_INSTRUCTIONS = `
 
 const SYSTEM_PROMPT = `${BASE_SYSTEM_PROMPT}\n\n${MEDIA_SEND_INSTRUCTIONS}`;
 
-/**
- * Explicit API key from .env (LLM_API_KEY or legacy KEY).
- * Passed directly to complete() so pi-ai skips its own env-var lookup.
- */
 const EXPLICIT_API_KEY = process.env.LLM_API_KEY ?? process.env.KEY;
 
-/** Validate required env vars at startup and print a summary. */
+// ── Config validation ──────────────────────────────────────────────
+
 export function validateConfig() {
   const lines = [
     `  provider : ${PROVIDER}`,
@@ -119,6 +112,8 @@ export function validateConfig() {
   }
 }
 
+// ── Model resolution ───────────────────────────────────────────────
+
 function buildMoonshotModel(): Model<"openai-completions"> {
   const id = MODEL_ID;
   const baseUrl =
@@ -154,11 +149,10 @@ const model: Model<any> = (() => {
   return resolvedModel;
 })();
 
+// ── Tool & skill registries ────────────────────────────────────────
+
 export const localToolRegistry = createToolRegistry();
 export const mcpToolRegistry = createToolRegistry();
-
-// Scheduler tools are registered programmatically (not from markdown files)
-import { schedulerToolRegistry } from "./scheduler/index.js";
 
 export const toolRegistry = createCompositeToolRegistry(localToolRegistry, mcpToolRegistry, schedulerToolRegistry);
 export const toolInstaller = createToolInstaller(localToolRegistry);
@@ -178,6 +172,8 @@ for (const failure of loadedSkills.failed) {
   console.warn(`[skills] compile-error ${failure.filePath}: ${failure.error}`);
 }
 
+// ── Agent runner ───────────────────────────────────────────────────
+
 const runner = createAgentRunner(
   {
     model,
@@ -188,281 +184,21 @@ const runner = createAgentRunner(
   skillRegistry,
 );
 
-function extractAssistantText(message: AssistantMessage): string {
-  return message.content
-    .filter((block): block is TextContent => block.type === "text")
-    .map((block) => block.text)
-    .join("\n")
-    .trim();
-}
+// ── Port injection ─────────────────────────────────────────────────
 
-function extractToolResultText(message: ToolResultMessage): string {
-  const text = message.content
-    .filter((block): block is TextContent => block.type === "text")
-    .map((block) => block.text)
-    .join("\n")
-    .trim();
+setMessageStore(new PrismaMessageStore());
+setTapeStore(new PrismaTapeStore());
+setSchedulerStore(new PrismaSchedulerStore());
+setPushService({ sendProactiveMessage });
 
-  return text || "[non-text tool result]";
-}
-
-const SEND_FILE_RE = /\[send_file:(image|video|file):([^\]]+)\]/;
-
-const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif"];
-const VIDEO_EXTS = [".mp4", ".mov", ".webm", ".mkv", ".avi"];
-const ALL_EXTS = [...IMAGE_EXTS, ...VIDEO_EXTS, ".pdf", ".zip"];
-
-/**
- * Resolve a file path that the LLM may have written with the wrong extension.
- * Returns the corrected path if found, or null if the file truly doesn't exist.
- */
-function resolveFilePath(filePath: string): string | null {
-  if (existsSync(filePath)) return filePath;
-
-  const dir = dirname(filePath);
-  const nameWithoutExt = basename(filePath, extname(filePath));
-
-  // Try alternate extensions in the same directory
-  for (const ext of ALL_EXTS) {
-    const candidate = join(dir, nameWithoutExt + ext);
-    if (existsSync(candidate)) return candidate;
-  }
-
-  // Fallback: scan the directory for any file starting with the stem
-  try {
-    const entries = readdirSync(dir);
-    const match = entries.find(
-      (e) => e === nameWithoutExt || e.startsWith(nameWithoutExt + "."),
-    );
-    if (match) return join(dir, match);
-  } catch {
-    // dir doesn't exist or isn't readable
-  }
-
-  return null;
-}
-
-function extractMediaFromText(text: string): {
-  cleanText: string;
-  media?: ChatResponse["media"];
-} {
-  const match = text.match(SEND_FILE_RE);
-  if (!match) return { cleanText: text };
-
-  const type = match[1] as "image" | "video" | "file";
-  const url = match[2].trim();
-  const cleanText = text.replace(SEND_FILE_RE, "").trim();
-
-  // Validate the file exists before handing it to the SDK.
-  // If missing, try to find a same-named file with a different extension
-  // (LLM often guesses .jpg but the actual file may be .png / .webp etc.)
-  const resolvedUrl = resolveFilePath(url);
-  if (!resolvedUrl) {
-    console.error(`[ai] send_file: path not found — ${url}`);
-    const hint = `\n\n(⚠️ 文件发送失败：路径不存在 ${url})`;
-    return { cleanText: cleanText + hint };
-  }
-
-  if (resolvedUrl !== url) {
-    console.log(`[ai] send_file: extension corrected ${url} → ${resolvedUrl}`);
-  }
-
-  return { cleanText, media: { type, url: resolvedUrl } };
-}
-
-function finalizeReply(
-  text: string,
-  fallback: string,
-  debug?: { accountId: string; conversationId: string; startedAt: number; rounds: number },
-): ChatResponse {
-  const raw = text || fallback;
-  const { cleanText, media } = extractMediaFromText(raw);
-
-  let finalText = cleanText || undefined;
-  if (finalText && debug && isDebugEnabled(debug.accountId, debug.conversationId)) {
-    const elapsed = Date.now() - debug.startedAt;
-    finalText += `\n\n---\n⏱ ${debug.rounds} round(s), ${elapsed}ms`;
-  }
-
-  const response: ChatResponse = { text: finalText };
-  if (media) response.media = media;
-  return response;
-}
-
-export async function chat(
-  accountId: string,
-  conversationId: string,
-  text: string,
-  media?: {
-    type: "image" | "audio" | "video" | "file";
-    filePath: string;
-    mimeType: string;
-    fileName?: string;
+setChatDeps({
+  model,
+  modelId: MODEL_ID,
+  runner,
+  apiKey: EXPLICIT_API_KEY,
+  log: {
+    llm: log.llm,
+    tool: log.tool,
+    done: log.done,
   },
-  startedAt = Date.now(),
-): Promise<ChatResponse> {
-  return withSpan(
-    "agent.chat",
-    { model: MODEL_ID, hasMedia: Boolean(media) },
-    async () => {
-      // Load message history and tape memory in parallel
-      const [, [sessionMemory, globalMemory]] = await Promise.all([
-        withSpan("history.load", { conversationId, accountId }, () =>
-          ensureHistoryLoaded(accountId, conversationId),
-        ),
-        withSpan("tape.recall", { conversationId, accountId }, () =>
-          Promise.all([
-            recall(accountId, conversationId),
-            recall(accountId, "__global__"),
-          ]).catch((err) => {
-            console.warn("[tape] recall failed, proceeding without memory:", err);
-            return [emptyState(), emptyState()] as const;
-          }),
-        ),
-      ]);
-
-      const history = getHistory(accountId, conversationId);
-
-      const memoryContext = formatMemoryForPrompt(globalMemory, sessionMemory);
-      const now = new Date();
-      const timePrefix = `[当前时间: ${now.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", weekday: "short" })}]\n`;
-
-      const textParts = [timePrefix];
-      if (memoryContext) textParts.push(memoryContext + "\n");
-      textParts.push(text || "(no text)");
-
-      const userContent: (TextContent | ImageContent)[] = [
-        { type: "text", text: textParts.join("") },
-      ];
-
-      if (media?.type === "image") {
-        const buf = readFileSync(media.filePath);
-        const mimeType = detectImageMime(buf) ?? media.mimeType;
-        const data = buf.toString("base64");
-        if (mimeType !== media.mimeType) {
-          console.log(`[ai] image mimeType corrected: ${media.mimeType} → ${mimeType}`);
-        }
-        userContent.push({
-          type: "image",
-          data,
-          mimeType: mimeType as ImageContent["mimeType"],
-        });
-      }
-
-      const userMessage: UserMessage = {
-        role: "user",
-        content: userContent,
-        timestamp: Date.now(),
-      };
-
-      history.push(userMessage);
-      queuePersistMessage({
-        accountId,
-        conversationId,
-        message: userMessage,
-        seq: nextSeq(accountId, conversationId),
-        mediaSourcePath: media?.type === "image" ? media.filePath : undefined,
-      });
-
-      const pendingToolArgs = new Map<string, Record<string, unknown>>();
-      let rounds = 0;
-      let messagesAddedInRun = 0;
-
-      const result = await runner.run(history, {
-        onRoundStart(round) {
-          rounds = round;
-          log.llm(accountId, round);
-        },
-
-        onMessage(message: Message) {
-          // Skip persisting empty assistant messages (error responses from provider)
-          const isEmptyAssistant =
-            message.role === "assistant" && message.content.length === 0;
-
-          history.push(message);
-          messagesAddedInRun++;
-
-          if (!isEmptyAssistant) {
-            queuePersistMessage({
-              accountId,
-              conversationId,
-              message,
-              seq: nextSeq(accountId, conversationId),
-            });
-          }
-
-          if (message.role === "assistant") {
-            for (const block of message.content) {
-              if (block.type === "toolCall") {
-                pendingToolArgs.set(block.id, block.arguments);
-              }
-            }
-            return;
-          }
-
-          if (message.role === "toolResult") {
-            log.tool(
-              message.toolName,
-              pendingToolArgs.get(message.toolCallId) ?? {},
-              extractToolResultText(message),
-            );
-            pendingToolArgs.delete(message.toolCallId);
-          }
-        },
-      });
-
-      if (result.status !== "aborted") {
-        log.done(accountId, rounds, Date.now() - startedAt);
-      }
-
-      switch (result.status) {
-        case "completed": {
-          const msg = result.finalMessage;
-          const replyText = extractAssistantText(msg);
-
-          // If the LLM returned an error or completely empty response, roll back
-          // ALL messages added during this run (including the user message) from
-          // both memory and DB so the conversation stays clean.
-          if (!replyText && msg.stopReason !== "stop") {
-            console.warn(
-              `[ai] error response — rolling back ${messagesAddedInRun} message(s) from memory + DB. ` +
-                `stopReason: ${msg.stopReason} | errorMessage: ${(msg as any).errorMessage ?? "(none)"}`,
-            );
-            await rollbackMessages(accountId, conversationId, messagesAddedInRun);
-          } else {
-            // Tape: fire-and-forget LLM-based memory extraction + record
-            // Runs async after response — does not block user reply
-            fireExtractAndRecord(
-              model,
-              accountId,
-              conversationId,
-              { userText: text, assistantText: replyText },
-              `agent:${MODEL_ID}`,
-              EXPLICIT_API_KEY,
-            );
-
-            // Compact if threshold reached (fast, synchronous check)
-            withSpan("tape.compact", { branch: conversationId }, () =>
-              compactIfNeeded(accountId, conversationId),
-            ).catch((err) => console.warn("[tape] compact failed:", err));
-          }
-
-          return finalizeReply(replyText, "抱歉，出了点问题，请稍后再试。", {
-            accountId,
-            conversationId,
-            startedAt,
-            rounds,
-          });
-        }
-        case "max_rounds":
-          return finalizeReply(
-            extractAssistantText(result.lastMessage),
-            "抱歉，这次问题我还没处理完。",
-            { accountId, conversationId, startedAt, rounds },
-          );
-        case "aborted":
-          return { text: "请求已取消。" };
-      }
-    },
-  );
-}
+});

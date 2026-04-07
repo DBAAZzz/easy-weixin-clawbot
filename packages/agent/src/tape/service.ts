@@ -1,12 +1,10 @@
 /**
  * Tape service — record / recall / compact / handoff / purge
  *
- * All write operations are expected to run inside withConversationLock()
- * (or the __global__ branch lock), guaranteeing branch-level serialization.
+ * All DB operations go through the TapeStore port interface.
  */
 
-import type { Prisma } from "@prisma/client";
-import { getPrisma } from "../db/prisma.js";
+import { getTapeStore } from "../ports/tape-store.js";
 import { deserializeState, emptyState, fold, serializeState } from "./fold.js";
 import type { RecordParams, TapeState } from "./types.js";
 
@@ -17,47 +15,35 @@ export async function record(
   branch: string,
   params: RecordParams,
 ): Promise<string> {
-  const prisma = getPrisma();
-  const entry = await prisma.tapeEntry.create({
-    data: {
-      accountId,
-      branch,
-      type: "record",
-      category: params.category,
-      payload: params.payload as unknown as Prisma.InputJsonValue,
-      actor: params.actor,
-      source: params.source ?? null,
-    },
+  const store = getTapeStore();
+  return store.createEntry({
+    accountId,
+    branch,
+    type: "record",
+    category: params.category,
+    payload: params.payload,
+    actor: params.actor,
+    source: params.source ?? null,
   });
-  return entry.eid;
 }
 
-// ─��� recall ──────────────────────────────────────────────────────────
+// ── recall ──────────────────────────────────────────────────────────
 
 export async function recall(
   accountId: string,
   branch: string,
 ): Promise<TapeState> {
-  const prisma = getPrisma();
+  const store = getTapeStore();
 
   // 1. Find the latest anchor for this branch
-  const anchor = await prisma.tapeAnchor.findFirst({
-    where: { accountId, branch },
-    orderBy: { createdAt: "desc" },
-  });
+  const anchor = await store.findLatestAnchor(accountId, branch);
 
   // 2. Read incremental entries after the anchor
-  const incremental = await prisma.tapeEntry.findMany({
-    where: {
-      accountId,
-      branch,
-      compacted: false,
-      ...(anchor?.lastEntryEid
-        ? { createdAt: { gt: anchor.createdAt } }
-        : {}),
-    },
-    orderBy: { createdAt: "asc" },
-  });
+  const incremental = await store.findEntries(
+    accountId,
+    branch,
+    anchor?.createdAt ?? undefined,
+  );
 
   // 3. Fold: anchor snapshot + incremental entries → current state
   const baseState = anchor
@@ -76,29 +62,22 @@ export async function recall(
   );
 }
 
-// ── compact ────��────────────────────────────────────────────────────
+// ── compact ─────────────────────────────────────────────────────────
 
 export async function compactIfNeeded(
   accountId: string,
   branch: string,
   threshold = 200,
 ): Promise<boolean> {
-  const prisma = getPrisma();
+  const store = getTapeStore();
 
-  const latestAnchor = await prisma.tapeAnchor.findFirst({
-    where: { accountId, branch },
-    orderBy: { createdAt: "desc" },
-  });
+  const latestAnchor = await store.findLatestAnchor(accountId, branch);
 
-  const entries = await prisma.tapeEntry.findMany({
-    where: {
-      accountId,
-      branch,
-      compacted: false,
-      ...(latestAnchor ? { createdAt: { gt: latestAnchor.createdAt } } : {}),
-    },
-    orderBy: { createdAt: "asc" },
-  });
+  const entries = await store.findEntries(
+    accountId,
+    branch,
+    latestAnchor?.createdAt ?? undefined,
+  );
 
   if (entries.length < threshold) return false;
 
@@ -107,26 +86,19 @@ export async function compactIfNeeded(
   const entryEids = entries.map((e) => e.eid);
   const lastEntry = entries[entries.length - 1];
 
-  await prisma.$transaction(async (tx) => {
-    // 1. Create checkpoint anchor
-    await tx.tapeAnchor.create({
-      data: {
-        accountId,
-        branch,
-        anchorType: "checkpoint",
-        snapshot: serializeState(currentState) as unknown as Prisma.InputJsonValue,
-        manifest: entryEids,
-        predecessors: latestAnchor ? [latestAnchor.aid] : [],
-        lastEntryEid: lastEntry.eid,
-      },
-    });
-
-    // 2. Mark old entries as compacted
-    await tx.tapeEntry.updateMany({
-      where: { id: { in: entries.map((e) => e.id) } },
-      data: { compacted: true },
-    });
-  });
+  await store.compactTransaction(
+    {
+      accountId,
+      branch,
+      anchorType: "checkpoint",
+      snapshot: serializeState(currentState),
+      manifest: entryEids,
+      predecessors: latestAnchor ? [latestAnchor.aid] : [],
+      lastEntryEid: lastEntry.eid,
+    },
+    // We pass eids and let the store impl handle the bigint conversion
+    entryEids as unknown as bigint[],
+  );
 
   return true;
 }
@@ -170,7 +142,7 @@ export async function createHandoffAnchors(
   oldBranch: string,
   newBranch: string,
 ): Promise<void> {
-  const prisma = getPrisma();
+  const store = getTapeStore();
   const oldState = await recall(accountId, oldBranch);
   const handoffSnapshot = filterForHandoff(oldState);
 
@@ -183,49 +155,36 @@ export async function createHandoffAnchors(
     return;
   }
 
-  const serialized = serializeState(handoffSnapshot) as unknown as Prisma.InputJsonValue;
+  const serialized = serializeState(handoffSnapshot);
   const manifest = extractKeyEntryEids(handoffSnapshot);
 
   // 1. Create handoff anchor on old branch
-  const oldAnchor = await prisma.tapeAnchor.create({
-    data: {
-      accountId,
-      branch: oldBranch,
-      anchorType: "handoff",
-      snapshot: serialized,
-      manifest,
-    },
+  const oldAnchorAid = await store.createAnchor({
+    accountId,
+    branch: oldBranch,
+    anchorType: "handoff",
+    snapshot: serialized,
+    manifest,
   });
 
   // 2. Create handoff anchor on new branch (predecessors → old branch)
-  await prisma.tapeAnchor.create({
-    data: {
-      accountId,
-      branch: newBranch,
-      anchorType: "handoff",
-      snapshot: serialized,
-      predecessors: [oldAnchor.aid],
-    },
+  await store.createAnchor({
+    accountId,
+    branch: newBranch,
+    anchorType: "handoff",
+    snapshot: serialized,
+    predecessors: [oldAnchorAid],
   });
 }
 
-// ── purge ──────────���────────────────────────────────────────────────
+// ── purge ─────────────────────────────────────────────────────────
 
 export async function purgeCompacted(retentionDays = 30): Promise<number> {
-  const prisma = getPrisma();
-  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
-
-  const result = await prisma.tapeEntry.deleteMany({
-    where: {
-      compacted: true,
-      createdAt: { lt: cutoff },
-    },
-  });
-
-  return result.count;
+  const store = getTapeStore();
+  return store.purgeCompacted(retentionDays);
 }
 
-// ── format for prompt injection ─���───────────────────────────────────
+// ── format for prompt injection ───────────────────────────────────
 
 export function formatMemoryForPrompt(
   globalMemory: TapeState,

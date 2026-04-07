@@ -45,6 +45,34 @@
     "./mcp/tool-adapter": {
       "import": "./src/mcp/tool-adapter.ts",
       "types": "./src/mcp/tool-adapter.ts"
+    },
+    "./ports": {
+      "import": "./src/ports/index.ts",
+      "types": "./src/ports/index.ts"
+    },
+    "./tape": {
+      "import": "./src/tape/index.ts",
+      "types": "./src/tape/index.ts"
+    },
+    "./conversation": {
+      "import": "./src/conversation/index.ts",
+      "types": "./src/conversation/index.ts"
+    },
+    "./commands": {
+      "import": "./src/commands/index.ts",
+      "types": "./src/commands/index.ts"
+    },
+    "./scheduler": {
+      "import": "./src/scheduler/index.ts",
+      "types": "./src/scheduler/index.ts"
+    },
+    "./chat": {
+      "import": "./src/chat.ts",
+      "types": "./src/chat.ts"
+    },
+    "./media": {
+      "import": "./src/media.ts",
+      "types": "./src/media.ts"
     }
   },
   "scripts": {
@@ -55,6 +83,7 @@
   "dependencies": {
     "@clawbot/observability": "workspace:*",
     "@mariozechner/pi-ai": "^0.62.0",
+    "node-cron": "^4.2.1",
     "yaml": "^2.8.3"
   },
   "devDependencies": {

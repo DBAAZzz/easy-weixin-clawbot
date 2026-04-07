@@ -1,7 +1,6 @@
-import { chat } from "../ai.js";
-import { sendProactiveMessage } from "../proactive-push.js";
-import { createRun, setTaskStatus } from "./db.js";
-import type { ScheduledTask } from "./types.js";
+import { chat } from "../chat.js";
+import { getPushService } from "../ports/push-service.js";
+import { getSchedulerStore, type ScheduledTaskRow } from "../ports/scheduler-store.js";
 
 const EXECUTION_TIMEOUT_MS = 60_000;
 const MAX_FAIL_STREAK = 3;
@@ -12,11 +11,12 @@ const MAX_FAIL_STREAK = 3;
  * 2. Push the result to the target conversation
  * 3. Record the run in DB
  */
-export async function executeTask(task: ScheduledTask): Promise<void> {
+export async function executeTask(task: ScheduledTaskRow): Promise<void> {
   const startedAt = Date.now();
+  const store = getSchedulerStore();
 
   // Mark task as running
-  await setTaskStatus(task.id, "running");
+  await store.setTaskStatus(task.id, "running");
 
   // Use isolated conversation context: "scheduler:{seq}"
   const executionConvId = `scheduler:${task.seq}`;
@@ -40,10 +40,10 @@ export async function executeTask(task: ScheduledTask): Promise<void> {
     // Try to push the result
     if (result) {
       try {
-        await sendProactiveMessage(task.accountId, task.conversationId, result);
+        const pushService = getPushService();
+        await pushService.sendProactiveMessage(task.accountId, task.conversationId, result);
         pushed = true;
       } catch (pushErr) {
-        // Push failed (likely contextToken expired) — result still saved in run record
         console.warn(
           `[scheduler] push failed for task #${task.seq} (${task.accountId}): ${(pushErr as Error).message}`,
         );
@@ -59,7 +59,7 @@ export async function executeTask(task: ScheduledTask): Promise<void> {
   const durationMs = Date.now() - startedAt;
 
   // Record the run
-  await createRun(task.id, {
+  await store.createRun(task.id, {
     status,
     prompt: task.prompt,
     result,
@@ -73,10 +73,10 @@ export async function executeTask(task: ScheduledTask): Promise<void> {
   const newFailStreak = isFailure ? task.failStreak + 1 : 0;
   const shouldPause = newFailStreak >= MAX_FAIL_STREAK;
 
-  // Once-type tasks: auto-disable after execution (regardless of success/failure)
+  // Once-type tasks: auto-disable after execution
   const isOnce = task.type === "once";
 
-  await setTaskStatus(task.id, isOnce ? "idle" : shouldPause ? "paused" : "idle", {
+  await store.setTaskStatus(task.id, isOnce ? "idle" : shouldPause ? "paused" : "idle", {
     lastRunAt: new Date(),
     lastError: isFailure ? error : null,
     failStreak: newFailStreak,

@@ -313,3 +313,24 @@ model TapeAnchor {
   @@index([accountId, branch, createdAt], map: "idx_anchor_branch_created")
   @@map("tape_anchors")
 }
+
+// ─── Model Config (multi-LLM provider) ───────────────────────────────
+
+model ModelConfig {
+  id         BigInt   @id @default(autoincrement())
+  scope      String   @db.Text              // "global" | "account" | "conversation"
+  scopeKey   String   @map("scope_key") @db.Text  // "*" for global, accountId, or "accountId:conversationId"
+  purpose    String   @db.Text              // "chat" | "extraction" | "*"
+  provider   String   @db.Text              // "anthropic", "openai", "moonshot", etc.
+  modelId    String   @map("model_id") @db.Text
+  apiKey     String?  @map("api_key") @db.Text
+  baseUrl    String?  @map("base_url") @db.Text
+  enabled    Boolean  @default(true)
+  priority   Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([scope, scopeKey, purpose], map: "model_config_scope_key_purpose_key")
+  @@index([scope, scopeKey], map: "idx_model_config_scope")
+  @@map("model_configs")
+}

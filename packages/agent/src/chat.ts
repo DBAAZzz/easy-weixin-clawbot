@@ -9,13 +9,13 @@ import {
   type AssistantMessage,
   type ImageContent,
   type Message,
-  type Model,
   type TextContent,
   type ToolResultMessage,
 } from "@mariozechner/pi-ai";
 import { withSpan } from "@clawbot/observability";
 import { readFileSync } from "node:fs";
 import type { AgentRunner } from "./runner.js";
+import { resolveModel } from "./model-resolver.js";
 import type { ChatResponse, ChatMedia } from "./types.js";
 import { isDebugEnabled } from "./commands/debug.js";
 import { ensureHistoryLoaded, getHistory, nextSeq, rollbackMessages } from "./conversation/index.js";
@@ -78,10 +78,7 @@ function finalizeReply(
 }
 
 export interface ChatDeps {
-  model: Model<any>;
-  modelId: string;
   runner: AgentRunner;
-  apiKey?: string;
   log: {
     llm(accountId: string, round: number): void;
     tool(name: string, args: Record<string, unknown>, result: string): void;
@@ -107,12 +104,15 @@ export async function chat(
   media?: ChatMedia,
   startedAt = Date.now(),
 ): Promise<ChatResponse> {
-  const { model, modelId, runner, apiKey, log } = getDeps();
+  const { runner, log } = getDeps();
   const messageStore = getMessageStore();
+
+  // Resolve the chat model dynamically based on account/conversation context
+  const chatModel = await resolveModel(accountId, conversationId, "chat");
 
   return withSpan(
     "agent.chat",
-    { model: modelId, hasMedia: Boolean(media) },
+    { model: chatModel.modelId, hasMedia: Boolean(media) },
     async () => {
       // Load message history and tape memory in parallel
       const [, [sessionMemory, globalMemory]] = await Promise.all([
@@ -177,48 +177,53 @@ export async function chat(
       let rounds = 0;
       let messagesAddedInRun = 0;
 
-      const result = await runner.run(history, {
-        onRoundStart(round) {
-          rounds = round;
-          log.llm(accountId, round);
-        },
+      const result = await runner.run(
+        history,
+        {
+          onRoundStart(round) {
+            rounds = round;
+            log.llm(accountId, round);
+          },
 
-        onMessage(message: Message) {
-          // Skip persisting empty assistant messages (error responses from provider)
-          const isEmptyAssistant =
-            message.role === "assistant" && message.content.length === 0;
+          onMessage(message: Message) {
+            // Skip persisting empty assistant messages (error responses from provider)
+            const isEmptyAssistant =
+              message.role === "assistant" && message.content.length === 0;
 
-          history.push(message);
-          messagesAddedInRun++;
+            history.push(message);
+            messagesAddedInRun++;
 
-          if (!isEmptyAssistant) {
-            messageStore.queuePersistMessage({
-              accountId,
-              conversationId,
-              message,
-              seq: nextSeq(accountId, conversationId),
-            });
-          }
-
-          if (message.role === "assistant") {
-            for (const block of message.content) {
-              if (block.type === "toolCall") {
-                pendingToolArgs.set(block.id, block.arguments);
-              }
+            if (!isEmptyAssistant) {
+              messageStore.queuePersistMessage({
+                accountId,
+                conversationId,
+                message,
+                seq: nextSeq(accountId, conversationId),
+              });
             }
-            return;
-          }
 
-          if (message.role === "toolResult") {
-            log.tool(
-              message.toolName,
-              pendingToolArgs.get(message.toolCallId) ?? {},
-              extractToolResultText(message),
-            );
-            pendingToolArgs.delete(message.toolCallId);
-          }
+            if (message.role === "assistant") {
+              for (const block of message.content) {
+                if (block.type === "toolCall") {
+                  pendingToolArgs.set(block.id, block.arguments);
+                }
+              }
+              return;
+            }
+
+            if (message.role === "toolResult") {
+              log.tool(
+                message.toolName,
+                pendingToolArgs.get(message.toolCallId) ?? {},
+                extractToolResultText(message),
+              );
+              pendingToolArgs.delete(message.toolCallId);
+            }
+          },
         },
-      });
+        undefined,
+        { model: chatModel.model, apiKey: chatModel.apiKey },
+      );
 
       if (result.status !== "aborted") {
         log.done(accountId, rounds, Date.now() - startedAt);
@@ -238,14 +243,19 @@ export async function chat(
             await rollbackMessages(accountId, conversationId, messagesAddedInRun);
           } else {
             // Tape: fire-and-forget LLM-based memory extraction
-            fireExtractAndRecord(
-              model,
-              accountId,
-              conversationId,
-              { userText: text, assistantText: replyText },
-              `agent:${modelId}`,
-              apiKey,
-            );
+            // Resolve extraction model (may differ from chat model for cost savings)
+            resolveModel(accountId, conversationId, "extraction")
+              .then((extractionModel) => {
+                fireExtractAndRecord(
+                  extractionModel.model,
+                  accountId,
+                  conversationId,
+                  { userText: text, assistantText: replyText },
+                  `agent:${extractionModel.modelId}`,
+                  extractionModel.apiKey,
+                );
+              })
+              .catch((err) => console.warn("[chat] extraction model resolve failed:", err));
 
             // Compact if threshold reached
             withSpan("tape.compact", { branch: conversationId }, () =>

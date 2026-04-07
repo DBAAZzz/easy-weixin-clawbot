@@ -18,6 +18,7 @@ import { registerHealthRoutes } from "./routes/health.js";
 import { registerLoginRoutes } from "./routes/login.js";
 import { registerMcpRoutes } from "./routes/mcp.js";
 import { registerMessageRoutes } from "./routes/messages.js";
+import { registerModelConfigRoutes } from "./routes/model-config.js";
 import { registerObservabilityRoutes } from "./routes/observability.js";
 import { registerScheduledTaskRoutes } from "./routes/scheduled-tasks.js";
 import { registerSkillRoutes } from "./routes/skills.js";
@@ -76,6 +77,7 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerToolRoutes(app, dependencies.toolInstaller);
   registerSkillRoutes(app, dependencies.skillInstaller, dependencies.toolInstaller);
   registerMcpRoutes(app, dependencies.mcpManager);
+  registerModelConfigRoutes(app);
   registerObservabilityRoutes(app, observability);
   registerScheduledTaskRoutes(app);
 

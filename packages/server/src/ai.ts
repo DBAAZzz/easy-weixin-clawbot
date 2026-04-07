@@ -16,15 +16,18 @@ import {
   setTapeStore,
   setSchedulerStore,
   setPushService,
+  setModelConfigStore,
   schedulerToolRegistry,
 } from "@clawbot/agent";
 import { setChatDeps } from "@clawbot/agent/chat";
-import { getModel, type Model } from "@mariozechner/pi-ai";
+import { setDefaultModel, buildModelFromConfig } from "@clawbot/agent/model-resolver";
+import type { Model } from "@mariozechner/pi-ai";
 import { mkdirSync } from "node:fs";
 import { ensurePrismaUrls } from "./db/prisma-env.js";
 import { PrismaMessageStore } from "./db/message-store.impl.js";
 import { PrismaTapeStore } from "./db/tape-store.impl.js";
 import { PrismaSchedulerStore } from "./db/scheduler-store.impl.js";
+import { PrismaModelConfigStore } from "./db/model-config-store.impl.js";
 import { log } from "./logger.js";
 import {
   DOWNLOADS_DIR,
@@ -114,40 +117,20 @@ export function validateConfig() {
 
 // ── Model resolution ───────────────────────────────────────────────
 
-function buildMoonshotModel(): Model<"openai-completions"> {
-  const id = MODEL_ID;
-  const baseUrl =
-    PROVIDER === "kimi"
-      ? "https://api.kimi.ai/v1"
-      : "https://api.moonshot.cn/v1";
-  return {
-    id,
-    name: `Moonshot ${id}`,
-    api: "openai-completions",
-    provider: "moonshot",
-    baseUrl,
-    reasoning: false,
-    input: ["text", "image"],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 128000,
-    maxTokens: 4096,
-  };
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const model: Model<any> = (() => {
-  const resolvedModel =
-    PROVIDER === "moonshot" || PROVIDER === "kimi"
-      ? buildMoonshotModel()
-      : (getModel as any)(PROVIDER, MODEL_ID);
-  if (!resolvedModel) {
+  try {
+    return buildModelFromConfig(PROVIDER, MODEL_ID);
+  } catch {
     throw new Error(
       `[ai] Unknown provider/model: LLM_PROVIDER="${PROVIDER}" LLM_MODEL="${MODEL_ID}". ` +
         `Check .env — for Moonshot use LLM_PROVIDER=moonshot, for Kimi K2 use LLM_PROVIDER=kimi-coding with LLM_MODEL=kimi-k2-thinking or k2p5.`
     );
   }
-  return resolvedModel;
 })();
+
+// Register the env-var model as the fallback default for ModelResolver
+setDefaultModel({ model, modelId: MODEL_ID, apiKey: EXPLICIT_API_KEY });
 
 // ── Tool & skill registries ────────────────────────────────────────
 
@@ -189,13 +172,11 @@ const runner = createAgentRunner(
 setMessageStore(new PrismaMessageStore());
 setTapeStore(new PrismaTapeStore());
 setSchedulerStore(new PrismaSchedulerStore());
+setModelConfigStore(new PrismaModelConfigStore());
 setPushService({ sendProactiveMessage });
 
 setChatDeps({
-  model,
-  modelId: MODEL_ID,
   runner,
-  apiKey: EXPLICIT_API_KEY,
   log: {
     llm: log.llm,
     tool: log.tool,

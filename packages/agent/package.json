@@ -66,6 +66,10 @@
       "import": "./src/scheduler/index.ts",
       "types": "./src/scheduler/index.ts"
     },
+    "./model-resolver": {
+      "import": "./src/model-resolver.ts",
+      "types": "./src/model-resolver.ts"
+    },
     "./chat": {
       "import": "./src/chat.ts",
       "types": "./src/chat.ts"

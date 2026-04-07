@@ -20,6 +20,7 @@ export type {
   ObservabilityTraceSummary,
   ObservabilityWindow,
   MessageRow,
+  ModelConfigDto,
   PaginatedResponse,
   SkillInfo,
   ToolInfo,

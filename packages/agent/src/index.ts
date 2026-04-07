@@ -1,6 +1,7 @@
 export type {
   AgentConfig,
   AgentRunner,
+  ModelOverride,
   RunCallbacks,
   RunResult,
 } from "./runner.js";
@@ -47,6 +48,8 @@ export {
   getSchedulerStore,
   setPushService,
   getPushService,
+  setModelConfigStore,
+  getModelConfigStore,
 } from "./ports/index.js";
 export type {
   MessageStore,
@@ -59,6 +62,11 @@ export type {
   ScheduledTaskRow,
   ScheduledTaskRunRow,
   PushService,
+  ModelConfigStore,
+  ModelConfigRow,
+  UpsertModelConfigInput,
+  ModelPurpose,
+  ModelScope,
 } from "./ports/index.js";
 
 // ── Tape (memory system) ────────────────────────────────────────────

@@ -6,6 +6,7 @@ import { formatCount, formatDuration } from "../../lib/format.js";
 import {
   ActivityIcon,
   ClockIcon,
+  CpuIcon,
   HomeIcon,
   LinkIcon,
   LogOutIcon,
@@ -77,6 +78,7 @@ export function Sidebar(props: {
         { to: "/skills", label: "技能列表", icon: <PuzzleIcon className="size-4" /> },
         { to: "/webhooks", label: "Webhooks", icon: <WebhookIcon className="size-4" /> },
         { to: "/scheduled-tasks", label: "定时任务", icon: <ClockIcon className="size-4" /> },
+        { to: "/model-config", label: "模型配置", icon: <CpuIcon className="size-4" /> },
         { to: "/login", label: "连接 clawbot", icon: <ScanIcon className="size-4" /> },
       ],
     },

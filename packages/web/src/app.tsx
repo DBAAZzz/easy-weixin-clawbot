@@ -11,6 +11,7 @@ import { ObservabilityTracePage } from "./pages/ObservabilityTracePage.js";
 import { SkillsPage } from "./pages/SkillsPage.js";
 import { ToolsPage } from "./pages/ToolsPage.js";
 import { WebhookLogsPage } from "./pages/WebhookLogsPage.js";
+import { ModelConfigPage } from "./pages/ModelConfigPage.js";
 import { WebhooksPage } from "./pages/WebhooksPage.js";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -41,6 +42,7 @@ export function App() {
           <Route path="/webhooks" element={<WebhooksPage />} />
           <Route path="/webhooks/:source/logs" element={<WebhookLogsPage />} />
           <Route path="/scheduled-tasks" element={<ScheduledTasksPage />} />
+          <Route path="/model-config" element={<ModelConfigPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

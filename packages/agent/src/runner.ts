@@ -33,6 +33,11 @@ export interface AgentConfig {
   maxOnDemandSkills?: number;
 }
 
+export interface ModelOverride {
+  model: Model<any>;
+  apiKey?: string;
+}
+
 export interface RunCallbacks {
   onMessage(msg: Message): void;
   onRoundStart?(round: number): void;
@@ -48,6 +53,7 @@ export interface AgentRunner {
     messages: Message[],
     callbacks: RunCallbacks,
     signal?: AbortSignal,
+    modelOverride?: ModelOverride,
   ): Promise<RunResult>;
 }
 
@@ -196,7 +202,10 @@ export function createAgentRunner(
     messages: Message[],
     callbacks: RunCallbacks,
     signal?: AbortSignal,
+    modelOverride?: ModelOverride,
   ): Promise<RunResult> {
+    const effectiveModel = modelOverride?.model ?? config.model;
+    const effectiveApiKey = modelOverride?.apiKey ?? config.apiKey;
     const maxRounds = config.maxRounds ?? 10;
     const timeoutMs = config.toolTimeoutMs ?? 30_000;
     const workingHistory = [...messages];
@@ -218,16 +227,16 @@ export function createAgentRunner(
       try {
         response = await withSpan(
           "llm.call",
-          { model: config.model.id, round },
+          { model: effectiveModel.id, round },
           async (span) => {
             const result = await complete(
-              config.model,
+              effectiveModel,
               {
                 systemPrompt: buildSystemPrompt(config.systemPrompt, skills),
                 messages: workingHistory,
                 tools: [...tools.current().tools, USE_SKILL_TOOL],
               },
-              config.apiKey ? { apiKey: config.apiKey, signal } : { signal },
+              effectiveApiKey ? { apiKey: effectiveApiKey, signal } : { signal },
             );
 
             span.addAttributes({

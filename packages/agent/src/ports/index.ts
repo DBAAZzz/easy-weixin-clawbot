@@ -23,3 +23,12 @@ export { setSchedulerStore, getSchedulerStore } from "./scheduler-store.js";
 
 export type { PushService } from "./push-service.js";
 export { setPushService, getPushService } from "./push-service.js";
+
+export type {
+  ModelConfigStore,
+  ModelConfigRow,
+  UpsertModelConfigInput,
+  ModelPurpose,
+  ModelScope,
+} from "./model-config-store.js";
+export { setModelConfigStore, getModelConfigStore } from "./model-config-store.js";

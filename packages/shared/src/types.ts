@@ -236,3 +236,18 @@ export interface ObservabilityTraceSpan {
 export interface ObservabilityTraceDetail extends ObservabilityTraceSummary {
   spans: ObservabilityTraceSpan[];
 }
+
+// ── Model Config ────────────────────────────────────────────────────
+
+export interface ModelConfigDto {
+  id: string; // BigInt serialized as string
+  scope: "global" | "account" | "conversation";
+  scope_key: string;
+  purpose: string; // "chat" | "extraction" | "*"
+  provider: string;
+  model_id: string;
+  api_key_set: boolean; // true if apiKey is present (never expose actual key)
+  base_url: string | null;
+  enabled: boolean;
+  priority: number;
+}

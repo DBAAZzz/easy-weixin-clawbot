@@ -10,6 +10,7 @@ import type {
   McpServerInfo,
   McpToolInfo,
   MessageRow,
+  ModelConfigDto,
   ObservabilityOverview,
   ObservabilityTraceDetail,
   ObservabilityTraceSummary,
@@ -529,4 +530,34 @@ export function fetchScheduledTaskRuns(
   return request<ScheduledTaskRunDto[]>(
     `/api/scheduled-tasks/${encodeURIComponent(accountId)}/${seq}/runs${query}`
   );
+}
+
+// ── Model Config ────────────────────────────────────────────────────
+
+export function fetchModelConfigs(): Promise<ModelConfigDto[]> {
+  return request<ModelConfigDto[]>("/api/model-configs");
+}
+
+export function upsertModelConfig(payload: {
+  scope: "global" | "account" | "conversation";
+  scope_key: string;
+  purpose: string;
+  provider: string;
+  model_id: string;
+  api_key?: string | null;
+  base_url?: string | null;
+  enabled?: boolean;
+  priority?: number;
+}): Promise<ModelConfigDto> {
+  return request<ModelConfigDto>("/api/model-configs", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteModelConfig(id: string): Promise<{ success: boolean }> {
+  return request<{ success: boolean }>(`/api/model-configs/${id}`, {
+    method: "DELETE",
+  });
 }

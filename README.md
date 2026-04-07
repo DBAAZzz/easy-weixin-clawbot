@@ -1,332 +1,297 @@
-# 微信 ClawBot Agent
+<div align="right">
+  <span>[<a href="./README.md">简体中文</a>]</span>
+</div>
 
-多账号微信 ClawBot 连接器 —— 通过 Web 后台管理多个微信号的 ClawBot 接入，支持扫码登录、对话持久化、LLM 智能回复、插件化工具/技能扩展。
+<div align="center">
+  <h1>微信 ClawBot Agent</h1>
+  <p>多账号微信 AI Agent 管理平台 —— 让微信号成为你的智能助手</p>
+  <div align="center">
+    <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version" />
+    <img src="https://img.shields.io/badge/license-GPL--3.0-green" alt="License" />
+    <img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen" alt="Node" />
+    <img src="https://img.shields.io/badge/pnpm-%3E%3D10-orange" alt="Pnpm" />
+  </div>
+  <hr>
+</div>
 
-## 它做什么
-
-将多个微信号连接为 ClawBot，每个账号独立运行、独立对话。通过 Web 后台统一管理所有账号的登录、对话查看、工具/技能配置。
-
-**核心流程：**
-
-```
-扫码登录微信号 → 账号自动注册 → 接收微信消息 → LLM 生成回复（可调用工具）→ 回复用户
-                                                    ↑
-                            多账号并行运行，每个账号独立 Agent 实例
-```
-
-## 多账号管理
-
-- **扫码登录**：通过 Web 后台或 API 触发微信扫码，终端字符二维码直接渲染在页面上
-- **账号生命周期**：每个微信号对应一个独立的 ClawBot 实例，登录后自动启动，支持 active/deprecated 状态管理
-- **重复登录处理**：同一微信号再次扫码时，旧账号自动标记为 deprecated，新账号接管
-- **账号别名**：为每个微信号设置别名，方便识别管理
-- **独立 Agent**：每个账号拥有独立的 Agent 实例、对话历史、工具/技能上下文
-
-## 界面预览
-
-![图 0](images/2026-03-28%2017-57-16%209681bd213c51d62927ab4090e7035129e5c7c7173ed9eb7dd5748c4faf287d80.png)  
-
-![图 1](images/2026-03-28%2017-57-55%20f126a5433a4f2f948d8934a06c8c9487fa6ef406cdf53c23a454b836933227c3.png)  
-
-![图 2](images/2026-03-28%2017-59-07%2016c93f3d69d563ed26774531634a04f6e4fc5c59fff587606937eff97f46a662.png)  
-
-
-## 架构概览
-
-```
-packages/
-├── agent/    # LLM 编排引擎（工具注册、技能注入、Agent 循环）
-├── server/   # 微信 ClawBot 运行时、多账号管理、Prisma 持久化、Hono HTTP API
-├── shared/   # 共享 TypeScript 类型定义
-└── web/      # React + Vite 管理后台（多账号视图）
-```
-
-```
-data/
-├── skills/builtin/   # 内置技能（翻译、摘要、专业人设）
-├── skills/user/      # 用户安装的技能
-├── tools/builtin/    # 内置工具（opencli）
-└── tools/user/       # 用户安装的工具
-```
+微信 ClawBot Agent 是一个多账号微信 AI 连接器。通过 Web 后台统一管理多个微信号的 AI 接入，支持扫码登录、对话持久化、LLM 智能回复、工具/技能扩展、Tape 记忆系统、定时任务、Webhook、MCP Server 管理和可观测性追踪。每个微信号都是一个独立的 AI Agent，拥有独立的对话历史、记忆、工具调用能力和个性化配置。
 
 ## 快速开始
 
 ### 环境要求
 
-- Node.js >= 18
+- Node.js >= 22
 - pnpm >= 10
 - PostgreSQL（推荐 Supabase）
 
 ### 安装
 
 ```bash
-# 安装依赖
-pnpm install
+# 克隆项目
+git clone <repository-url>
+cd weixin-clawbot-agent
 
-# 复制环境配置
-cp .env.example .env
-
-# 复制服务端认证配置（本地使用，不提交仓库）
+# 复制服务端环境配置
+cp .env.example packages/server/.env
 cp packages/server/config-example.yaml packages/server/config.yaml
+
+# 补齐 packages/server/.env 中的数据库配置后再安装依赖
+pnpm install
 ```
 
-### 配置 `.env`
+### 配置
+
+编辑 `packages/server/.env`：
 
 ```bash
-# LLM 配置
-LLM_PROVIDER=moonshot          # moonshot | kimi-coding | anthropic | openai
-LLM_MODEL=moonshot-v1-8k      # 对应 provider 的模型名
-LLM_API_KEY=your-api-key       # 或使用 provider 专属变量（ANTHROPIC_API_KEY 等）
-
-# 系统提示词
-SYSTEM_PROMPT=你是一个微信智能助手，回答简洁、友好。
+# LLM 配置（默认模型）
+LLM_PROVIDER=moonshot
+LLM_MODEL=moonshot-v1-8k
+LLM_API_KEY=your-api-key
 
 # 数据库
 DATABASE_URL=postgresql://...
 DIRECT_URL=postgresql://...
 
 # API 服务
-API_PORT=3001
+API_PORT=8028
 WEB_ORIGIN=http://localhost:5173
-
-# TTS（可选）
-TTS_PROVIDER=edge-tts
-TTS_DEFAULT_VOICE=zh-CN-XiaoxiaoNeural
 ```
 
-### 配置 `packages/server/config.yaml`
-
-`packages/server/config.yaml` 是服务端本地认证配置文件，已被 `packages/server/.gitignore` 忽略，不会提交到仓库。仓库内的 `packages/server/config-example.yaml` 提供了示例模板。
+编辑 `packages/server/config.yaml`：
 
 ```yaml
 auth:
   username: admin
-  password: change-this-password
-  jwtSecret: change-me-to-a-random-secret-key-in-production
+  password: your-password
+  jwtSecret: your-secret-key
   tokenExpiry: 24h
 ```
 
-请按你的环境修改用户名、密码和 `jwtSecret`，再启动服务。
+执行 Prisma 建表 / 同步 schema：
+
+```bash
+pnpm -F @clawbot/server prisma:push
+```
+
+> `pnpm -F @clawbot/server ...` 的工作目录是 `packages/server`，因此环境变量文件需要放在 `packages/server/.env`。
+> 当前仓库里的 [packages/web/vite.config.ts](/Users/mac/Documents/workspace/DBAA/微信clawbot-agent/packages/web/vite.config.ts) 将 `/api` 代理到 `http://localhost:8028`。如果你改了 `API_PORT`，记得同步修改这里的 proxy。
+> 如果你只是先装依赖、还没准备好数据库配置，可以先执行 `pnpm install --ignore-scripts`，补齐 `packages/server/.env` 后再运行 `pnpm -F @clawbot/server prisma:generate`。
 
 ### 启动
 
 ```bash
-# 同时启动所有服务
+# 开发模式（同时启动所有服务）
 pnpm dev
 
 # 或分别启动
-pnpm dev:agent    # Agent 编译监听
-pnpm dev:server   # API 服务 + 机器人运行时（localhost:3001）
+pnpm dev:server   # API 服务 + 机器人运行时（localhost:8028）
 pnpm dev:web      # Web 后台（localhost:5173）
 ```
 
-启动后访问 `http://localhost:5173/auth/login`，使用 `packages/server/config.yaml` 中配置的用户名和密码登录 Web 后台。
+启动后访问 http://localhost:5173/auth/login 登录管理后台。
 
-### 构建 & 生产运行
+### 生产部署
 
 ```bash
 pnpm build
-pnpm start
+pnpm start   # 仅启动 Hono API + 微信运行时
 ```
 
-## 消息处理流程
+`packages/web/dist` 需要单独部署到静态站点或反向代理后提供访问；服务端本身不会托管前端静态文件。
+
+## 核心特性
+
+### 多账号管理
+
+- **扫码登录**：Web 后台一键触发微信扫码登录，二维码实时渲染
+- **账号生命周期**：每个微信号对应独立 Agent 实例，支持 active/deprecated 状态管理
+- **自动接管**：重复登录时旧账号自动标记，新账号无缝接管
+- **账号别名**：为微信号设置别名，方便管理识别
+
+### AI Agent 能力
+
+- **多 LLM 供应商**：支持 Moonshot、OpenAI、Anthropic、Google 等，可按账号/对话单独配置
+- **工具调用**：内置 `opencli`，支持 Markdown 定义的自定义 Tool，MCP Tool 独立管理
+- **技能系统**：内置 `translator`、`summarizer`、`persona_professional`，支持 always/on-demand 两种激活模式
+- **对话持久化**：消息异步写入 PostgreSQL，支持历史记录查询
+
+### 记忆系统
+
+- **双层记忆**：全局记忆（跨会话持久）+ 会话记忆（当前上下文）
+- **自动压缩**：记忆条目超过阈值自动整理，保持高效检索
+- **会话继承**：切换会话时高置信度记忆自动携带
+- **结构化存储**：支持事实、偏好、决策等多种记忆类型
+
+### 定时任务
+
+- **Cron 表达式**：支持标准 Cron 语法定义执行周期
+- **多账号调度**：可为每个账号配置独立的定时任务
+- **执行记录**：每次执行结果持久化，支持查看历史
+- **灵活启停**：随时启用或禁用任务，无需重启服务
+
+### Webhook 集成
+
+- **Token 认证**：基于 Token 的权限控制，支持多账号授权
+- **消息投递**：外部系统可通过 Webhook 向微信对话发送消息
+- **调用日志**：完整的投递记录，支持查询和排查
+- **Token 轮换**：支持安全轮换 Token，不影响业务
+
+### MCP 与可观测性
+
+- **MCP Server 管理**：支持在 Web 后台新增、编辑、启停 stdio MCP Server
+- **MCP Tool 控制**：发现的 MCP Tool 可单独启用 / 禁用
+- **Trace 追踪**：查看消息链路、LLM 轮次、Tool 调用、耗时和错误明细
+- **Metrics 导出**：暴露 `/api/metrics` 文本指标，方便接 Prometheus 或自定义采集
+
+### 管理后台
+
+- **多账号视图**：所有微信号卡片展示，实时状态监控
+- **对话管理**：查看任意账号的完整对话历史
+- **可观测性**：Trace 总览、详情下钻、异常筛选
+- **MCP 管理**：MCP Server / Tool 配置和状态查看
+- **模型配置**：可视化配置多层级模型（全局/账号/对话）
+- **定时任务**：管理 Cron 任务，查看执行记录
+- **Webhook 管理**：Token 创建、授权、轮换、日志查询
+- **工具/技能**：可视化启用/禁用、查看源码；安装、更新、删除能力由后端 API 提供
+
+## 界面预览
+
+<table>
+  <tr>
+    <td><img src="./images/2026-03-28%2017-57-16%209681bd213c51d62927ab4090e7035129e5c7c7173ed9eb7dd5748c4faf287d80.png" alt="账号管理" width="100%"></td>
+    <td><img src="./images/2026-03-28%2017-57-55%20f126a5433a4f2f948d8934a06c8c9487fa6ef406cdf53c23a454b836933227c3.png" alt="对话详情" width="100%"></td>
+    <td><img src="./images/2026-03-28%2017-59-07%2016c93f3d69d563ed26774531634a04f6e4fc5c59fff587606937eff97f46a662.png" alt="工具管理" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>账号管理</strong></td>
+    <td align="center"><strong>对话详情</strong></td>
+    <td align="center"><strong>工具管理</strong></td>
+  </tr>
+</table>
+
+## 架构概览
+
+```mermaid
+flowchart TB
+    subgraph Clients ["客户端"]
+        WECHAT["微信用户"]
+        WEB["Web 管理后台"]
+        WEBHOOK["外部系统 / Webhook"]
+    end
+
+    subgraph Server ["服务端"]
+        API["HTTP API"]
+        RUNTIME["多账号运行时"]
+        AGENT["Agent 引擎"]
+        MEMORY["记忆系统"]
+        SCHEDULER["定时任务调度器"]
+        DB[("PostgreSQL")]
+    end
+
+    WECHAT --> RUNTIME
+    WEB --> API
+    WEBHOOK --> API
+    API --> RUNTIME
+    API --> SCHEDULER
+    RUNTIME --> AGENT
+    AGENT --> MEMORY
+    AGENT --> DB
+    SCHEDULER --> RUNTIME
+```
+
+### 项目结构
 
 ```
-微信用户发送消息
-  → weixin-agent-sdk 回调
-  → 根据 accountId 路由到对应 Agent 实例
-  → 加载/恢复对话历史（内存优先，DB 兜底）
-  → Agent 循环：系统提示词 + 技能注入 → LLM → 工具调用 → 回复
-  → 异步持久化到 Supabase（不阻塞回复）
-  → 回复发送给微信用户
+packages/
+├── agent/              # Agent 引擎（工具、技能、LLM 编排、Tape 记忆、定时任务）
+├── observability/      # Trace / span / metrics / 采样能力
+├── server/             # 服务端（API、多账号管理、Webhook、MCP、持久化）
+├── shared/             # 共享类型定义
+├── web/                # React + Vite 管理后台
+├── weixin-agent-sdk/   # 微信接入 SDK
+└── weixin-acp/         # ACP 适配器与 CLI
+```
+
+### 数据与扩展目录
+
+```
+data/
+├── skills/builtin/   # 内置技能
+├── skills/user/      # 用户技能
+├── tools/builtin/    # 内置工具（当前内置 opencli）
+├── tools/user/       # 用户工具
+└── state.json        # 工具/技能安装状态快照
 ```
 
 ## 核心概念
 
-### Tool（工具）
-
-可调用的函数，具有 JSON Schema 输入定义。LLM 通过 `tool_call` 触发执行，返回结构化结果。
-
-示例：`web_search`、`opencli`
-
-### Skill（技能）
-
-领域知识文档，注入到系统提示词中增强 LLM 能力。支持两种激活模式：
-
-| 模式 | 行为 |
+| 概念 | 说明 |
 |------|------|
-| `always` | 始终注入系统提示词 |
-| `on-demand` | LLM 通过 `use_skill` 工具按需加载 |
+| **Tool** | 可调用的函数工具，如 `opencli`、用户自定义 Tool、MCP Tool |
+| **Skill** | 领域知识文档，注入系统提示词增强 AI 能力 |
+| **Agent** | 单个微信号的 AI 实例，拥有独立状态、记忆和配置 |
+| **Memory** | 结构化记忆系统，记录事实、偏好和决策 |
+| **Scheduled Task** | 定时执行的自动化任务，基于 Cron 表达式 |
+| **Webhook** | 外部系统向微信账号发送消息的接口 |
 
-### Agent 循环
+## 主要页面与接口
 
-```
-构建系统提示词（基础提示 + always 技能 + on-demand 技能索引）
-  → 调用 LLM
-  → LLM 返回 tool_call？执行工具 / 加载技能 → 结果推入历史 → 继续循环
-  → LLM 返回文本？结束，回复用户
-```
+### 管理后台页面
 
-## Web 管理后台
-
-统一管理所有微信 ClawBot 账号。
-
-| 页面 | 功能 |
+| 路径 | 说明 |
 |------|------|
-| 首页 `/` | 所有微信号卡片、active/deprecated 筛选、对话统计 |
-| 对话 `/accounts/:id` | 查看某个微信号的所有对话和消息记录 |
-| 登录 `/login` | 扫码添加新的微信号（终端字符二维码渲染） |
-| 工具 `/tools` | 工具管理：启用/禁用、安装/卸载 |
-| 技能 `/skills` | 技能管理：启用/禁用、安装/卸载 |
+| `/auth/login` | 管理后台登录页 |
+| `/` | 账号总览 |
+| `/accounts/:accountId` | 对话与消息查看 |
+| `/login` | 微信扫码接入 |
+| `/tools` | Tool 管理 |
+| `/skills` | Skill 管理 |
+| `/mcp` | MCP Server / Tool 管理 |
+| `/observability` | Trace 总览 |
+| `/webhooks` | Webhook Token 与日志 |
+| `/scheduled-tasks` | 定时任务与执行记录 |
+| `/model-config` | 全局 / 账号 / 对话模型配置 |
 
-技术栈：React 19 + React Router 7 + Tailwind CSS 4 + shadcn/ui
+### 主要 API
 
-## API 接口
-
-`POST /api/auth/login` 无需鉴权；其余接口需要 `Authorization: Bearer <JWT_TOKEN>` 鉴权。
-
-### 系统
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/health` | 服务状态、运行中的账号 |
-
-### 账号
+默认情况下，`POST /api/auth/login` 无需 JWT；其余 `/api/*` 接口在启用 `config.yaml` 认证后需要 `Authorization: Bearer <JWT>`。`POST /api/webhooks` 使用独立的 Webhook Token 认证。
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/accounts` | 账号列表 + 对话数 |
-| PATCH | `/api/accounts/:id` | 更新账号别名 |
-| GET | `/api/accounts/:id/conversations` | 分页获取对话列表 |
-| GET | `/api/accounts/:id/conversations/:cid/messages` | 游标分页获取消息 |
+| POST | `/api/auth/login` | 后台账号密码登录 |
+| GET | `/api/health` | 服务健康状态、运行中账号、队列长度 |
+| GET/PATCH | `/api/accounts` / `/api/accounts/:accountId` | 账号列表与别名更新 |
+| GET | `/api/accounts/:accountId/conversations` | 对话列表 |
+| GET | `/api/accounts/:accountId/conversations/:conversationId/messages` | 消息分页 |
+| POST/GET/POST | `/api/login/start` / `/api/login/status` / `/api/login/cancel` | 微信扫码登录流程 |
+| GET/POST/PUT/DELETE | `/api/tools*` / `/api/skills*` | Tool / Skill 安装与启停 |
+| GET/POST/PATCH/DELETE | `/api/mcp/servers*` | MCP Server 管理 |
+| GET/POST | `/api/mcp/tools*` | MCP Tool 列表与启停 |
+| GET | `/api/observability/overview` / `/api/observability/traces/:traceId` | Trace 统计与详情 |
+| GET | `/api/metrics` | 文本指标导出 |
+| POST/GET/PATCH/DELETE | `/api/webhooks*` | Webhook 投递、Token 管理、日志 |
+| GET/PATCH | `/api/scheduled-tasks*` | 定时任务列表、启停、运行记录 |
+| GET/PUT/DELETE | `/api/model-configs*` | 多层级模型配置 |
 
-### 登录
+## 技术栈
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/auth/login` | 使用 `config.yaml` 中的用户名和密码换取 JWT Token |
-| POST | `/api/login/start` | 触发微信登录 |
-| GET | `/api/login/status` | 轮询登录状态 + 二维码 |
-| POST | `/api/login/cancel` | 取消登录 |
+- **前端**：React 19 + React Router 7 + Vite 8 + Tailwind CSS 4
+- **后端**：Node.js + Hono + Prisma + PostgreSQL
+- **Agent 内核**：`@clawbot/agent` + `@mariozechner/pi-ai`
+- **可观测性**：`@clawbot/observability`
+- **微信接入**：`@clawbot/weixin-agent-sdk` / `weixin-acp`
 
-## 数据模型
+## 路线图
 
-```
-accounts
-  ├── id, display_name, alias, deprecated, created_at
-
-conversations
-  ├── id, account_id, conversation_id, title
-  ├── last_message_at, message_count, created_at
-  └── UNIQUE(account_id, conversation_id)
-
-messages
-  ├── id, account_id, conversation_id, seq
-  ├── role (user | assistant | toolResult)
-  ├── content_text, payload (JSONB), media_type
-  └── UNIQUE(account_id, conversation_id, seq)
-```
-
-设计策略：**内存优先、数据库异步写入**。内存中的对话历史是数据源，Supabase 作为持久化备份，异步队列写入不阻塞消息处理。
-
-## 依赖关系
-
-```
-@clawbot/agent (纯库)
-  └── @mariozechner/pi-ai, yaml
-
-@clawbot/server
-  ├── @clawbot/agent, @clawbot/shared
-  ├── weixin-agent-sdk
-  ├── @hono/node-server, @prisma/client
-  └── @mariozechner/pi-ai
-
-@clawbot/web
-  ├── @clawbot/shared (仅类型)
-  ├── react, react-router
-  └── tailwindcss, shadcn/ui
-
-@clawbot/shared (仅类型，无运行时依赖)
-```
-
-## 测试
-
-```bash
-pnpm test:agent
-pnpm test:server
-```
-
-## 项目结构
-
-```
-├── .env.example                    # 环境变量模板
-├── package.json                    # Monorepo 根配置
-├── pnpm-workspace.yaml
-├── data/
-│   ├── skills/builtin/             # 内置技能
-│   ├── tools/builtin/              # 内置工具
-│   └── state.json                  # 安装状态快照
-├── spec/                           # 架构设计文档
-├── packages/agent/src/
-│   ├── runner.ts                   # Agent 核心循环
-│   ├── tools/                      # 工具注册、编译、安装
-│   ├── skills/                     # 技能注册、编译、安装
-│   └── runtime/skill-runtime.ts    # 按需技能加载
-├── packages/server/src/
-│   ├── ai.ts                       # 模型初始化 + 注册表
-│   ├── runtime.ts                  # 多账号生命周期管理（核心）
-│   ├── agent.ts                    # 每个账号的 Agent 创建
-│   ├── conversation.ts             # 对话历史 + 并发锁
-│   ├── db/                         # Prisma 持久化
-│   ├── api/                        # Hono 路由
-│   └── login/                      # 微信扫码登录 + 二维码捕获
-└── packages/web/src/
-    ├── pages/                      # 页面组件（多账号管理视图）
-    ├── components/                 # UI 组件
-    ├── hooks/                      # 数据获取 hooks
-    └── lib/api.ts                  # REST 客户端
-```
-
-## TODO
-
-### 多 LLM 供应商支持
-
-通过 `@mariozechner/pi-ai` 统一接口接入多个供应商，切换只需改环境变量。已有设计，待实现。
-
-- [ ] Anthropic（Claude）— 完整 tool-calling 支持
-- [ ] OpenAI（GPT-4o）
-- [ ] Moonshot（moonshot-v1-8k / 32k / 128k）
-- [ ] Kimi K2 编程模型（kimi-k2-thinking）
-- [ ] Google（Gemini 系列）
-- [ ] API Key 优先级：`LLM_API_KEY` > 供应商专属变量 > 兼容变量 `KEY`
-
-### Webhook 集成
-
-外部业务系统通过 Webhook 向微信账号推送消息。设计文档见 `spec/webhook-integration.md`。
-
-依赖 `weixin-agent-sdk` 暴露主动发送消息接口（当前仅支持请求-响应式 `Agent.chat()`）。
-
-**Phase 1（MVP）：**
-
-- [ ] Webhook 投递接口 `POST /api/webhooks/:accountId`
-- [ ] Token 认证（SHA-256 哈希存储，`whk_` 前缀）
-- [ ] 发送文本消息（最大 4000 字符）
-- [ ] 完整错误响应（400/401/404/429/503）
-- [ ] 投递日志（webhook_logs 表）
-- [ ] Prisma 模型定义 + Migration
-
-**Phase 2：**
-
-- [ ] Token 管理接口（CRUD + 轮换）
-- [ ] 调用日志查询接口
-- [ ] 频率限制（滑动窗口，60 次/分钟/Token）
-- [ ] 幂等性支持（Idempotency-Key）
-
-**Phase 3：**
-
-- [ ] 消息模板
-- [ ] 批量发送
-- [ ] 富文本消息（图片、文件）
+- [x] 多 LLM 供应商支持
+- [x] 记忆系统（全局/会话双层记忆）
+- [x] 定时任务（Cron 调度）
+- [x] Webhook 集成（Token 认证、消息投递）
+- [x] MCP Server / Tool 管理
+- [x] Observability Trace 与 Metrics
+- [ ] 浏览器自动化
+- [ ] 更多内置技能和工具
 
 ## License
 

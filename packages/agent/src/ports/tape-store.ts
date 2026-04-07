@@ -6,6 +6,7 @@
 
 export interface TapeEntryRow {
   eid: string;
+  branch: string;
   category: string;
   payload: unknown;
   createdAt: Date;
@@ -46,6 +47,13 @@ export interface TapeStore {
     branch: string,
     afterDate?: Date,
   ): Promise<TapeEntryRow[]>;
+
+  findAllEntries(
+    accountId: string,
+    branch: string,
+  ): Promise<TapeEntryRow[]>;
+
+  listBranches(accountId: string): Promise<string[]>;
 
   findLatestAnchor(
     accountId: string,

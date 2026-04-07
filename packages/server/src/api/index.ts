@@ -22,6 +22,7 @@ import { registerModelConfigRoutes } from "./routes/model-config.js";
 import { registerObservabilityRoutes } from "./routes/observability.js";
 import { registerScheduledTaskRoutes } from "./routes/scheduled-tasks.js";
 import { registerSkillRoutes } from "./routes/skills.js";
+import { registerTapeRoutes } from "./routes/tape.js";
 import { registerToolRoutes } from "./routes/tools.js";
 import { registerWebhookRoutes } from "./routes/webhooks.js";
 
@@ -80,6 +81,7 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerModelConfigRoutes(app);
   registerObservabilityRoutes(app, observability);
   registerScheduledTaskRoutes(app);
+  registerTapeRoutes(app);
 
   app.onError((error, c) => {
     console.error("[api] unhandled error", error);

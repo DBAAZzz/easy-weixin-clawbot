@@ -4,6 +4,7 @@ import { AuthLoginPage } from "./pages/AuthLoginPage.js";
 import { ConversationPage } from "./pages/ConversationPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { LoginPage } from "./pages/LoginPage.js";
+import { MemoryGraphPage } from "./pages/MemoryGraphPage.js";
 import { McpPage } from "./pages/McpPage.js";
 import { ObservabilityPage } from "./pages/ObservabilityPage.js";
 import { ScheduledTasksPage } from "./pages/ScheduledTasksPage.js";
@@ -37,6 +38,7 @@ export function App() {
           <Route path="/accounts/:accountId" element={<ConversationPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/mcp" element={<McpPage />} />
+          <Route path="/memory-graph" element={<MemoryGraphPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/skills" element={<SkillsPage />} />
           <Route path="/webhooks" element={<WebhooksPage />} />

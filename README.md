@@ -16,6 +16,43 @@
 
 微信 ClawBot Agent 是一个多账号微信 AI 连接器。通过 Web 后台统一管理多个微信号的 AI 接入，支持扫码登录、对话持久化、LLM 智能回复、工具/技能扩展、Tape 记忆系统、定时任务、Webhook、MCP Server 管理和可观测性追踪。每个微信号都是一个独立的 AI Agent，拥有独立的对话历史、记忆、工具调用能力和个性化配置。
 
+## 界面预览
+
+<table>
+  <tr>
+    <td><img src="./images/账号管理.png" alt="账号管理" width="100%"></td>
+    <td><img src="./images/记忆图谱.png" alt="记忆图谱" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>账号管理</strong></td>
+    <td align="center"><strong>记忆图谱</strong></td>
+  </tr>
+  <tr>
+    <td><img src="./images/工具列表.png" alt="工具列表" width="100%"></td>
+    <td><img src="./images/技能列表.png" alt="技能列表" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>工具列表</strong></td>
+    <td align="center"><strong>技能列表</strong></td>
+  </tr>
+  <tr>
+    <td><img src="./images/运行监控trace.png" alt="运行监控" width="100%"></td>
+    <td><img src="./images/定时任务.png" alt="定时任务" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>运行监控 Trace</strong></td>
+    <td align="center"><strong>定时任务</strong></td>
+  </tr>
+  <tr>
+    <td><img src="./images/webhook.png" alt="Webhook" width="100%"></td>
+    <td><img src="./images/MCP服务.png" alt="MCP 服务" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Webhook</strong></td>
+    <td align="center"><strong>MCP 服务</strong></td>
+  </tr>
+</table>
+
 ## 快速开始
 
 ### 环境要求
@@ -154,21 +191,6 @@ pnpm start   # 仅启动 Hono API + 微信运行时
 - **定时任务**：管理 Cron 任务，查看执行记录
 - **Webhook 管理**：Token 创建、授权、轮换、日志查询
 - **工具/技能**：可视化启用/禁用、查看源码；安装、更新、删除能力由后端 API 提供
-
-## 界面预览
-
-<table>
-  <tr>
-    <td><img src="./images/2026-03-28%2017-57-16%209681bd213c51d62927ab4090e7035129e5c7c7173ed9eb7dd5748c4faf287d80.png" alt="账号管理" width="100%"></td>
-    <td><img src="./images/2026-03-28%2017-57-55%20f126a5433a4f2f948d8934a06c8c9487fa6ef406cdf53c23a454b836933227c3.png" alt="对话详情" width="100%"></td>
-    <td><img src="./images/2026-03-28%2017-59-07%2016c93f3d69d563ed26774531634a04f6e4fc5c59fff587606937eff97f46a662.png" alt="工具管理" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>账号管理</strong></td>
-    <td align="center"><strong>对话详情</strong></td>
-    <td align="center"><strong>工具管理</strong></td>
-  </tr>
-</table>
 
 ## 架构概览
 

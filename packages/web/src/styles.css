@@ -118,8 +118,8 @@ pre {
 }
 
 ::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -182,4 +182,12 @@ pre {
 
 .status-dot {
   animation: statusPulse 2.4s ease-in-out infinite;
+}
+
+.memory-graph-container {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.06), transparent 40%),
+    radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.05), transparent 40%),
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.9));
 }

@@ -1,13 +1,7 @@
 import { Input } from "../ui/input.js";
 import { Button } from "../ui/button.js";
+import { Select } from "../ui/select.js";
 import { RefreshIcon, SearchIcon } from "../ui/icons.js";
-
-function selectClassName(disabled = false) {
-  return [
-    "h-10 w-full rounded-[14px] border border-[var(--line-strong)] bg-[rgba(255,255,255,0.82)] px-3.5 text-[12px] text-[var(--ink)] outline-none transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[rgba(21,110,99,0.14)]",
-    disabled ? "cursor-not-allowed opacity-60" : "",
-  ].join(" ");
-}
 
 interface Option {
   value: string;
@@ -30,37 +24,27 @@ export function MemoryFilters(props: {
 
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_auto] xl:items-end">
-      <label className="space-y-1.5">
+      <div className="space-y-1.5">
         <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">账号</span>
-        <select
-          className={selectClassName(disabled)}
+        <Select
           value={props.selectedAccountId}
+          options={props.accountOptions}
+          onChange={props.onAccountChange}
+          placeholder="选择账号"
           disabled={disabled}
-          onChange={(event) => props.onAccountChange(event.target.value)}
-        >
-          {props.accountOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
+        />
+      </div>
 
-      <label className="space-y-1.5">
+      <div className="space-y-1.5">
         <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">分支</span>
-        <select
-          className={selectClassName(disabled)}
+        <Select
           value={props.selectedBranch}
+          options={props.branchOptions}
+          onChange={props.onBranchChange}
+          placeholder="选择分支"
           disabled={disabled}
-          onChange={(event) => props.onBranchChange(event.target.value)}
-        >
-          {props.branchOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
+        />
+      </div>
 
       <label className="space-y-1.5">
         <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">搜索</span>

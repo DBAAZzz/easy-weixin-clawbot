@@ -2,8 +2,8 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "../../lib/cn.js";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "ghost" | "outline";
-  size?: "default" | "sm";
+  variant?: "primary" | "ghost" | "outline" | "destructive";
+  size?: "default" | "sm" | "icon";
 };
 
 export function buttonClassName(options?: {
@@ -15,16 +15,22 @@ export function buttonClassName(options?: {
   const size = options?.size ?? "default";
 
   return cn(
-    "inline-flex items-center justify-center gap-2 border text-[12px] font-medium tracking-[-0.01em] transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:pointer-events-none disabled:opacity-50 active:translate-y-px",
-    size === "default" && "h-10 rounded-[14px] px-3.5",
-    size === "sm" && "h-8 rounded-[12px] px-3 text-[11px]",
+    "inline-flex cursor-pointer select-none items-center justify-center gap-2 whitespace-nowrap border text-[12px] font-medium tracking-[-0.01em] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+    "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)]",
+    "disabled:pointer-events-none disabled:opacity-50",
+    "active:translate-y-px",
+    size === "default" && "h-9 rounded-[10px] px-4",
+    size === "sm" && "h-8 rounded-[8px] px-3 text-[11px]",
+    size === "icon" && "size-9 rounded-[10px]",
     variant === "primary" &&
-      "border-[var(--ink)] bg-[var(--ink)] text-white shadow-[0_18px_36px_-24px_rgba(15,23,42,0.46)] hover:-translate-y-0.5 hover:border-[var(--accent-strong)] hover:bg-[var(--accent-strong)]",
+      "border-[var(--ink)] bg-[var(--ink)] text-white shadow-[0_1px_3px_rgba(15,23,42,0.2)] hover:bg-[var(--accent-strong)] hover:border-[var(--accent-strong)]",
     variant === "outline" &&
-      "border-[var(--line-strong)] bg-[rgba(255,255,255,0.78)] text-[var(--ink)] hover:-translate-y-0.5 hover:border-[var(--accent)] hover:text-[var(--accent-strong)]",
+      "border-[var(--line-strong)] bg-white/80 text-[var(--ink)] shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:bg-[rgba(246,249,250,0.9)] hover:text-[var(--accent-strong)]",
     variant === "ghost" &&
-      "border-transparent bg-transparent text-[var(--muted-strong)] hover:bg-white/60 hover:text-[var(--ink)]",
-    options?.className
+      "border-transparent bg-transparent text-[var(--muted-strong)] hover:bg-[rgba(21,32,43,0.04)] hover:text-[var(--ink)]",
+    variant === "destructive" &&
+      "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-300",
+    options?.className,
   );
 }
 

@@ -18,6 +18,7 @@ import {
   SearchIcon,
   TerminalIcon,
 } from "../components/ui/icons.js";
+import { Select } from "../components/ui/select.js";
 import { cn } from "../lib/cn.js";
 import { buildTraceDetailPath, getTraceStatus } from "../lib/observability.js";
 import { TraceFlagList } from "../components/observability/TraceFlagList.js";
@@ -266,28 +267,22 @@ export function ObservabilityPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <select
+                  <Select
                     value={status}
-                    onChange={(event) => setStatus(event.target.value as "" | "ok" | "error")}
-                    className="h-9 rounded-[10px] border border-[var(--line-strong)] bg-white/80 px-3 text-[12px] text-[var(--ink)] outline-none"
-                  >
-                    {STATUS_OPTIONS.map((item) => (
-                      <option key={item.label} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    onChange={(v) => setStatus(v as "" | "ok" | "error")}
+                    options={STATUS_OPTIONS}
+                    placeholder="全部状态"
+                    size="sm"
+                    className="w-[130px]"
+                  />
+                  <Select
                     value={flag}
-                    onChange={(event) => setFlag(event.target.value)}
-                    className="h-9 rounded-[10px] border border-[var(--line-strong)] bg-white/80 px-3 text-[12px] text-[var(--ink)] outline-none"
-                  >
-                    {FLAG_OPTIONS.map((item) => (
-                      <option key={item.label} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setFlag}
+                    options={FLAG_OPTIONS}
+                    placeholder="全部标记"
+                    size="sm"
+                    className="w-[140px]"
+                  />
                 </div>
               </div>
             </div>

@@ -26,6 +26,7 @@ export type {
   TapeGraphResponse,
   MessageRow,
   ModelConfigDto,
+  ModelProviderTemplateDto,
   PaginatedResponse,
   SkillInfo,
   ToolInfo,

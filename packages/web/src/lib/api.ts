@@ -12,6 +12,7 @@ import type {
   McpToolInfo,
   MessageRow,
   ModelConfigDto,
+  ModelProviderTemplateDto,
   ObservabilityOverview,
   ObservabilityTraceDetail,
   ObservabilityTraceSummary,
@@ -552,14 +553,64 @@ export function fetchModelConfigs(): Promise<ModelConfigDto[]> {
   return request<ModelConfigDto[]>("/api/model-configs");
 }
 
+export function fetchModelProviderTemplates(): Promise<ModelProviderTemplateDto[]> {
+  return request<ModelProviderTemplateDto[]>("/api/model-provider-templates");
+}
+
+export function createModelProviderTemplate(payload: {
+  name: string;
+  provider: string;
+  model_ids: string[];
+  api_key?: string | null;
+  base_url?: string | null;
+  enabled?: boolean;
+}): Promise<ModelProviderTemplateDto> {
+  return request<ModelProviderTemplateDto>("/api/model-provider-templates", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateModelProviderTemplate(
+  id: string,
+  payload: {
+    name: string;
+    provider: string;
+    model_ids: string[];
+    api_key?: string | null;
+    clear_api_key?: boolean;
+    base_url?: string | null;
+    enabled?: boolean;
+  },
+): Promise<ModelProviderTemplateDto> {
+  return request<ModelProviderTemplateDto>(
+    `/api/model-provider-templates/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function deleteModelProviderTemplate(
+  id: string,
+): Promise<{ success: boolean }> {
+  return request<{ success: boolean }>(
+    `/api/model-provider-templates/${encodeURIComponent(id)}`,
+    {
+      method: "DELETE",
+    },
+  );
+}
+
 export function upsertModelConfig(payload: {
   scope: "global" | "account" | "conversation";
   scope_key: string;
   purpose: string;
-  provider: string;
+  template_id: string;
   model_id: string;
-  api_key?: string | null;
-  base_url?: string | null;
   enabled?: boolean;
   priority?: number;
 }): Promise<ModelConfigDto> {

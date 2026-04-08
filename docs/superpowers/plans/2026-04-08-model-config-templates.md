@@ -675,6 +675,19 @@ If it still fails on the same unrelated error, record that explicitly as an exis
 - [x] Task 5 complete
 ```
 
+Execution summary:
+
+- [x] Task 1 complete
+- [x] Task 2 complete
+- [x] Task 3 complete
+- [x] Task 4 complete
+- [x] Task 5 complete
+
+Residual risk:
+
+- `packages/server build` still fails in this repository, but the current failure is the pre-existing `TS6305` declaration/output chain across `@clawbot/server` -> `@clawbot/agent`, plus existing implicit-`any` errors in unrelated server files and tests.
+- The new model template feature itself passed its focused web tests, agent resolver tests, server route tests, Prisma generate/validate, and `shared/agent/web` builds.
+
 - [ ] **Step 5: Commit**
 
 ```bash

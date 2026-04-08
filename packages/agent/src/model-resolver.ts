@@ -121,6 +121,10 @@ function matchPurpose(rowPurpose: string, wanted: ModelPurpose): boolean {
   return rowPurpose === wanted || rowPurpose === "*";
 }
 
+function rowSupportsModel(row: ModelConfigRow): boolean {
+  return row.modelIds.includes(row.modelId);
+}
+
 /**
  * Resolve a model for a given request context.
  */
@@ -138,7 +142,7 @@ export async function resolveModel(
   for (const [scope, scopeKey] of lookups) {
     const rows = await fetchRows(scope, scopeKey);
     const match = rows.find((r) => matchPurpose(r.purpose, purpose));
-    if (match) {
+    if (match && match.templateEnabled && rowSupportsModel(match)) {
       const model = buildModelFromConfig(
         match.provider,
         match.modelId,

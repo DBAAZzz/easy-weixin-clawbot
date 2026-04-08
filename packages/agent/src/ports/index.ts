@@ -26,6 +26,9 @@ export { setPushService, getPushService } from "./push-service.js";
 
 export type {
   ModelConfigStore,
+  ModelProviderTemplateRow,
+  CreateModelProviderTemplateInput,
+  UpdateModelProviderTemplateInput,
   ModelConfigRow,
   UpsertModelConfigInput,
   ModelPurpose,

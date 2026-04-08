@@ -74,6 +74,35 @@ export const toolLatencyMs = registry.createHistogram({
   buckets: [50, 100, 250, 500, 1000, 5000],
 });
 
+// ── 上下文窗口指标 ──
+
+export const contextTrimTotal = registry.createCounter({
+  name: "agent_context_trim_total",
+  help: "Context window trim events",
+  labelNames: ["trim_level"],
+});
+
+export const contextTokensOriginal = registry.createHistogram({
+  name: "agent_context_tokens_original",
+  help: "Estimated tokens before trimming",
+  labelNames: [],
+  buckets: [1000, 5000, 10000, 30000, 60000, 120000, 200000],
+});
+
+export const contextTokensTrimmed = registry.createHistogram({
+  name: "agent_context_tokens_trimmed",
+  help: "Estimated tokens after trimming",
+  labelNames: [],
+  buckets: [1000, 5000, 10000, 30000, 60000, 120000, 200000],
+});
+
+export const contextMessagesDropped = registry.createHistogram({
+  name: "agent_context_messages_dropped",
+  help: "Number of messages dropped by sliding window",
+  labelNames: [],
+  buckets: [0, 5, 10, 20, 50, 100, 200],
+});
+
 // ── 系统指标 ──
 
 export const messageQueueDepth = registry.createGauge({

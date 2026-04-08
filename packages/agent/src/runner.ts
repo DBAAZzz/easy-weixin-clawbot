@@ -15,8 +15,14 @@ import {
   sanitize,
   toolCallsTotal,
   toolLatencyMs,
+  contextTrimTotal,
+  contextTokensOriginal,
+  contextTokensTrimmed,
+  contextMessagesDropped,
   withSpan,
 } from "@clawbot/observability";
+import { fitToContextWindow, type TrimResult } from "./conversation/context-window.js";
+import { estimateTextTokens } from "./conversation/token-estimator.js";
 import type { SkillRegistry } from "./skills/types.js";
 import type { ToolRegistry, ToolContent } from "./tools/types.js";
 import {
@@ -222,6 +228,32 @@ export function createAgentRunner(
 
       callbacks.onRoundStart?.(round);
 
+      // ── Context window trimming ──
+      const fullSystemPrompt = buildSystemPrompt(config.systemPrompt, skills);
+      const currentTools = [...tools.current().tools, USE_SKILL_TOOL];
+      const toolsSchemaText = JSON.stringify(currentTools.map((t) => ({ name: t.name, description: t.description, parameters: t.parameters })));
+      const fixedOverheadTokens = estimateTextTokens(fullSystemPrompt) + estimateTextTokens(toolsSchemaText);
+
+      const trimResult = fitToContextWindow(workingHistory, {
+        contextWindowTokens: effectiveModel.contextWindow,
+        outputReserveTokens: effectiveModel.maxTokens,
+        fixedOverheadTokens,
+      });
+
+      // Record trim metrics
+      contextTrimTotal.inc({ trim_level: String(trimResult.trimLevel) });
+      contextTokensOriginal.observe({}, trimResult.originalTokens);
+      contextTokensTrimmed.observe({}, trimResult.trimmedTokens);
+      if (trimResult.droppedMessageCount > 0) {
+        contextMessagesDropped.observe({}, trimResult.droppedMessageCount);
+      }
+
+      if (trimResult.trimLevel > 0) {
+        console.log(
+          `[context-window] trimLevel=${trimResult.trimLevel} original=${trimResult.originalTokens} trimmed=${trimResult.trimmedTokens} dropped=${trimResult.droppedMessageCount}`,
+        );
+      }
+
       const llmStartedAt = Date.now();
       let response: AssistantMessage;
       try {
@@ -232,9 +264,9 @@ export function createAgentRunner(
             const result = await complete(
               effectiveModel,
               {
-                systemPrompt: buildSystemPrompt(config.systemPrompt, skills),
-                messages: workingHistory,
-                tools: [...tools.current().tools, USE_SKILL_TOOL],
+                systemPrompt: fullSystemPrompt,
+                messages: trimResult.messages,
+                tools: currentTools,
               },
               effectiveApiKey ? { apiKey: effectiveApiKey, signal } : { signal },
             );
@@ -243,7 +275,11 @@ export function createAgentRunner(
               inputTokens: result.usage.input,
               outputTokens: result.usage.output,
               stopReason: result.stopReason,
-              promptSnapshot: snapshotMessages(workingHistory),
+              contextTrimLevel: trimResult.trimLevel,
+              contextOriginalTokens: trimResult.originalTokens,
+              contextTrimmedTokens: trimResult.trimmedTokens,
+              contextDroppedMessages: trimResult.droppedMessageCount,
+              promptSnapshot: snapshotMessages(trimResult.messages),
               completionSnapshot: snapshotAssistantMessage(result),
             });
 

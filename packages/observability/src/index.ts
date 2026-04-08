@@ -44,6 +44,10 @@ export {
   llmErrorsTotal,
   toolCallsTotal,
   toolLatencyMs,
+  contextTrimTotal,
+  contextTokensOriginal,
+  contextTokensTrimmed,
+  contextMessagesDropped,
   messageQueueDepth,
   activeConversations,
 } from "./metrics/index.js";

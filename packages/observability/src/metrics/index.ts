@@ -11,6 +11,10 @@ export {
   llmErrorsTotal,
   toolCallsTotal,
   toolLatencyMs,
+  contextTrimTotal,
+  contextTokensOriginal,
+  contextTokensTrimmed,
+  contextMessagesDropped,
   messageQueueDepth,
   activeConversations,
 } from "./agent-metrics.js";

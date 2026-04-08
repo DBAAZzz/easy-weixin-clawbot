@@ -51,8 +51,8 @@ Expected: FAIL because `createToolInstaller`, `createToolRegistry`, and fixture 
 ```ts
 test("skill installer splits always-on and on-demand markdown skills into registry snapshot", async () => {
   const fixture = await createTempCapabilityFixture({
-    "skills/builtin/persona_professional.md": ALWAYS_ON_SKILL,
-    "skills/user/translator.md": ON_DEMAND_TRANSLATOR,
+    "skills/builtin/default-tone.md": ALWAYS_ON_SKILL,
+    "skills/user/translation-ja.md": ON_DEMAND_TRANSLATION,
   });
 
   const registry = createSkillRegistry();
@@ -61,9 +61,9 @@ test("skill installer splits always-on and on-demand markdown skills into regist
 
   const snapshot = registry.current();
 
-  expect(snapshot.alwaysOn.map((item) => item.name)).toEqual(["persona_professional"]);
-  expect(snapshot.index.map((item) => item.name)).toEqual(["translator"]);
-  expect(snapshot.onDemand.has("translator")).toBe(true);
+  expect(snapshot.alwaysOn.map((item) => item.name)).toEqual(["default-tone"]);
+  expect(snapshot.index.map((item) => item.name)).toEqual(["translation-ja"]);
+  expect(snapshot.onDemand.has("translation-ja")).toBe(true);
 });
 ```
 
@@ -77,15 +77,15 @@ Expected: FAIL because the new skill installer and registry snapshot shape do no
 ```ts
 test("use-skill runtime returns an enveloped tool result and enforces per-conversation limits", async () => {
   const runtime = createConversationSkillRuntime({
-    registry: registryWithTranslatorAndSummarizer(),
+    registry: registryWithTranslationAndDigest(),
     maxOnDemandSkills: 1,
   });
 
-  const first = await runtime.execute("translator");
-  const second = await runtime.execute("translator");
-  const third = await runtime.execute("summarizer");
+  const first = await runtime.execute("translation-ja");
+  const second = await runtime.execute("translation-ja");
+  const third = await runtime.execute("digest-writer");
 
-  expect(first[0]?.text).toContain('<skill name="translator"');
+  expect(first[0]?.text).toContain('<skill name="translation-ja"');
   expect(second[0]?.text).toBe("ok");
   expect(third[0]?.text).toContain("已达上限");
 });
@@ -346,9 +346,7 @@ git commit -m "feat: expose markdown capability management APIs"
 **Files:**
 - Create: `data/tools/builtin/web-search.md`
 - Create: `data/tools/builtin/opencli.md`
-- Create: `data/skills/builtin/persona_professional.md`
-- Create: `data/skills/builtin/translator.md`
-- Create: `data/skills/builtin/summarizer.md`
+- Create: `data/skills/builtin/healthy-meal-reminder.md`
 - Modify: `packages/web/src/lib/api.ts`
 - Create: `packages/web/src/hooks/useTools.ts`
 - Modify: `packages/web/src/hooks/useSkills.ts`
@@ -402,7 +400,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add data/tools/builtin/web-search.md data/tools/builtin/opencli.md data/skills/builtin/persona_professional.md data/skills/builtin/translator.md data/skills/builtin/summarizer.md packages/web/src/lib/api.ts packages/web/src/hooks/useTools.ts packages/web/src/hooks/useSkills.ts packages/web/src/pages/ToolsPage.tsx packages/web/src/pages/SkillsPage.tsx packages/web/src/components/layout/Sidebar.tsx packages/web/src/app.tsx packages/web/src/components/ui/icons.tsx
+git add data/tools/builtin/web-search.md data/tools/builtin/opencli.md data/skills/builtin/healthy-meal-reminder.md packages/web/src/lib/api.ts packages/web/src/hooks/useTools.ts packages/web/src/hooks/useSkills.ts packages/web/src/pages/ToolsPage.tsx packages/web/src/pages/SkillsPage.tsx packages/web/src/components/layout/Sidebar.tsx packages/web/src/app.tsx packages/web/src/components/ui/icons.tsx
 git commit -m "feat: add tool and skill management console"
 ```
 

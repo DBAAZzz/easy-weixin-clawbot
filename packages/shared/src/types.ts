@@ -26,6 +26,8 @@ export interface AccountSummary extends AccountRow {
   conversation_count: number;
 }
 
+export type AccountStatusFilter = "all" | "active" | "deprecated";
+
 export interface ConversationRow {
   id: number;
   account_id: string;

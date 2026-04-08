@@ -70,7 +70,7 @@ function StatCard(props: {
 }
 
 export function MemoryGraphPage() {
-  const accounts = useAccounts();
+  const accounts = useAccounts({ status: "active" });
   const [selectedAccountId, setSelectedAccountId] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("__global__");
   const [query, setQuery] = useState("");
@@ -82,7 +82,9 @@ export function MemoryGraphPage() {
 
   useEffect(() => {
     if (!accounts.accounts.length) {
-      setSelectedAccountId("");
+      if (selectedAccountId) {
+        setSelectedAccountId("");
+      }
       return;
     }
 

@@ -1,4 +1,5 @@
 import type {
+  AccountStatusFilter,
   AccountSummary,
   ApiResponse,
   CapabilityCollection,
@@ -114,8 +115,11 @@ export function fetchHealth(): Promise<HealthStatus> {
   return request<HealthStatus>("/api/health");
 }
 
-export function fetchAccounts(): Promise<AccountSummary[]> {
-  return request<AccountSummary[]>("/api/accounts");
+export function fetchAccounts(options?: { status?: AccountStatusFilter }): Promise<AccountSummary[]> {
+  const suffix = toQueryString({
+    status: options?.status && options.status !== "all" ? options.status : undefined,
+  });
+  return request<AccountSummary[]>(`/api/accounts${suffix}`);
 }
 
 export function updateAccountAlias(accountId: string, alias: string | null): Promise<{ success: boolean }> {

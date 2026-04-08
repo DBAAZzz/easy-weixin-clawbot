@@ -21,7 +21,7 @@ import type {
   SkillInfo,
   TapeGraphResponse,
   ToolInfo,
-} from "@clawbot/shared";
+} from "../../../shared/src/types.js";
 import type { McpServerRequestPayload } from "./mcp-form.js";
 
 function getAuthToken(): string | null {

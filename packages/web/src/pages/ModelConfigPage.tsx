@@ -363,9 +363,6 @@ function ModelConfigEditorModal(props: {
               <h3 className="mt-1.5 text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]">
                 {isEdit ? "编辑使用配置" : "新建使用配置"}
               </h3>
-              <p className="mt-2 text-[13px] leading-6 text-[var(--muted)]">
-                这里只绑定 scope、purpose、template 和具体 model，不再直接维护凭据。
-              </p>
             </div>
 
             <button
@@ -480,11 +477,6 @@ function ModelConfigEditorModal(props: {
                 className="mt-1"
                 disabled={availableTemplates.length === 0}
               />
-              {availableTemplates.length === 0 ? (
-                <p className="mt-2 text-[11px] text-[var(--muted)]">
-                  先创建并启用一个 Provider 模板，才能新建使用配置。
-                </p>
-              ) : null}
             </div>
 
             <div>
@@ -505,11 +497,6 @@ function ModelConfigEditorModal(props: {
                 className="mt-1"
                 disabled={!selectedTemplate}
               />
-              {selectedTemplate ? (
-                <p className="mt-2 text-[11px] text-[var(--muted)]">
-                  当前模板维护了 {formatCount(selectedTemplate.model_ids.length)} 个可选模型。
-                </p>
-              ) : null}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -592,6 +579,13 @@ export function ModelConfigPage() {
 
   const refresh = () => setRevision((current) => current + 1);
   const enabledTemplateCount = templates.filter((template) => template.enabled).length;
+  const activeConfigCount = configs.filter((config) => config.enabled && config.template_enabled).length;
+  const stats = [
+    { label: "Provider 模板", value: formatCount(templates.length) },
+    { label: "启用模板", value: formatCount(enabledTemplateCount) },
+    { label: "使用配置", value: formatCount(configs.length) },
+    { label: "生效配置", value: formatCount(activeConfigCount) },
+  ];
   const activeTemplate =
     templateEditor?.mode === "edit"
       ? templates.find((template) => template.id === templateEditor.templateId) ?? null
@@ -713,30 +707,36 @@ export function ModelConfigPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[30px] border border-[rgba(21,32,43,0.08)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(246,250,251,0.88))] p-5 shadow-[0_30px_80px_-60px_rgba(15,23,42,0.45)] md:p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <div className="space-y-3 md:space-y-4">
+      <section className="space-y-3">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[10px] uppercase tracking-[0.26em] text-[var(--muted)]">
               Model Control Plane
             </p>
-            <h2 className="mt-2 text-[26px] font-semibold tracking-[-0.04em] text-[var(--ink)]">
-              模型配置管理
-            </h2>
-            <p className="mt-2 max-w-3xl text-[13px] leading-6 text-[var(--muted)]">
-              先维护可复用的 Provider 模板，再把模板绑定到具体 scope 与 purpose。
-              运行时仍然遵循 会话 &gt; 账号 &gt; 全局 &gt; 环境变量默认 的回退链。
-            </p>
+            <h2 className="mt-1.5 text-[20px] text-[var(--ink)]">模型配置管理</h2>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="muted">模板 {formatCount(templates.length)}</Badge>
-            <Badge tone="online">启用模板 {formatCount(enabledTemplateCount)}</Badge>
-            <Badge tone="warning">使用配置 {formatCount(configs.length)}</Badge>
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={refresh}>
               <RefreshIcon className="size-4" />
               刷新
             </Button>
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]">
+          <div className="grid divide-y divide-[var(--line)] md:grid-cols-4 md:divide-x md:divide-y-0">
+            {stats.map((stat) => (
+              <div key={stat.label} className="px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  {stat.label}
+                </p>
+                <p className="mt-1.5 font-[var(--font-mono)] text-[18px] font-semibold text-[var(--ink)]">
+                  {stat.value}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -747,434 +747,403 @@ export function ModelConfigPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
-        <div className="space-y-4 rounded-[30px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.9)] p-4 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.5)]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                Provider 模板
-              </p>
-              <h3 className="mt-1 text-[18px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
-                模板列表
-              </h3>
+      <section className="space-y-0">
+        <div className="overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]">
+          <div className="border-b border-[var(--line)] px-3 py-3 md:px-4">
+            <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+                  Provider Templates
+                </p>
+                <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">模板与 Provider</h3>
+              </div>
+
+              <Button size="sm" onClick={() => setTemplateEditor({ mode: "create" })}>
+                <PlusIcon className="size-4" />
+                新建模板
+              </Button>
             </div>
-            <Button
-              size="sm"
-              onClick={() => setTemplateEditor({ mode: "create" })}
-            >
-              <PlusIcon className="size-4" />
-              新建模板
-            </Button>
           </div>
 
-          <div className="space-y-2">
-            {loading
-              ? Array.from({ length: 3 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="ui-skeleton h-20 rounded-[18px]"
-                  />
-                ))
-              : null}
+          <div className="grid xl:grid-cols-[300px_minmax(0,1fr)]">
+            <aside className="border-b border-[var(--line)] bg-[rgba(246,249,250,0.78)] px-3 py-3 xl:border-b-0 xl:border-r md:px-4">
+              <div className="space-y-2">
+                {loading
+                  ? Array.from({ length: 3 }).map((_, index) => (
+                      <div key={index} className="ui-skeleton h-20 rounded-[12px]" />
+                    ))
+                  : null}
 
-            {!loading && templates.length === 0 ? (
-              <div className="rounded-[22px] border border-dashed border-[var(--line)] bg-[rgba(245,248,249,0.8)] px-4 py-6 text-center text-[12px] leading-6 text-[var(--muted)]">
-                还没有 Provider 模板。先从下面的预设开始建第一套可复用凭据。
+                {!loading && templates.length === 0 ? (
+                  <div className="rounded-[12px] border border-dashed border-[var(--line)] bg-white/70 px-4 py-6 text-center text-[12px] text-[var(--muted)]">
+                    暂无 Provider 模板
+                  </div>
+                ) : null}
+
+                {!loading
+                  ? templates.map((template) => {
+                      const selected =
+                        templateEditor?.mode === "edit" &&
+                        templateEditor.templateId === template.id;
+                      return (
+                        <button
+                          key={template.id}
+                          type="button"
+                          onClick={() =>
+                            setTemplateEditor({ mode: "edit", templateId: template.id })
+                          }
+                          className={cn(
+                            "w-full rounded-[12px] border px-3 py-3 text-left transition",
+                            selected
+                              ? "border-[rgba(21,110,99,0.2)] bg-[rgba(21,110,99,0.06)]"
+                              : "border-[var(--line)] bg-white/84 hover:border-[var(--line-strong)] hover:bg-white",
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate text-[13px] font-semibold text-[var(--ink)]">
+                                {template.name}
+                              </div>
+                              <p className="mt-1 truncate text-[11px] text-[var(--muted)]">
+                                {template.provider}
+                              </p>
+                            </div>
+                            <Badge tone={template.enabled ? "online" : "offline"}>
+                              {template.enabled ? "Active" : "Inactive"}
+                            </Badge>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            <Badge tone="muted">模型 {formatCount(template.model_ids.length)}</Badge>
+                            <Badge tone="muted">引用 {formatCount(template.usage_count)}</Badge>
+                          </div>
+                        </button>
+                      );
+                    })
+                  : null}
               </div>
-            ) : null}
 
-            {!loading
-              ? templates.map((template) => {
-                  const selected =
-                    templateEditor?.mode === "edit" &&
-                    templateEditor.templateId === template.id;
-                  return (
+              <div className="mt-4 border-t border-[var(--line)] pt-4">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Provider 预设
+                </p>
+                <div className="mt-3 grid gap-2">
+                  {MODEL_PROVIDER_PRESETS.map((preset) => (
                     <button
-                      key={template.id}
+                      key={preset.label}
                       type="button"
-                      onClick={() =>
-                        setTemplateEditor({ mode: "edit", templateId: template.id })
-                      }
-                      className={cn(
-                        "w-full rounded-[20px] border px-4 py-3 text-left transition duration-200",
-                        selected
-                          ? "border-[rgba(21,110,99,0.28)] bg-[rgba(235,247,245,0.92)] shadow-[0_12px_32px_-24px_rgba(21,110,99,0.45)]"
-                          : "border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.82)] hover:border-[rgba(21,110,99,0.16)] hover:bg-white",
-                      )}
+                      onClick={() => setTemplateEditor({ mode: "create", preset })}
+                      className="rounded-[12px] border border-[var(--line)] bg-white/84 px-3 py-3 text-left transition hover:border-[var(--line-strong)] hover:bg-white"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[var(--ink)]">
-                            {template.name}
-                          </div>
-                          <p className="mt-1 truncate text-[11px] text-[var(--muted)]">
-                            {template.provider}
-                          </p>
-                        </div>
-                        <Badge tone={template.enabled ? "online" : "offline"}>
-                          {template.enabled ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-1">
-                        <Badge tone="muted">
-                          模型 {formatCount(template.model_ids.length)}
-                        </Badge>
-                        <Badge tone="muted">
-                          引用 {formatCount(template.usage_count)}
-                        </Badge>
+                        <span className="text-[13px] font-semibold text-[var(--ink)]">
+                          {preset.label}
+                        </span>
+                        <PlusIcon className="size-3.5 text-[var(--muted)]" />
                       </div>
                     </button>
-                  );
-                })
-              : null}
-          </div>
+                  ))}
+                </div>
+              </div>
+            </aside>
 
-          <div className="rounded-[22px] border border-[var(--line)] bg-[rgba(246,249,250,0.88)] p-4">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-              Provider 预设
-            </p>
-            <div className="mt-3 grid gap-2">
-              {MODEL_PROVIDER_PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => setTemplateEditor({ mode: "create", preset })}
-                  className="rounded-[16px] border border-[rgba(21,32,43,0.08)] bg-white/85 px-3.5 py-3 text-left transition hover:border-[rgba(21,110,99,0.2)] hover:bg-white"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--ink)]">
-                      {preset.label}
-                    </span>
-                    <PlusIcon className="size-3.5 text-[var(--muted)]" />
-                  </div>
-                  <p className="mt-1 text-[11px] leading-5 text-[var(--muted)]">
-                    {preset.description}
+            <div className="px-3 py-3 md:px-4 md:py-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+                    {templateEditor?.mode === "edit" ? "Template Detail" : "New Template"}
                   </p>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-[30px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.92)] p-5 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.5)] md:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                {templateEditor?.mode === "edit" ? "Template Detail" : "New Template"}
-              </p>
-              <h3 className="mt-1 text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                {templateEditor?.mode === "edit" ? "编辑 Provider 模板" : "新建 Provider 模板"}
-              </h3>
-              <p className="mt-2 max-w-2xl text-[13px] leading-6 text-[var(--muted)]">
-                模板只维护可复用凭据与可选 Model ID 列表；Scope 和 Purpose 在下方使用配置里绑定。
-              </p>
-            </div>
-
-            {activeTemplate ? (
-              <div className="flex flex-wrap gap-2">
-                <Badge tone={activeTemplate.enabled ? "online" : "offline"}>
-                  {activeTemplate.enabled ? "已启用" : "已停用"}
-                </Badge>
-                <Badge tone="muted">
-                  模型 {formatCount(activeTemplate.model_ids.length)}
-                </Badge>
-                <Badge tone="muted">
-                  引用 {formatCount(activeTemplate.usage_count)}
-                </Badge>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-            <div className="space-y-5">
-              <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">模板名称 *</label>
-                <Input
-                  value={templateForm.name}
-                  onChange={(event) =>
-                    setTemplateForm((current) => ({
-                      ...current,
-                      name: event.target.value,
-                    }))
-                  }
-                  placeholder="例如 OpenAI Main"
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">Provider *</label>
-                <Input
-                  value={templateForm.provider}
-                  onChange={(event) =>
-                    setTemplateForm((current) => ({
-                      ...current,
-                      provider: event.target.value,
-                    }))
-                  }
-                  placeholder="openai / anthropic / moonshot"
-                  className="mt-1"
-                />
-              </div>
-
-              <div className="rounded-[24px] border border-[var(--line)] bg-[rgba(246,249,250,0.82)] p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[12px] font-medium text-[var(--muted-strong)]">
-                      Model ID 列表 *
-                    </p>
-                    <p className="mt-1 text-[11px] leading-5 text-[var(--muted)]">
-                      这里维护当前模板可复用的模型列表，下方使用配置只能从这份列表中选一个。
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      setTemplateForm((current) => ({
-                        ...current,
-                        modelIds: [...current.modelIds, ""],
-                      }))
-                    }
-                  >
-                    <PlusIcon className="size-4" />
-                    添加
-                  </Button>
+                  <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">
+                    {templateEditor?.mode === "edit" ? "编辑 Provider 模板" : "新建 Provider 模板"}
+                  </h3>
                 </div>
 
-                <div className="mt-4 space-y-2">
-                  {templateForm.modelIds.map((value, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input
-                        value={value}
-                        onChange={(event) =>
-                          setTemplateForm((current) => ({
-                            ...current,
-                            modelIds: current.modelIds.map((modelId, itemIndex) =>
-                              itemIndex === index ? event.target.value : modelId,
-                            ),
-                          }))
-                        }
-                        placeholder="例如 gpt-5"
-                      />
+                {activeTemplate ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Badge tone={activeTemplate.enabled ? "online" : "offline"}>
+                      {activeTemplate.enabled ? "已启用" : "已停用"}
+                    </Badge>
+                    <Badge tone="muted">模型 {formatCount(activeTemplate.model_ids.length)}</Badge>
+                    <Badge tone="muted">引用 {formatCount(activeTemplate.usage_count)}</Badge>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                <div className="space-y-5">
+                  <div>
+                    <label className="text-[12px] text-[var(--muted-strong)]">模板名称 *</label>
+                    <Input
+                      value={templateForm.name}
+                      onChange={(event) =>
+                        setTemplateForm((current) => ({
+                          ...current,
+                          name: event.target.value,
+                        }))
+                      }
+                      placeholder="例如 OpenAI Main"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[12px] text-[var(--muted-strong)]">Provider *</label>
+                    <Input
+                      value={templateForm.provider}
+                      onChange={(event) =>
+                        setTemplateForm((current) => ({
+                          ...current,
+                          provider: event.target.value,
+                        }))
+                      }
+                      placeholder="openai / anthropic / moonshot"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div className="rounded-[14px] border border-[var(--line)] bg-[rgba(246,249,250,0.82)] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[12px] font-medium text-[var(--muted-strong)]">
+                          Model ID 列表 *
+                        </p>
+                      </div>
                       <Button
-                        size="icon"
+                        size="sm"
                         variant="outline"
                         onClick={() =>
                           setTemplateForm((current) => ({
                             ...current,
-                            modelIds:
-                              current.modelIds.length === 1
-                                ? [""]
-                                : current.modelIds.filter(
-                                    (_item, itemIndex) => itemIndex !== index,
-                                  ),
+                            modelIds: [...current.modelIds, ""],
                           }))
                         }
-                        aria-label="删除 Model ID"
                       >
-                        <XIcon className="size-4" />
+                        <PlusIcon className="size-4" />
+                        添加
                       </Button>
                     </div>
-                  ))}
+
+                    <div className="mt-4 space-y-2">
+                      {templateForm.modelIds.map((value, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <Input
+                            value={value}
+                            onChange={(event) =>
+                              setTemplateForm((current) => ({
+                                ...current,
+                                modelIds: current.modelIds.map((modelId, itemIndex) =>
+                                  itemIndex === index ? event.target.value : modelId,
+                                ),
+                              }))
+                            }
+                            placeholder="例如 gpt-5"
+                          />
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() =>
+                              setTemplateForm((current) => ({
+                                ...current,
+                                modelIds:
+                                  current.modelIds.length === 1
+                                    ? [""]
+                                    : current.modelIds.filter(
+                                        (_item, itemIndex) => itemIndex !== index,
+                                      ),
+                              }))
+                            }
+                            aria-label="删除 Model ID"
+                          >
+                            <XIcon className="size-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  <div>
+                    <label className="text-[12px] text-[var(--muted-strong)]">
+                      API Key
+                    </label>
+                    <Input
+                      type="password"
+                      value={templateForm.apiKey}
+                      onChange={(event) =>
+                        setTemplateForm((current) => ({
+                          ...current,
+                          apiKey: event.target.value,
+                        }))
+                      }
+                      placeholder={
+                        templateEditor?.mode === "edit" && templateForm.apiKeySet
+                          ? "已设置，留空则不修改"
+                          : "sk-..."
+                      }
+                      className="mt-1"
+                    />
+                    <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--muted)]">
+                      <input
+                        type="checkbox"
+                        checked={templateForm.clearApiKey}
+                        onChange={(event) =>
+                          setTemplateForm((current) => ({
+                            ...current,
+                            clearApiKey: event.target.checked,
+                            apiKey: event.target.checked ? "" : current.apiKey,
+                          }))
+                        }
+                        className="size-4 rounded accent-[var(--accent)]"
+                      />
+                      <span>清空已保存的 API Key</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[12px] text-[var(--muted-strong)]">
+                      Base URL
+                    </label>
+                    <Input
+                      value={templateForm.baseUrl}
+                      onChange={(event) =>
+                        setTemplateForm((current) => ({
+                          ...current,
+                          baseUrl: event.target.value,
+                        }))
+                      }
+                      placeholder={
+                        templateForm.baseUrlPlaceholder ??
+                        "https://api.example.com/v1"
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div className="rounded-[14px] border border-[var(--line)] bg-[rgba(252,253,253,0.9)] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                      模板状态
+                    </p>
+                    <label className="mt-3 flex items-center gap-2 text-[12px] text-[var(--muted-strong)]">
+                      <input
+                        type="checkbox"
+                        checked={templateForm.enabled}
+                        onChange={(event) =>
+                          setTemplateForm((current) => ({
+                            ...current,
+                            enabled: event.target.checked,
+                          }))
+                        }
+                        className="size-4 rounded accent-[var(--accent)]"
+                      />
+                      启用此模板
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-5">
-              <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">
-                  API Key
-                </label>
-                <Input
-                  type="password"
-                  value={templateForm.apiKey}
-                  onChange={(event) =>
-                    setTemplateForm((current) => ({
-                      ...current,
-                      apiKey: event.target.value,
-                    }))
-                  }
-                  placeholder={
-                    templateEditor?.mode === "edit" && templateForm.apiKeySet
-                      ? "已设置，留空则不修改"
-                      : "sk-..."
-                  }
-                  className="mt-1"
-                />
-                <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--muted)]">
-                  <input
-                    type="checkbox"
-                    checked={templateForm.clearApiKey}
-                    onChange={(event) =>
-                      setTemplateForm((current) => ({
-                        ...current,
-                        clearApiKey: event.target.checked,
-                        apiKey: event.target.checked ? "" : current.apiKey,
-                      }))
-                    }
-                    className="size-4 rounded accent-[var(--accent)]"
-                  />
-                  <span>清空已保存的 API Key</span>
+              {templateError ? (
+                <div className="mt-5 rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+                  {templateError}
                 </div>
-              </div>
+              ) : null}
 
-              <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">
-                  Base URL
-                </label>
-                <Input
-                  value={templateForm.baseUrl}
-                  onChange={(event) =>
-                    setTemplateForm((current) => ({
-                      ...current,
-                      baseUrl: event.target.value,
-                    }))
-                  }
-                  placeholder={
-                    templateForm.baseUrlPlaceholder ??
-                    "https://api.example.com/v1"
-                  }
-                  className="mt-1"
-                />
-              </div>
-
-              <div className="rounded-[22px] border border-[var(--line)] bg-[rgba(252,253,253,0.9)] p-4">
-                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                  模板状态
-                </p>
-                <label className="mt-3 flex items-center gap-2 text-[12px] text-[var(--muted-strong)]">
-                  <input
-                    type="checkbox"
-                    checked={templateForm.enabled}
-                    onChange={(event) =>
-                      setTemplateForm((current) => ({
-                        ...current,
-                        enabled: event.target.checked,
-                      }))
-                    }
-                    className="size-4 rounded accent-[var(--accent)]"
-                  />
-                  启用此模板
-                </label>
-                <p className="mt-3 text-[11px] leading-5 text-[var(--muted)]">
-                  停用模板后，引用它的使用配置仍会保留，但运行时会自动失效并继续 fallback。
-                </p>
+              <div className="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-[var(--line)] pt-4">
+                {activeTemplate ? (
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleTemplateDelete(activeTemplate)}
+                  >
+                    <TrashIcon className="size-4" />
+                    删除模板
+                  </Button>
+                ) : null}
+                <Button
+                  variant="outline"
+                  onClick={() => setTemplateEditor({ mode: "create" })}
+                >
+                  新建空白模板
+                </Button>
+                <Button disabled={templateBusy} onClick={() => void handleTemplateSave()}>
+                  {templateBusy
+                    ? "保存中..."
+                    : templateEditor?.mode === "edit"
+                      ? "保存模板"
+                      : "创建模板"}
+                </Button>
               </div>
             </div>
           </div>
 
-          {templateError ? (
-            <div className="mt-5 rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
-              {templateError}
-            </div>
-          ) : null}
+          <div className="border-t border-[var(--line)] px-3 py-3 md:px-4">
+            <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+                  Runtime Bindings
+                </p>
+                <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">使用配置</h3>
+              </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-[var(--line)] pt-5">
-            {activeTemplate ? (
               <Button
-                variant="destructive"
-                onClick={() => handleTemplateDelete(activeTemplate)}
+                size="sm"
+                onClick={() => setConfigEditorTarget("create")}
+                disabled={templates.every((template) => !template.enabled)}
               >
-                <TrashIcon className="size-4" />
-                删除模板
+                <PlusIcon className="size-4" />
+                新建使用配置
               </Button>
+            </div>
+          </div>
+
+          <div className="px-3 pb-3 md:px-4 md:pb-4">
+            {loading ? (
+              <div className="grid gap-4 xl:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="ui-skeleton h-44 rounded-[18px]" />
+                ))}
+              </div>
             ) : null}
-            <Button
-              variant="outline"
-              onClick={() => setTemplateEditor({ mode: "create" })}
-            >
-              新建空白模板
-            </Button>
-            <Button disabled={templateBusy} onClick={() => void handleTemplateSave()}>
-              {templateBusy
-                ? "保存中..."
-                : templateEditor?.mode === "edit"
-                  ? "保存模板"
-                  : "创建模板"}
-            </Button>
+
+            {!loading && templates.length === 0 ? (
+              <section className="rounded-[18px] border border-dashed border-[var(--line)] bg-[rgba(248,250,251,0.78)] px-5 py-10 text-center">
+                <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
+                <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
+                  暂无 Provider 模板
+                </p>
+              </section>
+            ) : null}
+
+            {!loading && templates.length > 0 && configs.length === 0 ? (
+              <section className="rounded-[18px] border border-dashed border-[var(--line)] bg-[rgba(248,250,251,0.78)] px-5 py-10 text-center">
+                <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
+                <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
+                  还没有使用配置
+                </p>
+                <Button
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => setConfigEditorTarget("create")}
+                  disabled={templates.every((template) => !template.enabled)}
+                >
+                  <PlusIcon className="size-4" />
+                  新建第一个使用配置
+                </Button>
+              </section>
+            ) : null}
+
+            {!loading && configs.length > 0 ? (
+              <div className="grid gap-4 xl:grid-cols-2">
+                {configs.map((config) => (
+                  <ModelConfigCard
+                    key={config.id}
+                    config={config}
+                    onEdit={() => setConfigEditorTarget(config)}
+                    onDelete={() => void handleConfigDelete(config)}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
-      </section>
-
-      <section className="space-y-4 rounded-[30px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.92)] p-5 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.5)] md:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-              Runtime Bindings
-            </p>
-            <h3 className="mt-1 text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]">
-              使用配置
-            </h3>
-            <p className="mt-2 max-w-3xl text-[13px] leading-6 text-[var(--muted)]">
-              每条配置只关心作用域、用途、模板引用和最终选中的一个 Model ID。
-            </p>
-          </div>
-
-          <Button
-            size="sm"
-            onClick={() => setConfigEditorTarget("create")}
-            disabled={templates.every((template) => !template.enabled)}
-          >
-            <PlusIcon className="size-4" />
-            新建使用配置
-          </Button>
-        </div>
-
-        {loading ? (
-          <div className="grid gap-4 xl:grid-cols-2">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="ui-skeleton h-44 rounded-[24px]" />
-            ))}
-          </div>
-        ) : null}
-
-        {!loading && templates.length === 0 ? (
-          <section className="rounded-[26px] border border-dashed border-[var(--line)] bg-[rgba(248,250,251,0.78)] px-5 py-10 text-center">
-            <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
-            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
-              先创建 Provider 模板
-            </p>
-            <p className="mt-2 text-[12px] leading-6 text-[var(--muted)]">
-              没有模板时，使用配置无法创建，因为它必须实时引用模板中的 provider、
-              凭据和可选模型列表。
-            </p>
-          </section>
-        ) : null}
-
-        {!loading && templates.length > 0 && configs.length === 0 ? (
-          <section className="rounded-[26px] border border-dashed border-[var(--line)] bg-[rgba(248,250,251,0.78)] px-5 py-10 text-center">
-            <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
-            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
-              还没有使用配置
-            </p>
-            <p className="mt-2 text-[12px] leading-6 text-[var(--muted)]">
-              模板已经准备好，现在把它们绑定到具体 scope 与 purpose 即可。
-            </p>
-            <Button
-              size="sm"
-              className="mt-4"
-              onClick={() => setConfigEditorTarget("create")}
-              disabled={templates.every((template) => !template.enabled)}
-            >
-              <PlusIcon className="size-4" />
-              新建第一个使用配置
-            </Button>
-          </section>
-        ) : null}
-
-        {!loading && configs.length > 0 ? (
-          <div className="grid gap-4 xl:grid-cols-2">
-            {configs.map((config) => (
-              <ModelConfigCard
-                key={config.id}
-                config={config}
-                onEdit={() => setConfigEditorTarget(config)}
-                onDelete={() => void handleConfigDelete(config)}
-              />
-            ))}
-          </div>
-        ) : null}
       </section>
 
       {configEditorTarget ? (

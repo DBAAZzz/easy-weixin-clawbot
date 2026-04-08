@@ -36,10 +36,10 @@ export function ConversationPage() {
   const conversationTitle =
     selectedConversation?.title ??
     selectedConversationId ??
-    '选择一条会话查看详情'
+    '未选择会话'
   const conversationMeta = selectedConversation
     ? `${formatCount(selectedConversation.message_count)} 条消息 · ${formatRelativeTime(selectedConversation.last_message_at)}`
-    : '左侧选择会话后，在这里查看消息记录'
+    : null
   const conversationBadge =
     conversationTitle.trim().slice(0, 1).toUpperCase() || 'C'
 
@@ -103,9 +103,11 @@ export function ConversationPage() {
               <p className='truncate text-[14px] font-medium text-[var(--ink)]'>
                 {conversationTitle}
               </p>
-              <p className='mt-0.5 text-[11px] text-[var(--muted)]'>
-                {conversationMeta}
-              </p>
+              {conversationMeta ? (
+                <p className='mt-0.5 text-[11px] text-[var(--muted)]'>
+                  {conversationMeta}
+                </p>
+              ) : null}
             </div>
           </div>
 

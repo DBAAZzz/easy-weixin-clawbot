@@ -253,9 +253,6 @@ function ToolDetailModal(props: {
                 <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
                   Markdown Source
                 </p>
-                <p className="mt-1 text-[12px] text-[var(--muted)]">
-                  详情弹窗里直接查看当前运行中的 tool 定义。
-                </p>
               </div>
 
               <Button
@@ -372,9 +369,6 @@ export function ToolsPage() {
             <div>
               <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">Tools</p>
               <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">已安装工具</h2>
-              <p className="mt-1 max-w-2xl text-[13px] leading-6 text-[var(--muted)]">
-                直接查看当前运行中的 tool 列表。点击条目打开详情弹窗，启停操作保留在列表层。
-              </p>
             </div>
 
             <Button size="sm" onClick={() => void handleRefresh()}>
@@ -445,9 +439,6 @@ export function ToolsPage() {
         {!loading && filteredTools.length === 0 ? (
           <section className="rounded-[28px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-10 text-center">
             <p className="text-[15px] font-medium text-[var(--ink)]">没有匹配到 tool</p>
-            <p className="mt-2 text-[12px] leading-6 text-[var(--muted)]">
-              可以尝试清空搜索词，回到完整的已安装列表继续查看。
-            </p>
           </section>
         ) : null}
 

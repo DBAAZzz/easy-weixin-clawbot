@@ -128,9 +128,6 @@ export function ObservabilityPage() {
               Agent Observability
             </p>
             <h2 className="mt-1.5 text-[20px] text-[var(--ink)]">可观测性中心</h2>
-            <p className="mt-1 text-[12px] leading-6 text-[var(--muted)]">
-              追踪单条消息链路、查看 LLM / tool 行为、定位异常 trace，并直接下钻到 prompt / completion 原文。
-            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -304,9 +301,6 @@ export function ObservabilityPage() {
             ) : observability.traces.length === 0 ? (
               <div className="bg-white/72 px-5 py-10 text-center">
                 <p className="text-[13px] text-[var(--ink)]">当前筛选下没有 trace</p>
-                <p className="mt-1.5 text-[12px] text-[var(--muted)]">
-                  可以调整时间窗、状态或标记筛选后重试。
-                </p>
               </div>
             ) : (
               observability.traces.map((trace) => {

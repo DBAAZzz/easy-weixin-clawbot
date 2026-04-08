@@ -20,9 +20,6 @@ import {
 } from "../components/ui/icons.js";
 import { Link } from "react-router-dom";
 
-const MEMORY_GRAPH_DESCRIPTION =
-  "把 Tape 中当前折叠后的 fact、preference、decision 映射成可交互网络图。节点大小反映置信度，连线粒子动画展示数据链路。";
-
 function matchesQuery(node: TapeGraphNode, query: string) {
   if (!query) return true;
 
@@ -187,10 +184,6 @@ export function MemoryGraphPage() {
         <Card className="grid gap-5 px-5 py-7 md:grid-cols-[minmax(0,1fr)_180px] md:items-end">
           <div>
             <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">暂无账号</p>
-            <h3 className="mt-2 text-[18px] text-[var(--ink)]">先建立至少一个连接账号</h3>
-            <p className="mt-2 max-w-2xl text-[12px] leading-6 text-[var(--muted)]">
-              记忆网络图依赖 Tape 数据。完成扫码登录并产生会话后，页面会自动展示该账号的记忆节点和关联。
-            </p>
           </div>
 
           <Link to="/login" className={buttonClassName({ className: "justify-center", size: "sm" })}>
@@ -207,18 +200,7 @@ export function MemoryGraphPage() {
       <section className="flex items-start justify-between gap-4">
         <div className="space-y-1.5">
           <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">Memory Graph</p>
-          <div className="flex items-center gap-2">
-            <h2 className="text-[20px] text-[var(--ink)]">记忆图谱</h2>
-            <span
-              className="inline-flex size-7 items-center justify-center rounded-full border border-[var(--line)] bg-white/72 text-[var(--muted)]"
-              title={MEMORY_GRAPH_DESCRIPTION}
-            >
-              <AlertCircleIcon className="size-3.5" />
-            </span>
-          </div>
-          <p className="max-w-2xl text-[11px] leading-5 text-[var(--muted)]">
-            可视化 Tape 折叠后的事实、偏好与决策关系网络。
-          </p>
+          <h2 className="text-[20px] text-[var(--ink)]">记忆图谱</h2>
         </div>
       </section>
 
@@ -340,18 +322,6 @@ export function MemoryGraphPage() {
             )}
           </Card>
 
-          <Card className="space-y-2 p-4">
-            <div className="flex items-center gap-2 text-[var(--muted-strong)]">
-              <AlertCircleIcon className="size-3.5" />
-              <p className="text-[11px] font-medium text-[var(--ink)]">操作提示</p>
-            </div>
-            <div className="space-y-1 text-[11px] leading-5 text-[var(--muted)]">
-              <p>• 拖拽节点整理布局，滚轮缩放</p>
-              <p>• 点击节点高亮邻居，流光粒子展示关联</p>
-              <p>• 搜索自动定位并高亮匹配节点</p>
-              <p>• 节点越大代表置信度越高</p>
-            </div>
-          </Card>
         </div>
       </section>
     </div>

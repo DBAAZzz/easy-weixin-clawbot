@@ -10,10 +10,11 @@ function toDto(row: ModelConfigRow): ModelConfigDto {
     scope: row.scope,
     scope_key: row.scopeKey,
     purpose: row.purpose,
+    template_id: String(row.templateId),
+    template_name: row.templateName,
     provider: row.provider,
     model_id: row.modelId,
-    api_key_set: row.apiKey !== null,
-    base_url: row.baseUrl,
+    template_enabled: row.templateEnabled,
     enabled: row.enabled,
     priority: row.priority,
   };
@@ -24,7 +25,7 @@ export function registerModelConfigRoutes(app: Hono) {
 
   // List all configs
   app.get("/api/model-configs", async (c) => {
-    const configs = await store().listAll();
+    const configs = await store().listAllConfigs();
     return c.json({ data: configs.map(toDto) });
   });
 
@@ -33,10 +34,13 @@ export function registerModelConfigRoutes(app: Hono) {
     const body = await c.req.json();
 
     // Validate required fields
-    const { scope, scope_key, purpose, provider, model_id } = body;
-    if (!scope || !scope_key || !purpose || !provider || !model_id) {
+    const { scope, scope_key, purpose, template_id, model_id } = body;
+    if (!scope || !scope_key || !purpose || !template_id || !model_id) {
       return c.json(
-        { error: "Missing required fields: scope, scope_key, purpose, provider, model_id" },
+        {
+          error:
+            "Missing required fields: scope, scope_key, purpose, template_id, model_id",
+        },
         400,
       );
     }
@@ -49,14 +53,21 @@ export function registerModelConfigRoutes(app: Hono) {
       return c.json({ error: "purpose must be chat, extraction, or *" }, 400);
     }
 
-    const row = await store().upsert({
+    const templateId = BigInt(template_id);
+    const template = await store().getTemplateById(templateId);
+    if (!template) {
+      return c.json({ error: "selected template not found" }, 400);
+    }
+    if (!template.modelIds.includes(model_id)) {
+      return c.json({ error: "model_id must belong to the selected template" }, 400);
+    }
+
+    const row = await store().upsertConfig({
       scope,
       scopeKey: scope_key,
       purpose,
-      provider,
+      templateId,
       modelId: model_id,
-      apiKey: body.api_key ?? null,
-      baseUrl: body.base_url ?? null,
       enabled: body.enabled ?? true,
       priority: body.priority ?? 0,
     });
@@ -68,7 +79,7 @@ export function registerModelConfigRoutes(app: Hono) {
   // Delete a config
   app.delete("/api/model-configs/:id", async (c) => {
     const id = BigInt(c.req.param("id"));
-    const ok = await store().delete(id);
+    const ok = await store().deleteConfig(id);
     if (!ok) {
       return c.json({ error: "not found" }, 404);
     }

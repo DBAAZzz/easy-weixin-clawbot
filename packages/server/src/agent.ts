@@ -17,6 +17,9 @@ import {
   evictConversation,
   withConversationLock,
   createHandoffAnchors,
+  checkWaitingGoalsAsync,
+  currentSeq,
+  setHeartbeatToolContext,
 } from "@clawbot/agent";
 import { getSchedulerStore } from "@clawbot/agent/ports";
 import { sendProactiveMessage } from "./proactive-push.js";
@@ -181,14 +184,22 @@ export function createAgent(accountId: string): Agent {
             );
           }
 
-          // Inject scheduler context so scheduler tools know the active account/conversation
+          // Inject scheduler + heartbeat context so tools know the active account/conversation
           setSchedulerContext({ accountId, conversationId: req.conversationId });
+          setHeartbeatToolContext({ accountId, conversationId: effectiveConvId });
           const reply = await withSpan("conversation.lock", {}, async () =>
             withConversationLock(accountId, effectiveConvId, async () =>
               chat(accountId, effectiveConvId, req.text, req.media, startedAt),
             ),
           );
           setSchedulerContext(null);
+          setHeartbeatToolContext(null);
+
+          // Post-chat hook: notify heartbeat engine of new user/assistant messages
+          const latestSeq = currentSeq(accountId, effectiveConvId);
+          checkWaitingGoalsAsync(accountId, effectiveConvId, latestSeq).catch((err) => {
+            console.warn(`[heartbeat] post-chat hook error:`, (err as Error).message);
+          });
 
           return withSpanSync(
             "message.send",

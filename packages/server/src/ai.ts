@@ -17,7 +17,10 @@ import {
   setSchedulerStore,
   setPushService,
   setModelConfigStore,
+  setHeartbeatStore,
+  setHeartbeatExecutor,
   schedulerToolRegistry,
+  heartbeatToolRegistry,
 } from "@clawbot/agent";
 import { setChatDeps } from "@clawbot/agent/chat";
 import { setDefaultModel, buildModelFromConfig } from "@clawbot/agent/model-resolver";
@@ -28,6 +31,8 @@ import { PrismaMessageStore } from "./db/message-store.impl.js";
 import { PrismaTapeStore } from "./db/tape-store.impl.js";
 import { PrismaSchedulerStore } from "./db/scheduler-store.impl.js";
 import { PrismaModelConfigStore } from "./db/model-config-store.impl.js";
+import { PrismaHeartbeatStore } from "./db/heartbeat-store.impl.js";
+import { createHeartbeatExecutor } from "./db/heartbeat-executor.impl.js";
 import { log } from "./logger.js";
 import {
   DOWNLOADS_DIR,
@@ -137,7 +142,7 @@ setDefaultModel({ model, modelId: MODEL_ID, apiKey: EXPLICIT_API_KEY });
 export const localToolRegistry = createToolRegistry();
 export const mcpToolRegistry = createToolRegistry();
 
-export const toolRegistry = createCompositeToolRegistry(localToolRegistry, mcpToolRegistry, schedulerToolRegistry);
+export const toolRegistry = createCompositeToolRegistry(localToolRegistry, mcpToolRegistry, schedulerToolRegistry, heartbeatToolRegistry);
 export const toolInstaller = createToolInstaller(localToolRegistry);
 export const skillRegistry = createSkillRegistry();
 export const skillInstaller = createSkillInstaller(skillRegistry);
@@ -174,6 +179,8 @@ setTapeStore(new PrismaTapeStore());
 setSchedulerStore(new PrismaSchedulerStore());
 setModelConfigStore(new PrismaModelConfigStore());
 setPushService({ sendProactiveMessage });
+setHeartbeatStore(new PrismaHeartbeatStore());
+setHeartbeatExecutor(createHeartbeatExecutor());
 
 setChatDeps({
   runner,

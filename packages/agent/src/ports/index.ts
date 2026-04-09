@@ -1,4 +1,4 @@
-export type { MessageStore, RestoredHistory, PersistMessageParams } from "./message-store.js";
+export type { MessageStore, RestoredHistory, PersistMessageParams, MessagesSinceRow } from "./message-store.js";
 export { setMessageStore, getMessageStore } from "./message-store.js";
 
 export type {
@@ -35,3 +35,13 @@ export type {
   ModelScope,
 } from "./model-config-store.js";
 export { setModelConfigStore, getModelConfigStore } from "./model-config-store.js";
+
+export type { HeartbeatStore } from "./heartbeat-store.js";
+export { setHeartbeatStore, getHeartbeatStore } from "./heartbeat-store.js";
+
+export type {
+  HeartbeatExecutorPort,
+  HeartbeatExecutionRequest,
+  HeartbeatExecutionResult,
+} from "./heartbeat-executor.js";
+export { setHeartbeatExecutor, getHeartbeatExecutor } from "./heartbeat-executor.js";

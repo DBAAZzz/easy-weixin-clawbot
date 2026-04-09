@@ -117,6 +117,11 @@ export function nextSeq(accountId: string, conversationId: string): number {
   return next;
 }
 
+/** Returns the current (latest persisted) seq number for this conversation. */
+export function currentSeq(accountId: string, conversationId: string): number {
+  return seqCounters.get(key(accountId, conversationId)) ?? 0;
+}
+
 /**
  * Evict a conversation from memory only — DB is untouched.
  * Used when rotating to a new session so the old effectiveConvId

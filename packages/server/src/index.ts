@@ -7,7 +7,7 @@ import { createLoginManager } from "./login/login-manager.js";
 import { createMcpManager } from "./mcp/manager.js";
 import { observabilityService } from "./observability/service.js";
 import { createBotRuntime } from "./runtime.js";
-import { schedulerManager } from "@clawbot/agent";
+import { schedulerManager, startHeartbeat, stopHeartbeat } from "@clawbot/agent";
 import { purgeCompacted } from "@clawbot/agent/tape";
 
 validateConfig();
@@ -20,6 +20,7 @@ await runtime.bootstrap();
 await schedulerManager.bootstrap().catch((error) => {
   console.warn("[scheduler] bootstrap failed:", error);
 });
+startHeartbeat();
 await observabilityService.cleanupExpired().catch((error) => {
   console.warn("[observability] cleanup failed during startup", error);
 });
@@ -68,6 +69,7 @@ async function shutdown(signal: string) {
   shuttingDown = true;
 
   console.log(`Received ${signal}, shutting down...`);
+  stopHeartbeat();
   await schedulerManager.shutdown();
   await mcpManager.shutdown();
   await runtime.shutdown();

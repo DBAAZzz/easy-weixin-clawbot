@@ -50,11 +50,16 @@ export {
   getPushService,
   setModelConfigStore,
   getModelConfigStore,
+  setHeartbeatStore,
+  getHeartbeatStore,
+  setHeartbeatExecutor,
+  getHeartbeatExecutor,
 } from "./ports/index.js";
 export type {
   MessageStore,
   RestoredHistory,
   PersistMessageParams,
+  MessagesSinceRow,
   TapeStore,
   TapeEntryRow,
   TapeAnchorRow,
@@ -70,6 +75,10 @@ export type {
   UpsertModelConfigInput,
   ModelPurpose,
   ModelScope,
+  HeartbeatStore,
+  HeartbeatExecutorPort,
+  HeartbeatExecutionRequest,
+  HeartbeatExecutionResult,
 } from "./ports/index.js";
 
 // ── Tape (memory system) ────────────────────────────────────────────
@@ -96,6 +105,7 @@ export {
   ensureHistoryLoaded,
   getHistory,
   nextSeq,
+  currentSeq,
   evictConversation,
   clearConversation,
   withConversationLock,
@@ -115,6 +125,26 @@ export {
   setSchedulerContext,
   scheduleCommand,
 } from "./scheduler/index.js";
+
+// ── Heartbeat ───────────────────────────────────────────────────────
+export {
+  startHeartbeat,
+  stopHeartbeat,
+  checkWaitingGoalsAsync,
+  heartbeatToolRegistry,
+  setHeartbeatToolContext,
+  setHeartbeatContext,
+  isHeartbeatContext,
+} from "./heartbeat/index.js";
+export type {
+  GoalStatus,
+  GoalOrigin,
+  Verdict,
+  PendingGoalRow,
+  CreateGoalInput,
+  UpdateGoalInput,
+  GoalTransition,
+} from "./heartbeat/types.js";
 
 // ── Chat orchestration ──────────────────────────────────────────────
 export { chat } from "./chat.js";

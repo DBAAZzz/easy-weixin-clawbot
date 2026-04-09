@@ -4,7 +4,7 @@
  * Delegates to the existing db/messages.ts functions.
  */
 
-import type { MessageStore, RestoredHistory, PersistMessageParams } from "@clawbot/agent/ports";
+import type { MessageStore, RestoredHistory, PersistMessageParams, MessagesSinceRow } from "@clawbot/agent/ports";
 import {
   queuePersistMessage,
   restoreHistory as restoreHistoryImpl,
@@ -43,5 +43,32 @@ export class PrismaMessageStore implements MessageStore {
       where: { accountId, conversationId },
     });
     console.log(`[message-store] cleared ${accountId}/${conversationId} (deleted ${result.count} DB rows)`);
+  }
+
+  async getMessagesSince(
+    accountId: string,
+    conversationId: string,
+    sinceSeq: number,
+    limit: number,
+  ): Promise<MessagesSinceRow[]> {
+    const rows = await getPrisma().message.findMany({
+      where: {
+        accountId,
+        conversationId,
+        seq: { gt: sinceSeq },
+      },
+      orderBy: { seq: "asc" },
+      take: limit,
+      select: {
+        seq: true,
+        role: true,
+        contentText: true,
+      },
+    });
+    return rows.map((r) => ({
+      seq: r.seq,
+      role: r.role,
+      textContent: r.contentText ?? "",
+    }));
   }
 }

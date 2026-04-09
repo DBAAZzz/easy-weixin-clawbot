@@ -2,6 +2,7 @@ export {
   ensureHistoryLoaded,
   getHistory,
   nextSeq,
+  currentSeq,
   evictConversation,
   clearConversation,
   withConversationLock,

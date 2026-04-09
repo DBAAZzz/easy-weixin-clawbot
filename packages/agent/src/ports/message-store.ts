@@ -19,11 +19,24 @@ export interface PersistMessageParams {
   mediaSourcePath?: string;
 }
 
+export interface MessagesSinceRow {
+  seq: number;
+  role: string;
+  textContent: string;
+}
+
 export interface MessageStore {
   restoreHistory(accountId: string, conversationId: string): Promise<RestoredHistory>;
   queuePersistMessage(params: PersistMessageParams): void;
   rollbackMessages(accountId: string, conversationId: string, count: number): Promise<void>;
   clearMessages(accountId: string, conversationId: string): Promise<void>;
+  /** Read messages with seq > sinceSeq (up to limit). Used by heartbeat to read incremental context. */
+  getMessagesSince(
+    accountId: string,
+    conversationId: string,
+    sinceSeq: number,
+    limit: number,
+  ): Promise<MessagesSinceRow[]>;
 }
 
 let store: MessageStore | null = null;

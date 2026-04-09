@@ -6,6 +6,7 @@ import {
   ActivityIcon,
   LinkIcon,
   PencilIcon,
+  PuzzleIcon,
   SearchIcon,
   TerminalIcon,
   XIcon,
@@ -128,6 +129,7 @@ function ServerCard(props: {
   server: McpServerInfo;
   index: number;
   busy: boolean;
+  selected: boolean;
   onOpen: () => void;
   onToggle: () => void | Promise<void>;
 }) {
@@ -144,7 +146,12 @@ function ServerCard(props: {
           props.onOpen();
         }
       }}
-      className="reveal-up group flex min-h-[120px] cursor-pointer items-center gap-3 rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)] md:px-4"
+      className={cn(
+        "reveal-up group flex min-h-[120px] cursor-pointer items-center gap-3 rounded-[24px] border bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)] md:px-4",
+        props.selected
+          ? "border-[rgba(21,110,99,0.38)] ring-[2px] ring-[rgba(21,110,99,0.10)]"
+          : "border-[rgba(21,32,43,0.08)]"
+      )}
       style={{ animationDelay: `${props.index * 40}ms` }}
     >
       <ServerAvatar status={props.server.status} />
@@ -163,9 +170,9 @@ function ServerCard(props: {
         </p>
 
         <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--muted)]">
-          <span>{props.server.transport}</span>
+          <span className="inline-flex items-center gap-0.5"><TerminalIcon className="size-3" />{props.server.transport}</span>
           <span className="size-1 rounded-full bg-[var(--line-strong)]" />
-          <span>tools {formatCount(props.server.tool_count)}</span>
+          <span className="inline-flex items-center gap-0.5"><PuzzleIcon className="size-3" />tools {formatCount(props.server.tool_count)}</span>
           <span className="size-1 rounded-full bg-[var(--line-strong)]" />
           <span>{formatRelativeTime(props.server.last_seen_at)}</span>
         </div>
@@ -177,9 +184,9 @@ function ServerCard(props: {
         ) : null}
       </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-1.5">
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
         <ToggleButton enabled={props.server.enabled} busy={props.busy} onToggle={props.onToggle} />
-        <span className="text-[10px] font-medium text-[var(--muted)]">
+        <span className="text-[9px] font-medium text-[var(--muted)]">
           {props.server.enabled ? "已启用" : "已停用"}
         </span>
       </div>
@@ -200,22 +207,22 @@ function McpToolCard(props: {
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-[var(--font-mono)] text-[12px] text-[var(--ink)]">
-            {props.tool.local_name}
+          <h3 className="text-[13px] font-medium text-[var(--ink)]">
+            {props.tool.remote_name}
           </h3>
           <Badge tone="muted">{props.tool.server_slug}</Badge>
         </div>
-        <p className="mt-1 text-[12px] leading-5 text-[var(--muted-strong)]">
-          {props.tool.remote_name}
+        <p className="mt-1 truncate font-[var(--font-mono)] text-[10px] leading-5 text-[var(--muted)]" title={props.tool.local_name}>
+          {props.tool.local_name}
         </p>
-        <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-[var(--muted)]">
+        <p className="mt-1.5 line-clamp-2 text-[11px] leading-5 text-[var(--muted-strong)]">
           {props.tool.summary ?? "该 tool 未提供描述。"}
         </p>
       </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-1.5">
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
         <ToggleButton enabled={props.tool.enabled} busy={props.busy} onToggle={props.onToggle} />
-        <span className="text-[10px] font-medium text-[var(--muted)]">
+        <span className="text-[9px] font-medium text-[var(--muted)]">
           {props.tool.enabled ? "已启用" : "已停用"}
         </span>
       </div>
@@ -501,6 +508,7 @@ export function McpPage() {
   const [serverBusyId, setServerBusyId] = useState<string | null>(null);
   const [toolBusyId, setToolBusyId] = useState<string | null>(null);
   const [editorBusy, setEditorBusy] = useState(false);
+  const [filterServerId, setFilterServerId] = useState<string | null>(null);
   const deferredServerQuery = useDeferredValue(serverQuery);
   const deferredToolQuery = useDeferredValue(toolQuery);
   const normalizedServerQuery = deferredServerQuery.trim().toLowerCase();
@@ -525,17 +533,17 @@ export function McpPage() {
   }, [normalizedServerQuery, servers]);
 
   const filteredTools = useMemo(() => {
-    if (!normalizedToolQuery) {
-      return tools;
+    let result = filterServerId ? tools.filter((t) => t.server_id === filterServerId) : tools;
+    if (normalizedToolQuery) {
+      result = result.filter((tool) =>
+        [tool.local_name, tool.remote_name, tool.server_name, tool.server_slug, tool.summary ?? ""]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedToolQuery)
+      );
     }
-
-    return tools.filter((tool) =>
-      [tool.local_name, tool.remote_name, tool.server_name, tool.server_slug, tool.summary ?? ""]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedToolQuery)
-    );
-  }, [normalizedToolQuery, tools]);
+    return result;
+  }, [normalizedToolQuery, tools, filterServerId]);
 
   const activeServerTools = activeServer
     ? tools.filter((tool) => tool.server_id === activeServer.id)
@@ -543,12 +551,19 @@ export function McpPage() {
   const connectedCount = servers.filter((server) => server.status === "connected").length;
   const enabledServerCount = servers.filter((server) => server.enabled).length;
   const enabledToolCount = tools.filter((tool) => tool.enabled).length;
+  const filterServer = filterServerId ? servers.find((s) => s.id === filterServerId) ?? null : null;
 
   useEffect(() => {
     if (activeServerId && !servers.some((server) => server.id === activeServerId)) {
       setActiveServerId(null);
     }
   }, [activeServerId, servers]);
+
+  useEffect(() => {
+    if (filterServerId && !servers.some((server) => server.id === filterServerId)) {
+      setFilterServerId(null);
+    }
+  }, [filterServerId, servers]);
 
   useEffect(() => {
     if (editorState?.mode === "edit" && !editorServer) {
@@ -684,7 +699,12 @@ export function McpPage() {
               <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
                 MCP Servers
               </p>
-              <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">远端 tools 接入中心</h2>
+              <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">
+                远端 tools 接入中心
+                <span className="ml-2 align-middle text-[14px] font-normal text-[var(--muted)]">
+                  ({connectedCount}/{servers.length} 已连接)
+                </span>
+              </h2>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -701,23 +721,14 @@ export function McpPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="relative w-full xl:max-w-[360px]">
-              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
-              <Input
-                value={serverQuery}
-                onChange={(event) => setServerQuery(event.target.value)}
-                placeholder="搜索 server 名称、slug、命令或状态"
-                className="h-10 rounded-[14px] pl-10"
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
-              <Badge tone="muted">配置 {formatCount(servers.length)}</Badge>
-              <Badge tone="muted">已启用 {formatCount(enabledServerCount)}</Badge>
-              <Badge tone="muted">已连接 {formatCount(connectedCount)}</Badge>
-              <Badge tone="muted">发现 tools {formatCount(tools.length)}</Badge>
-            </div>
+          <div className="relative w-full xl:max-w-[360px]">
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
+            <Input
+              value={serverQuery}
+              onChange={(event) => setServerQuery(event.target.value)}
+              placeholder="搜索 server 名称、slug、命令或状态"
+              className="h-10 rounded-[14px] pl-10"
+            />
           </div>
         </section>
 
@@ -782,7 +793,8 @@ export function McpPage() {
                   server={server}
                   index={index}
                   busy={serverBusyId === server.id}
-                  onOpen={() => startTransition(() => setActiveServerId(server.id))}
+                  selected={filterServerId === server.id}
+                  onOpen={() => startTransition(() => { setFilterServerId(server.id); setActiveServerId(server.id); })}
                   onToggle={() =>
                     handleServerAction(server, async () => {
                       const result = server.enabled
@@ -797,35 +809,48 @@ export function McpPage() {
           </section>
         ) : null}
 
-        <section className="space-y-3 border-t border-[var(--line)] pt-5">
+        <section className="mt-2 space-y-3 rounded-[28px] bg-[rgba(247,250,251,0.72)] py-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                Discovered Tools
-              </p>
-              <h3 className="mt-1.5 text-[22px] text-[var(--ink)]">MCP tools 目录</h3>
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+                  Discovered Tools
+                </p>
+                <h3 className="mt-1.5 text-[22px] text-[var(--ink)]">
+                  MCP tools 目录
+                  <span className="ml-2 align-middle text-[13px] font-normal text-[var(--muted)]">
+                    ({enabledToolCount}/{tools.length} 已启用)
+                  </span>
+                </h3>
+              </div>
+              {filterServer ? (
+                <button
+                  type="button"
+                  onClick={() => setFilterServerId(null)}
+                  className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-[rgba(21,110,99,0.14)] bg-[rgba(240,253,250,0.92)] px-3 py-1 text-[11px] font-medium text-[var(--accent-strong)] transition hover:bg-[rgba(240,253,250,1)]"
+                >
+                  筛选：{filterServer.name}
+                  <XIcon className="size-3" />
+                </button>
+              ) : null}
             </div>
 
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-              <div className="relative w-full xl:w-[320px]">
-                <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
-                <Input
-                  value={toolQuery}
-                  onChange={(event) => setToolQuery(event.target.value)}
-                  placeholder="搜索 local name / remote name / server"
-                  className="h-10 rounded-[14px] pl-10"
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
-                <Badge tone="muted">已发现 {formatCount(tools.length)}</Badge>
-                <Badge tone="muted">已启用 {formatCount(enabledToolCount)}</Badge>
-              </div>
+            <div className="relative w-full xl:max-w-[360px]">
+              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
+              <Input
+                value={toolQuery}
+                onChange={(event) => setToolQuery(event.target.value)}
+                placeholder="搜索 tool 名称 / server"
+                className="h-10 rounded-[14px] pl-10"
+              />
             </div>
           </div>
 
           {!loading && filteredTools.length === 0 ? (
             <section className="rounded-[24px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-8 text-center">
-              <p className="text-[14px] font-medium text-[var(--ink)]">没有匹配到 MCP tool</p>
+              <p className="text-[14px] font-medium text-[var(--ink)]">
+              {filterServer ? `${filterServer.name} 下暂无匹配的 tool` : "没有匹配到 MCP tool"}
+            </p>
             </section>
           ) : null}
 

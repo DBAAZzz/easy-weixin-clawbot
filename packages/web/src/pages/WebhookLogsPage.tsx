@@ -101,9 +101,6 @@ export function WebhookLogsPage() {
             <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">
               {token?.source ?? source} 调用日志
             </h2>
-            <p className="mt-1 max-w-2xl text-[13px] leading-6 text-[var(--muted)]">
-              独立日志页用于承载明细分析，后续可以继续往这里扩趋势图、状态分布和账号维度统计。
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -170,9 +167,6 @@ export function WebhookLogsPage() {
             <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
               Insight Canvas
             </p>
-            <p className="mt-1 text-[12px] text-[var(--muted)]">
-              这里预留给后续图表和聚合分析，不再受 modal 尺寸限制。
-            </p>
           </div>
           <Badge tone="muted">Planning Space</Badge>
         </div>
@@ -180,21 +174,12 @@ export function WebhookLogsPage() {
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-[18px] border border-dashed border-[var(--line)] bg-white/66 px-4 py-5">
             <p className="text-[12px] font-medium text-[var(--ink)]">24h 请求趋势</p>
-            <p className="mt-1 text-[11px] leading-5 text-[var(--muted)]">
-              后续可以叠加成功率、失败峰值和流量突增。
-            </p>
           </div>
           <div className="rounded-[18px] border border-dashed border-[var(--line)] bg-white/66 px-4 py-5">
             <p className="text-[12px] font-medium text-[var(--ink)]">状态分布</p>
-            <p className="mt-1 text-[11px] leading-5 text-[var(--muted)]">
-              适合放 success / rejected / error 的占比图。
-            </p>
           </div>
           <div className="rounded-[18px] border border-dashed border-[var(--line)] bg-white/66 px-4 py-5">
             <p className="text-[12px] font-medium text-[var(--ink)]">账号热度</p>
-            <p className="mt-1 text-[11px] leading-5 text-[var(--muted)]">
-              可以补每个账号的调用频率、失败率和最近活跃时间。
-            </p>
           </div>
         </div>
       </section>
@@ -204,9 +189,6 @@ export function WebhookLogsPage() {
           <div>
             <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
               Log Stream
-            </p>
-            <p className="mt-1 text-[12px] text-[var(--muted)]">
-              当前保留表格明细，后续可以继续拆成会话详情和错误追踪视图。
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
@@ -235,9 +217,6 @@ export function WebhookLogsPage() {
           <div className="mt-4 rounded-[18px] border border-dashed border-[var(--line)] bg-white/60 px-4 py-8 text-center">
             <WebhookIcon className="mx-auto size-7 text-[var(--muted)]" />
             <p className="mt-3 text-[14px] text-[var(--muted-strong)]">暂无调用日志</p>
-            <p className="mt-1 text-[12px] text-[var(--muted)]">
-              等外部系统触发回调后，这里会出现完整的请求明细。
-            </p>
           </div>
         ) : (
           <div className="mt-4 overflow-hidden rounded-[18px] border border-[var(--line)] bg-white/90">

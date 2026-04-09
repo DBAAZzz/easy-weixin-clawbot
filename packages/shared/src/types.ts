@@ -26,6 +26,8 @@ export interface AccountSummary extends AccountRow {
   conversation_count: number;
 }
 
+export type AccountStatusFilter = "all" | "active" | "deprecated";
+
 export interface ConversationRow {
   id: number;
   account_id: string;
@@ -283,15 +285,27 @@ export interface TapeGraphResponse {
 
 // ── Model Config ────────────────────────────────────────────────────
 
+export interface ModelProviderTemplateDto {
+  id: string;
+  name: string;
+  provider: string;
+  model_ids: string[];
+  api_key_set: boolean;
+  base_url: string | null;
+  enabled: boolean;
+  usage_count: number;
+}
+
 export interface ModelConfigDto {
   id: string; // BigInt serialized as string
   scope: "global" | "account" | "conversation";
   scope_key: string;
   purpose: string; // "chat" | "extraction" | "*"
+  template_id: string;
+  template_name: string;
   provider: string;
   model_id: string;
-  api_key_set: boolean; // true if apiKey is present (never expose actual key)
-  base_url: string | null;
+  template_enabled: boolean;
   enabled: boolean;
   priority: number;
 }

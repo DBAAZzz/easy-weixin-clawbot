@@ -1,4 +1,5 @@
 import type {
+  AccountStatusFilter,
   AccountSummary,
   ApiResponse,
   CapabilityCollection,
@@ -11,6 +12,7 @@ import type {
   McpToolInfo,
   MessageRow,
   ModelConfigDto,
+  ModelProviderTemplateDto,
   ObservabilityOverview,
   ObservabilityTraceDetail,
   ObservabilityTraceSummary,
@@ -19,7 +21,7 @@ import type {
   SkillInfo,
   TapeGraphResponse,
   ToolInfo,
-} from "@clawbot/shared";
+} from "../../../shared/src/types.js";
 import type { McpServerRequestPayload } from "./mcp-form.js";
 
 function getAuthToken(): string | null {
@@ -114,8 +116,11 @@ export function fetchHealth(): Promise<HealthStatus> {
   return request<HealthStatus>("/api/health");
 }
 
-export function fetchAccounts(): Promise<AccountSummary[]> {
-  return request<AccountSummary[]>("/api/accounts");
+export function fetchAccounts(options?: { status?: AccountStatusFilter }): Promise<AccountSummary[]> {
+  const suffix = toQueryString({
+    status: options?.status && options.status !== "all" ? options.status : undefined,
+  });
+  return request<AccountSummary[]>(`/api/accounts${suffix}`);
 }
 
 export function updateAccountAlias(accountId: string, alias: string | null): Promise<{ success: boolean }> {
@@ -548,14 +553,64 @@ export function fetchModelConfigs(): Promise<ModelConfigDto[]> {
   return request<ModelConfigDto[]>("/api/model-configs");
 }
 
+export function fetchModelProviderTemplates(): Promise<ModelProviderTemplateDto[]> {
+  return request<ModelProviderTemplateDto[]>("/api/model-provider-templates");
+}
+
+export function createModelProviderTemplate(payload: {
+  name: string;
+  provider: string;
+  model_ids: string[];
+  api_key?: string | null;
+  base_url?: string | null;
+  enabled?: boolean;
+}): Promise<ModelProviderTemplateDto> {
+  return request<ModelProviderTemplateDto>("/api/model-provider-templates", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateModelProviderTemplate(
+  id: string,
+  payload: {
+    name: string;
+    provider: string;
+    model_ids: string[];
+    api_key?: string | null;
+    clear_api_key?: boolean;
+    base_url?: string | null;
+    enabled?: boolean;
+  },
+): Promise<ModelProviderTemplateDto> {
+  return request<ModelProviderTemplateDto>(
+    `/api/model-provider-templates/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function deleteModelProviderTemplate(
+  id: string,
+): Promise<{ success: boolean }> {
+  return request<{ success: boolean }>(
+    `/api/model-provider-templates/${encodeURIComponent(id)}`,
+    {
+      method: "DELETE",
+    },
+  );
+}
+
 export function upsertModelConfig(payload: {
   scope: "global" | "account" | "conversation";
   scope_key: string;
   purpose: string;
-  provider: string;
+  template_id: string;
   model_id: string;
-  api_key?: string | null;
-  base_url?: string | null;
   enabled?: boolean;
   priority?: number;
 }): Promise<ModelConfigDto> {

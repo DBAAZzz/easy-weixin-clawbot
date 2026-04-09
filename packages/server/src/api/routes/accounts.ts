@@ -1,13 +1,30 @@
+import type { AccountStatusFilter } from "@clawbot/shared";
 import type { Hono } from "hono";
 import { getAccount, listAccounts, updateAccountAlias } from "../../db/accounts.js";
 
-export function registerAccountRoutes(app: Hono) {
+interface AccountRouteDependencies {
+  listAccounts: typeof listAccounts;
+  getAccount: typeof getAccount;
+  updateAccountAlias: typeof updateAccountAlias;
+}
+
+const defaultDependencies: AccountRouteDependencies = {
+  listAccounts,
+  getAccount,
+  updateAccountAlias,
+};
+
+export function registerAccountRoutes(app: Hono, dependencies: AccountRouteDependencies = defaultDependencies) {
   app.get("/api/accounts", async (c) => {
-    return c.json({ data: await listAccounts() });
+    const statusParam = c.req.query("status");
+    const status: AccountStatusFilter =
+      statusParam === "active" || statusParam === "deprecated" ? statusParam : "all";
+
+    return c.json({ data: await dependencies.listAccounts(status) });
   });
 
   app.get("/api/accounts/:accountId", async (c) => {
-    const account = await getAccount(c.req.param("accountId"));
+    const account = await dependencies.getAccount(c.req.param("accountId"));
     if (!account) {
       return c.json({ error: "account not found" }, 404);
     }
@@ -23,7 +40,7 @@ export function registerAccountRoutes(app: Hono) {
       return c.json({ error: "alias must be string or null" }, 400);
     }
 
-    await updateAccountAlias(accountId, body.alias);
+    await dependencies.updateAccountAlias(accountId, body.alias);
     return c.json({ success: true });
   });
 }

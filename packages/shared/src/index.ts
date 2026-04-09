@@ -1,4 +1,5 @@
 export type {
+  AccountStatusFilter,
   AccountRow,
   AccountSummary,
   ApiResponse,
@@ -25,6 +26,7 @@ export type {
   TapeGraphResponse,
   MessageRow,
   ModelConfigDto,
+  ModelProviderTemplateDto,
   PaginatedResponse,
   SkillInfo,
   ToolInfo,

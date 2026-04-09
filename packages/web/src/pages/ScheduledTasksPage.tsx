@@ -539,9 +539,6 @@ export function ScheduledTasksPage() {
               Scheduled Tasks
             </p>
             <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">定时任务</h2>
-            <p className="mt-1 max-w-2xl text-[13px] leading-6 text-[var(--muted)]">
-              管理基于 Cron 表达式的定时任务，支持为不同账号和会话配置自动化消息推送。
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -606,9 +603,6 @@ export function ScheduledTasksPage() {
         <section className="rounded-[28px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-10 text-center">
           <ClockIcon className="mx-auto size-8 text-[var(--muted)]" />
           <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">暂无定时任务</p>
-          <p className="mt-2 text-[12px] leading-6 text-[var(--muted)]">
-            使用 #schedule 命令在对话中创建定时任务。
-          </p>
         </section>
       ) : null}
 

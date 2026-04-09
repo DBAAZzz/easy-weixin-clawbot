@@ -150,7 +150,7 @@ pnpm start   # 仅启动 Hono API + 微信运行时
 
 - **多 LLM 供应商**：支持 Moonshot、OpenAI、Anthropic、Google 等，可按账号/对话单独配置
 - **工具调用**：内置 `opencli`，支持 Markdown 定义的自定义 Tool，MCP Tool 独立管理
-- **技能系统**：内置 `translator`、`summarizer`、`persona_professional`，支持 always/on-demand 两种激活模式
+- **技能系统**：内置 `healthy-meal-reminder`，支持 always/on-demand 两种激活模式
 - **对话持久化**：消息异步写入 PostgreSQL，支持历史记录查询
 
 ### 记忆系统

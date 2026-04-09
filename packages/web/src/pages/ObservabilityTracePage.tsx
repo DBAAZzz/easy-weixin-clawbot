@@ -19,9 +19,6 @@ export function ObservabilityTracePage() {
               Trace Detail
             </p>
             <h2 className="mt-1.5 text-[20px] text-[var(--ink)]">链路详情</h2>
-            <p className="mt-1 text-[12px] leading-6 text-[var(--muted)]">
-              查看单条 trace 的摘要、waterfall 时序、span 属性以及 prompt / completion 原文。
-            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">

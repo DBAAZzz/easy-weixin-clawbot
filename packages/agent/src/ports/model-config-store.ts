@@ -7,15 +7,50 @@
 export type ModelPurpose = "chat" | "extraction";
 export type ModelScope = "global" | "account" | "conversation";
 
+export interface ModelProviderTemplateRow {
+  id: bigint;
+  name: string;
+  provider: string;
+  modelIds: string[];
+  apiKey: string | null;
+  baseUrl: string | null;
+  enabled: boolean;
+  usageCount: number;
+}
+
+export interface CreateModelProviderTemplateInput {
+  name: string;
+  provider: string;
+  modelIds: string[];
+  apiKey?: string | null;
+  baseUrl?: string | null;
+  enabled?: boolean;
+}
+
+export interface UpdateModelProviderTemplateInput {
+  id: bigint;
+  name: string;
+  provider: string;
+  modelIds: string[];
+  apiKey?: string | null;
+  clearApiKey?: boolean;
+  baseUrl?: string | null;
+  enabled?: boolean;
+}
+
 export interface ModelConfigRow {
   id: bigint;
   scope: ModelScope;
   scopeKey: string;
   purpose: string; // "chat" | "extraction" | "*"
+  templateId: bigint;
+  templateName: string;
   provider: string;
   modelId: string;
+  modelIds: string[];
   apiKey: string | null;
   baseUrl: string | null;
+  templateEnabled: boolean;
   enabled: boolean;
   priority: number;
 }
@@ -24,26 +59,32 @@ export interface UpsertModelConfigInput {
   scope: ModelScope;
   scopeKey: string;
   purpose: string;
-  provider: string;
+  templateId: bigint;
   modelId: string;
-  apiKey?: string | null;
-  baseUrl?: string | null;
   enabled?: boolean;
   priority?: number;
 }
 
 export interface ModelConfigStore {
-  /** Get all enabled configs for a given scope+scopeKey */
+  /** Get all enabled configs for a given scope+scopeKey, joined with template data. */
   findByScope(scope: ModelScope, scopeKey: string): Promise<ModelConfigRow[]>;
 
-  /** Get all configs (for admin listing) */
-  listAll(): Promise<ModelConfigRow[]>;
+  /** Provider template CRUD for admin APIs. */
+  listTemplates(): Promise<ModelProviderTemplateRow[]>;
+  createTemplate(
+    input: CreateModelProviderTemplateInput,
+  ): Promise<ModelProviderTemplateRow>;
+  updateTemplate(
+    input: UpdateModelProviderTemplateInput,
+  ): Promise<ModelProviderTemplateRow>;
+  deleteTemplate(id: bigint): Promise<boolean>;
+  getTemplateById(id: bigint): Promise<ModelProviderTemplateRow | null>;
+  countConfigsForTemplate(id: bigint): Promise<number>;
 
-  /** Upsert a config (insert or update by unique key) */
-  upsert(input: UpsertModelConfigInput): Promise<ModelConfigRow>;
-
-  /** Delete a config by id */
-  delete(id: bigint): Promise<boolean>;
+  /** Scoped config CRUD for admin APIs. */
+  listAllConfigs(): Promise<ModelConfigRow[]>;
+  upsertConfig(input: UpsertModelConfigInput): Promise<ModelConfigRow>;
+  deleteConfig(id: bigint): Promise<boolean>;
 }
 
 let store: ModelConfigStore | null = null;

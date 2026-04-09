@@ -107,7 +107,7 @@ function DetailItem(props: { label: string; value: string }) {
   );
 }
 
-function ConfigBlock(props: { label: string; value: string; hint?: string }) {
+function ConfigBlock(props: { label: string; value: string }) {
   return (
     <div className="rounded-[22px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -115,9 +115,6 @@ function ConfigBlock(props: { label: string; value: string; hint?: string }) {
           <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
             {props.label}
           </p>
-          {props.hint ? (
-            <p className="mt-1 text-[12px] text-[var(--muted)]">{props.hint}</p>
-          ) : null}
         </div>
       </div>
       <pre className="mt-3 overflow-auto rounded-[18px] border border-[var(--line)] bg-[rgba(255,255,255,0.94)] px-4 py-3 text-[11px] leading-6 text-[var(--ink-soft)]">
@@ -324,7 +321,6 @@ function ServerDetailModal(props: {
 
           <ConfigBlock
             label="Standard JSON"
-            hint="这里直接展示当前配置对应的标准 mcpServers 文档。"
             value={stringifyMcpServerJsonDocument(props.server)}
           />
 
@@ -333,9 +329,6 @@ function ServerDetailModal(props: {
               <div>
                 <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
                   Discovered Tools
-                </p>
-                <p className="mt-1 text-[12px] text-[var(--muted)]">
-                  当前 server 发现到的 MCP tools。启停会直接影响 Agent 暴露目录。
                 </p>
               </div>
               <Badge tone="muted">{formatCount(props.tools.length)} items</Badge>
@@ -368,7 +361,7 @@ function ServerDetailModal(props: {
                 ))
               ) : (
                 <div className="rounded-[18px] border border-dashed border-[var(--line)] bg-white/60 px-4 py-6 text-center text-[12px] text-[var(--muted)]">
-                  这个 server 还没有发现到任何 tool。
+                  暂无 MCP tool
                 </div>
               )}
             </div>
@@ -416,10 +409,6 @@ function ServerEditorModal(props: {
               >
                 {props.mode === "create" ? "粘贴标准 MCP JSON" : "编辑 MCP JSON 配置"}
               </h3>
-              <p className="mt-2 text-[13px] leading-6 text-[var(--muted)]">
-                直接粘贴标准 `mcpServers` JSON。当前页面一次只接收 1 个 server，key 会作为配置名称，
-                slug 会自动派生。
-              </p>
             </div>
 
             <button
@@ -467,7 +456,6 @@ function ServerEditorModal(props: {
 
             <ConfigBlock
               label="输入案例"
-              hint="直接粘贴这类标准配置即可，不再拆成单独字段。"
               value={TAPD_MCP_JSON_EXAMPLE}
             />
           </div>
@@ -697,10 +685,6 @@ export function McpPage() {
                 MCP Servers
               </p>
               <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">远端 tools 接入中心</h2>
-              <p className="mt-1 max-w-2xl text-[13px] leading-6 text-[var(--muted)]">
-                这里直接展示当前全局共享的 MCP server 列表。点击条目查看详情，新增和编辑都走
-                modal，避免回到右侧编辑器式布局。
-              </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -781,11 +765,6 @@ export function McpPage() {
             <p className="text-[15px] font-medium text-[var(--ink)]">
               {servers.length === 0 ? "还没有 MCP 配置" : "没有匹配到 MCP server"}
             </p>
-            <p className="mt-2 text-[12px] leading-6 text-[var(--muted)]">
-              {servers.length === 0
-                ? "先创建一个 stdio MCP server，保存后会自动尝试连接并刷新目录。"
-                : "可以尝试清空搜索词，回到完整列表继续查看。"}
-            </p>
           </section>
         ) : null}
 
@@ -825,9 +804,6 @@ export function McpPage() {
                 Discovered Tools
               </p>
               <h3 className="mt-1.5 text-[22px] text-[var(--ink)]">MCP tools 目录</h3>
-              <p className="mt-1 max-w-2xl text-[13px] leading-6 text-[var(--muted)]">
-                发现到的 tools 直接进入 Agent 的可用目录，这里只保留列表浏览和启停操作。
-              </p>
             </div>
 
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
@@ -850,9 +826,6 @@ export function McpPage() {
           {!loading && filteredTools.length === 0 ? (
             <section className="rounded-[24px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-8 text-center">
               <p className="text-[14px] font-medium text-[var(--ink)]">没有匹配到 MCP tool</p>
-              <p className="mt-2 text-[12px] leading-6 text-[var(--muted)]">
-                可以尝试清空搜索词，或者先让 server 完成一次 refresh。
-              </p>
             </section>
           ) : null}
 

@@ -316,21 +316,36 @@ model TapeAnchor {
 
 // ─── Model Config (multi-LLM provider) ───────────────────────────────
 
+model ModelProviderTemplate {
+  id        BigInt        @id @default(autoincrement())
+  name      String        @db.Text
+  provider  String        @db.Text
+  modelIds  String[]      @default([]) @map("model_ids")
+  apiKey    String?       @map("api_key") @db.Text
+  baseUrl   String?       @map("base_url") @db.Text
+  enabled   Boolean       @default(true)
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  configs   ModelConfig[]
+
+  @@map("model_provider_templates")
+}
+
 model ModelConfig {
-  id         BigInt   @id @default(autoincrement())
-  scope      String   @db.Text              // "global" | "account" | "conversation"
-  scopeKey   String   @map("scope_key") @db.Text  // "*" for global, accountId, or "accountId:conversationId"
-  purpose    String   @db.Text              // "chat" | "extraction" | "*"
-  provider   String   @db.Text              // "anthropic", "openai", "moonshot", etc.
-  modelId    String   @map("model_id") @db.Text
-  apiKey     String?  @map("api_key") @db.Text
-  baseUrl    String?  @map("base_url") @db.Text
-  enabled    Boolean  @default(true)
-  priority   Int      @default(0)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id         BigInt                @id @default(autoincrement())
+  scope      String                @db.Text              // "global" | "account" | "conversation"
+  scopeKey   String                @map("scope_key") @db.Text  // "*" for global, accountId, or "accountId:conversationId"
+  purpose    String                @db.Text              // "chat" | "extraction" | "*"
+  templateId BigInt                @map("template_id")
+  modelId    String                @map("model_id") @db.Text
+  enabled    Boolean               @default(true)
+  priority   Int                   @default(0)
+  createdAt  DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  template   ModelProviderTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
 
   @@unique([scope, scopeKey, purpose], map: "model_config_scope_key_purpose_key")
   @@index([scope, scopeKey], map: "idx_model_config_scope")
+  @@index([templateId], map: "idx_model_config_template_id")
   @@map("model_configs")
 }

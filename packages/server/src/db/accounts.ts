@@ -1,4 +1,4 @@
-import type { AccountRow, AccountSummary } from "@clawbot/shared";
+import type { AccountRow, AccountStatusFilter, AccountSummary } from "@clawbot/shared";
 import { getPrisma } from "./prisma.js";
 
 function toIso(date: Date) {
@@ -46,8 +46,16 @@ export async function getActiveAccountIds(): Promise<string[]> {
   return rows.map((r) => r.id);
 }
 
-export async function listAccounts(): Promise<AccountSummary[]> {
+function toDeprecatedFilter(status: AccountStatusFilter): boolean | undefined {
+  if (status === "active") return false;
+  if (status === "deprecated") return true;
+  return undefined;
+}
+
+export async function listAccounts(status: AccountStatusFilter = "all"): Promise<AccountSummary[]> {
+  const deprecated = toDeprecatedFilter(status);
   const rows = await getPrisma().account.findMany({
+    ...(deprecated === undefined ? {} : { where: { deprecated } }),
     include: { _count: { select: { conversations: true } } },
     orderBy: { createdAt: "asc" },
   });

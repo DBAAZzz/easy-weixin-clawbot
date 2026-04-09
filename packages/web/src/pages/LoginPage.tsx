@@ -124,11 +124,7 @@ export function LoginPage() {
         ? "二维码已失效"
         : "等待生成二维码";
   const emptyMessage =
-    state.status === "error"
-      ? error ?? state.message
-      : state.status === "expired"
-        ? "请点击上方重新生成。"
-        : "点击上方“生成二维码”后开始绑定。";
+    state.status === "error" ? error ?? state.message : null;
   const emptyToneClassName =
     state.status === "error" || state.status === "expired"
       ? "border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] text-red-700"
@@ -143,9 +139,6 @@ export function LoginPage() {
               Bind Clawbot
             </p>
             <h2 className="mt-1.5 text-[20px] text-[var(--ink)]">扫码绑定 Clawbot</h2>
-            <p className="mt-1 text-[12px] leading-5 text-[var(--muted)]">
-              用微信扫码并确认，完成后账号会自动回到账号列表。
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -176,7 +169,7 @@ export function LoginPage() {
             <div className="flex h-full items-center justify-center bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(247,250,251,0.94))] px-6 py-8">
               <div className={`w-full max-w-[320px] border px-5 py-6 text-center ${emptyToneClassName}`}>
                 <p className="text-[15px] font-medium">{emptyTitle}</p>
-                <p className="mt-2 text-[12px] leading-6">{emptyMessage}</p>
+                {emptyMessage ? <p className="mt-2 text-[12px] leading-6">{emptyMessage}</p> : null}
               </div>
             </div>
           )}

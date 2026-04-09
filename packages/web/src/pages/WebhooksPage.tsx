@@ -302,9 +302,6 @@ function WebhookTestModal(props: {
               >
                 测试发送能力
               </h3>
-              <p className="mt-2 text-[13px] leading-6 text-[var(--muted)]">
-                使用当前 Token 对已授权账号发起一次真实调试发送，支持文本消息和图片消息。
-              </p>
             </div>
 
             <button
@@ -362,9 +359,6 @@ function WebhookTestModal(props: {
                   <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
                     Authorized Accounts
                   </p>
-                  <p className="mt-1 text-[12px] text-[var(--muted)]">
-                    测试仅允许对当前 Token 已授权的账号发送。
-                  </p>
                 </div>
                 <Badge tone="muted">{formatCount(authorizedAccounts.length)} items</Badge>
               </div>
@@ -396,10 +390,6 @@ function WebhookTestModal(props: {
                 placeholder="例如 wxid_xxx 或现有会话 ID"
                 className="mt-1"
               />
-              <p className="mt-2 text-[11px] leading-5 text-[var(--muted)]">
-                这里必须填已存在且仍有上下文的会话，否则服务端会返回
-                `conversation_not_found`。
-              </p>
             </div>
 
             {messageType === "image" ? (
@@ -532,9 +522,6 @@ function CreateTokenModal(props: {
               >
                 新建 Webhook Token
               </h3>
-              <p className="mt-2 text-[13px] leading-6 text-[var(--muted)]">
-                为单个业务系统签发一个新的 Webhook Token，并限定它可操作的微信账号范围。
-              </p>
             </div>
 
             <button
@@ -580,9 +567,6 @@ function CreateTokenModal(props: {
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
                     Authorized Accounts
-                  </p>
-                  <p className="mt-1 text-[12px] text-[var(--muted)]">
-                    至少选择一个账号，Token 只会对这些账号生效。
                   </p>
                 </div>
                 <Badge tone="muted">{formatCount(selectedAccounts.length)} selected</Badge>
@@ -746,9 +730,6 @@ export function WebhooksPage() {
               Webhooks
             </p>
             <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">Webhook Token 管理</h2>
-            <p className="mt-1 max-w-2xl text-[13px] leading-6 text-[var(--muted)]">
-              统一管理外部业务系统的回调凭证，控制哪些账号可以被安全地推送到微信。
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -773,9 +754,6 @@ export function WebhooksPage() {
             <Badge tone="muted">关联账号 {formatCount(activeAccountCount)}</Badge>
           </div>
 
-          <div className="rounded-[16px] border border-[var(--line)] bg-[rgba(255,255,255,0.72)] px-4 py-2 text-[11px] text-[var(--muted)]">
-            每个业务系统只保留一个有效凭证，轮换后旧 Token 会立即失效。
-          </div>
         </div>
       </section>
 
@@ -822,9 +800,6 @@ export function WebhooksPage() {
         <section className="rounded-[28px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-10 text-center">
           <WebhookIcon className="mx-auto size-8 text-[var(--muted)]" />
           <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">暂无 Webhook Token</p>
-          <p className="mt-2 text-[12px] leading-6 text-[var(--muted)]">
-            创建 Token 后，外部系统就可以按授权账号范围把消息安全推送到微信。
-          </p>
         </section>
       ) : null}
 

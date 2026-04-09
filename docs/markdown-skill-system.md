@@ -312,70 +312,57 @@ Markdown body 是 skill 的完整知识内容。
 
 ### Skill 示例
 
-#### translator
+当前仓库默认内置的是 `healthy-meal-reminder`。下面同时给出一个当前内置 skill 和两个假想示例，用于说明 on-demand / always 两种激活方式。
+
+#### healthy-meal-reminder（当前内置）
 
 ```markdown
 ---
-name: translator
+name: healthy-meal-reminder
+version: 1.8.0
+type: skill
+author: clawbot
+summary: 健康饮食提醒与饮食记录，基于定时任务管理三餐、下午茶、运动和周报
+activation: on-demand
+---
+
+你是健康饮食提醒助手。用户提到饮食提醒、三餐提醒、吃什么、减肥食谱、健康饮食、meal reminder、吃了什么、体重打卡时，按以下规则工作：
+
+- 推荐时固定给出 A / B / C 三个方案
+- 早餐、午餐、晚餐推荐后 30 分钟自动跟进一次
+- 用户回复后记录饮食、估算热量、汇总今日摄入
+- 使用当前项目的定时任务工具创建和维护提醒
+```
+
+#### translation-ja（假想按需 skill）
+
+```markdown
+---
+name: translation-ja
 version: 1.0.0
 type: skill
 author: community
-summary: 翻译文本到指定语言，保留专业术语
+summary: 将文本翻译成日语，保留专有名词和原文结构
+activation: on-demand
 ---
 
 你是一位专业翻译。请遵循以下规则：
 
-## 翻译规则
-
 - 保持原文格式和结构
-- 专业术语保留原文并括号标注翻译
-- 输出仅包含翻译结果，不要添加解释或评论
-- 若用户未指定目标语言，默认翻译为英语
-
-## 输出格式
-
-直接输出翻译结果，不要包含"以下是翻译"等前缀。
+- 专有名词保留原文并补充必要注释
+- 输出仅包含翻译结果，不添加额外解释
 ```
 
-#### summarizer
+#### tone-professional（假想常驻 skill）
 
 ```markdown
 ---
-name: summarizer
+name: tone-professional
 version: 1.0.0
 type: skill
 author: community
-summary: 总结长文本，提取要点
----
-
-你是一位精通信息提炼的助手。请遵循以下规则：
-
-## 摘要规则
-
-- 提取 3-5 个核心要点
-- 每个要点一句话，不超过 30 字
-- 保留关键数据和数字
-- 按重要性排序
-- 最后附一句话总结
-
-## 输出格式
-
-- 要点 1
-- 要点 2
-- ...
-
-**总结**：一句话概括全文。
-```
-
-#### persona_professional
-
-```markdown
----
-name: persona_professional
-version: 1.0.0
-type: skill
-author: clawbot
-summary: 专业商务助手人设，正式语气
+summary: 始终以正式、专业、克制的语气作答
+activation: always
 ---
 
 你是一位专业的商务助手。请始终遵循以下行为规范：
@@ -398,9 +385,9 @@ summary: 专业商务助手人设，正式语气
 [System Prompt 附加段]
 
 你有以下可用技能，当任务相关时可以请求加载：
-- translator: 翻译文本到指定语言，保留专业术语
-- summarizer: 总结长文本，提取要点
-- persona_professional: 专业商务助手人设，正式语气
+- healthy-meal-reminder: 健康饮食提醒与饮食记录，基于定时任务管理三餐、下午茶、运动和周报
+- translation-ja: 将文本翻译成日语，保留专有名词和原文结构
+- tone-professional: 始终以正式、专业、克制的语气作答
 要使用技能，调用 use_skill 工具。
 ```
 
@@ -495,12 +482,12 @@ async function handleUseSkill(skillName: string): Promise<ToolContent[]> {
 **多 skill 组合场景示例**：
 
 ```text
-用户: "帮我把这篇文章先总结，再翻译成日语"
+用户: "先把今天的饮食记录提炼成 3 条，再翻译成日语"
 
-第 1 轮: LLM 调用 use_skill("summarizer") → 加载摘要指令
-第 2 轮: LLM 调用 use_skill("translator") → 加载翻译指令
+第 1 轮: LLM 调用 use_skill("diet-digest-writer") → 加载提炼指令
+第 2 轮: LLM 调用 use_skill("translation-ja") → 加载翻译指令
 第 3 轮: LLM context 中有两个 <skill> 标签，综合两个指令完成任务
-         → 先按 summarizer 指令提取要点，再按 translator 指令翻译
+         → 先按 diet-digest-writer 指令提取要点，再按 translation-ja 指令翻译
 ```
 
 ### Skill 完整执行流程（2 轮）
@@ -513,12 +500,12 @@ async function handleUseSkill(skillName: string): Promise<ToolContent[]> {
     tools: [web_search, opencli, use_skill]
     system prompt 包含 skill 摘要列表
 
-  LLM 判断: 需要 translator skill
+  LLM 判断: 需要 translation-ja skill
   LLM 发出:
     {
       role: "assistant",
       content: [
-        { type: "tool_use", name: "use_skill", input: { skill_name: "translator" } }
+        { type: "tool_use", name: "use_skill", input: { skill_name: "translation-ja" } }
       ]
     }
 
@@ -527,7 +514,7 @@ async function handleUseSkill(skillName: string): Promise<ToolContent[]> {
       role: "user",
       content: [
         { type: "tool_result", tool_use_id: "...",
-          content: "<skill name=\"translator\" version=\"1.0.0\">\n以下是已加载的技能指令。你必须在本次对话的后续回复中严格遵循这些指令来完成用户的请求。\n\n你是一位专业翻译。请遵循以下规则：\n...\n</skill>" }
+          content: "<skill name=\"translation-ja\" version=\"1.0.0\">\n以下是已加载的技能指令。你必须在本次对话的后续回复中严格遵循这些指令来完成用户的请求。\n\n你是一位专业翻译。请遵循以下规则：\n...\n</skill>" }
       ]
     }
 
@@ -535,8 +522,8 @@ async function handleUseSkill(skillName: string): Promise<ToolContent[]> {
   LLM context:
     [system] 基础 system prompt + skill 索引（未变，KV cache 命中）
     [user] "帮我把这段话翻译成日语：人工智能正在改变世界"
-    [assistant] tool_use: use_skill("translator")
-    [user/tool_result] <skill name="translator">...完整指令...</skill>
+    [assistant] tool_use: use_skill("translation-ja")
+    [user/tool_result] <skill name="translation-ja">...完整指令...</skill>
 
   LLM 按 skill 指令输出翻译结果:
     "人工知能は世界を変えています"
@@ -576,7 +563,7 @@ frontmatter 中用 `activation` 字段区分：
 
 ```yaml
 ---
-name: persona_professional
+name: tone-professional
 type: skill
 activation: always        # always = 常驻, on-demand = 按需（默认）
 ---
@@ -663,10 +650,10 @@ data/
 │       └── ...
 ├── skills/
 │   ├── builtin/               # 随代码发布
-│   │   └── persona_professional.md
+│   │   └── healthy-meal-reminder.md
 │   └── user/                  # 用户安装
-│       ├── translator.md
-│       └── summarizer.md
+│       ├── translation-ja.md
+│       └── diet-digest-writer.md
 ```
 
 分层解析规则（tool 和 skill 相同）：
@@ -1010,7 +997,7 @@ export interface SkillInfoV2 {
 4. 实现 use_skill meta tool
 5. 改造 runner：system prompt 注入（常驻 skill + 按需索引）
 6. 改造 runner：use_skill 触发后 skill body 作为 tool_result 返回
-7. 创建示例 skill（translator, summarizer）
+7. 创建示例 skill（healthy-meal-reminder, translation-ja）
 8. 新增 `/api/skills`（新语义）路由
 9. **旧兼容层移至 `/api/legacy/skills`**
 10. 更新 shared/types.ts：新增 `SkillInfoV2`，旧 `SkillInfo` 标记 `@deprecated`
@@ -1018,8 +1005,8 @@ export interface SkillInfoV2 {
 12. 更新路由：`/tools` 和 `/skills` 两个页面
 
 **验收**：
-- 安装 translator skill，LLM 自动触发 use_skill → skill body 作为 tool_result 返回 → 模型按指令翻译
-- 常驻 skill（persona）在每次对话中自动生效
+- 安装 translation-ja skill，LLM 自动触发 use_skill → skill body 作为 tool_result 返回 → 模型按指令翻译
+- 常驻 skill（如 tone-professional）在每次对话中自动生效
 - 前端 ToolsPage 显示 tool 列表，SkillsPage 显示 skill 列表
 - 旧 `/api/legacy/skills` 仍可访问（兼容期）
 

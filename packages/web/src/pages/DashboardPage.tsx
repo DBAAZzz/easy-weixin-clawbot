@@ -65,9 +65,6 @@ export function DashboardPage() {
               Accounts
             </p>
             <h2 className="mt-1.5 text-[20px] text-[var(--ink)]">账号列表</h2>
-            <p className="mt-1 text-[12px] leading-5 text-[var(--muted)]">
-              查看接入状态、会话规模，并直接进入指定账号的历史会话。
-            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -92,7 +89,6 @@ export function DashboardPage() {
                 <p className="mt-1.5 font-[var(--font-mono)] text-[18px] font-semibold text-[var(--ink)]">
                   {stat.value}
                 </p>
-                <p className="mt-0.5 text-[11px] text-[var(--muted)]">{stat.hint}</p>
               </div>
             ))}
           </div>
@@ -172,10 +168,6 @@ export function DashboardPage() {
             <div className="grid gap-5 px-4 py-8 md:grid-cols-[minmax(0,1fr)_200px] md:items-end">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">暂无账号</p>
-                <h3 className="mt-2 text-[18px] text-[var(--ink)]">先建立第一条连接</h3>
-                <p className="mt-2 max-w-2xl text-[12px] leading-6 text-[var(--muted)]">
-                  当前还没有可用账号。完成扫码登录后，控制台会自动出现账号，并允许直接查看会话归档。
-                </p>
               </div>
 
               <Link to="/login" className={buttonClassName({ className: "justify-center", size: "sm" })}>
@@ -200,9 +192,6 @@ export function DashboardPage() {
               {visibleAccounts.length === 0 ? (
                 <div className="px-5 py-9 text-center">
                   <p className="text-[13px] text-[var(--ink)]">没有匹配到账号</p>
-                  <p className="mt-1.5 text-[12px] text-[var(--muted)]">
-                    可以尝试清空搜索词，或者切换状态筛选。
-                  </p>
                 </div>
               ) : (
                 visibleAccounts.map((account) => <AccountCard key={account.id} account={account} onUpdate={refresh} />)

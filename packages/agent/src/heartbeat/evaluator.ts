@@ -16,22 +16,9 @@ import {
   LIMITS,
   nextBackoff,
 } from "./types.js";
-
-// ── Eval system prompt ─────────────────────────────────────────────
-
-const EVAL_SYSTEM_PROMPT = `你是一个内部状态检查器，不是对话助手。
-你只输出一个 JSON 对象，不输出其他任何内容。
-
-JSON 格式（严格遵守）：
-{"verdict":"act|wait|resolve|abandon","reason":"一句话"}
-
-verdict 含义：
-- act: 需要立即行动（调用工具、与用户交互）
-- wait: 还不到时候，继续等
-- resolve: 目标已达成
-- abandon: 目标不再有意义
-
-只输出 JSON。`;
+import { getPromptAssets } from "../prompts/port.js";
+import { renderTemplate } from "../prompts/assembler.js";
+import { PROMPT_PROFILES, PROMPT_TEMPLATES } from "../prompts/profiles.js";
 
 // ── Verdict parsing ────────────────────────────────────────────────
 
@@ -96,6 +83,10 @@ async function phase1Evaluate(
   goal: PendingGoalRow,
   recentContext: string,
 ): Promise<{ verdict: Verdict; reason: string; usage: { input: number; output: number } }> {
+  const assets = getPromptAssets();
+  const evalProfile = PROMPT_PROFILES.heartbeat_eval;
+  const systemPrompt = assets.get(evalProfile.systemPromptKey);
+
   const userPrompt = `## 目标
 ${goal.description}
 
@@ -114,9 +105,10 @@ ${goal.resumeSignal ? `- 恢复信号: ${goal.resumeSignal}` : ""}
   const result = await reasonInternal({
     accountId: goal.accountId,
     sourceConversationId: goal.sourceConversationId,
-    systemPrompt: EVAL_SYSTEM_PROMPT,
+    systemPrompt,
     userPrompt,
     recentContext: recentContext || undefined,
+    profile: evalProfile,
   });
 
   const { verdict, reason } = parseEvalResult(result.text);
@@ -227,17 +219,16 @@ export async function evaluateGoal(goal: PendingGoalRow): Promise<GoalTransition
 
     // ── Phase 2: verdict === "act" → full execution ──
     const executor = getHeartbeatExecutor();
+    const assets = getPromptAssets();
+    const execTemplate = assets.get(PROMPT_TEMPLATES.heartbeat_exec);
 
-    const phase2Prompt =
-      `[执行上下文: heartbeat/phase2, 目标: ${goal.goalId}]\n` +
-      `[限制: 本次执行中不能创建新的 pending goal]\n\n` +
-      `你正在推进一个待完成的目标：\n\n` +
-      `## 目标\n${goal.description}\n\n` +
-      `## 上下文\n${goal.context}\n\n` +
-      `## 评估结论\n${reason}\n\n` +
-      (recentContext ? `## 近期对话\n${recentContext}\n\n` : "") +
-      `请尽你所能推进这个目标。完成后在回复中正常总结即可。` +
-      `如果你需要用户确认某些信息才能继续，请明确说明需要什么。`;
+    const phase2Prompt = renderTemplate(execTemplate, {
+      goalId: goal.goalId,
+      description: goal.description,
+      context: goal.context,
+      reason,
+      recentSection: recentContext ? `## 近期对话\n${recentContext}\n\n` : "",
+    }, { strict: true });
 
     const execResult = await executor.execute({
       accountId: goal.accountId,

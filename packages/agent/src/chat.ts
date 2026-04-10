@@ -28,6 +28,8 @@ import {
   fireExtractAndRecord,
 } from "./tape/index.js";
 import { extractMediaFromText } from "./media.js";
+import { assembleUserContext } from "./prompts/assembler.js";
+import { PROMPT_PROFILES } from "./prompts/profiles.js";
 
 /** Detect image MIME type from file header magic bytes. */
 function detectImageMime(buf: Buffer): string | null {
@@ -133,15 +135,15 @@ export async function chat(
       const history = getHistory(accountId, conversationId);
 
       const memoryContext = formatMemoryForPrompt(globalMemory, sessionMemory);
-      const now = new Date();
-      const timePrefix = `[当前时间: ${now.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", weekday: "short" })}]\n`;
 
-      const textParts = [timePrefix];
-      if (memoryContext) textParts.push(memoryContext + "\n");
-      textParts.push(text || "(no text)");
+      const assembledText = assembleUserContext(PROMPT_PROFILES.chat, {
+        tapeMemory: memoryContext || undefined,
+        time: new Date(),
+        userText: text || "(no text)",
+      });
 
       const userContent: (TextContent | ImageContent)[] = [
-        { type: "text", text: textParts.join("") },
+        { type: "text", text: assembledText },
       ];
 
       if (media?.type === "image") {

@@ -146,8 +146,12 @@ export async function checkWaitingGoalsAsync(
   const waiting = await store.findByAccountAndStatus(accountId, conversationId, "waiting_user");
 
   if (waiting.length === 0) return;
-
-  for (const goal of waiting) {
-    await store.markUserReplied(goal.goalId, latestSeq);
+  if (waiting.length > 1) {
+    console.warn(
+      `[heartbeat] ambiguous waiting_user resume skipped for ${accountId}/${conversationId}: ${waiting.length} active goals`,
+    );
+    return;
   }
+
+  await store.markUserReplied(waiting[0].goalId, latestSeq);
 }

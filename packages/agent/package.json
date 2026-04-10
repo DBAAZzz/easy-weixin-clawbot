@@ -77,6 +77,10 @@
     "./media": {
       "import": "./src/media.ts",
       "types": "./src/media.ts"
+    },
+    "./prompts": {
+      "import": "./src/prompts/index.ts",
+      "types": "./src/prompts/index.ts"
     }
   },
   "scripts": {

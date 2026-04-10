@@ -148,4 +148,23 @@ export type {
 
 // ── Chat orchestration ──────────────────────────────────────────────
 export { chat } from "./chat.js";
+
+// ── Prompt system ───────────────────────────────────────────────────
+export type {
+  PromptLane,
+  PromptProfile,
+  PromptAssets,
+  PromptAssetSpec,
+  LoadPromptAssetsOptions,
+} from "./prompts/index.js";
+export {
+  PROMPT_PROFILES,
+  PROMPT_TEMPLATES,
+  PROMPT_ASSET_SPECS,
+  loadPromptAssets,
+  resolveBundledPromptsDir,
+  validateTemplateVars,
+  setPromptAssets,
+  getPromptAssets,
+} from "./prompts/index.js";
 export { extractMediaFromText, resolveFilePath } from "./media.js";

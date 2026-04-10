@@ -12,6 +12,8 @@
 import { complete } from "@mariozechner/pi-ai";
 import { resolveModel } from "../model-resolver.js";
 import { recall, emptyState, formatMemoryForPrompt } from "../tape/index.js";
+import { assembleUserContext } from "../prompts/assembler.js";
+import type { PromptProfile } from "../prompts/types.js";
 
 export interface ReasonInternalOptions {
   accountId: string;
@@ -23,6 +25,8 @@ export interface ReasonInternalOptions {
   userPrompt: string;
   /** Recent messages from source conversation (if needed) */
   recentContext?: string;
+  /** Prompt profile controlling which context fragments are injected */
+  profile: PromptProfile;
 }
 
 export interface ReasonInternalResult {
@@ -33,33 +37,27 @@ export interface ReasonInternalResult {
 export async function reasonInternal(
   options: ReasonInternalOptions,
 ): Promise<ReasonInternalResult> {
-  const { accountId, sourceConversationId, systemPrompt, userPrompt, recentContext } = options;
+  const { accountId, sourceConversationId, systemPrompt, userPrompt, recentContext, profile } = options;
 
   // Inherit model config from the source conversation
   const model = await resolveModel(accountId, sourceConversationId, "chat");
 
-  // Read-only recall — get memory context without triggering compact
-  const [sessionMemory, globalMemory] = await Promise.all([
-    recall(accountId, sourceConversationId).catch(() => emptyState()),
-    recall(accountId, "__global__").catch(() => emptyState()),
-  ]);
+  // Read-only recall — only if profile allows tape memory injection
+  let memoryContext = "";
+  if (profile.injectTapeMemory) {
+    const [sessionMemory, globalMemory] = await Promise.all([
+      recall(accountId, sourceConversationId).catch(() => emptyState()),
+      recall(accountId, "__global__").catch(() => emptyState()),
+    ]);
+    memoryContext = formatMemoryForPrompt(globalMemory, sessionMemory);
+  }
 
-  const memoryContext = formatMemoryForPrompt(globalMemory, sessionMemory);
-  const now = new Date();
-  const timePrefix = `[当前时间: ${now.toLocaleString("zh-CN", {
-    timeZone: "Asia/Shanghai",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    weekday: "short",
-  })}]\n`;
-
-  const parts = [timePrefix];
-  if (memoryContext) parts.push(memoryContext + "\n");
-  if (recentContext) parts.push(`[源会话近期消息]\n${recentContext}\n`);
-  parts.push(userPrompt);
+  const assembledText = assembleUserContext(profile, {
+    tapeMemory: memoryContext || undefined,
+    time: new Date(),
+    recentContext: recentContext || undefined,
+    userText: userPrompt,
+  });
 
   const result = await complete(
     model.model,
@@ -68,7 +66,7 @@ export async function reasonInternal(
       messages: [
         {
           role: "user" as const,
-          content: [{ type: "text" as const, text: parts.join("") }],
+          content: [{ type: "text" as const, text: assembledText }],
           timestamp: Date.now(),
         },
       ],

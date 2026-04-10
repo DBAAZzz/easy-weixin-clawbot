@@ -29,6 +29,8 @@ import {
   collectLoadedSkillNames,
   createConversationSkillRuntime,
 } from "./runtime/skill-runtime.js";
+import { assembleSystemPrompt } from "./prompts/assembler.js";
+import { PROMPT_PROFILES } from "./prompts/profiles.js";
 
 export interface AgentConfig {
   model: Model<any>;
@@ -165,24 +167,6 @@ function snapshotAssistantMessage(message: AssistantMessage): string {
   );
 }
 
-function buildSystemPrompt(basePrompt: string, skills: SkillRegistry): string {
-  const snapshot = skills.current();
-  let systemPrompt = basePrompt;
-
-  for (const skill of snapshot.alwaysOn) {
-    systemPrompt += `\n\n[Skill: ${skill.name}]\n${skill.body}`;
-  }
-
-  if (snapshot.index.length > 0) {
-    systemPrompt += "\n\n你有以下可用技能，需要时调用 use_skill 加载：";
-    for (const skill of snapshot.index) {
-      systemPrompt += `\n- ${skill.name}: ${skill.summary}`;
-    }
-  }
-
-  return systemPrompt;
-}
-
 function buildToolResult(
   toolCallId: string,
   toolName: string,
@@ -229,7 +213,7 @@ export function createAgentRunner(
       callbacks.onRoundStart?.(round);
 
       // ── Context window trimming ──
-      const fullSystemPrompt = buildSystemPrompt(config.systemPrompt, skills);
+      const fullSystemPrompt = assembleSystemPrompt(PROMPT_PROFILES.chat, config.systemPrompt, skills);
       const currentTools = [...tools.current().tools, USE_SKILL_TOOL];
       const toolsSchemaText = JSON.stringify(currentTools.map((t) => ({ name: t.name, description: t.description, parameters: t.parameters })));
       const fixedOverheadTokens = estimateTextTokens(fullSystemPrompt) + estimateTextTokens(toolsSchemaText);

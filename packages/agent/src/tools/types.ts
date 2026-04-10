@@ -1,4 +1,5 @@
-import type { ImageContent, TextContent, Tool, TSchema } from "@mariozechner/pi-ai";
+import type { ZodTypeAny } from "zod";
+import type { TextContent, ImageContent } from "../llm/types.js";
 
 export interface ParameterDef {
   type: "string" | "integer" | "number" | "boolean";
@@ -29,7 +30,7 @@ export type ToolContent = TextContent | ImageContent;
 
 export interface CompiledTool {
   source: ToolSource;
-  parameters: TSchema;
+  parameters: ZodTypeAny;
   execute(args: Record<string, unknown>, ctx: ToolContext): Promise<ToolContent[]>;
 }
 
@@ -48,7 +49,10 @@ export interface NativeHandler {
   ): Promise<ToolContent[]>;
 }
 
-export interface ToolSnapshotItem extends Tool<TSchema> {
+export interface ToolSnapshotItem {
+  name: string;
+  description: string;
+  parameters: ZodTypeAny;
   execute: CompiledTool["execute"];
 }
 

@@ -5,7 +5,7 @@
  * blocking the user-facing response path.
  */
 
-import { complete, type Model } from "@mariozechner/pi-ai";
+import { generateText, type LanguageModel } from "ai";
 import { withSpan } from "@clawbot/observability";
 import { recall } from "./service.js";
 import { queueRecordEntry } from "./queue.js";
@@ -55,7 +55,7 @@ function formatExistingKeys(globalState: TapeState, sessionState: TapeState): st
  * Returns parsed memories or empty array on failure.
  */
 async function callExtractor(
-  model: Model<any>,
+  model: LanguageModel,
   turn: ConversationTurn,
   existingKeys: string,
   apiKey?: string,
@@ -65,27 +65,19 @@ async function callExtractor(
   const template = assets.get(PROMPT_PROFILES.memory_extract.systemPromptKey);
   const prompt = renderTemplate(template, { EXISTING_KEYS: existingKeys }, { strict: true });
 
-  const result = await complete(
+  const result = await generateText({
     model,
-    {
-      systemPrompt: prompt,
-      messages: [
-        {
-          role: "user" as const,
-          content: [{ type: "text" as const, text: turnText }],
-          timestamp: Date.now(),
-        },
-      ],
-      tools: [],
-    },
-    apiKey ? { apiKey } : {},
-  );
+    system: prompt,
+    messages: [
+      {
+        role: "user" as const,
+        content: turnText,
+      },
+    ],
+  });
 
   // Parse the response
-  const responseText = result.content
-    .filter((b): b is { type: "text"; text: string } => b.type === "text")
-    .map((b) => b.text)
-    .join("");
+  const responseText = result.text;
 
   // Extract JSON from response (handle markdown code blocks)
   const jsonMatch = responseText.match(/\[[\s\S]*\]/);
@@ -151,7 +143,7 @@ function toRecordParams(
  * @param apiKey - Optional API key
  */
 export function fireExtractAndRecord(
-  model: Model<any>,
+  model: LanguageModel,
   accountId: string,
   sessionBranch: string,
   turn: ConversationTurn,

@@ -1,3 +1,19 @@
+// ── LLM adapter layer ───────────────────────────────────────────────
+export type {
+  AgentMessage,
+  UserMessage,
+  AssistantMessage,
+  ToolResultMessage,
+  TextContent,
+  ImageContent,
+  ThinkingContent,
+  ToolCallContent,
+  ModelMeta,
+  LanguageModel,
+} from "./llm/types.js";
+export { agentToModelMessages, legacyPayloadToAgentMessage } from "./llm/messages.js";
+export { createLanguageModel } from "./llm/provider-factory.js";
+
 export type {
   AgentConfig,
   AgentRunner,

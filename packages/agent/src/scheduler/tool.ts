@@ -1,4 +1,4 @@
-import { Type } from "@mariozechner/pi-ai";
+import { z } from "zod";
 import { createToolRegistry } from "../tools/registry.js";
 import type { ToolSnapshotItem, ToolContent } from "../tools/types.js";
 import { validate } from "node-cron";
@@ -63,14 +63,12 @@ const createScheduledTaskTool: ToolSnapshotItem = {
     "需要将用户的自然语言需求转换为 cron 表达式和明确的 prompt。" +
     "支持两种类型：once（单次执行后自动停止）和 recurring（按 cron 重复执行）。" +
     "最小执行间隔为 30 分钟。",
-  parameters: Type.Object({
-    name: Type.String({ description: "任务名称（简短描述，如「科技新闻摘要」）" }),
-    type: Type.Optional(Type.Union([Type.Literal("once"), Type.Literal("recurring")], {
-      description: '任务类型：once（单次执行）或 recurring（重复执行），默认 recurring',
-    })),
-    cron: Type.String({ description: '标准 5 位 cron 表达式，如 "0 9 * * *"（每天9点）' }),
-    prompt: Type.String({ description: "每次执行时发送给 AI 的 prompt" }),
-    timezone: Type.Optional(Type.String({ description: "时区，默认 Asia/Shanghai" })),
+  parameters: z.object({
+    name: z.string().describe("任务名称（简短描述，如「科技新闻摘要」）"),
+    type: z.enum(["once", "recurring"]).describe("任务类型：once（单次执行）或 recurring（重复执行），默认 recurring").optional(),
+    cron: z.string().describe('标准 5 位 cron 表达式，如 "0 9 * * *"（每天9点）'),
+    prompt: z.string().describe("每次执行时发送给 AI 的 prompt"),
+    timezone: z.string().describe("时区，默认 Asia/Shanghai").optional(),
   }),
   async execute(args) {
     const { name, type, cron: cronExpr, prompt, timezone } = args as {
@@ -116,13 +114,13 @@ const createScheduledTaskTool: ToolSnapshotItem = {
 const updateScheduledTaskTool: ToolSnapshotItem = {
   name: "update_scheduled_task",
   description: "修改已有的定时任务。可修改名称、cron 表达式、prompt、时区或启用/禁用状态。",
-  parameters: Type.Object({
-    seq: Type.Integer({ description: "任务编号（如 3 表示 #3）" }),
-    name: Type.Optional(Type.String({ description: "新的任务名称" })),
-    cron: Type.Optional(Type.String({ description: "新的 cron 表达式" })),
-    prompt: Type.Optional(Type.String({ description: "新的 prompt" })),
-    timezone: Type.Optional(Type.String({ description: "新的时区" })),
-    enabled: Type.Optional(Type.Boolean({ description: "是否启用" })),
+  parameters: z.object({
+    seq: z.number().int().describe("任务编号（如 3 表示 #3）"),
+    name: z.string().describe("新的任务名称").optional(),
+    cron: z.string().describe("新的 cron 表达式").optional(),
+    prompt: z.string().describe("新的 prompt").optional(),
+    timezone: z.string().describe("新的时区").optional(),
+    enabled: z.boolean().describe("是否启用").optional(),
   }),
   async execute(args) {
     const { seq, name, cron: cronExpr, prompt, timezone, enabled } = args as {
@@ -162,8 +160,8 @@ const updateScheduledTaskTool: ToolSnapshotItem = {
 const deleteScheduledTaskTool: ToolSnapshotItem = {
   name: "delete_scheduled_task",
   description: "删除一个定时任务。",
-  parameters: Type.Object({
-    seq: Type.Integer({ description: "任务编号" }),
+  parameters: z.object({
+    seq: z.number().int().describe("任务编号"),
   }),
   async execute(args) {
     const { seq } = args as { seq: number };
@@ -183,7 +181,7 @@ const deleteScheduledTaskTool: ToolSnapshotItem = {
 const listScheduledTasksTool: ToolSnapshotItem = {
   name: "list_scheduled_tasks",
   description: "列出当前账号的所有定时任务。",
-  parameters: Type.Object({}),
+  parameters: z.object({}),
   async execute() {
     const ctx = getCurrentSchedulerContext();
     if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
@@ -206,8 +204,8 @@ const listScheduledTasksTool: ToolSnapshotItem = {
 const runScheduledTaskTool: ToolSnapshotItem = {
   name: "run_scheduled_task",
   description: "手动触发一次定时任务执行（不影响定时计划）。",
-  parameters: Type.Object({
-    seq: Type.Integer({ description: "任务编号" }),
+  parameters: z.object({
+    seq: z.number().int().describe("任务编号"),
   }),
   async execute(args) {
     const { seq } = args as { seq: number };

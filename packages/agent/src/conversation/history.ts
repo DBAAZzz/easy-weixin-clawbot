@@ -4,16 +4,16 @@
  * DB operations go through the MessageStore port interface.
  */
 
-import type { Message } from "@mariozechner/pi-ai";
+import type { AgentMessage } from "../llm/types.js";
 import { getMessageStore } from "../ports/message-store.js";
 
 /**
  * Per-account conversation stores.
  * Key: `${accountId}::${conversationId}` — isolates histories across accounts.
  */
-const store = new Map<string, Message[]>();
+const store = new Map<string, AgentMessage[]>();
 const seqCounters = new Map<string, number>();
-const loading = new Map<string, Promise<Message[]>>();
+const loading = new Map<string, Promise<AgentMessage[]>>();
 const waitQueues = new Map<string, Array<() => void>>();
 
 function key(accountId: string, conversationId: string) {
@@ -69,7 +69,7 @@ export async function withConversationLock<T>(
 export async function ensureHistoryLoaded(
   accountId: string,
   conversationId: string
-): Promise<Message[]> {
+): Promise<AgentMessage[]> {
   const conversationKey = key(accountId, conversationId);
 
   if (store.has(conversationKey)) {
@@ -97,7 +97,7 @@ export async function ensureHistoryLoaded(
   return loading.get(conversationKey)!;
 }
 
-export function getHistory(accountId: string, conversationId: string): Message[] {
+export function getHistory(accountId: string, conversationId: string): AgentMessage[] {
   const k = key(accountId, conversationId);
   if (!store.has(k)) {
     throw new Error(

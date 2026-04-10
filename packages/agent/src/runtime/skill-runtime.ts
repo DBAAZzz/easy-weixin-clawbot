@@ -1,4 +1,4 @@
-import type { Message, ToolResultMessage } from "@mariozechner/pi-ai";
+import type { AgentMessage, ToolResultMessage } from "../llm/types.js";
 import type { SkillRegistry } from "../skills/types.js";
 import type { CompiledSkill } from "../skills/types.js";
 import type { ToolContent } from "../tools/types.js";
@@ -27,7 +27,7 @@ export function wrapSkillEnvelope(skill: CompiledSkill): string {
   ].join("\n");
 }
 
-export function collectLoadedSkillNames(messages: Message[]): string[] {
+export function collectLoadedSkillNames(messages: AgentMessage[]): string[] {
   const loaded = new Set<string>();
   const pattern = /<skill name="([^"]+)"/g;
 

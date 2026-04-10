@@ -1,4 +1,4 @@
-import { Type, type TSchema } from "@mariozechner/pi-ai";
+import { z, type ZodTypeAny } from "zod";
 import type { ParsedFile } from "../shared/parser.js";
 import type { CompiledTool, ParameterDef, ToolSource } from "./types.js";
 import { getNativeHandler } from "./handlers/index.js";
@@ -43,49 +43,51 @@ function toParameterDef(
   };
 }
 
-function buildParameterSchema(definition: ParameterDef): TSchema {
-  const options: Record<string, unknown> = {
-    description: definition.description,
-  };
-
-  if (definition.default !== undefined) {
-    options.default = definition.default;
-  }
-
+function buildParameterSchema(definition: ParameterDef): ZodTypeAny {
   if (definition.enum && definition.enum.length > 0) {
-    const literals = definition.enum.map((value) => Type.Literal(value as string | number | boolean));
-    if (literals.length === 1) {
-      return literals[0];
+    const values = definition.enum as [string, ...string[]];
+    let schema: ZodTypeAny = z.enum(values as [string, ...string[]]);
+    if (definition.description) {
+      schema = schema.describe(definition.description);
     }
-    const unionMembers = [literals[0], literals[1], ...literals.slice(2)] as [
-      TSchema,
-      TSchema,
-      ...TSchema[],
-    ];
-    return Type.Union(unionMembers, options);
+    return schema;
   }
 
+  let schema: ZodTypeAny;
   switch (definition.type) {
     case "string":
-      return Type.String(options);
+      schema = z.string();
+      break;
     case "integer":
-      return Type.Integer(options);
+      schema = z.number().int();
+      break;
     case "number":
-      return Type.Number(options);
+      schema = z.number();
+      break;
     case "boolean":
-      return Type.Boolean(options);
+      schema = z.boolean();
+      break;
   }
+
+  if (definition.description) {
+    schema = schema.describe(definition.description);
+  }
+  if (definition.default !== undefined) {
+    schema = schema.default(definition.default as any);
+  }
+
+  return schema;
 }
 
-function buildToolParameters(inputSchema: Record<string, ParameterDef>): TSchema {
-  const properties: Record<string, TSchema> = {};
+function buildToolParameters(inputSchema: Record<string, ParameterDef>): ZodTypeAny {
+  const shape: Record<string, ZodTypeAny> = {};
 
   for (const [name, definition] of Object.entries(inputSchema)) {
     const propertySchema = buildParameterSchema(definition);
-    properties[name] = definition.required ? propertySchema : Type.Optional(propertySchema);
+    shape[name] = definition.required ? propertySchema : propertySchema.optional();
   }
 
-  return Type.Object(properties, { additionalProperties: false });
+  return z.object(shape);
 }
 
 export function createToolSource(parsed: ParsedFile): ToolSource {

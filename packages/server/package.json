@@ -20,7 +20,6 @@
     "@clawbot/shared": "workspace:*",
     "@clawbot/weixin-agent-sdk": "workspace:*",
     "@hono/node-server": "^1.19.11",
-    "@mariozechner/pi-ai": "^0.62.0",
     "@prisma/client": "^6.19.2",
     "dotenv": "^16.4.7",
     "hono": "^4.12.9",

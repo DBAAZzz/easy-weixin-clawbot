@@ -5,7 +5,7 @@
  * during normal conversations. The Agent decides autonomously when to create goals.
  */
 
-import { Type } from "@mariozechner/pi-ai";
+import { z } from "zod";
 import { createToolRegistry } from "../tools/registry.js";
 import type { ToolSnapshotItem, ToolContent } from "../tools/types.js";
 import { getHeartbeatStore } from "../ports/heartbeat-store.js";
@@ -52,15 +52,11 @@ const createPendingGoalTool: ToolSnapshotItem = {
     "当你发现当前对话中有需要后续跟进的事项时调用。" +
     "比如：工具暂时不可用需要稍后重试、用户说'我一会儿确认'、某个操作需要等待异步结果。" +
     "不要用于用户明确要求的定时任务（那是 scheduler 的职责）。",
-  parameters: Type.Object({
-    description: Type.String({ description: "目标描述（一句话说明要跟进什么）" }),
-    context: Type.String({ description: "相关上下文（创建时的背景信息）" }),
-    delay_minutes: Type.Optional(
-      Type.Number({ description: "首次检查延迟分钟数，默认 5", minimum: 1, maximum: 1440 }),
-    ),
-    max_checks: Type.Optional(
-      Type.Number({ description: "最大检查次数，默认 10", minimum: 1, maximum: 20 }),
-    ),
+  parameters: z.object({
+    description: z.string().describe("目标描述（一句话说明要跟进什么）"),
+    context: z.string().describe("相关上下文（创建时的背景信息）"),
+    delay_minutes: z.number().min(1).max(1440).describe("首次检查延迟分钟数，默认 5").optional(),
+    max_checks: z.number().min(1).max(20).describe("最大检查次数，默认 10").optional(),
   }),
   async execute(args) {
     const {
@@ -126,9 +122,9 @@ const createPendingGoalTool: ToolSnapshotItem = {
 const resolvePendingGoalTool: ToolSnapshotItem = {
   name: "resolve_pending_goal",
   description: "当你在对话中得知某个待跟进目标已经完成时调用。",
-  parameters: Type.Object({
-    goal_id: Type.String({ description: "目标 ID (UUID)" }),
-    resolution: Type.String({ description: "完成说明" }),
+  parameters: z.object({
+    goal_id: z.string().describe("目标 ID (UUID)"),
+    resolution: z.string().describe("完成说明"),
   }),
   async execute(args) {
     const { goal_id: goalId, resolution } = args as { goal_id: string; resolution: string };
@@ -155,7 +151,7 @@ const resolvePendingGoalTool: ToolSnapshotItem = {
 const listPendingGoalsTool: ToolSnapshotItem = {
   name: "list_pending_goals",
   description: "列出当前账号的所有活跃待跟进目标。",
-  parameters: Type.Object({}),
+  parameters: z.object({}),
   async execute() {
     const ctx = getCurrentContext();
     if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");

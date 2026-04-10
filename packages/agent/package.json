@@ -81,6 +81,10 @@
     "./prompts": {
       "import": "./src/prompts/index.ts",
       "types": "./src/prompts/index.ts"
+    },
+    "./llm": {
+      "import": "./src/llm/index.ts",
+      "types": "./src/llm/index.ts"
     }
   },
   "scripts": {
@@ -89,12 +93,23 @@
     "test": "tsx --test 'src/**/*.test.ts'"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.68",
+    "@ai-sdk/deepseek": "^2.0.29",
+    "@ai-sdk/google": "^3.0.61",
+    "@ai-sdk/groq": "^3.0.35",
+    "@ai-sdk/mistral": "^3.0.30",
+    "@ai-sdk/moonshotai": "^2.0.16",
+    "@ai-sdk/openai": "^3.0.52",
+    "@ai-sdk/openai-compatible": "^2.0.41",
+    "@ai-sdk/xai": "^3.0.82",
     "@clawbot/observability": "workspace:*",
-    "@mariozechner/pi-ai": "^0.62.0",
+    "ai": "^6.0.156",
     "node-cron": "^4.2.1",
-    "yaml": "^2.8.3"
+    "yaml": "^2.8.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/node": "^22.19.15",
     "tsx": "^4.21.0",
     "typescript": "^5.7.3"
   }

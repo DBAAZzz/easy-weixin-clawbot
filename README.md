@@ -14,7 +14,7 @@
   <hr>
 </div>
 
-微信 ClawBot Agent 是一个多账号微信 AI 连接器。通过 Web 后台统一管理多个微信号的 AI 接入，支持扫码登录、对话持久化、LLM 智能回复、工具/技能扩展、Tape 记忆系统、定时任务、Webhook、MCP Server 管理和可观测性追踪。每个微信号都是一个独立的 AI Agent，拥有独立的对话历史、记忆、工具调用能力和个性化配置。
+微信 ClawBot Agent 是一个多账号微信 AI 连接器。通过 Web 后台统一管理多个微信号的 AI 接入，支持扫码登录、对话持久化、基于 AI SDK 6 的 LLM 网关编排、工具/技能扩展、Tape 记忆系统、定时任务、Webhook、MCP Server 管理和可观测性追踪。每个微信号都是一个独立的 AI Agent，拥有独立的对话历史、记忆、工具调用能力和个性化配置。
 
 ## 界面预览
 
@@ -82,8 +82,8 @@ pnpm install
 
 ```bash
 # LLM 配置（默认模型）
-LLM_PROVIDER=moonshot
-LLM_MODEL=moonshot-v1-8k
+LLM_PROVIDER=deepseek
+LLM_MODEL=deepseek-chat
 LLM_API_KEY=your-api-key
 
 # 数据库
@@ -112,8 +112,49 @@ pnpm -F @clawbot/server prisma:push
 ```
 
 > `pnpm -F @clawbot/server ...` 的工作目录是 `packages/server`，因此环境变量文件需要放在 `packages/server/.env`。
-> 当前仓库里的 [packages/web/vite.config.ts](/Users/mac/Documents/workspace/DBAA/微信clawbot-agent/packages/web/vite.config.ts) 将 `/api` 代理到 `http://localhost:8028`。如果你改了 `API_PORT`，记得同步修改这里的 proxy。
+> 当前仓库里的 `packages/web/vite.config.ts` 将 `/api` 代理到 `http://localhost:8028`。如果你改了 `API_PORT`，记得同步修改这里的 proxy。
 > 如果你只是先装依赖、还没准备好数据库配置，可以先执行 `pnpm install --ignore-scripts`，补齐 `packages/server/.env` 后再运行 `pnpm -F @clawbot/server prisma:generate`。
+
+### LLM Provider 说明
+
+当前版本默认采用 **AI SDK 官方 provider 包优先** 的策略：
+
+| Provider | 接入方式 |
+|------|------|
+| `openai` | `@ai-sdk/openai` |
+| `anthropic` | `@ai-sdk/anthropic` |
+| `google` | `@ai-sdk/google` |
+| `deepseek` | `@ai-sdk/deepseek` |
+| `moonshot` / `kimi` / `kimi-coding` | `@ai-sdk/moonshotai` |
+| `xai` | `@ai-sdk/xai` |
+| `groq` | `@ai-sdk/groq` |
+| `mistral` | `@ai-sdk/mistral` |
+| `openrouter` | `@ai-sdk/openai-compatible` |
+| 自定义 `baseUrl` | `@ai-sdk/openai-compatible` |
+
+环境变量支持两种方式：
+
+- 统一使用 `LLM_API_KEY`
+- 或使用 provider 对应标准变量名：`OPENAI_API_KEY`、`ANTHROPIC_API_KEY`、`GOOGLE_API_KEY`、`DEEPSEEK_API_KEY`、`MOONSHOT_API_KEY`、`XAI_API_KEY`、`GROQ_API_KEY`、`MISTRAL_API_KEY`
+
+常见配置示例：
+
+```bash
+# DeepSeek
+LLM_PROVIDER=deepseek
+LLM_MODEL=deepseek-chat
+DEEPSEEK_API_KEY=your-api-key
+
+# Anthropic
+LLM_PROVIDER=anthropic
+LLM_MODEL=claude-sonnet-4-20250514
+ANTHROPIC_API_KEY=your-api-key
+
+# Moonshot / Kimi
+LLM_PROVIDER=moonshot
+LLM_MODEL=kimi-k2.5
+MOONSHOT_API_KEY=your-api-key
+```
 
 ### 启动
 
@@ -148,10 +189,11 @@ pnpm start   # 仅启动 Hono API + 微信运行时
 
 ### AI Agent 能力
 
-- **多 LLM 供应商**：支持 Moonshot、OpenAI、Anthropic、Google 等，可按账号/对话单独配置
-- **工具调用**：内置 `opencli`，支持 Markdown 定义的自定义 Tool，MCP Tool 独立管理
+- **LLM 网关编排**：基于 AI SDK 6，支持按全局 / 账号 / 对话三级解析模型配置
+- **多 LLM 供应商**：支持 OpenAI、Anthropic、Google、DeepSeek、Moonshot/Kimi、xAI、Groq、Mistral；OpenRouter 与自定义兼容端点走 OpenAI-compatible 适配层
+- **工具调用**：内置 `opencli`，支持 Markdown 定义的自定义 Tool，MCP Tool 独立管理，并通过 AI SDK Tool 调用链统一编排
 - **技能系统**：内置 `healthy-meal-reminder`，支持 always/on-demand 两种激活模式
-- **对话持久化**：消息异步写入 PostgreSQL，支持历史记录查询
+- **对话持久化**：消息异步写入 PostgreSQL，支持历史记录查询；历史消息采用“读旧写新”兼容策略，迁移后仍可读取旧 payload
 
 ### 记忆系统
 
@@ -177,7 +219,7 @@ pnpm start   # 仅启动 Hono API + 微信运行时
 ### MCP 与可观测性
 
 - **MCP Server 管理**：支持在 Web 后台新增、编辑、启停 stdio MCP Server
-- **MCP Tool 控制**：发现的 MCP Tool 可单独启用 / 禁用
+- **MCP Tool 控制**：发现的 MCP Tool 可单独启用 / 禁用，并会在消息恢复与模型转换时做参数归一化
 - **Trace 追踪**：查看消息链路、LLM 轮次、Tool 调用、耗时和错误明细
 - **Metrics 导出**：暴露 `/api/metrics` 文本指标，方便接 Prometheus 或自定义采集
 
@@ -226,7 +268,7 @@ flowchart TB
 
 ```
 packages/
-├── agent/              # Agent 引擎（工具、技能、LLM 编排、Tape 记忆、定时任务）
+├── agent/              # Agent 引擎（AI SDK 编排、工具、技能、Tape 记忆、定时任务）
 ├── observability/      # Trace / span / metrics / 采样能力
 ├── server/             # 服务端（API、多账号管理、Webhook、MCP、持久化）
 ├── shared/             # 共享类型定义
@@ -256,6 +298,7 @@ data/
 | **Memory** | 结构化记忆系统，记录事实、偏好和决策 |
 | **Scheduled Task** | 定时执行的自动化任务，基于 Cron 表达式 |
 | **Webhook** | 外部系统向微信账号发送消息的接口 |
+| **Model Provider Template** | provider + model 列表 + baseUrl + key 的复用模板，用于生成多层级模型配置 |
 
 ## 主要页面与接口
 
@@ -290,6 +333,7 @@ data/
 | GET/POST/PUT/DELETE | `/api/tools*` / `/api/skills*` | Tool / Skill 安装与启停 |
 | GET/POST/PATCH/DELETE | `/api/mcp/servers*` | MCP Server 管理 |
 | GET/POST | `/api/mcp/tools*` | MCP Tool 列表与启停 |
+| GET/POST/PATCH/DELETE | `/api/model-provider-templates*` | Provider 模板管理 |
 | GET | `/api/observability/overview` / `/api/observability/traces/:traceId` | Trace 统计与详情 |
 | GET | `/api/metrics` | 文本指标导出 |
 | POST/GET/PATCH/DELETE | `/api/webhooks*` | Webhook 投递、Token 管理、日志 |
@@ -300,7 +344,8 @@ data/
 
 - **前端**：React 19 + React Router 7 + Vite 8 + Tailwind CSS 4
 - **后端**：Node.js + Hono + Prisma + PostgreSQL
-- **Agent 内核**：`@clawbot/agent` + `@mariozechner/pi-ai`
+- **Agent 内核**：`@clawbot/agent` + `ai` / AI SDK 6
+- **模型 Provider**：`@ai-sdk/openai`、`@ai-sdk/anthropic`、`@ai-sdk/google`、`@ai-sdk/deepseek`、`@ai-sdk/moonshotai`、`@ai-sdk/xai`、`@ai-sdk/groq`、`@ai-sdk/mistral`、`@ai-sdk/openai-compatible`
 - **可观测性**：`@clawbot/observability`
 - **微信接入**：`@clawbot/weixin-agent-sdk` / `weixin-acp`
 

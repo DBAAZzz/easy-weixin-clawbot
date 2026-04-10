@@ -4,17 +4,17 @@
  * Implemented by server (Prisma) and injected at startup.
  */
 
-import type { Message } from "@mariozechner/pi-ai";
+import type { AgentMessage } from "../llm/types.js";
 
 export interface RestoredHistory {
-  messages: Message[];
+  messages: AgentMessage[];
   maxSeq: number;
 }
 
 export interface PersistMessageParams {
   accountId: string;
   conversationId: string;
-  message: Message;
+  message: AgentMessage;
   seq: number;
   mediaSourcePath?: string;
 }

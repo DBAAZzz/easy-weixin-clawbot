@@ -1,4 +1,4 @@
-import type { TSchema } from "@mariozechner/pi-ai";
+import { jsonSchema } from "ai";
 import type { ToolContext, ToolSnapshotItem } from "../tools/types.js";
 import type { McpToolBinding, StdioMcpClient } from "./types.js";
 
@@ -26,7 +26,7 @@ export function createMcpToolSnapshotItem(
     description:
       binding.summary?.trim() ||
       `MCP tool ${binding.remote_name} from ${binding.server_name}`,
-    parameters: binding.input_schema as TSchema,
+    parameters: jsonSchema(binding.input_schema as any) as any,
     async execute(args: Record<string, unknown>, ctx: ToolContext) {
       const result = await client.callTool(binding.remote_name, args, ctx.signal);
       if (result.isError) {

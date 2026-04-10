@@ -10,12 +10,12 @@
  */
 
 import type {
-  Message,
+  AgentMessage,
   UserMessage,
   AssistantMessage,
   ToolResultMessage,
   TextContent,
-} from "@mariozechner/pi-ai";
+} from "../llm/types.js";
 import {
   estimateMessageTokens,
   estimateHistoryTokens,
@@ -37,7 +37,7 @@ export interface ContextWindowConfig {
 
 export interface TrimResult {
   /** Trimmed message array ready to pass to the LLM. */
-  messages: Message[];
+  messages: AgentMessage[];
   /** Trim level applied: 0 = none, 1 = image degradation, 2 = sliding window. */
   trimLevel: 0 | 1 | 2;
   /** Estimated tokens of the original history. */
@@ -56,7 +56,7 @@ const IMAGE_PLACEHOLDER: TextContent = {
 };
 
 /** Count backward from end to find the index where the last N user turns start. */
-function findRecentTurnsBoundary(messages: Message[], minTurns: number): number {
+function findRecentTurnsBoundary(messages: AgentMessage[], minTurns: number): number {
   let userCount = 0;
   for (let i = messages.length - 1; i >= 0; i--) {
     if (messages[i].role === "user") {
@@ -70,7 +70,7 @@ function findRecentTurnsBoundary(messages: Message[], minTurns: number): number 
 /**
  * Check if a message contains image content.
  */
-function hasImage(message: Message): boolean {
+function hasImage(message: AgentMessage): boolean {
   if (message.role === "user") {
     const user = message as UserMessage;
     if (typeof user.content === "string") return false;
@@ -84,7 +84,7 @@ function hasImage(message: Message): boolean {
 }
 
 /** Replace image blocks with a text placeholder. Returns a shallow clone. */
-function degradeImages(message: Message): Message {
+function degradeImages(message: AgentMessage): AgentMessage {
   if (message.role === "user") {
     const user = message as UserMessage;
     if (typeof user.content === "string") return message;
@@ -115,7 +115,7 @@ function degradeImages(message: Message): Message {
  *    advance past its corresponding toolResults.
  *  - The first kept message must be a user message (API requirement).
  */
-function findSafeCutIndex(messages: Message[], rawIndex: number): number {
+function findSafeCutIndex(messages: AgentMessage[], rawIndex: number): number {
   let idx = rawIndex;
 
   // Skip past any toolResult messages at the cut point
@@ -152,7 +152,7 @@ function findSafeCutIndex(messages: Message[], rawIndex: number): number {
  * (systemPrompt + tools schema + memory prompt).
  */
 export function fitToContextWindow(
-  messages: Message[],
+  messages: AgentMessage[],
   config: ContextWindowConfig,
 ): TrimResult {
   const budget =

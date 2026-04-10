@@ -1,14 +1,16 @@
-import {
-  complete,
-  type AssistantMessage,
-  type ImageContent,
-  type Message,
-  type Model,
-  type Tool,
-  type ToolCall,
-  type ToolResultMessage,
-  Type,
-} from "@mariozechner/pi-ai";
+import { generateText, tool as aiTool } from "ai";
+import { z } from "zod";
+import type {
+  AgentMessage,
+  AssistantMessage,
+  ImageContent,
+  ToolCallContent,
+  ToolResultMessage,
+  TextContent,
+  LanguageModel,
+  ModelMeta,
+} from "./llm/types.js";
+import { agentToModelMessages } from "./llm/messages.js";
 import {
   llmErrorsTotal,
   llmLatencyMs,
@@ -33,7 +35,8 @@ import { assembleSystemPrompt } from "./prompts/assembler.js";
 import { PROMPT_PROFILES } from "./prompts/profiles.js";
 
 export interface AgentConfig {
-  model: Model<any>;
+  model: LanguageModel;
+  meta: ModelMeta;
   systemPrompt: string;
   apiKey?: string;
   maxRounds?: number;
@@ -42,12 +45,13 @@ export interface AgentConfig {
 }
 
 export interface ModelOverride {
-  model: Model<any>;
+  model: LanguageModel;
+  meta: ModelMeta;
   apiKey?: string;
 }
 
 export interface RunCallbacks {
-  onMessage(msg: Message): void;
+  onMessage(msg: AgentMessage): void;
   onRoundStart?(round: number): void;
 }
 
@@ -58,14 +62,14 @@ export type RunResult =
 
 export interface AgentRunner {
   run(
-    messages: Message[],
+    messages: AgentMessage[],
     callbacks: RunCallbacks,
     signal?: AbortSignal,
     modelOverride?: ModelOverride,
   ): Promise<RunResult>;
 }
 
-function isToolCall(block: AssistantMessage["content"][number]): block is ToolCall {
+function isToolCall(block: AssistantMessage["content"][number]): block is ToolCallContent {
   return block.type === "toolCall";
 }
 
@@ -77,13 +81,11 @@ function createToolSignal(parentSignal: AbortSignal | undefined, timeoutMs: numb
   return AbortSignal.any(signals);
 }
 
-const USE_SKILL_TOOL: Tool = {
+const USE_SKILL_TOOL = {
   name: "use_skill",
   description: "加载一个技能到当前对话。加载后，你将获得该技能的完整指令，按指令完成用户任务。",
-  parameters: Type.Object({
-    skill_name: Type.String({
-      description: "要加载的技能名称",
-    }),
+  parameters: z.object({
+    skill_name: z.string().describe("要加载的技能名称"),
   }),
 };
 
@@ -94,7 +96,14 @@ function toErrorText(error: unknown): string {
   return String(error);
 }
 
-function serializeMessage(message: Message): unknown {
+function normalizeToolArguments(raw: unknown): Record<string, unknown> {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
+  }
+  return {};
+}
+
+function serializeMessage(message: AgentMessage): unknown {
   if (message.role === "user") {
     return {
       role: message.role,
@@ -146,7 +155,7 @@ function serializeMessage(message: Message): unknown {
   } satisfies Partial<ToolResultMessage>;
 }
 
-function snapshotMessages(messages: Message[]): string {
+function snapshotMessages(messages: AgentMessage[]): string {
   return sanitize(JSON.stringify(messages.map(serializeMessage), null, 2));
 }
 
@@ -189,13 +198,14 @@ export function createAgentRunner(
   skills: SkillRegistry,
 ): AgentRunner {
   async function run(
-    messages: Message[],
+    messages: AgentMessage[],
     callbacks: RunCallbacks,
     signal?: AbortSignal,
     modelOverride?: ModelOverride,
   ): Promise<RunResult> {
     const effectiveModel = modelOverride?.model ?? config.model;
-    const effectiveApiKey = modelOverride?.apiKey ?? config.apiKey;
+    const effectiveMeta = modelOverride?.meta ?? config.meta;
+    const effectiveModelId = typeof effectiveModel === "string" ? effectiveModel : (effectiveModel as { modelId: string }).modelId;
     const maxRounds = config.maxRounds ?? 10;
     const timeoutMs = config.toolTimeoutMs ?? 30_000;
     const workingHistory = [...messages];
@@ -219,8 +229,8 @@ export function createAgentRunner(
       const fixedOverheadTokens = estimateTextTokens(fullSystemPrompt) + estimateTextTokens(toolsSchemaText);
 
       const trimResult = fitToContextWindow(workingHistory, {
-        contextWindowTokens: effectiveModel.contextWindow,
-        outputReserveTokens: effectiveModel.maxTokens,
+        contextWindowTokens: effectiveMeta.contextWindow,
+        outputReserveTokens: effectiveMeta.maxOutputTokens,
         fixedOverheadTokens,
       });
 
@@ -238,48 +248,105 @@ export function createAgentRunner(
         );
       }
 
+      // ── Build AI SDK tools (schema only, no execute) ──
+      const aiSdkTools: Record<string, ReturnType<typeof aiTool>> = {};
+      for (const t of currentTools) {
+        aiSdkTools[t.name] = aiTool({
+          description: t.description,
+          inputSchema: t.parameters as any,
+        });
+      }
+
+      // ── Convert messages to AI SDK format ──
+      const modelMessages = agentToModelMessages(trimResult.messages);
+
       const llmStartedAt = Date.now();
       let response: AssistantMessage;
       try {
         response = await withSpan(
           "llm.call",
-          { model: effectiveModel.id, round },
+          { model: effectiveModelId, round },
           async (span) => {
-            const result = await complete(
-              effectiveModel,
-              {
-                systemPrompt: fullSystemPrompt,
-                messages: trimResult.messages,
-                tools: currentTools,
+            const result = await generateText({
+              model: effectiveModel,
+              system: fullSystemPrompt,
+              messages: modelMessages,
+              tools: aiSdkTools,
+              abortSignal: signal,
+            });
+
+            // Map finishReason → stopReason
+            const stopReason = mapFinishReason(result.finishReason);
+            const modelId = result.response?.modelId ?? effectiveModelId;
+
+            // Build AssistantMessage from result
+            const assistantContent: AssistantMessage["content"] = [];
+            for (const part of result.content) {
+              if ((part as any).type === "text") {
+                const textPart = part as { type: "text"; text: string };
+                if (textPart.text) {
+                  assistantContent.push({ type: "text", text: textPart.text });
+                }
+              } else if ((part as any).type === "reasoning") {
+                const reasonPart = part as { type: "reasoning"; text: string };
+                if (reasonPart.text) {
+                  assistantContent.push({ type: "thinking", thinking: reasonPart.text });
+                }
+              } else if ((part as any).type === "tool-call") {
+                const tcPart = part as unknown as {
+                  type: "tool-call";
+                  toolCallId: string;
+                  toolName: string;
+                  input?: unknown;
+                  args?: unknown;
+                };
+                assistantContent.push({
+                  type: "toolCall",
+                  id: tcPart.toolCallId,
+                  name: tcPart.toolName,
+                  arguments: normalizeToolArguments(tcPart.input ?? tcPart.args),
+                });
+              }
+            }
+
+            const assistantMsg: AssistantMessage = {
+              role: "assistant",
+              content: assistantContent,
+              timestamp: Date.now(),
+              model: modelId,
+              stopReason,
+              usage: {
+                input: result.usage.inputTokens ?? 0,
+                output: result.usage.outputTokens ?? 0,
               },
-              effectiveApiKey ? { apiKey: effectiveApiKey, signal } : { signal },
-            );
+            };
 
             span.addAttributes({
-              inputTokens: result.usage.input,
-              outputTokens: result.usage.output,
-              stopReason: result.stopReason,
+              inputTokens: result.usage.inputTokens ?? 0,
+              outputTokens: result.usage.outputTokens ?? 0,
+              stopReason,
               contextTrimLevel: trimResult.trimLevel,
               contextOriginalTokens: trimResult.originalTokens,
               contextTrimmedTokens: trimResult.trimmedTokens,
               contextDroppedMessages: trimResult.droppedMessageCount,
               promptSnapshot: snapshotMessages(trimResult.messages),
-              completionSnapshot: snapshotAssistantMessage(result),
+              completionSnapshot: snapshotAssistantMessage(assistantMsg),
             });
 
-            return result;
+            return assistantMsg;
           },
         );
       } catch (error) {
-        llmErrorsTotal.inc({
-          error_type:
-            error instanceof Error && error.name === "AbortError" ? "aborted" : "error",
-        });
+        if (error instanceof Error && error.name === "AbortError") {
+          llmErrorsTotal.inc({ error_type: "aborted" });
+          return { status: "aborted" };
+        }
+        llmErrorsTotal.inc({ error_type: "error" });
         throw error;
       }
 
-      llmLatencyMs.observe({ model: response.model }, Date.now() - llmStartedAt);
-      if (response.stopReason === "error" || response.stopReason === "aborted") {
+      llmLatencyMs.observe({ model: response.model ?? "unknown" }, Date.now() - llmStartedAt);
+      if (response.stopReason === "error") {
         llmErrorsTotal.inc({ error_type: response.stopReason });
       }
 
@@ -319,7 +386,7 @@ export function createAgentRunner(
                     JSON.stringify(
                       result.map((block) =>
                         block.type === "image"
-                          ? { type: "image", data: `[base64:${block.data.length} chars]` }
+                          ? { type: "image", data: `[base64:${(block as ImageContent).data.length} chars]` }
                           : block,
                       ),
                       null,
@@ -371,6 +438,17 @@ export function createAgentRunner(
   }
 
   return { run };
+}
+
+function mapFinishReason(finishReason: string): string {
+  switch (finishReason) {
+    case "stop": return "stop";
+    case "length": return "length";
+    case "tool-calls": return "toolUse";
+    case "error": return "error";
+    case "content-filter": return "error";
+    default: return "stop";
+  }
 }
 
 function createToolContext(

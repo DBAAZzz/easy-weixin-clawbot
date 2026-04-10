@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, readFile } from "node:fs/promises";
 import { basename, extname, join } from "node:path";
 import { Prisma } from "@prisma/client";
-import type { ImageContent, Message, TextContent } from "@mariozechner/pi-ai";
+import type { AgentMessage, ImageContent, TextContent } from "@clawbot/agent/llm";
+import { legacyPayloadToAgentMessage } from "@clawbot/agent/llm";
 import type { MessageRow, PaginatedResponse } from "@clawbot/shared";
 import { log } from "../logger.js";
 import { MEDIA_CACHE_DIR } from "../paths.js";
@@ -47,7 +48,7 @@ function isImageContent(value: unknown): value is StoredImageContent {
   );
 }
 
-function extractText(message: Message): string | null {
+function extractText(message: AgentMessage): string | null {
   if (typeof message.content === "string") {
     return message.content;
   }
@@ -75,7 +76,7 @@ function extractText(message: Message): string | null {
   return parts.length > 0 ? parts.join("\n") : null;
 }
 
-function extractMediaType(message: Message): string | null {
+function extractMediaType(message: AgentMessage): string | null {
   if (typeof message.content !== "object" || !Array.isArray(message.content)) return null;
   return message.content.some((block) => isImageContent(block)) ? "image" : null;
 }
@@ -97,11 +98,11 @@ async function copyMediaToCache(
 async function serializeMessage(
   accountId: string,
   conversationId: string,
-  message: Message,
+  message: AgentMessage,
   seq: number,
   mediaSourcePath?: string
 ): Promise<Record<string, unknown>> {
-  const clone = structuredClone(message) as Message & { content: unknown };
+  const clone = structuredClone(message) as AgentMessage & { content: unknown };
 
   if (!Array.isArray(clone.content)) {
     return clone as unknown as Record<string, unknown>;
@@ -127,11 +128,11 @@ async function serializeMessage(
   return clone as unknown as Record<string, unknown>;
 }
 
-async function hydrateMessage(payload: Record<string, unknown>): Promise<Message> {
-  const clone = structuredClone(payload) as unknown as Message & { content: unknown };
+async function hydrateMessage(payload: Record<string, unknown>): Promise<AgentMessage> {
+  const clone = structuredClone(payload) as unknown as AgentMessage & { content: unknown };
 
   if (!Array.isArray(clone.content)) {
-    return clone as Message;
+    return legacyPayloadToAgentMessage(clone as unknown as Record<string, unknown>);
   }
 
   const hydratedContent: Array<TextContent | ImageContent | Record<string, unknown>> = [];
@@ -158,8 +159,8 @@ async function hydrateMessage(payload: Record<string, unknown>): Promise<Message
     }
   }
 
-  clone.content = hydratedContent as Message["content"];
-  return clone as Message;
+  clone.content = hydratedContent as AgentMessage["content"];
+  return legacyPayloadToAgentMessage(clone as unknown as Record<string, unknown>);
 }
 
 async function persistRecord(record: StoredMessageRecord): Promise<void> {
@@ -256,7 +257,7 @@ async function flushQueue(): Promise<void> {
 export function queuePersistMessage(params: {
   accountId: string;
   conversationId: string;
-  message: Message;
+  message: AgentMessage;
   seq: number;
   mediaSourcePath?: string;
 }): void {
@@ -288,7 +289,7 @@ export function queuePersistMessage(params: {
 }
 
 export interface RestoredHistory {
-  messages: Message[];
+  messages: AgentMessage[];
   maxSeq: number;
 }
 

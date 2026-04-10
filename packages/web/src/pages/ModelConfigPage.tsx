@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import type {
+  AccountSummary,
+  ConversationRow,
   ModelConfigDto,
   ModelProviderTemplateDto,
 } from "../../../shared/src/types.js";
@@ -14,12 +16,14 @@ import {
   XIcon,
 } from "../components/ui/icons.js";
 import { Input } from "../components/ui/input.js";
-import { Select } from "../components/ui/select.js";
+import { Select, type SelectOption } from "../components/ui/select.js";
 import { useAsyncResource } from "../hooks/use-async-resource.js";
 import {
   createModelProviderTemplate,
   deleteModelConfig,
   deleteModelProviderTemplate,
+  fetchAccounts,
+  fetchConversations,
   fetchModelConfigs,
   fetchModelProviderTemplates,
   updateModelProviderTemplate,
@@ -35,6 +39,10 @@ import {
   normalizeModelIdList,
   resolveNextSelectedModel,
 } from "./model-config/templateForm.js";
+import {
+  buildScopeKey,
+  parseScopeSelection,
+} from "./model-config/configForm.js";
 
 const SCOPE_LABELS: Record<string, string> = {
   global: "全局",
@@ -73,6 +81,8 @@ interface TemplateEditorForm {
 interface ConfigEditorForm {
   scope: "global" | "account" | "conversation";
   scopeKey: string;
+  accountId: string;
+  conversationId: string;
   purpose: "*" | "chat" | "extraction";
   templateId: string;
   modelId: string;
@@ -94,6 +104,8 @@ const EMPTY_TEMPLATE_FORM: TemplateEditorForm = {
 const EMPTY_CONFIG_FORM: ConfigEditorForm = {
   scope: "global",
   scopeKey: "*",
+  accountId: "",
+  conversationId: "",
   purpose: "*",
   templateId: "",
   modelId: "",
@@ -134,9 +146,12 @@ function createTemplateFormFromDto(
 }
 
 function createConfigFormFromDto(dto: ModelConfigDto): ConfigEditorForm {
+  const selection = parseScopeSelection(dto.scope, dto.scope_key);
   return {
     scope: dto.scope,
     scopeKey: dto.scope_key,
+    accountId: selection.accountId,
+    conversationId: selection.conversationId,
     purpose: dto.purpose as ConfigEditorForm["purpose"],
     templateId: dto.template_id,
     modelId: dto.model_id,
@@ -157,6 +172,30 @@ function createConfigForm(
 
 function templateLabel(template: ModelProviderTemplateDto): string {
   return `${template.name} · ${template.provider}`;
+}
+
+function accountLabel(account: AccountSummary): string {
+  const name = account.alias?.trim() || account.display_name?.trim() || account.id;
+  return name === account.id ? account.id : `${name} · ${account.id}`;
+}
+
+function conversationLabel(conversation: ConversationRow): string {
+  const name = conversation.title?.trim() || conversation.conversation_id;
+  return name === conversation.conversation_id
+    ? conversation.conversation_id
+    : `${name} · ${conversation.conversation_id}`;
+}
+
+function ensureSelectedOption(
+  options: SelectOption[],
+  value: string,
+  label: string,
+): SelectOption[] {
+  if (!value || options.some((option) => option.value === value)) {
+    return options;
+  }
+
+  return [...options, { value, label }];
 }
 
 function ModelConfigCard(props: {
@@ -259,6 +298,7 @@ function ModelConfigCard(props: {
 function ModelConfigEditorModal(props: {
   initial?: ModelConfigDto;
   templates: ModelProviderTemplateDto[];
+  accounts: AccountSummary[];
   onSaved: () => void;
   onClose: () => void;
 }) {
@@ -282,6 +322,32 @@ function ModelConfigEditorModal(props: {
     value: modelId,
     label: modelId,
   }));
+  const {
+    data: conversationData,
+    loading: conversationsLoading,
+    error: conversationsError,
+  } = useAsyncResource<ConversationRow[]>(
+    form.scope === "conversation" && form.accountId
+      ? () => fetchConversations(form.accountId)
+      : null,
+    [form.scope, form.accountId],
+  );
+  const accountOptions = ensureSelectedOption(
+    props.accounts.map((account) => ({
+      value: account.id,
+      label: accountLabel(account),
+    })),
+    form.accountId,
+    `已失效账号 · ${form.accountId}`,
+  );
+  const conversationOptions = ensureSelectedOption(
+    (conversationData ?? []).map((conversation) => ({
+      value: conversation.conversation_id,
+      label: conversationLabel(conversation),
+    })),
+    form.conversationId,
+    `已失效会话 · ${form.conversationId}`,
+  );
 
   useEffect(() => {
     if (!props.initial && !form.templateId && availableTemplates[0]) {
@@ -293,20 +359,28 @@ function ModelConfigEditorModal(props: {
   }, [availableTemplates, form.templateId, props.initial]);
 
   useEffect(() => {
-    if (form.scope === "global") {
-      setForm((current) =>
-        current.scopeKey === "*"
-          ? current
-          : { ...current, scopeKey: "*" },
-      );
+    const nextScopeKey = buildScopeKey(
+      form.scope,
+      form.accountId,
+      form.conversationId,
+    );
+    if (form.scopeKey === nextScopeKey) {
       return;
     }
-    if (form.scopeKey === "*") {
-      setForm((current) => ({ ...current, scopeKey: "" }));
-    }
-  }, [form.scope, form.scopeKey]);
+    setForm((current) => {
+      const derivedScopeKey = buildScopeKey(
+        current.scope,
+        current.accountId,
+        current.conversationId,
+      );
+      return current.scopeKey === derivedScopeKey
+        ? current
+        : { ...current, scopeKey: derivedScopeKey };
+    });
+  }, [form.scope, form.accountId, form.conversationId, form.scopeKey]);
 
   async function handleSubmit() {
+    const scopeKey = buildScopeKey(form.scope, form.accountId, form.conversationId).trim();
     if (!form.templateId) {
       setError("请先选择一个可用模板");
       return;
@@ -315,8 +389,20 @@ function ModelConfigEditorModal(props: {
       setError("请从模板维护的 Model ID 列表中选择一个模型");
       return;
     }
-    if (form.scope !== "global" && !form.scopeKey.trim()) {
-      setError("请填写 Scope Key（账号 ID 或 账号ID:会话ID）");
+    if (form.scope === "account" && !form.accountId.trim()) {
+      setError("请选择账号");
+      return;
+    }
+    if (form.scope === "conversation" && !form.accountId.trim()) {
+      setError("请先选择账号");
+      return;
+    }
+    if (form.scope === "conversation" && !form.conversationId.trim()) {
+      setError("请选择会话");
+      return;
+    }
+    if (form.scope !== "global" && !scopeKey) {
+      setError("请先完成范围选择");
       return;
     }
 
@@ -325,7 +411,7 @@ function ModelConfigEditorModal(props: {
     try {
       await upsertModelConfig({
         scope: form.scope,
-        scope_key: form.scope === "global" ? "*" : form.scopeKey.trim(),
+        scope_key: scopeKey,
         purpose: form.purpose,
         template_id: form.templateId,
         model_id: form.modelId,
@@ -406,25 +492,76 @@ function ModelConfigEditorModal(props: {
             </div>
 
             {form.scope !== "global" ? (
-              <div className="mt-3">
-                <label className="text-[12px] text-[var(--muted-strong)]">
-                  {form.scope === "account" ? "账号 ID *" : "账号ID:会话ID *"}
-                </label>
-                <Input
-                  value={form.scopeKey}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      scopeKey: event.target.value,
-                    }))
-                  }
-                  placeholder={
-                    form.scope === "account"
-                      ? "例如 wxid_abc123"
-                      : "例如 wxid_abc123:conv_001"
-                  }
-                  className="mt-1"
-                />
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className={cn(form.scope === "account" && "md:col-span-2")}>
+                  <label className="text-[12px] text-[var(--muted-strong)]">
+                    账号 *
+                  </label>
+                  <Select
+                    value={form.accountId}
+                    options={accountOptions}
+                    onChange={(value) =>
+                      setForm((current) => ({
+                        ...current,
+                        accountId: value,
+                        conversationId:
+                          current.accountId === value ? current.conversationId : "",
+                      }))
+                    }
+                    placeholder={
+                      accountOptions.length > 0 ? "选择一个账号" : "暂无可选账号"
+                    }
+                    className="mt-1"
+                    disabled={accountOptions.length === 0}
+                  />
+                </div>
+
+                {form.scope === "conversation" ? (
+                  <div>
+                    <label className="text-[12px] text-[var(--muted-strong)]">
+                      会话 *
+                    </label>
+                    <Select
+                      value={form.conversationId}
+                      options={conversationOptions}
+                      onChange={(value) =>
+                        setForm((current) => ({
+                          ...current,
+                          conversationId: value,
+                        }))
+                      }
+                      placeholder={
+                        !form.accountId
+                          ? "先选择账号"
+                          : conversationsLoading
+                            ? "加载会话中..."
+                            : conversationOptions.length > 0
+                              ? "选择一个会话"
+                              : "该账号下暂无会话"
+                      }
+                      className="mt-1"
+                      disabled={
+                        !form.accountId ||
+                        conversationsLoading ||
+                        conversationOptions.length === 0
+                      }
+                    />
+                    {conversationsError ? (
+                      <p className="mt-2 text-[11px] text-red-600">
+                        会话列表加载失败：{conversationsError}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="md:col-span-2">
+                  <p className="text-[11px] text-[var(--muted)]">
+                    Scope Key 将自动生成：
+                    <span className="ml-1 font-[var(--font-mono)] text-[var(--muted-strong)]">
+                      {form.scopeKey || "请先完成选择"}
+                    </span>
+                  </p>
+                </div>
               </div>
             ) : null}
 
@@ -557,16 +694,18 @@ export function ModelConfigPage() {
   const [revision, setRevision] = useState(0);
   const { data, loading, error } = useAsyncResource(
     async () => {
-      const [templates, configs] = await Promise.all([
+      const [templates, configs, accounts] = await Promise.all([
         fetchModelProviderTemplates(),
         fetchModelConfigs(),
+        fetchAccounts(),
       ]);
-      return { templates, configs };
+      return { templates, configs, accounts };
     },
     [revision],
   );
   const templates = data?.templates ?? [];
   const configs = data?.configs ?? [];
+  const accounts = data?.accounts ?? [];
   const [templateEditor, setTemplateEditor] = useState<TemplateEditorState | null>(null);
   const [templateForm, setTemplateForm] = useState<TemplateEditorForm>(
     EMPTY_TEMPLATE_FORM,
@@ -1150,6 +1289,7 @@ export function ModelConfigPage() {
         <ModelConfigEditorModal
           initial={configEditorTarget === "create" ? undefined : configEditorTarget}
           templates={templates}
+          accounts={accounts}
           onSaved={() => {
             setConfigEditorTarget(null);
             refresh();

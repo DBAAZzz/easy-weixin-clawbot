@@ -8,7 +8,9 @@
  *   4. env-var default            (set at startup via setDefaultModel)
  */
 
-import { getModel, type Model } from "@mariozechner/pi-ai";
+import type { LanguageModel } from "ai";
+import { createLanguageModel } from "./llm/provider-factory.js";
+import type { ModelMeta } from "./llm/types.js";
 import {
   getModelConfigStore,
   type ModelConfigRow,
@@ -18,9 +20,9 @@ import {
 // ── Types ─────────────────────────────────────────────────────────────
 
 export interface ResolvedModel {
-  model: Model<any>;
+  model: LanguageModel;
   modelId: string;
-  apiKey: string | undefined;
+  meta: ModelMeta;
 }
 
 // ── Default model (env-var fallback) ──────────────────────────────────
@@ -77,42 +79,18 @@ async function fetchRows(
 // ── Model construction ────────────────────────────────────────────────
 
 /**
- * Build a Model object from provider + modelId + optional baseUrl.
- * Consolidates the moonshot/kimi special-case logic.
+ * Build a LanguageModel + metadata from provider + modelId + optional baseUrl.
+ * Replaces pi-ai's getModel() with the AI SDK provider factory.
  */
 export function buildModelFromConfig(
   provider: string,
   modelId: string,
-  baseUrl?: string | null,
-): Model<any> {
-  if (provider === "moonshot" || provider === "kimi") {
-    const url =
-      baseUrl ??
-      (provider === "kimi"
-        ? "https://api.kimi.ai/v1"
-        : "https://api.moonshot.cn/v1");
-    return {
-      id: modelId,
-      name: `Moonshot ${modelId}`,
-      api: "openai-completions" as const,
-      provider: "moonshot",
-      baseUrl: url,
-      reasoning: false,
-      input: ["text", "image"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 128000,
-      maxTokens: 4096,
-    };
-  }
-
-  const model = (getModel as any)(provider, modelId);
-  if (!model) {
-    throw new Error(
-      `[model-resolver] Unknown provider/model: provider="${provider}" model="${modelId}". ` +
-        `Check model config — the combination is not supported by pi-ai.`,
-    );
-  }
-  return model;
+  options?: { apiKey?: string; baseUrl?: string | null },
+): { model: LanguageModel; meta: ModelMeta } {
+  return createLanguageModel(provider, modelId, {
+    apiKey: options?.apiKey ?? undefined,
+    baseUrl: options?.baseUrl,
+  });
 }
 
 // ── Resolution ────────────────────────────────────────────────────────
@@ -143,15 +121,15 @@ export async function resolveModel(
     const rows = await fetchRows(scope, scopeKey);
     const match = rows.find((r) => matchPurpose(r.purpose, purpose));
     if (match && match.templateEnabled && rowSupportsModel(match)) {
-      const model = buildModelFromConfig(
+      const { model, meta } = buildModelFromConfig(
         match.provider,
         match.modelId,
-        match.baseUrl,
+        { apiKey: match.apiKey ?? undefined, baseUrl: match.baseUrl },
       );
       return {
         model,
         modelId: match.modelId,
-        apiKey: match.apiKey ?? undefined,
+        meta,
       };
     }
   }

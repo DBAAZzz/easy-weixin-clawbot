@@ -9,7 +9,7 @@
  *  - DOES inherit model config and tape memory from the source conversation
  */
 
-import { complete } from "@mariozechner/pi-ai";
+import { generateText } from "ai";
 import { resolveModel } from "../model-resolver.js";
 import { recall, emptyState, formatMemoryForPrompt } from "../tape/index.js";
 import { assembleUserContext } from "../prompts/assembler.js";
@@ -59,26 +59,18 @@ export async function reasonInternal(
     userText: userPrompt,
   });
 
-  const result = await complete(
-    model.model,
-    {
-      systemPrompt,
-      messages: [
-        {
-          role: "user" as const,
-          content: [{ type: "text" as const, text: assembledText }],
-          timestamp: Date.now(),
-        },
-      ],
-      tools: [],
-    },
-    model.apiKey ? { apiKey: model.apiKey } : {},
-  );
+  const result = await generateText({
+    model: model.model,
+    system: systemPrompt,
+    messages: [
+      {
+        role: "user" as const,
+        content: assembledText,
+      },
+    ],
+  });
 
-  const text = result.content
-    .filter((b): b is { type: "text"; text: string } => b.type === "text")
-    .map((b) => b.text)
-    .join("");
+  const text = result.text;
 
-  return { text, usage: result.usage };
+  return { text, usage: { input: result.usage.inputTokens ?? 0, output: result.usage.outputTokens ?? 0 } };
 }

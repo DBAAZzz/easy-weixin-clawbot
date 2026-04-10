@@ -5,13 +5,13 @@
  * Decoupled from transport layer — no HTTP, no WeChat, no Prisma.
  */
 
-import {
-  type AssistantMessage,
-  type ImageContent,
-  type Message,
-  type TextContent,
-  type ToolResultMessage,
-} from "@mariozechner/pi-ai";
+import type {
+  AssistantMessage,
+  ImageContent,
+  AgentMessage,
+  TextContent,
+  ToolResultMessage,
+} from "./llm/types.js";
 import { withSpan } from "@clawbot/observability";
 import { readFileSync } from "node:fs";
 import type { AgentRunner } from "./runner.js";
@@ -160,7 +160,7 @@ export async function chat(
         });
       }
 
-      const userMessage: Message = {
+      const userMessage: AgentMessage = {
         role: "user",
         content: userContent,
         timestamp: Date.now(),
@@ -187,7 +187,7 @@ export async function chat(
             log.llm(accountId, round);
           },
 
-          onMessage(message: Message) {
+          onMessage(message: AgentMessage) {
             // Skip persisting empty assistant messages (error responses from provider)
             const isEmptyAssistant =
               message.role === "assistant" && message.content.length === 0;
@@ -224,7 +224,7 @@ export async function chat(
           },
         },
         undefined,
-        { model: chatModel.model, apiKey: chatModel.apiKey },
+        { model: chatModel.model, meta: chatModel.meta },
       );
 
       if (result.status !== "aborted") {
@@ -254,7 +254,6 @@ export async function chat(
                   conversationId,
                   { userText: text, assistantText: replyText },
                   `agent:${extractionModel.modelId}`,
-                  extractionModel.apiKey,
                 );
               })
               .catch((err) => console.warn("[chat] extraction model resolve failed:", err));

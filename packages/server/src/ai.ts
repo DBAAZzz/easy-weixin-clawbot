@@ -29,7 +29,6 @@ import {
 } from "@clawbot/agent";
 import { setChatDeps } from "@clawbot/agent/chat";
 import { setDefaultModel, buildModelFromConfig } from "@clawbot/agent/model-resolver";
-import type { Model } from "@mariozechner/pi-ai";
 import { mkdirSync } from "node:fs";
 import { ensurePrismaUrls } from "./db/prisma-env.js";
 import { PrismaMessageStore } from "./db/message-store.impl.js";
@@ -92,8 +91,14 @@ export function validateConfig() {
     const envMap: Record<string, string> = {
       anthropic: "ANTHROPIC_API_KEY",
       openai: "OPENAI_API_KEY",
-      "kimi-coding": "KIMI_API_KEY",
       google: "GOOGLE_API_KEY",
+      deepseek: "DEEPSEEK_API_KEY",
+      moonshot: "MOONSHOT_API_KEY",
+      kimi: "MOONSHOT_API_KEY",
+      "kimi-coding": "MOONSHOT_API_KEY",
+      xai: "XAI_API_KEY",
+      groq: "GROQ_API_KEY",
+      mistral: "MISTRAL_API_KEY",
     };
     const expected = envMap[PROVIDER];
     if (expected && !process.env[expected]) {
@@ -123,19 +128,19 @@ export function validateConfig() {
 // ── Model resolution ───────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const model: Model<any> = (() => {
+const { model, meta } = (() => {
   try {
-    return buildModelFromConfig(PROVIDER, MODEL_ID);
+    return buildModelFromConfig(PROVIDER, MODEL_ID, { apiKey: EXPLICIT_API_KEY });
   } catch {
     throw new Error(
       `[ai] Unknown provider/model: LLM_PROVIDER="${PROVIDER}" LLM_MODEL="${MODEL_ID}". ` +
-        `Check .env — for Moonshot use LLM_PROVIDER=moonshot, for Kimi K2 use LLM_PROVIDER=kimi-coding with LLM_MODEL=kimi-k2-thinking or k2p5.`
+        `Check .env — e.g. LLM_PROVIDER=moonshot with LLM_MODEL=kimi-k2.5, or LLM_PROVIDER=deepseek with LLM_MODEL=deepseek-chat.`
     );
   }
 })();
 
 // Register the env-var model as the fallback default for ModelResolver
-setDefaultModel({ model, modelId: MODEL_ID, apiKey: EXPLICIT_API_KEY });
+setDefaultModel({ model, modelId: MODEL_ID, meta });
 
 // ── Tool & skill registries ────────────────────────────────────────
 
@@ -165,8 +170,8 @@ for (const failure of loadedSkills.failed) {
 const runner = createAgentRunner(
   {
     model,
+    meta,
     systemPrompt: SYSTEM_PROMPT,
-    apiKey: EXPLICIT_API_KEY,
   },
   toolRegistry,
   skillRegistry,

@@ -6,15 +6,15 @@
  */
 
 import type {
-  Message,
+  AgentMessage,
   UserMessage,
   AssistantMessage,
   ToolResultMessage,
   TextContent,
   ImageContent,
   ThinkingContent,
-  ToolCall,
-} from "@mariozechner/pi-ai";
+  ToolCallContent,
+} from "../llm/types.js";
 
 /**
  * Approximate tokens for a text string (works for mixed CJK + Latin).
@@ -23,7 +23,7 @@ import type {
 export function estimateTextTokens(text: string): number {
   // CJK characters ≈ 1–2 tokens each; Latin words ≈ 1 token per ~4 chars.
   // Using length/3 is a conservative middle ground for mixed content.
-  return Math.ceil(text.length / 3);
+  return Math.ceil(String(text ?? "").length / 3);
 }
 
 /** Approximate tokens for a base64-encoded image. */
@@ -36,19 +36,22 @@ function estimateImageTokens(data: string): number {
 }
 
 function estimateContentBlock(
-  block: TextContent | ImageContent | ThinkingContent | ToolCall,
+  block: TextContent | ImageContent | ThinkingContent | ToolCallContent,
 ): number {
   switch (block.type) {
     case "text":
-      return estimateTextTokens(block.text);
+      return estimateTextTokens(block.text ?? "");
     case "image":
       return estimateImageTokens(block.data);
     case "thinking":
-      return estimateTextTokens(block.thinking);
+      return estimateTextTokens(block.thinking ?? "");
     case "toolCall": {
       // name + serialized arguments
-      const argText = JSON.stringify(block.arguments);
-      return estimateTextTokens(block.name) + estimateTextTokens(argText);
+      const argText = JSON.stringify(block.arguments ?? {});
+      return (
+        estimateTextTokens(block.name ?? "") +
+        estimateTextTokens(typeof argText === "string" ? argText : "{}")
+      );
     }
     default:
       return 0;
@@ -56,7 +59,7 @@ function estimateContentBlock(
 }
 
 /** Estimate tokens for a single message. */
-export function estimateMessageTokens(message: Message): number {
+export function estimateMessageTokens(message: AgentMessage): number {
   // Per-message overhead (role tokens, separators, etc.)
   const MESSAGE_OVERHEAD = 4;
 
@@ -88,7 +91,7 @@ export function estimateMessageTokens(message: Message): number {
 }
 
 /** Estimate total tokens for an array of messages. */
-export function estimateHistoryTokens(messages: Message[]): number {
+export function estimateHistoryTokens(messages: AgentMessage[]): number {
   return messages.reduce((sum, msg) => sum + estimateMessageTokens(msg), 0);
 }
 

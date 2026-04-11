@@ -5,8 +5,16 @@
  * blocking the user-facing response path.
  */
 
-import { generateText, type LanguageModel } from "ai";
+import {
+  extractJsonMiddleware,
+  generateText,
+  NoOutputGeneratedError,
+  Output,
+  type LanguageModel,
+  wrapLanguageModel,
+} from "ai";
 import { withSpan } from "@clawbot/observability";
+import { z } from "zod";
 import { recall } from "./service.js";
 import { queueRecordEntry } from "./queue.js";
 import type { RecordParams, Fragment, TapeState } from "./types.js";
@@ -26,6 +34,18 @@ interface ExtractedMemory {
   value: unknown;
   confidence: number;
 }
+
+const extractedMemorySchema = z.object({
+  category: z.enum(["fact", "preference", "decision"]),
+  scope: z.enum(["global", "session"]),
+  key: z.string().trim().min(1),
+  value: z.unknown(),
+  confidence: z.number().min(0).max(1).default(1),
+});
+
+const extractorOutputSchema = z.object({
+  memories: z.array(extractedMemorySchema).default([]),
+});
 
 /**
  * Format existing memory keys for injection into the extraction prompt.
@@ -58,45 +78,37 @@ async function callExtractor(
   model: LanguageModel,
   turn: ConversationTurn,
   existingKeys: string,
-  apiKey?: string,
+  _apiKey?: string,
 ): Promise<ExtractedMemory[]> {
   const turnText = `用户: ${turn.userText}\n\n助手: ${turn.assistantText}`;
   const assets = getPromptAssets();
   const template = assets.get(PROMPT_PROFILES.memory_extract.systemPromptKey);
   const prompt = renderTemplate(template, { EXISTING_KEYS: existingKeys }, { strict: true });
 
-  const result = await generateText({
-    model,
-    system: prompt,
-    messages: [
-      {
-        role: "user" as const,
-        content: turnText,
-      },
-    ],
-  });
-
-  // Parse the response
-  const responseText = result.text;
-
-  // Extract JSON from response (handle markdown code blocks)
-  const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) return [];
-
   try {
-    const parsed = JSON.parse(jsonMatch[0]);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (m: unknown): m is ExtractedMemory =>
-        typeof m === "object" &&
-        m !== null &&
-        "category" in m &&
-        "key" in m &&
-        "value" in m &&
-        ["fact", "preference", "decision"].includes((m as any).category),
-    );
-  } catch {
-    return [];
+    const result = await generateText({
+      model: wrapLanguageModel({
+        model: model as Parameters<typeof wrapLanguageModel>[0]["model"],
+        middleware: extractJsonMiddleware(),
+      }),
+      system: prompt,
+      messages: [
+        {
+          role: "user" as const,
+          content: turnText,
+        },
+      ],
+      output: Output.object({
+        schema: extractorOutputSchema,
+      }),
+    });
+
+    return result.output.memories;
+  } catch (error) {
+    if (NoOutputGeneratedError.isInstance(error)) {
+      return [];
+    }
+    throw error;
   }
 }
 

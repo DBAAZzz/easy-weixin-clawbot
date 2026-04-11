@@ -111,6 +111,23 @@ export async function resolveModel(
   conversationId: string,
   purpose: ModelPurpose,
 ): Promise<ResolvedModel> {
+  const configured = await resolveConfiguredModel(accountId, conversationId, purpose);
+  if (configured) {
+    return configured;
+  }
+
+  return getDefaultModel();
+}
+
+/**
+ * Resolve a model only from configured scope rules.
+ * Returns null when no conversation/account/global config matches.
+ */
+export async function resolveConfiguredModel(
+  accountId: string,
+  conversationId: string,
+  purpose: ModelPurpose,
+): Promise<ResolvedModel | null> {
   const lookups: Array<[string, string]> = [
     ["conversation", `${accountId}:${conversationId}`],
     ["account", accountId],
@@ -134,5 +151,5 @@ export async function resolveModel(
     }
   }
 
-  return getDefaultModel();
+  return null;
 }

@@ -88,22 +88,23 @@ export function validateConfig() {
   console.log("[config]\n" + lines.join("\n"));
 
   if (!EXPLICIT_API_KEY) {
-    const envMap: Record<string, string> = {
-      anthropic: "ANTHROPIC_API_KEY",
-      openai: "OPENAI_API_KEY",
-      google: "GOOGLE_API_KEY",
-      deepseek: "DEEPSEEK_API_KEY",
-      moonshot: "MOONSHOT_API_KEY",
-      kimi: "MOONSHOT_API_KEY",
-      "kimi-coding": "MOONSHOT_API_KEY",
-      xai: "XAI_API_KEY",
-      groq: "GROQ_API_KEY",
-      mistral: "MISTRAL_API_KEY",
+    const envMap: Record<string, string[]> = {
+      anthropic: ["ANTHROPIC_API_KEY"],
+      openai: ["OPENAI_API_KEY"],
+      google: ["GOOGLE_API_KEY"],
+      deepseek: ["DEEPSEEK_API_KEY"],
+      moonshot: ["MOONSHOT_API_KEY", "KIMI_API_KEY"],
+      kimi: ["MOONSHOT_API_KEY", "KIMI_API_KEY"],
+      "kimi-coding": ["MOONSHOT_API_KEY", "KIMI_API_KEY"],
+      xai: ["XAI_API_KEY"],
+      groq: ["GROQ_API_KEY"],
+      mistral: ["MISTRAL_API_KEY"],
     };
     const expected = envMap[PROVIDER];
-    if (expected && !process.env[expected]) {
+    const hasExpected = expected?.some((key) => Boolean(process.env[key]));
+    if (expected && !hasExpected) {
       console.warn(
-        `[config] WARNING: LLM_API_KEY not set and ${expected} is missing — API calls will fail`
+        `[config] WARNING: LLM_API_KEY not set and none of ${expected.join(" / ")} is set — API calls will fail`
       );
     }
   }

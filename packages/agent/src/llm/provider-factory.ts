@@ -41,6 +41,34 @@ export interface CreateModelResult {
   meta: ModelMeta;
 }
 
+function firstNonEmptyEnv(keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value && value.trim()) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function resolveProviderApiKey(
+  provider: string,
+  explicitApiKey?: string,
+): string | undefined {
+  if (explicitApiKey && explicitApiKey.trim()) {
+    return explicitApiKey;
+  }
+
+  switch (provider) {
+    case "moonshot":
+    case "kimi":
+    case "kimi-coding":
+      return firstNonEmptyEnv(["MOONSHOT_API_KEY", "KIMI_API_KEY"]);
+    default:
+      return undefined;
+  }
+}
+
 /**
  * Create a LanguageModel + metadata from provider name and modelId.
  * API key is baked into the model via the provider factory.
@@ -65,7 +93,7 @@ function buildProviderModel(
   modelId: string,
   options?: { apiKey?: string; baseUrl?: string | null },
 ): LanguageModel {
-  const apiKey = options?.apiKey ?? undefined;
+  const apiKey = resolveProviderApiKey(provider, options?.apiKey);
 
   switch (provider) {
     case "anthropic":

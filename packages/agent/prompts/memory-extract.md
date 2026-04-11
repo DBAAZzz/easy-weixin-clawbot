@@ -20,18 +20,20 @@
 
 ## 输出格式
 
-返回一个 JSON 数组，每个元素是一条记忆：
+返回一个 JSON 对象，包含 `memories` 数组字段：
 
 ```json
-[
-  {
-    "category": "fact" | "preference" | "decision",
-    "scope": "global" | "session",
-    "key": "简短的唯一标识（中文）",
-    "value": "具体内容",
-    "confidence": 0.0-1.0
-  }
-]
+{
+  "memories": [
+    {
+      "category": "fact" | "preference" | "decision",
+      "scope": "global" | "session",
+      "key": "简短的唯一标识（中文）",
+      "value": "具体内容",
+      "confidence": 0.0-1.0
+    }
+  ]
+}
 ```
 
 ### category 说明
@@ -43,6 +45,6 @@
 - **global**: 跨会话有效的持久信息（用户身份、长期偏好）
 - **session**: 仅当前会话有意义的临时信息（当前任务的决策）
 
-如果没有值得提取的信息（包括所有信息都已记住），返回空数组 `[]`。
+如果没有值得提取的信息（包括所有信息都已记住），返回 `{ "memories": [] }`。
 
 只输出 JSON，不要其他解释文字。

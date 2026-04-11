@@ -15,7 +15,7 @@ import type {
 import { withSpan } from "@clawbot/observability";
 import { readFileSync } from "node:fs";
 import type { AgentRunner } from "./runner.js";
-import { resolveModel } from "./model-resolver.js";
+import { resolveConfiguredModel, resolveModel } from "./model-resolver.js";
 import type { ChatResponse, ChatMedia } from "./types.js";
 import { isDebugEnabled } from "./commands/debug.js";
 import { ensureHistoryLoaded, getHistory, nextSeq, rollbackMessages } from "./conversation/index.js";
@@ -246,14 +246,19 @@ export async function chat(
           } else {
             // Tape: fire-and-forget LLM-based memory extraction
             // Resolve extraction model (may differ from chat model for cost savings)
-            resolveModel(accountId, conversationId, "extraction")
+            resolveConfiguredModel(accountId, conversationId, "extraction")
               .then((extractionModel) => {
+                const effectiveExtractionModel = extractionModel ?? chatModel;
+                const extractionSource = extractionModel ? "configured-extraction" : "chat-fallback";
+                console.log(
+                  `[tape] extraction model source=${extractionSource} model=${effectiveExtractionModel.modelId}`,
+                );
                 fireExtractAndRecord(
-                  extractionModel.model,
+                  effectiveExtractionModel.model,
                   accountId,
                   conversationId,
                   { userText: text, assistantText: replyText },
-                  `agent:${extractionModel.modelId}`,
+                  `agent:${effectiveExtractionModel.modelId}`,
                 );
               })
               .catch((err) => console.warn("[chat] extraction model resolve failed:", err));

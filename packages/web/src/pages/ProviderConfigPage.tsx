@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Badge } from "../components/ui/badge.js";
+import { CardToggle } from "../components/ui/admin-card.js";
 import { Button } from "../components/ui/button.js";
 import {
   ArrowRightIcon,
@@ -17,7 +17,6 @@ import {
   fetchModelProviderTemplates,
   updateModelProviderTemplate,
 } from "../lib/api.js";
-import { formatCount } from "../lib/format.js";
 import { queryKeys } from "../lib/query-keys.js";
 import { ProviderBrandIcon } from "./model-config/providerBrandIcon.js";
 import {
@@ -75,7 +74,6 @@ export function ProviderConfigPage() {
   }, [activeProviderConfig, isEdit, selectedPreset]);
 
   const pageTitle = isEdit ? "编辑供应商配置" : "新建供应商配置";
-  const pageEyebrow = isEdit ? "Provider Configuration" : "New Provider Configuration";
 
   async function handleSave() {
     const modelIds = normalizeModelIdList(form.modelIds);
@@ -139,12 +137,11 @@ export function ProviderConfigPage() {
   if (isEdit && !loading && !activeProviderConfig) {
     return (
       <div className="space-y-4">
-        
         <Button variant="ghost" onClick={() => navigate("/model-config")}>
           <ArrowRightIcon className="size-4 rotate-180" />
           返回模型配置
         </Button>
-        <div className="rounded-[24px] border border-[rgba(185,28,28,0.14)] bg-[rgba(254,242,242,0.92)] px-5 py-5 text-[13px] text-red-700">
+        <div className="rounded-lg border border-[rgba(185,28,28,0.14)] bg-[rgba(254,242,242,0.92)] px-5 py-5 text-[13px] text-red-700">
           未找到对应的供应商配置，可能已被删除。
         </div>
       </div>
@@ -152,44 +149,18 @@ export function ProviderConfigPage() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-5">
-      <section className="space-y-3">
-        <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                MCP Servers
-              </p>
+    <div className="space-y-6 md:space-y-7">
+      <section className="space-y-2.5">
         <Button variant="ghost" onClick={() => navigate("/model-config")}>
           <ArrowRightIcon className="size-4 rotate-180" />
           返回模型配置
         </Button>
 
-        <div className="overflow-hidden rounded-[28px] border border-[var(--line-strong)] bg-[rgba(255,255,255,0.8)]">
-          <div className="flex flex-col gap-4 px-5 py-5 md:flex-row md:items-start md:justify-between md:px-6">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                {pageEyebrow}
-              </p>
-              <h2 className="mt-2 text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                {pageTitle}
-              </h2>
-              <p className="mt-2 max-w-2xl text-[13px] leading-6 text-[var(--muted)]">
-                维护可复用的供应商凭证、可选模型列表和默认接入地址。保存后即可在“使用配置”中引用。
-              </p>
-            </div>
-
-            {activeProviderConfig ? (
-              <div className="flex flex-wrap gap-2">
-                <Badge tone={activeProviderConfig.enabled ? "online" : "offline"}>
-                  {activeProviderConfig.enabled ? "已启用" : "已停用"}
-                </Badge>
-                <Badge tone="muted">
-                  模型 {formatCount(activeProviderConfig.model_ids.length)}
-                </Badge>
-                <Badge tone="muted">
-                  引用 {formatCount(activeProviderConfig.usage_count)}
-                </Badge>
-              </div>
-            ) : null}
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-[20px] text-[var(--ink)]">{pageTitle}</h2>
+          {isEdit && activeProviderConfig ? (
+            <div className="text-[12px] text-[var(--muted)]">{activeProviderConfig.provider}</div>
+          ) : null}
         </div>
       </section>
 
@@ -200,27 +171,20 @@ export function ProviderConfigPage() {
       ) : null}
 
       {!isEdit ? (
-        <section className="overflow-hidden rounded-[24px] border border-[var(--line-strong)] bg-[rgba(255,255,255,0.76)]">
-          <div className="border-b border-[var(--line)] px-5 py-4 md:px-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                  Provider Presets
-                </p>
-                <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">供应商预设</h3>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedPreset(undefined)}
-              >
-                <RefreshIcon className="size-4" />
-                清空预设
-              </Button>
-            </div>
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-[16px] text-[var(--ink)]">供应商预设</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedPreset(undefined)}
+            >
+              <RefreshIcon className="size-4" />
+              清空预设
+            </Button>
           </div>
 
-          <div className="grid gap-3 px-5 py-5 md:grid-cols-2 xl:grid-cols-3 md:px-6">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {MODEL_PROVIDER_PRESETS.map((preset) => {
               const selected = selectedPreset?.provider === preset.provider;
               return (
@@ -231,12 +195,12 @@ export function ProviderConfigPage() {
                   className={[
                     "rounded-[18px] border px-4 py-4 text-left transition",
                     selected
-                      ? "border-[rgba(21,110,99,0.22)] bg-[rgba(21,110,99,0.08)]"
+                      ? "border-[rgba(21,110,99,0.2)] bg-[rgba(21,110,99,0.07)]"
                       : "border-[var(--line)] bg-white/84 hover:border-[var(--line-strong)] hover:bg-white",
                   ].join(" ")}
                 >
                   <div className="flex items-start gap-3">
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-[14px] border border-[var(--line)] bg-[rgba(246,249,250,0.9)]">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] bg-[rgba(246,249,250,0.9)]">
                       <ProviderBrandIcon provider={preset.provider} className="size-5" />
                     </span>
                     <span className="min-w-0 flex-1">
@@ -244,11 +208,11 @@ export function ProviderConfigPage() {
                         {preset.label}
                       </span>
                       <span className="mt-1 block text-[11px] leading-5 text-[var(--muted)]">
-                        {preset.description}
+                        {preset.provider}
                       </span>
                       {preset.suggestedModelIds?.length ? (
                         <span className="mt-2 block text-[11px] text-[var(--muted-strong)]">
-                          默认模型：{preset.suggestedModelIds.join(" / ")}
+                          {preset.suggestedModelIds.join(" / ")}
                         </span>
                       ) : null}
                     </span>
@@ -260,9 +224,9 @@ export function ProviderConfigPage() {
         </section>
       ) : null}
 
-      <section className="overflow-hidden rounded-[24px] border border-[var(--line-strong)] bg-[rgba(255,255,255,0.76)]">
+      <section className="space-y-3">
         <form
-          className="space-y-5 px-5 py-5 md:px-6"
+          className="space-y-5"
           onSubmit={(event) => {
             event.preventDefault();
             void handleSave();
@@ -304,16 +268,11 @@ export function ProviderConfigPage() {
                 />
               </div>
 
-              <div className="rounded-[14px] border border-[var(--line)] bg-[rgba(246,249,250,0.82)] p-4">
+              <div>
                 <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[12px] font-medium text-[var(--muted-strong)]">
-                      Model ID 列表 *
-                    </p>
-                    <p className="mt-1 text-[11px] text-[var(--muted)]">
-                      这里维护该供应商配置允许被“使用配置”引用的模型。
-                    </p>
-                  </div>
+                  <label className="text-[12px] font-medium text-[var(--muted-strong)]">
+                    Model ID 列表 *
+                  </label>
                   <Button
                     size="sm"
                     variant="outline"
@@ -329,7 +288,7 @@ export function ProviderConfigPage() {
                   </Button>
                 </div>
 
-                <div className="mt-4 space-y-2">
+                <div className="mt-3 space-y-2">
                   {form.modelIds.map((value, index) => (
                     <div key={index} className="flex items-center gap-2">
                       <Input
@@ -419,24 +378,18 @@ export function ProviderConfigPage() {
                 />
               </div>
 
-              <div className="rounded-[14px] border border-[var(--line)] bg-[rgba(252,253,253,0.9)] p-4">
-                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                  供应商状态
-                </p>
-                <label className="mt-3 flex items-center gap-2 text-[12px] text-[var(--muted-strong)]">
-                  <input
-                    type="checkbox"
-                    checked={form.enabled}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        enabled: event.target.checked,
-                      }))
-                    }
-                    className="size-4 rounded accent-[var(--accent)]"
-                  />
-                  启用此供应商配置
-                </label>
+              <div className="flex items-center justify-between rounded-[14px] border border-[var(--line)] bg-[rgba(252,253,253,0.9)] px-3 py-2.5">
+                <p className="text-[12px] text-[var(--muted-strong)]">启用此供应商配置</p>
+                <CardToggle
+                  enabled={form.enabled}
+                  label={form.enabled ? "停用供应商配置" : "启用供应商配置"}
+                  onToggle={() =>
+                    setForm((current) => ({
+                      ...current,
+                      enabled: !current.enabled,
+                    }))
+                  }
+                />
               </div>
             </div>
           </div>
@@ -447,7 +400,7 @@ export function ProviderConfigPage() {
             </div>
           ) : null}
 
-          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[var(--line)] pt-4">
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-1">
             {isEdit && activeProviderConfig ? (
               <Button variant="destructive" onClick={() => void handleDelete()}>
                 <TrashIcon className="size-4" />

@@ -364,14 +364,14 @@ function ScheduledTaskCard({
     <>
       <div
         className={cn(
-          "reveal-up group relative rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.38)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)]",
+          "reveal-up group relative rounded-lg border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.38)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)]",
           expanded && "border-[rgba(21,110,99,0.14)] bg-[rgba(255,255,255,0.96)]"
         )}
       >
         <div className="flex items-start gap-3 px-5 pt-5">
           <span
             className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-[14px] border transition",
+              "flex size-10 shrink-0 items-center justify-center rounded-lg border transition",
               task.enabled
                 ? "border-emerald-200 bg-emerald-50 text-emerald-600"
                 : "border-[var(--line)] bg-[rgba(148,163,184,0.08)] text-[var(--muted)]"
@@ -588,10 +588,10 @@ export function ScheduledTasksPage() {
           {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
-              className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.8)] px-4 py-4 md:px-5"
+              className="overflow-hidden rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.8)] px-4 py-4 md:px-5"
             >
               <div className="flex items-center gap-3">
-                <div className="ui-skeleton size-10 rounded-[14px]" />
+                <div className="ui-skeleton size-10 rounded-lg" />
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="ui-skeleton h-5 rounded-[8px]" />
                   <div className="ui-skeleton h-4 rounded-[8px]" />

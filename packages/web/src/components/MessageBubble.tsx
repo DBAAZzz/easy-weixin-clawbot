@@ -20,7 +20,7 @@ export function MessageBubble({ message }: { message: MessageRow }) {
     <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[82%] rounded-[16px] border px-3.5 py-3 shadow-[0_16px_30px_-28px_rgba(15,23,42,0.28)]",
+          "max-w-[82%] rounded-lg border px-3.5 py-3 shadow-[0_16px_30px_-28px_rgba(15,23,42,0.28)]",
           isUser
             ? "border-[var(--accent)] bg-[var(--accent)] text-white"
             : message.role === "toolResult"

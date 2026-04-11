@@ -65,7 +65,7 @@ export function AuthLoginPage() {
             required
           />
 
-          <Button type="submit" className="mt-1 w-full rounded-[14px]" disabled={loading}>
+          <Button type="submit" className="mt-1 w-full rounded-lg" disabled={loading}>
             {loading ? "登录中..." : "登录"}
           </Button>
         </form>

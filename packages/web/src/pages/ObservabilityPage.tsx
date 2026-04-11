@@ -77,7 +77,7 @@ function ChartList(props: {
       </div>
 
       {props.rows.length === 0 ? (
-        <div className="rounded-[16px] border border-dashed border-[var(--line)] bg-white/52 px-4 py-5 text-[12px] text-[var(--muted)]">
+        <div className="rounded-lg border border-dashed border-[var(--line)] bg-white/52 px-4 py-5 text-[12px] text-[var(--muted)]">
           {props.empty}
         </div>
       ) : (
@@ -148,7 +148,7 @@ export function ObservabilityPage() {
         </div>
 
         {observability.error ? (
-          <div className="rounded-[16px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+          <div className="rounded-lg border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
             加载可观测性数据失败：{observability.error}
           </div>
         ) : null}
@@ -337,25 +337,25 @@ export function ObservabilityPage() {
                     </div>
 
                     <div className="grid gap-2 md:grid-cols-4">
-                      <div className="rounded-[14px] border border-[var(--line)] bg-[rgba(248,250,252,0.86)] px-3 py-2">
+                      <div className="rounded-lg border border-[var(--line)] bg-[rgba(248,250,252,0.86)] px-3 py-2">
                         <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Total</p>
                         <p className="mt-1 font-[var(--font-mono)] text-[12px] text-[var(--ink)]">
                           {formatMs(trace.total_ms)}
                         </p>
                       </div>
-                      <div className="rounded-[14px] border border-[var(--line)] bg-[rgba(248,250,252,0.86)] px-3 py-2">
+                      <div className="rounded-lg border border-[var(--line)] bg-[rgba(248,250,252,0.86)] px-3 py-2">
                         <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Rounds</p>
                         <p className="mt-1 font-[var(--font-mono)] text-[12px] text-[var(--ink)]">
                           {formatCount(trace.llm_rounds)}
                         </p>
                       </div>
-                      <div className="rounded-[14px] border border-[var(--line)] bg-[rgba(248,250,252,0.86)] px-3 py-2">
+                      <div className="rounded-lg border border-[var(--line)] bg-[rgba(248,250,252,0.86)] px-3 py-2">
                         <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Tools</p>
                         <p className="mt-1 font-[var(--font-mono)] text-[12px] text-[var(--ink)]">
                           {formatCount(trace.tool_calls)}
                         </p>
                       </div>
-                      <div className="rounded-[14px] border border-[var(--line)] bg-[rgba(248,250,252,0.86)] px-3 py-2">
+                      <div className="rounded-lg border border-[var(--line)] bg-[rgba(248,250,252,0.86)] px-3 py-2">
                         <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Tokens</p>
                         <p className="mt-1 font-[var(--font-mono)] text-[12px] text-[var(--ink)]">
                           {formatTokens(trace.input_tokens + trace.output_tokens)}

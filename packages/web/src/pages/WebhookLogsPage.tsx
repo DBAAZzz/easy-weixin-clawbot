@@ -19,7 +19,7 @@ import { formatCount, formatDateTime } from "../lib/format.js";
 
 function MetricCard(props: { label: string; value: string; hint: string }) {
   return (
-    <div className="rounded-[22px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] px-4 py-4">
+    <div className="rounded-xl border border-[var(--line)] bg-[rgba(255,255,255,0.82)] px-4 py-4">
       <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">{props.label}</p>
       <p className="mt-2 text-[24px] font-semibold tracking-[-0.04em] text-[var(--ink)]">
         {props.value}
@@ -133,7 +133,7 @@ export function WebhookLogsPage() {
         </div>
 
         {token?.description ? (
-          <div className="rounded-[16px] border border-[var(--line)] bg-[rgba(255,255,255,0.72)] px-4 py-2 text-[11px] text-[var(--muted)]">
+          <div className="rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.72)] px-4 py-2 text-[11px] text-[var(--muted)]">
             {token.description}
           </div>
         ) : null}
@@ -168,7 +168,7 @@ export function WebhookLogsPage() {
         />
       </section>
 
-      <section className="rounded-[22px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+      <section className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
@@ -191,7 +191,7 @@ export function WebhookLogsPage() {
         </div>
       </section>
 
-      <section className="rounded-[22px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+      <section className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">

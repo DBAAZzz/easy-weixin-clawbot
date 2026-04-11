@@ -122,7 +122,7 @@ export function CardOverflowMenu(props: {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-9 z-20 min-w-[168px] overflow-hidden rounded-[14px] border border-[var(--line)] bg-white/98 p-1.5 shadow-[0_24px_55px_-32px_rgba(15,23,42,0.42)] backdrop-blur">
+        <div className="absolute right-0 top-9 z-20 min-w-[168px] overflow-hidden rounded-lg border border-[var(--line)] bg-white/98 p-1.5 shadow-[0_24px_55px_-32px_rgba(15,23,42,0.42)] backdrop-blur">
           {props.items.map((item) => (
             <button
               key={item.label}
@@ -228,7 +228,7 @@ export function MetricGrid(props: {
   return (
     <div
       className={cn(
-        "mt-3 grid gap-px overflow-hidden rounded-[16px] border border-[var(--line)]/80 bg-[var(--line)]/80",
+        "mt-3 grid gap-px overflow-hidden rounded-lg border border-[var(--line)]/80 bg-[var(--line)]/80",
         columns === 2 && "grid-cols-2",
         columns === 3 && "grid-cols-3",
         columns === 4 && "grid-cols-4",

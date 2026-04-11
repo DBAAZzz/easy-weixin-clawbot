@@ -24,7 +24,7 @@ function ToolAvatar(props: { origin: ToolInfo["origin"] }) {
   return (
     <span
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-[14px] border bg-[rgba(247,250,251,0.92)]",
+        "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-[rgba(247,250,251,0.92)]",
         props.origin === "builtin"
           ? "border-[var(--line)] text-[var(--ink)]"
           : "border-[rgba(21,110,99,0.12)] text-[var(--accent-strong)]"
@@ -103,7 +103,7 @@ function ToolCard(props: {
           props.onOpen();
         }
       }}
-      className="reveal-up group flex min-h-[108px] cursor-pointer items-center gap-3 rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)] md:px-4"
+      className="reveal-up group flex min-h-[108px] cursor-pointer items-center gap-3 rounded-lg border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)] md:px-4"
       style={{ animationDelay: `${props.index * 40}ms` }}
     >
       <ToolAvatar origin={props.tool.origin} />
@@ -235,7 +235,7 @@ function ToolDetailModal(props: {
             <DetailItem label="Status" value={props.tool.enabled ? "已启用" : "已停用"} />
           </div>
 
-          <div className="rounded-[22px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+          <div className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
             <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
               Parameters
             </p>
@@ -248,7 +248,7 @@ function ToolDetailModal(props: {
             </div>
           </div>
 
-          <div className="rounded-[22px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+          <div className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
@@ -272,7 +272,7 @@ function ToolDetailModal(props: {
                   <div className="ui-skeleton h-4 rounded-[8px]" />
                   <div className="ui-skeleton h-4 rounded-[8px]" />
                   <div className="ui-skeleton h-4 rounded-[8px]" />
-                  <div className="ui-skeleton h-28 rounded-[14px]" />
+                  <div className="ui-skeleton h-28 rounded-lg" />
                 </div>
               ) : (
                 <pre className="max-h-[320px] overflow-auto rounded-[18px] border border-[var(--line)] bg-[rgba(255,255,255,0.94)] px-4 py-3 text-[11px] leading-6 text-[var(--ink-soft)]">
@@ -391,7 +391,7 @@ export function ToolsPage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="搜索 tool 名称、摘要、handler 或参数"
-                className="h-10 rounded-[14px] pl-10"
+                className="h-10 rounded-lg pl-10"
               />
             </div>
 
@@ -427,10 +427,10 @@ export function ToolsPage() {
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.8)] px-3.5 py-3.5 md:px-4"
+                className="overflow-hidden rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.8)] px-3.5 py-3.5 md:px-4"
               >
                 <div className="flex items-center gap-3">
-                  <div className="ui-skeleton size-10 rounded-[14px]" />
+                  <div className="ui-skeleton size-10 rounded-lg" />
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="ui-skeleton h-5 rounded-[8px]" />
                     <div className="ui-skeleton h-4 rounded-[8px]" />

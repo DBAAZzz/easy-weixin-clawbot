@@ -345,7 +345,7 @@ function MetricPanel(props: {
   }>;
 }) {
   return (
-    <div className="mt-3 grid grid-cols-2 divide-x divide-[var(--line)] overflow-hidden rounded-[16px] border border-[var(--line)]/80 bg-[rgba(248,250,251,0.82)]">
+    <div className="mt-3 grid grid-cols-2 divide-x divide-[var(--line)] overflow-hidden rounded-lg border border-[var(--line)]/80 bg-[rgba(248,250,251,0.82)]">
       {props.items.map((item) => (
         <div key={item.label} className="px-3 py-2.5">
           <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
@@ -375,9 +375,9 @@ function ProviderConfigCard(props: {
   const { template } = props;
 
   return (
-    <div className="reveal-up group relative rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.18)]">
+    <div className="reveal-up group relative rounded-lg border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.18)]">
       <div className="flex items-start gap-3 px-5 pt-5">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-[14px] border border-[var(--line)] bg-white/90">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] bg-white/90">
           <ProviderBrandIcon provider={template.provider} className="size-5" />
         </span>
 
@@ -464,11 +464,11 @@ function ModelConfigCard(props: {
   const { config } = props;
 
   return (
-    <div className="reveal-up group relative rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.18)]">
+    <div className="reveal-up group relative rounded-lg border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.18)]">
       <div className="flex items-start gap-3 px-5 pt-5">
         <span
           className={cn(
-            "flex size-10 shrink-0 items-center justify-center rounded-[14px] border",
+            "flex size-10 shrink-0 items-center justify-center rounded-lg border",
             config.template_enabled
               ? "border-emerald-200 bg-emerald-50 text-emerald-600"
               : "border-amber-200 bg-amber-50 text-amber-600",
@@ -633,6 +633,10 @@ function ModelConfigEditorModal(props: {
     form.conversationId,
     `已失效会话 · ${form.conversationId}`,
   );
+  const activeAccountIds = new Set(props.accounts.map((account) => account.id));
+  const availableConversationIds = new Set(
+    (conversationData ?? []).map((conversation) => conversation.conversation_id),
+  );
 
   useEffect(() => {
     if (!props.initial && !form.templateId && availableTemplates[0]) {
@@ -684,6 +688,22 @@ function ModelConfigEditorModal(props: {
     }
     if (form.scope === "conversation" && !form.conversationId.trim()) {
       setError("请选择会话");
+      return;
+    }
+    if (!isEdit && form.scope !== "global" && !activeAccountIds.has(form.accountId.trim())) {
+      setError("请选择激活且未废弃的账号");
+      return;
+    }
+    if (!isEdit && form.scope === "conversation" && conversationsLoading) {
+      setError("会话列表加载中，请稍后再试");
+      return;
+    }
+    if (
+      !isEdit &&
+      form.scope === "conversation" &&
+      !availableConversationIds.has(form.conversationId.trim())
+    ) {
+      setError("请选择当前激活账号下可用的会话");
       return;
     }
     if (form.scope !== "global" && !scopeKey) {
@@ -753,7 +773,7 @@ function ModelConfigEditorModal(props: {
             void handleSubmit();
           }}
         >
-          <div className="rounded-[22px] border border-[var(--line)] bg-[rgba(246,249,250,0.82)] px-4 py-4">
+          <div className="rounded-xl border border-[var(--line)] bg-[rgba(246,249,250,0.82)] px-4 py-4">
             <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
               Scope & Purpose
             </p>
@@ -874,7 +894,7 @@ function ModelConfigEditorModal(props: {
             </div>
           </div>
 
-          <div className="grid gap-4 rounded-[22px] border border-[var(--line)] bg-white/70 px-4 py-4">
+          <div className="grid gap-4 rounded-xl border border-[var(--line)] bg-white/70 px-4 py-4">
             <div>
               <label className="text-[12px] text-[var(--muted-strong)]">
                 供应商配置 *
@@ -996,7 +1016,9 @@ export function ModelConfigPage() {
     queryKey: queryKeys.modelConfigs,
     queryFn: fetchModelConfigs,
   });
-  const { accounts, loading: accountsLoading, error: accountsError } = useAccounts();
+  const { accounts, loading: accountsLoading, error: accountsError } = useAccounts({
+    status: "active",
+  });
 
   const loading = templatesLoading || configsLoading || accountsLoading;
   const error = templatesError ?? configsError ?? accountsError
@@ -1172,7 +1194,7 @@ export function ModelConfigPage() {
         ) : null}
 
         {!loading && templates.length === 0 ? (
-          <section className="rounded-[24px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
+          <section className="rounded-lg border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
             <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
             <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
               暂无供应商配置
@@ -1230,7 +1252,7 @@ export function ModelConfigPage() {
         ) : null}
 
         {!loading && templates.length === 0 ? (
-          <section className="rounded-[24px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
+          <section className="rounded-lg border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
             <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
             <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
               暂无供应商配置
@@ -1239,7 +1261,7 @@ export function ModelConfigPage() {
         ) : null}
 
         {!loading && templates.length > 0 && configs.length === 0 ? (
-          <section className="rounded-[24px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
+          <section className="rounded-lg border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
             <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
             <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
               还没有使用配置

@@ -41,7 +41,7 @@ export function ObservabilityTracePage() {
         </Card>
 
         {trace.error ? (
-          <div className="rounded-[16px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+          <div className="rounded-lg border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
             加载链路详情失败：{trace.error}
           </div>
         ) : null}

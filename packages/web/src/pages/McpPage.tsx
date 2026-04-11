@@ -56,7 +56,7 @@ function ServerAvatar(props: { status: McpServerInfo["status"] }) {
   return (
     <span
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-[14px] border bg-[rgba(247,250,251,0.92)]",
+        "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-[rgba(247,250,251,0.92)]",
         props.status === "connected"
           ? "border-[rgba(21,110,99,0.14)] text-[var(--accent-strong)]"
           : "border-[var(--line)] text-[var(--ink)]"
@@ -110,7 +110,7 @@ function DetailItem(props: { label: string; value: string }) {
 
 function ConfigBlock(props: { label: string; value: string }) {
   return (
-    <div className="rounded-[22px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+    <div className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
@@ -147,7 +147,7 @@ function ServerCard(props: {
         }
       }}
       className={cn(
-        "reveal-up group flex min-h-[120px] cursor-pointer items-center gap-3 rounded-[24px] border bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)] md:px-4",
+        "reveal-up group flex min-h-[120px] cursor-pointer items-center gap-3 rounded-lg border bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)] md:px-4",
         props.selected
           ? "border-[rgba(21,110,99,0.38)] ring-[2px] ring-[rgba(21,110,99,0.10)]"
           : "border-[rgba(21,32,43,0.08)]"
@@ -200,8 +200,8 @@ function McpToolCard(props: {
   onToggle: () => void | Promise<void>;
 }) {
   return (
-    <div className="flex min-h-[108px] items-center gap-3 rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 md:px-4">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-[14px] border border-[var(--line)] bg-[rgba(247,250,251,0.92)] text-[var(--ink)]">
+    <div className="flex min-h-[108px] items-center gap-3 rounded-lg border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 md:px-4">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] bg-[rgba(247,250,251,0.92)] text-[var(--ink)]">
         <TerminalIcon className="size-[18px]" />
       </span>
 
@@ -320,7 +320,7 @@ function ServerDetailModal(props: {
           </div>
 
           {props.server.last_error ? (
-            <div className="rounded-[22px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-4">
+            <div className="rounded-xl border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-4">
               <p className="text-[10px] uppercase tracking-[0.22em] text-red-600">Last Error</p>
               <p className="mt-2 text-[12px] leading-6 text-red-700">{props.server.last_error}</p>
             </div>
@@ -331,7 +331,7 @@ function ServerDetailModal(props: {
             value={stringifyMcpServerJsonDocument(props.server)}
           />
 
-          <div className="rounded-[22px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+          <div className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
@@ -348,7 +348,7 @@ function ServerDetailModal(props: {
                     key={tool.id}
                     className="flex items-center gap-3 rounded-[18px] border border-[var(--line)] bg-white/86 px-3.5 py-3"
                   >
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-[14px] border border-[var(--line)] bg-[rgba(247,250,251,0.92)] text-[var(--ink)]">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] bg-[rgba(247,250,251,0.92)] text-[var(--ink)]">
                       <TerminalIcon className="size-4" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -727,7 +727,7 @@ export function McpPage() {
               value={serverQuery}
               onChange={(event) => setServerQuery(event.target.value)}
               placeholder="搜索 server 名称、slug、命令或状态"
-              className="h-10 rounded-[14px] pl-10"
+              className="h-10 rounded-lg pl-10"
             />
           </div>
         </section>
@@ -755,10 +755,10 @@ export function McpPage() {
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.8)] px-3.5 py-3.5 md:px-4"
+                className="overflow-hidden rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.8)] px-3.5 py-3.5 md:px-4"
               >
                 <div className="flex items-center gap-3">
-                  <div className="ui-skeleton size-10 rounded-[14px]" />
+                  <div className="ui-skeleton size-10 rounded-lg" />
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="ui-skeleton h-5 rounded-[8px]" />
                     <div className="ui-skeleton h-4 rounded-[8px]" />
@@ -841,13 +841,13 @@ export function McpPage() {
                 value={toolQuery}
                 onChange={(event) => setToolQuery(event.target.value)}
                 placeholder="搜索 tool 名称 / server"
-                className="h-10 rounded-[14px] pl-10"
+                className="h-10 rounded-lg pl-10"
               />
             </div>
           </div>
 
           {!loading && filteredTools.length === 0 ? (
-            <section className="rounded-[24px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-8 text-center">
+            <section className="rounded-lg border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-8 text-center">
               <p className="text-[14px] font-medium text-[var(--ink)]">
               {filterServer ? `${filterServer.name} 下暂无匹配的 tool` : "没有匹配到 MCP tool"}
             </p>

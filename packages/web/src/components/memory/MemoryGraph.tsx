@@ -272,7 +272,7 @@ export function MemoryGraph(props: {
   return (
     <div
       ref={containerRef}
-      className="memory-graph-container relative h-[680px] min-h-[460px] overflow-hidden rounded-[22px] border border-[rgba(148,163,184,0.18)] shadow-[0_32px_72px_-52px_rgba(15,23,42,0.36)]"
+      className="memory-graph-container relative h-[680px] min-h-[460px] overflow-hidden rounded-xl border border-[rgba(148,163,184,0.18)] shadow-[0_32px_72px_-52px_rgba(15,23,42,0.36)]"
     >
       {size.width > 0 && props.nodes.length > 0 ? (
         <ForceGraph2D<TapeGraphNode, GraphLink>

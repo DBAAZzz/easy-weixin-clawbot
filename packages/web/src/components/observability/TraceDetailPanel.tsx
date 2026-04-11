@@ -17,7 +17,7 @@ export function TraceDetailPanel(props: {
       {props.loading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="ui-skeleton h-10 rounded-[16px]" />
+            <div key={index} className="ui-skeleton h-10 rounded-lg" />
           ))}
         </div>
       ) : props.trace ? (
@@ -49,7 +49,7 @@ export function TraceDetailPanel(props: {
           <WaterfallTimeline trace={props.trace} />
         </div>
       ) : (
-        <div className="rounded-[16px] border border-dashed border-[var(--line)] bg-white/52 px-4 py-8 text-[12px] leading-6 text-[var(--muted)]">
+        <div className="rounded-lg border border-dashed border-[var(--line)] bg-white/52 px-4 py-8 text-[12px] leading-6 text-[var(--muted)]">
           这条 trace 可能已被清理，或者当前账号没有权限访问。
         </div>
       )}

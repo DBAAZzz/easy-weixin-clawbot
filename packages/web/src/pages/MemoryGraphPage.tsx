@@ -44,7 +44,7 @@ function StatCard(props: {
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="flex h-full items-center gap-3 rounded-[16px] border border-[rgba(148,163,184,0.14)] bg-[rgba(255,255,255,0.76)] px-3.5 py-3">
+    <div className="flex h-full items-center gap-3 rounded-lg border border-[rgba(148,163,184,0.14)] bg-[rgba(255,255,255,0.76)] px-3.5 py-3">
       {props.icon ? (
         <div
           className="flex size-9 shrink-0 items-center justify-center rounded-[12px]"
@@ -253,7 +253,7 @@ export function MemoryGraphPage() {
       </Card>
 
       {graph.error ? (
-        <div className="rounded-[16px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+        <div className="rounded-lg border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
           加载记忆图失败：{graph.error}
         </div>
       ) : null}
@@ -270,7 +270,7 @@ export function MemoryGraphPage() {
             onNodeSelect={setSelectedNode}
           />
 
-          <div className="flex flex-wrap items-center gap-3 rounded-[14px] border border-[var(--line)] bg-white/72 px-3.5 py-2">
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--line)] bg-white/72 px-3.5 py-2">
             <div className="flex items-center gap-2 text-[12px] text-[var(--muted-strong)]">
               <PulseIcon className="size-4 text-[var(--accent-strong)]" />
               <span>
@@ -295,7 +295,7 @@ export function MemoryGraphPage() {
             </div>
 
             {groups.length === 0 ? (
-              <div className="rounded-[14px] border border-dashed border-[var(--line)] bg-white/60 px-4 py-4 text-center text-[12px] leading-6 text-[var(--muted)]">
+              <div className="rounded-lg border border-dashed border-[var(--line)] bg-white/60 px-4 py-4 text-center text-[12px] leading-6 text-[var(--muted)]">
                 当前分支还没有可聚类的层级 key
               </div>
             ) : (

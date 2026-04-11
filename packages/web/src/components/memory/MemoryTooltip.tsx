@@ -63,7 +63,7 @@ function ConfidenceBar(props: { value: number }) {
 
 function MetaCard(props: { label: string; value: string; mono?: boolean; title?: string }) {
   return (
-    <div className="rounded-[14px] border border-[rgba(148,163,184,0.14)] bg-[rgba(248,250,252,0.74)] px-3 py-2.5">
+    <div className="rounded-lg border border-[rgba(148,163,184,0.14)] bg-[rgba(248,250,252,0.74)] px-3 py-2.5">
       <p className="text-[9px] uppercase tracking-[0.18em] text-[var(--muted)]">{props.label}</p>
       <p
         title={props.title}
@@ -89,7 +89,7 @@ export function MemoryTooltip(props: {
           <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">Node Detail</p>
           <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">节点详情</h3>
         </div>
-        <div className="flex flex-col items-center gap-3 rounded-[16px] border border-dashed border-[var(--line)] bg-white/60 px-4 py-8 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-[var(--line)] bg-white/60 px-4 py-8 text-center">
           <div className="flex size-10 items-center justify-center rounded-full bg-[rgba(148,163,184,0.08)]">
             <SearchIcon className="size-5 text-[var(--muted)]" />
           </div>
@@ -108,7 +108,7 @@ export function MemoryTooltip(props: {
     <Card className="space-y-4 p-4 md:p-5">
       <div className="flex items-start gap-3">
         <div
-          className="flex size-10 shrink-0 items-center justify-center rounded-[14px]"
+          className="flex size-10 shrink-0 items-center justify-center rounded-lg"
           style={{ backgroundColor: `${color}18` }}
         >
           {CATEGORY_ICON_COMPONENTS[node.category](`size-4.5`)}
@@ -129,7 +129,7 @@ export function MemoryTooltip(props: {
         </div>
       </div>
 
-      <div className="rounded-[16px] border border-[rgba(148,163,184,0.12)] bg-[linear-gradient(180deg,rgba(247,249,251,0.96),rgba(255,255,255,0.86))] px-4 py-3.5">
+      <div className="rounded-lg border border-[rgba(148,163,184,0.12)] bg-[linear-gradient(180deg,rgba(247,249,251,0.96),rgba(255,255,255,0.86))] px-4 py-3.5">
         <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--muted)]">Value</p>
         <p className="mt-2 whitespace-pre-wrap break-all text-[14px] leading-6 text-[var(--ink)]">
           {formatMemoryValue(node.value)}

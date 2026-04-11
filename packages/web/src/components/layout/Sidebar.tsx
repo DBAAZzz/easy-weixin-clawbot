@@ -23,7 +23,7 @@ import logoUrl from "../../assets/images/logo.png";
 
 function navClassName(isActive: boolean) {
   return cn(
-    "group flex items-center gap-3 rounded-[16px] px-3 py-2.5 text-[13px] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+    "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
     isActive
       ? "bg-[rgba(21,110,99,0.12)] font-semibold text-[var(--ink)] shadow-[0_1px_2px_rgba(21,110,99,0.06)]"
       : "text-[var(--muted-strong)] hover:bg-white/72 hover:text-[var(--ink)]"
@@ -118,7 +118,7 @@ export function Sidebar(props: {
           <img
             src={logoUrl}
             alt="Clawbot"
-            className="size-10 rounded-[14px] object-cover shadow-[0_16px_34px_-22px_rgba(15,23,42,0.45)]"
+            className="size-10 rounded-lg object-cover shadow-[0_16px_34px_-22px_rgba(15,23,42,0.45)]"
           />
           <div className="min-w-0">
             <p className="text-[14px] font-semibold text-[var(--ink)]">Clawbot</p>
@@ -169,7 +169,7 @@ export function Sidebar(props: {
           <p className="px-3 text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--muted)]">
             系统状态
           </p>
-          <div className="mt-3 rounded-[16px] border border-[var(--line)] bg-white/60 p-3">
+          <div className="mt-3 rounded-lg border border-[var(--line)] bg-white/60 p-3">
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-[12px] bg-white/80 px-3 py-2">
                 <p className="text-[10px] text-[var(--muted)]">运行时长</p>
@@ -201,7 +201,7 @@ export function Sidebar(props: {
               localStorage.removeItem("auth_token");
               navigate("/auth/login", { replace: true });
             }}
-            className="flex w-full items-center gap-3 rounded-[16px] border border-[var(--line)] bg-white/55 px-3 py-2.5 text-[13px] text-[var(--muted-strong)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/72 hover:text-[var(--ink)]"
+            className="flex w-full items-center gap-3 rounded-lg border border-[var(--line)] bg-white/55 px-3 py-2.5 text-[13px] text-[var(--muted-strong)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/72 hover:text-[var(--ink)]"
           >
             <LogOutIcon className="size-4" />
             <span>退出登录</span>

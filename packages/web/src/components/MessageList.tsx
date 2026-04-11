@@ -25,9 +25,9 @@ export function MessageList(props: {
 
         {props.loading && items.length === 0 ? (
           <div className="space-y-3 px-1 py-2">
-            <div className="ui-skeleton ml-auto h-[96px] w-[72%] rounded-[16px]" />
-            <div className="ui-skeleton h-[112px] w-[78%] rounded-[16px]" />
-            <div className="ui-skeleton ml-auto h-[84px] w-[66%] rounded-[16px]" />
+            <div className="ui-skeleton ml-auto h-[96px] w-[72%] rounded-lg" />
+            <div className="ui-skeleton h-[112px] w-[78%] rounded-lg" />
+            <div className="ui-skeleton ml-auto h-[84px] w-[66%] rounded-lg" />
           </div>
         ) : null}
 

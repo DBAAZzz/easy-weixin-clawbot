@@ -2,7 +2,10 @@ import type { Hono } from "hono";
 import { getModelConfigStore } from "@clawbot/agent";
 import { invalidateModelCache } from "@clawbot/agent/model-resolver";
 import type { ModelProviderTemplateRow } from "@clawbot/agent";
-import type { ModelProviderTemplateDto } from "@clawbot/shared";
+import type {
+  ModelProviderTemplateDto,
+  ModelProviderTemplatePingDto,
+} from "@clawbot/shared";
 
 function normalizeModelIds(values: unknown): string[] {
   const normalized = Array.isArray(values)
@@ -21,6 +24,117 @@ function toDto(row: ModelProviderTemplateRow): ModelProviderTemplateDto {
     base_url: row.baseUrl,
     enabled: row.enabled,
     usage_count: row.usageCount,
+  };
+}
+
+const OPENAI_COMPATIBLE_BASE_URLS: Record<string, string> = {
+  openai: "https://api.openai.com/v1",
+  deepseek: "https://api.deepseek.com/v1",
+  moonshot: "https://api.moonshot.cn/v1",
+  kimi: "https://api.kimi.ai/v1",
+  "kimi-coding": "https://api.kimi.ai/v1",
+  openrouter: "https://openrouter.ai/api/v1",
+  xai: "https://api.x.ai/v1",
+  groq: "https://api.groq.com/openai/v1",
+  mistral: "https://api.mistral.ai/v1",
+};
+
+function ensureTrailingSlash(value: string): string {
+  return value.endsWith("/") ? value : `${value}/`;
+}
+
+function joinEndpoint(baseUrl: string, path: string): string {
+  return new URL(path, ensureTrailingSlash(baseUrl)).toString();
+}
+
+function resolvePingTarget(
+  row: ModelProviderTemplateRow,
+):
+  | { endpoint: string; init: RequestInit }
+  | { endpoint: string | null; message: string } {
+  const provider = row.provider.trim().toLowerCase();
+  const apiKey = row.apiKey?.trim() ?? "";
+
+  let endpoint: string | null = null;
+  let init: RequestInit | null = null;
+
+  if (provider === "anthropic") {
+    const baseUrl = row.baseUrl?.trim() || "https://api.anthropic.com";
+    endpoint = joinEndpoint(baseUrl, "v1/models");
+    init = {
+      method: "GET",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+    };
+  } else if (provider === "google") {
+    const baseUrl = row.baseUrl?.trim() || "https://generativelanguage.googleapis.com";
+    const url = new URL(joinEndpoint(baseUrl, "v1beta/models"));
+    if (apiKey) {
+      url.searchParams.set("key", apiKey);
+    }
+    endpoint = url.toString();
+    init = { method: "GET" };
+  } else if (provider === "azure-openai") {
+    if (!row.baseUrl?.trim()) {
+      return { endpoint: null, message: "Azure OpenAI 需要 Base URL" };
+    }
+    const url = new URL(joinEndpoint(row.baseUrl.trim(), "openai/models"));
+    url.searchParams.set("api-version", "2024-10-21");
+    endpoint = url.toString();
+    init = {
+      method: "GET",
+      headers: {
+        "api-key": apiKey,
+      },
+    };
+  } else {
+    const baseUrl =
+      row.baseUrl?.trim() || OPENAI_COMPATIBLE_BASE_URLS[provider] || null;
+    if (!baseUrl) {
+      return { endpoint: null, message: "未配置可探测的 Base URL" };
+    }
+    endpoint = joinEndpoint(baseUrl, "models");
+    init = {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    };
+  }
+
+  if (!apiKey) {
+    return { endpoint, message: "未配置 API Key" };
+  }
+
+  return { endpoint, init };
+}
+
+function extractModelCount(payload: unknown): number | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const record = payload as Record<string, unknown>;
+  if (Array.isArray(record.data)) {
+    return record.data.length;
+  }
+  if (Array.isArray(record.models)) {
+    return record.models.length;
+  }
+  return null;
+}
+
+function createPingResult(
+  row: ModelProviderTemplateRow,
+  input: Omit<ModelProviderTemplatePingDto, "template_id" | "provider" | "checked_at">,
+): ModelProviderTemplatePingDto {
+  return {
+    template_id: String(row.id),
+    provider: row.provider,
+    checked_at: new Date().toISOString(),
+    ...input,
   };
 }
 
@@ -89,6 +203,82 @@ export function registerModelProviderTemplateRoutes(app: Hono) {
 
     invalidateModelCache();
     return c.json({ data: toDto(row) });
+  });
+
+  app.post("/api/model-provider-templates/:id/ping", async (c) => {
+    const id = BigInt(c.req.param("id"));
+    const row = await store().getTemplateById(id);
+    if (!row) {
+      return c.json({ error: "not found" }, 404);
+    }
+
+    const target = resolvePingTarget(row);
+    if ("message" in target) {
+      return c.json({
+        data: createPingResult(row, {
+          reachable: false,
+          status_code: null,
+          latency_ms: null,
+          endpoint: target.endpoint,
+          message: target.message,
+          model_count: null,
+        }),
+      });
+    }
+
+    const startedAt = Date.now();
+    try {
+      const response = await fetch(target.endpoint, {
+        ...target.init,
+        signal: AbortSignal.timeout(8_000),
+      });
+      const payload = await response
+        .json()
+        .catch(() => null);
+      const latencyMs = Date.now() - startedAt;
+
+      if (!response.ok) {
+        return c.json({
+          data: createPingResult(row, {
+            reachable: false,
+            status_code: response.status,
+            latency_ms: latencyMs,
+            endpoint: target.endpoint,
+            message: `连接失败 (${response.status})`,
+            model_count: extractModelCount(payload),
+          }),
+        });
+      }
+
+      return c.json({
+        data: createPingResult(row, {
+          reachable: true,
+          status_code: response.status,
+          latency_ms: latencyMs,
+          endpoint: target.endpoint,
+          message: "连接正常",
+          model_count: extractModelCount(payload),
+        }),
+      });
+    } catch (error) {
+      const latencyMs = Date.now() - startedAt;
+      const message =
+        error instanceof Error && error.name === "TimeoutError"
+          ? "连接超时"
+          : error instanceof Error
+            ? error.message
+            : "连接失败";
+      return c.json({
+        data: createPingResult(row, {
+          reachable: false,
+          status_code: null,
+          latency_ms: latencyMs,
+          endpoint: target.endpoint,
+          message,
+          model_count: null,
+        }),
+      });
+    }
   });
 
   app.delete("/api/model-provider-templates/:id", async (c) => {

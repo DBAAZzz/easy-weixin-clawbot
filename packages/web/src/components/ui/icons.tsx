@@ -287,6 +287,16 @@ export function ChevronUpIcon(props: IconProps) {
   );
 }
 
+export function MoreHorizontalIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="6" cy="12" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="18" cy="12" r="1.25" fill="currentColor" stroke="none" />
+    </BaseIcon>
+  );
+}
+
 export function HistoryIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

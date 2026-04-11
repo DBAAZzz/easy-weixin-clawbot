@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
-import type {
-  ObservabilityOverview,
-  ObservabilityTraceDetail,
-  ObservabilityTraceSummary,
-  ObservabilityWindow,
-} from "@clawbot/shared";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import type { ObservabilityWindow } from "@clawbot/shared";
 import {
   fetchObservabilityOverview,
   fetchObservabilityTrace,
   fetchObservabilityTraces,
 } from "../lib/api.js";
+import { queryKeys } from "../lib/query-keys.js";
 
 export interface ObservabilityFilters {
   window: ObservabilityWindow;
@@ -18,156 +18,80 @@ export interface ObservabilityFilters {
   query?: string;
 }
 
-export function useObservability(
-  filters: ObservabilityFilters,
-) {
-  const [overview, setOverview] = useState<ObservabilityOverview | null>(null);
-  const [traces, setTraces] = useState<ObservabilityTraceSummary[]>([]);
-  const [loadingOverview, setLoadingOverview] = useState(false);
-  const [loadingTraces, setLoadingTraces] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [nextCursor, setNextCursor] = useState<number | undefined>(undefined);
-  const [revision, setRevision] = useState(0);
+export function useObservability(filters: ObservabilityFilters) {
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoadingOverview(true);
-    setError(null);
+  const overviewQuery = useQuery({
+    queryKey: queryKeys.observabilityOverview(filters.window),
+    queryFn: () => fetchObservabilityOverview(filters.window),
+  });
 
-    void fetchObservabilityOverview(filters.window)
-      .then((result) => {
-        if (cancelled) return;
-        setOverview(result);
-      })
-      .catch((reason) => {
-        if (cancelled) return;
-        setError(reason instanceof Error ? reason.message : String(reason));
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoadingOverview(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [filters.window, revision]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoadingTraces(true);
-    setError(null);
-
-    void fetchObservabilityTraces({
+  const tracesQuery = useInfiniteQuery({
+    queryKey: queryKeys.observabilityTraces({
       window: filters.window,
-      limit: 20,
       flag: filters.flag,
       status: filters.status,
-      query: filters.query?.trim() || undefined,
-    })
-      .then((page) => {
-        if (cancelled) return;
-        setTraces(page.data);
-        setHasMore(page.has_more);
-        setNextCursor(page.next_cursor);
-      })
-      .catch((reason) => {
-        if (cancelled) return;
-        setError(reason instanceof Error ? reason.message : String(reason));
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoadingTraces(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [filters.flag, filters.query, filters.status, filters.window, revision]);
-
-  async function loadMore() {
-    if (!hasMore || !nextCursor || loadingMore) return;
-
-    setLoadingMore(true);
-    setError(null);
-    try {
-      const page = await fetchObservabilityTraces({
+      query: filters.query,
+    }),
+    queryFn: ({ pageParam }) =>
+      fetchObservabilityTraces({
         window: filters.window,
         limit: 20,
-        cursor: nextCursor,
+        cursor: pageParam,
         flag: filters.flag,
         status: filters.status,
         query: filters.query?.trim() || undefined,
-      });
-      setTraces((current) => [...current, ...page.data]);
-      setHasMore(page.has_more);
-      setNextCursor(page.next_cursor);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
-    } finally {
-      setLoadingMore(false);
-    }
-  }
+      }),
+    initialPageParam: undefined as number | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.has_more ? lastPage.next_cursor : undefined,
+  });
+
+  const rawError = overviewQuery.error || tracesQuery.error;
 
   return {
-    overview,
-    traces,
-    loadingOverview,
-    loadingTraces,
-    loadingMore,
-    hasMore,
-    error,
-    loadMore,
+    overview: overviewQuery.data ?? null,
+    traces: tracesQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    loadingOverview: overviewQuery.isPending,
+    loadingTraces: tracesQuery.isPending,
+    loadingMore: tracesQuery.isFetchingNextPage,
+    hasMore: tracesQuery.hasNextPage ?? false,
+    error: rawError instanceof Error ? rawError.message : rawError ? String(rawError) : null,
+    loadMore() {
+      if (tracesQuery.hasNextPage && !tracesQuery.isFetchingNextPage) {
+        void tracesQuery.fetchNextPage();
+      }
+    },
     refresh() {
-      setRevision((value) => value + 1);
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.observabilityOverview(filters.window),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["observabilityTraces"],
+      });
     },
   };
 }
 
 export function useObservabilityTrace(traceId?: string) {
-  const [trace, setTrace] = useState<ObservabilityTraceDetail | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [revision, setRevision] = useState(0);
-
-  useEffect(() => {
-    if (!traceId) {
-      setTrace(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    void fetchObservabilityTrace(traceId)
-      .then((result) => {
-        if (cancelled) return;
-        setTrace(result);
-      })
-      .catch((reason) => {
-        if (cancelled) return;
-        setError(reason instanceof Error ? reason.message : String(reason));
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [traceId, revision]);
+  const queryClient = useQueryClient();
+  const enabled = Boolean(traceId);
+  const { data, isPending, error } = useQuery({
+    queryKey: queryKeys.observabilityTrace(traceId ?? ""),
+    queryFn: () => fetchObservabilityTrace(traceId!),
+    enabled,
+  });
 
   return {
-    trace,
-    loading,
-    error,
+    trace: data ?? null,
+    loading: enabled && isPending,
+    error: error instanceof Error ? error.message : error ? String(error) : null,
     refresh() {
-      setRevision((value) => value + 1);
+      if (traceId) {
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.observabilityTrace(traceId),
+        });
+      }
     },
   };
 }

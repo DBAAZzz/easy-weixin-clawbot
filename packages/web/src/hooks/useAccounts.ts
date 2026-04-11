@@ -1,22 +1,23 @@
-import { useState } from "react";
-import type { AccountStatusFilter, AccountSummary } from "@clawbot/shared";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AccountStatusFilter } from "@clawbot/shared";
 import { fetchAccounts } from "../lib/api.js";
-import { useAsyncResource } from "./use-async-resource.js";
+import { queryKeys } from "../lib/query-keys.js";
 
 export function useAccounts(options?: { status?: AccountStatusFilter }) {
-  const [revision, setRevision] = useState(0);
+  const queryClient = useQueryClient();
   const status = options?.status ?? "all";
-  const resource = useAsyncResource<AccountSummary[]>(
-    () => fetchAccounts({ status }),
-    [status, revision],
-  );
+  const { data, isPending, error } = useQuery({
+    queryKey: queryKeys.accounts(status),
+    queryFn: () => fetchAccounts({ status }),
+    staleTime: 5 * 60_000,
+  });
 
   return {
-    accounts: resource.data ?? [],
-    loading: resource.loading,
-    error: resource.error,
+    accounts: data ?? [],
+    loading: isPending,
+    error: error instanceof Error ? error.message : error ? String(error) : null,
     refresh() {
-      setRevision((value) => value + 1);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.accounts(status) });
     },
   };
 }

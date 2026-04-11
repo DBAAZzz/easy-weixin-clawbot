@@ -1,5 +1,4 @@
-import { useState } from "react";
-import type { SkillInfo } from "@clawbot/shared";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   disableSkill,
   enableSkill,
@@ -8,43 +7,48 @@ import {
   removeSkill,
   updateSkill,
 } from "../lib/api.js";
-import { useAsyncResource } from "./use-async-resource.js";
+import { queryKeys } from "../lib/query-keys.js";
 
 export function useSkills() {
-  const [revision, setRevision] = useState(0);
-  const resource = useAsyncResource<SkillInfo[]>(() => fetchSkills(), [revision]);
+  const queryClient = useQueryClient();
+  const { data, isPending, error } = useQuery({
+    queryKey: queryKeys.skills,
+    queryFn: fetchSkills,
+  });
+
+  function invalidate() {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.skills });
+  }
 
   return {
-    skills: resource.data ?? [],
-    loading: resource.loading,
-    error: resource.error,
+    skills: data ?? [],
+    loading: isPending,
+    error: error instanceof Error ? error.message : error ? String(error) : null,
     async install(markdown: string) {
       const result = await installSkill(markdown);
-      setRevision((value) => value + 1);
+      invalidate();
       return result;
     },
     async update(name: string, markdown: string) {
       const result = await updateSkill(name, markdown);
-      setRevision((value) => value + 1);
+      invalidate();
       return result;
     },
     async enable(name: string) {
       const result = await enableSkill(name);
-      setRevision((value) => value + 1);
+      invalidate();
       return result;
     },
     async disable(name: string) {
       const result = await disableSkill(name);
-      setRevision((value) => value + 1);
+      invalidate();
       return result;
     },
     async remove(name: string) {
       const result = await removeSkill(name);
-      setRevision((value) => value + 1);
+      invalidate();
       return result;
     },
-    refresh() {
-      setRevision((value) => value + 1);
-    },
+    refresh: invalidate,
   };
 }

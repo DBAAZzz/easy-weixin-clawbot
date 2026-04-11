@@ -296,6 +296,18 @@ export interface ModelProviderTemplateDto {
   usage_count: number;
 }
 
+export interface ModelProviderTemplatePingDto {
+  template_id: string;
+  provider: string;
+  reachable: boolean;
+  status_code: number | null;
+  latency_ms: number | null;
+  checked_at: string;
+  endpoint: string | null;
+  message: string;
+  model_count: number | null;
+}
+
 export interface ModelConfigDto {
   id: string; // BigInt serialized as string
   scope: "global" | "account" | "conversation";

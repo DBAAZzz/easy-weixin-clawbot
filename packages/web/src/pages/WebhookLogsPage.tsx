@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
@@ -7,12 +7,13 @@ import {
   RefreshIcon,
   WebhookIcon,
 } from "../components/ui/icons.js";
-import { useAsyncResource } from "../hooks/use-async-resource.js";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  fetchAccounts,
   fetchWebhookLogs,
   fetchWebhookTokens,
 } from "../lib/api.js";
+import { queryKeys } from "../lib/query-keys.js";
+import { useAccounts } from "../hooks/useAccounts.js";
 import { cn } from "../lib/cn.js";
 import { formatCount, formatDateTime } from "../lib/format.js";
 
@@ -43,24 +44,30 @@ export function WebhookLogsPage() {
   const navigate = useNavigate();
   const params = useParams<{ source: string }>();
   const source = params.source ?? "";
-  const [revision, setRevision] = useState(0);
+  const queryClient = useQueryClient();
 
   const {
     data: logsResp,
-    loading: logsLoading,
-    error: logsError,
-  } = useAsyncResource(
-    source ? () => fetchWebhookLogs(source, 200) : null,
-    [revision, source]
-  );
-  const { data: tokensResp, loading: tokensLoading } = useAsyncResource(
-    () => fetchWebhookTokens(),
-    [revision]
-  );
-  const { data: accounts, loading: accountsLoading } = useAsyncResource(
-    () => fetchAccounts(),
-    [revision]
-  );
+    isPending: logsLoading,
+    error: logsRawError,
+  } = useQuery({
+    queryKey: queryKeys.webhookLogs(source, 200),
+    queryFn: () => fetchWebhookLogs(source, 200),
+    enabled: Boolean(source),
+    staleTime: 15_000,
+  });
+  const { data: tokensResp, isPending: tokensLoading } = useQuery({
+    queryKey: queryKeys.webhookTokens,
+    queryFn: fetchWebhookTokens,
+  });
+  const { accounts, loading: accountsLoading } = useAccounts();
+
+  const logsError = logsRawError instanceof Error ? logsRawError.message : logsRawError ? String(logsRawError) : null;
+
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.webhookLogs(source, 200) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.webhookTokens });
+  };
 
   const logs = logsResp?.data ?? [];
   const tokens = tokensResp?.data ?? [];
@@ -107,7 +114,7 @@ export function WebhookLogsPage() {
             <Button size="sm" variant="outline" onClick={() => navigate("/webhooks")}>
               返回 Webhooks
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setRevision((value) => value + 1)}>
+            <Button size="sm" variant="outline" onClick={refresh}>
               <ActivityIcon className="size-4" />
               刷新日志
             </Button>
@@ -193,7 +200,7 @@ export function WebhookLogsPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
             <Badge tone="muted">活跃账号 {formatCount(activeAccountCount)}</Badge>
-            <Button size="sm" variant="ghost" onClick={() => setRevision((value) => value + 1)}>
+            <Button size="sm" variant="ghost" onClick={refresh}>
               <RefreshIcon className="size-3.5" />
               刷新
             </Button>

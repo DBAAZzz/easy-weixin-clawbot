@@ -9,9 +9,10 @@ import {
   SearchIcon,
   XIcon,
 } from "../components/ui/icons.js";
-import { useAsyncResource } from "../hooks/use-async-resource.js";
+import { useQuery } from "@tanstack/react-query";
 import { useSkills } from "../hooks/useSkills.js";
 import { fetchSkillSource } from "../lib/api.js";
+import { queryKeys } from "../lib/query-keys.js";
 import { cn } from "../lib/cn.js";
 import { formatCount } from "../lib/format.js";
 
@@ -278,10 +279,16 @@ export function SkillsPage() {
     ].some((value) => value.toLowerCase().includes(normalizedQuery));
   });
   const activeSkill = skills.find((skill) => skill.name === activeSkillName) ?? null;
-  const source = useAsyncResource<MarkdownSource>(
-    activeSkillName ? () => fetchSkillSource(activeSkillName) : null,
-    [activeSkillName]
-  );
+  const sourceQuery = useQuery({
+    queryKey: queryKeys.skillSource(activeSkillName ?? ""),
+    queryFn: () => fetchSkillSource(activeSkillName!),
+    enabled: Boolean(activeSkillName),
+  });
+  const source = {
+    data: sourceQuery.data ?? null,
+    loading: Boolean(activeSkillName) && sourceQuery.isPending,
+    error: sourceQuery.error instanceof Error ? sourceQuery.error.message : sourceQuery.error ? String(sourceQuery.error) : null,
+  };
 
   useEffect(() => {
     if (!activeSkillName) return;

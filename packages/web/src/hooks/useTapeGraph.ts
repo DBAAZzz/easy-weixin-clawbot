@@ -1,21 +1,26 @@
-import { useState } from "react";
-import type { TapeGraphResponse } from "@clawbot/shared";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchTapeGraph } from "../lib/api.js";
-import { useAsyncResource } from "./use-async-resource.js";
+import { queryKeys } from "../lib/query-keys.js";
 
 export function useTapeGraph(accountId?: string, branch = "__global__") {
-  const [revision, setRevision] = useState(0);
-  const resource = useAsyncResource<TapeGraphResponse>(
-    accountId ? () => fetchTapeGraph(accountId, branch) : null,
-    [accountId, branch, revision],
-  );
+  const queryClient = useQueryClient();
+  const enabled = Boolean(accountId);
+  const { data, isPending, error } = useQuery({
+    queryKey: queryKeys.tapeGraph(accountId ?? "", branch),
+    queryFn: () => fetchTapeGraph(accountId!, branch),
+    enabled,
+  });
 
   return {
-    graph: resource.data,
-    loading: resource.loading,
-    error: resource.error,
+    graph: data,
+    loading: enabled && isPending,
+    error: error instanceof Error ? error.message : error ? String(error) : null,
     refresh() {
-      setRevision((value) => value + 1);
+      if (accountId) {
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.tapeGraph(accountId, branch),
+        });
+      }
     },
   };
 }

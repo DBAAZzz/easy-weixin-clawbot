@@ -1,82 +1,54 @@
-import { useEffect, useState } from "react";
-import type { MessageRow } from "@clawbot/shared";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMessages } from "../lib/api.js";
+import { queryKeys } from "../lib/query-keys.js";
 
 export function useMessages(accountId?: string, conversationId?: string) {
-  const [messages, setMessages] = useState<MessageRow[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [nextCursor, setNextCursor] = useState<number | undefined>(undefined);
-  const [revision, setRevision] = useState(0);
+  const queryClient = useQueryClient();
+  const enabled = Boolean(accountId && conversationId);
 
-  useEffect(() => {
-    if (!accountId || !conversationId) {
-      setMessages([]);
-      setLoading(false);
-      setError(null);
-      setHasMore(false);
-      setNextCursor(undefined);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    void fetchMessages(accountId, conversationId, { limit: 50 })
-      .then((page) => {
-        if (cancelled) return;
-        setMessages(page.data);
-        setHasMore(page.has_more);
-        setNextCursor(page.next_cursor);
-      })
-      .catch((reason) => {
-        if (cancelled) return;
-        setError(reason instanceof Error ? reason.message : String(reason));
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [accountId, conversationId, revision]);
-
-  async function loadMore() {
-    if (!accountId || !conversationId || !hasMore || !nextCursor || loadingMore) return;
-
-    setLoadingMore(true);
-    setError(null);
-
-    try {
-      const page = await fetchMessages(accountId, conversationId, {
+  const {
+    data,
+    isPending,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error,
+  } = useInfiniteQuery({
+    queryKey: queryKeys.messages(accountId ?? "", conversationId ?? ""),
+    queryFn: ({ pageParam }) =>
+      fetchMessages(accountId!, conversationId!, {
         limit: 50,
-        before: nextCursor,
-      });
+        before: pageParam,
+      }),
+    initialPageParam: undefined as number | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.has_more ? lastPage.next_cursor : undefined,
+    enabled,
+  });
 
-      setMessages((current) => [...page.data, ...current]);
-      setHasMore(page.has_more);
-      setNextCursor(page.next_cursor);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
-    } finally {
-      setLoadingMore(false);
-    }
-  }
+  // pages[0] = newest batch, pages[1] = older batch, etc.
+  // Reverse so messages are chronological (oldest first).
+  const messages = data
+    ? data.pages.slice().reverse().flatMap((page) => page.data)
+    : [];
 
   return {
     messages,
-    loading,
-    loadingMore,
-    error,
-    hasMore,
-    loadMore,
+    loading: enabled && isPending,
+    loadingMore: isFetchingNextPage,
+    hasMore: hasNextPage ?? false,
+    error: error instanceof Error ? error.message : error ? String(error) : null,
+    loadMore() {
+      if (hasNextPage && !isFetchingNextPage) {
+        void fetchNextPage();
+      }
+    },
     refresh() {
-      setRevision((value) => value + 1);
+      if (accountId && conversationId) {
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.messages(accountId, conversationId),
+        });
+      }
     },
   };
 }

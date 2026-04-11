@@ -99,6 +99,38 @@ test("upsertModelConfig sends template_id instead of provider credentials", asyn
   assert.match(String(requestInit?.body), /"model_id":"gpt-5"/);
 });
 
+test("pingModelProviderTemplate posts ping request", async () => {
+  let requestInit: RequestInit | undefined;
+  let requestPath = "";
+  installBrowserMocks(async (input, init) => {
+    requestPath = String(input);
+    requestInit = init;
+    return new Response(
+      JSON.stringify({
+        data: {
+          template_id: "12",
+          provider: "deepseek",
+          reachable: true,
+          status_code: 200,
+          latency_ms: 123,
+          checked_at: "2026-04-11T12:00:00.000Z",
+          endpoint: "https://api.deepseek.com/v1/models",
+          message: "连接正常",
+          model_count: 2,
+        },
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  });
+
+  const { pingModelProviderTemplate } = await import("../src/lib/api.ts");
+
+  await pingModelProviderTemplate("12");
+
+  assert.equal(requestPath, "/api/model-provider-templates/12/ping");
+  assert.equal(requestInit?.method, "POST");
+});
+
 test.after(() => {
   globalThis.fetch = originalFetch;
   if (originalWindow) {

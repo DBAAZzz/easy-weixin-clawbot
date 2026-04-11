@@ -13,6 +13,7 @@ import type {
   MessageRow,
   ModelConfigDto,
   ModelProviderTemplateDto,
+  ModelProviderTemplatePingDto,
   ObservabilityOverview,
   ObservabilityTraceDetail,
   ObservabilityTraceSummary,
@@ -601,6 +602,18 @@ export function deleteModelProviderTemplate(
     `/api/model-provider-templates/${encodeURIComponent(id)}`,
     {
       method: "DELETE",
+    },
+  );
+}
+
+export function pingModelProviderTemplate(
+  id: string,
+): Promise<ModelProviderTemplatePingDto> {
+  return request<ModelProviderTemplatePingDto>(
+    `/api/model-provider-templates/${encodeURIComponent(id)}/ping`,
+    {
+      method: "POST",
+      body: "{}",
     },
   );
 }

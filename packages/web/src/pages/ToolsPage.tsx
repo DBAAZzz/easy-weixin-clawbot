@@ -9,9 +9,10 @@ import {
   TerminalIcon,
   XIcon,
 } from "../components/ui/icons.js";
-import { useAsyncResource } from "../hooks/use-async-resource.js";
+import { useQuery } from "@tanstack/react-query";
 import { useTools } from "../hooks/useTools.js";
 import { fetchToolSource } from "../lib/api.js";
+import { queryKeys } from "../lib/query-keys.js";
 import { cn } from "../lib/cn.js";
 import { formatCount } from "../lib/format.js";
 
@@ -310,10 +311,16 @@ export function ToolsPage() {
     ].some((value) => value.toLowerCase().includes(normalizedQuery));
   });
   const activeTool = tools.find((tool) => tool.name === activeToolName) ?? null;
-  const source = useAsyncResource<MarkdownSource>(
-    activeToolName ? () => fetchToolSource(activeToolName) : null,
-    [activeToolName]
-  );
+  const sourceQuery = useQuery({
+    queryKey: queryKeys.toolSource(activeToolName ?? ""),
+    queryFn: () => fetchToolSource(activeToolName!),
+    enabled: Boolean(activeToolName),
+  });
+  const source = {
+    data: sourceQuery.data ?? null,
+    loading: Boolean(activeToolName) && sourceQuery.isPending,
+    error: sourceQuery.error instanceof Error ? sourceQuery.error.message : sourceQuery.error ? String(sourceQuery.error) : null,
+  };
 
   useEffect(() => {
     if (!activeToolName) return;

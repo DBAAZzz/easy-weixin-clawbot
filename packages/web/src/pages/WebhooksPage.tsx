@@ -4,6 +4,12 @@ import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
 import {
+  CardOverflowMenu,
+  CardToggle,
+  IconTag,
+  MetricGrid,
+} from "../components/ui/admin-card.js";
+import {
   WebhookIcon,
   CopyIcon,
   TrashIcon,
@@ -13,50 +19,25 @@ import {
   CheckIcon,
   XIcon,
   ActivityIcon,
+  ClockIcon,
+  LayersIcon,
+  StackIcon,
 } from "../components/ui/icons.js";
-import { useAsyncResource } from "../hooks/use-async-resource.js";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchWebhookTokens,
   createWebhookToken,
   toggleWebhookToken,
   rotateWebhookToken,
   deleteWebhookToken,
-  fetchAccounts,
   testWebhookToken,
 } from "../lib/api.js";
+import { queryKeys } from "../lib/query-keys.js";
+import { useAccounts } from "../hooks/useAccounts.js";
 import type { WebhookMessageType, WebhookTokenInfo } from "../lib/api.js";
 import type { AccountSummary } from "@clawbot/shared";
 import { cn } from "../lib/cn.js";
 import { formatCount, formatDateTime } from "../lib/format.js";
-
-function TokenToggle(props: { enabled: boolean; busy: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      disabled={props.busy}
-      aria-label={props.enabled ? "停用 token" : "启用 token"}
-      aria-pressed={props.enabled}
-      onMouseDown={(event) => event.stopPropagation()}
-      onClick={(event) => {
-        event.stopPropagation();
-        props.onToggle();
-      }}
-      className={cn(
-        "relative inline-flex h-8 w-[50px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
-        props.enabled
-          ? "border-[rgba(28,100,242,0.14)] bg-[var(--accent)]"
-          : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.38)]"
-      )}
-    >
-      <span
-        className={cn(
-          "size-6 rounded-full bg-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          props.enabled ? "translate-x-[18px]" : "translate-x-0"
-        )}
-      />
-    </button>
-  );
-}
 
 function WebhookTokenCard(props: {
   token: WebhookTokenInfo;
@@ -74,110 +55,105 @@ function WebhookTokenCard(props: {
   });
 
   return (
-    <div className="reveal-up group rounded-[20px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)]">
-      {/* ── Row 1: icon + source (desc)    toggle + badge ── */}
-      <div className="flex items-center gap-3 px-5 pt-4">
+    <div className="reveal-up group relative rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.38)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)]">
+      <div className="flex items-start gap-3 px-5 pt-5">
         <span
           className={cn(
-            "flex size-9 shrink-0 items-center justify-center rounded-[12px] border transition",
+            "flex size-10 shrink-0 items-center justify-center rounded-[14px] border transition",
             props.token.enabled
               ? "border-emerald-200 bg-emerald-50 text-emerald-600"
               : "border-[var(--line)] bg-[rgba(148,163,184,0.08)] text-[var(--muted)]"
           )}
         >
-          <KeyIcon className="size-4" />
+          <KeyIcon className="size-5" />
         </span>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-[13px] font-semibold tracking-[-0.02em] text-[var(--ink)]">
+            <span className="truncate text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
               {props.token.source}
             </span>
           </div>
-          <p className="mt-0.5 truncate text-[11px] text-[var(--muted)]">
+          <p className="mt-0.5 truncate text-[12px] text-[var(--muted)]">
             {props.token.description || "未填写描述"}
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <Badge tone={props.token.enabled ? "online" : "offline"}>
-            {props.token.enabled ? "启用" : "停用"}
-          </Badge>
-          <TokenToggle
+        <div className="flex shrink-0 items-center gap-2 self-start">
+          <CardToggle
             enabled={props.token.enabled}
             busy={props.busy}
+            label={props.token.enabled ? "停用 Webhook Token" : "启用 Webhook Token"}
             onToggle={props.onToggle}
+          />
+          <CardOverflowMenu
+            items={[
+              {
+                label: "测试发送",
+                tone: "success",
+                onClick: props.onOpenTest,
+                icon: <ActivityIcon className="size-4" />,
+              },
+              {
+                label: "查看日志",
+                tone: "primary",
+                onClick: props.onOpenLogs,
+                icon: <WebhookIcon className="size-4" />,
+              },
+              {
+                label: "轮换 Token",
+                tone: "warning",
+                onClick: props.onRotate,
+                icon: <RefreshIcon className="size-4" />,
+              },
+              {
+                label: "删除 Token",
+                tone: "danger",
+                onClick: props.onDelete,
+                icon: <TrashIcon className="size-4" />,
+              },
+            ]}
           />
         </div>
       </div>
 
-      {/* ── Row 2-3: 2-column info grid ── */}
-      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 px-5 text-[12px]">
-        <div className="text-[var(--muted-strong)]">
-          <span className="text-[var(--muted)]">Token：</span>
-          <span className="font-mono text-[11px]">{props.token.tokenPrefix}...</span>
-        </div>
-        <div className="text-[var(--muted-strong)]">
-          <span className="text-[var(--muted)]">授权账号：</span>
-          {formatCount(props.token.accountIds.length)} 个
-        </div>
-        <div className="text-[var(--muted-strong)]">
-          <span className="text-[var(--muted)]">最近使用：</span>
-          {props.token.lastUsedAt ? formatDateTime(props.token.lastUsedAt) : "从未使用"}
-        </div>
-        <div className="text-[var(--muted-strong)]">
-          <span className="text-[var(--muted)]">创建时间：</span>
-          {formatDateTime(props.token.createdAt)}
-        </div>
+      <div className="px-5">
+        <MetricGrid
+          items={[
+            {
+              icon: <KeyIcon className="size-3.5" />,
+              label: "Token",
+              value: (
+                <span className="font-mono text-[12px]">{props.token.tokenPrefix}...</span>
+              ),
+            },
+            {
+              icon: <LayersIcon className="size-3.5" />,
+              label: "授权账号",
+              value: `${formatCount(props.token.accountIds.length)} 个`,
+            },
+            {
+              icon: <ClockIcon className="size-3.5" />,
+              label: "最近使用",
+              value: props.token.lastUsedAt
+                ? formatDateTime(props.token.lastUsedAt)
+                : "从未使用",
+            },
+            {
+              icon: <StackIcon className="size-3.5" />,
+              label: "创建时间",
+              value: formatDateTime(props.token.createdAt),
+            },
+          ]}
+        />
       </div>
 
-      {/* ── Authorized accounts pills ── */}
-      <div className="mt-2 flex flex-wrap gap-1 px-5 pb-3.5">
+      <div className="mt-2.5 flex flex-wrap gap-1.5 px-5 pb-4">
         {accountLabels.map((label, i) => (
-          <span
-            key={props.token.accountIds[i]}
-            className="rounded-full bg-[rgba(21,110,99,0.06)] px-2 py-0.5 text-[10px] text-[var(--accent-strong)]"
-          >
+          <IconTag key={props.token.accountIds[i]} icon={<WebhookIcon className="size-3" />}>
             {label}
-          </span>
+          </IconTag>
         ))}
-      </div>
-
-      {/* ── Action bar ── */}
-      <div className="flex items-center border-t border-[var(--line)]/40 px-4 py-1.5">
-        <button
-          type="button"
-          onClick={props.onOpenTest}
-          className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-[var(--muted-strong)] transition hover:bg-[rgba(21,110,99,0.06)] hover:text-[var(--accent-strong)]"
-        >
-          <ActivityIcon className="size-3.5" />
-          测试
-        </button>
-        <button
-          type="button"
-          onClick={props.onOpenLogs}
-          className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-[var(--muted-strong)] transition hover:bg-[rgba(21,110,99,0.06)] hover:text-[var(--accent-strong)]"
-        >
-          <WebhookIcon className="size-3.5" />
-          日志
-        </button>
-        <button
-          type="button"
-          onClick={props.onRotate}
-          className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-[var(--muted-strong)] transition hover:bg-[rgba(21,110,99,0.06)] hover:text-[var(--accent-strong)]"
-        >
-          <RefreshIcon className="size-3.5" />
-          轮换
-        </button>
-        <div className="flex-1" />
-        <button
-          type="button"
-          onClick={props.onDelete}
-          className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-red-500 transition hover:bg-red-50 hover:text-red-600"
-        >
-          <TrashIcon className="size-3.5" />
-          删除
-        </button>
       </div>
     </div>
   );
@@ -649,12 +625,12 @@ function TokenCreatedNotice(props: { token: string; onDismiss: () => void }) {
 
 export function WebhooksPage() {
   const navigate = useNavigate();
-  const [revision, setRevision] = useState(0);
-  const { data: tokensResp, loading, error } = useAsyncResource(
-    () => fetchWebhookTokens(),
-    [revision]
-  );
-  const { data: accounts } = useAsyncResource(() => fetchAccounts(), []);
+  const queryClient = useQueryClient();
+  const { data: tokensResp, isPending: loading, error: tokensError } = useQuery({
+    queryKey: queryKeys.webhookTokens,
+    queryFn: fetchWebhookTokens,
+  });
+  const { accounts } = useAccounts();
 
   const [showCreate, setShowCreate] = useState(false);
   const [activeTestSource, setActiveTestSource] = useState<string | null>(null);
@@ -662,8 +638,11 @@ export function WebhooksPage() {
   const [pendingToggle, setPendingToggle] = useState<string | null>(null);
 
   const tokens = tokensResp?.data ?? [];
+  const error = tokensError instanceof Error ? tokensError.message : tokensError ? String(tokensError) : null;
   const activeTestToken = tokens.find((token) => token.source === activeTestSource) ?? null;
-  const refresh = () => setRevision((r) => r + 1);
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.webhookTokens });
+  };
   const enabledCount = tokens.filter((token) => token.enabled).length;
   const disabledCount = tokens.length - enabledCount;
   const activeAccountCount = new Set(tokens.flatMap((token) => token.accountIds)).size;

@@ -1,0 +1,468 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Badge } from "../components/ui/badge.js";
+import { Button } from "../components/ui/button.js";
+import {
+  ArrowRightIcon,
+  PlusIcon,
+  RefreshIcon,
+  TrashIcon,
+  XIcon,
+} from "../components/ui/icons.js";
+import { Input } from "../components/ui/input.js";
+import {
+  createModelProviderTemplate,
+  deleteModelProviderTemplate,
+  fetchModelProviderTemplates,
+  updateModelProviderTemplate,
+} from "../lib/api.js";
+import { formatCount } from "../lib/format.js";
+import { queryKeys } from "../lib/query-keys.js";
+import { ProviderBrandIcon } from "./model-config/providerBrandIcon.js";
+import {
+  createProviderConfigForm,
+  createProviderConfigFormFromDto,
+  type ProviderConfigFormState,
+} from "./model-config/providerConfigForm.js";
+import {
+  MODEL_PROVIDER_PRESETS,
+  type ModelProviderPreset,
+} from "./model-config/providerPresets.js";
+import { normalizeModelIdList } from "./model-config/templateForm.js";
+
+export function ProviderConfigPage() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { providerConfigId } = useParams();
+  const isEdit = Boolean(providerConfigId);
+  const [selectedPreset, setSelectedPreset] = useState<ModelProviderPreset | undefined>();
+  const [form, setForm] = useState<ProviderConfigFormState>(() =>
+    createProviderConfigForm(),
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const {
+    data: providerConfigsData,
+    isPending: loading,
+    error: loadError,
+  } = useQuery({
+    queryKey: queryKeys.modelProviderTemplates,
+    queryFn: fetchModelProviderTemplates,
+  });
+
+  const providerConfigs = providerConfigsData ?? [];
+  const activeProviderConfig = useMemo(
+    () =>
+      providerConfigId
+        ? providerConfigs.find((item) => item.id === providerConfigId) ?? null
+        : null,
+    [providerConfigId, providerConfigs],
+  );
+
+  useEffect(() => {
+    setError(null);
+
+    if (isEdit) {
+      if (activeProviderConfig) {
+        setForm(createProviderConfigFormFromDto(activeProviderConfig));
+      }
+      return;
+    }
+
+    setForm(createProviderConfigForm(selectedPreset));
+  }, [activeProviderConfig, isEdit, selectedPreset]);
+
+  const pageTitle = isEdit ? "编辑供应商配置" : "新建供应商配置";
+  const pageEyebrow = isEdit ? "Provider Configuration" : "New Provider Configuration";
+
+  async function handleSave() {
+    const modelIds = normalizeModelIdList(form.modelIds);
+    if (!form.name.trim() || !form.provider.trim()) {
+      setError("配置名称和 Provider 为必填项");
+      return;
+    }
+    if (modelIds.length === 0) {
+      setError("请至少维护一个 Model ID");
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      if (isEdit && activeProviderConfig) {
+        await updateModelProviderTemplate(activeProviderConfig.id, {
+          name: form.name.trim(),
+          provider: form.provider.trim(),
+          model_ids: modelIds,
+          ...(form.apiKey.trim() ? { api_key: form.apiKey.trim() } : {}),
+          ...(form.clearApiKey ? { clear_api_key: true } : {}),
+          base_url: form.baseUrl.trim() || null,
+          enabled: form.enabled,
+        });
+      } else {
+        await createModelProviderTemplate({
+          name: form.name.trim(),
+          provider: form.provider.trim(),
+          model_ids: modelIds,
+          api_key: form.apiKey.trim() || null,
+          base_url: form.baseUrl.trim() || null,
+          enabled: form.enabled,
+        });
+      }
+
+      await queryClient.invalidateQueries({ queryKey: queryKeys.modelProviderTemplates });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.modelConfigs });
+      navigate("/model-config");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!activeProviderConfig) return;
+    if (!confirm(`确定要删除供应商配置 ${activeProviderConfig.name} 吗？`)) return;
+
+    try {
+      await deleteModelProviderTemplate(activeProviderConfig.id);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.modelProviderTemplates });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.modelConfigs });
+      navigate("/model-config");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除失败");
+    }
+  }
+
+  if (isEdit && !loading && !activeProviderConfig) {
+    return (
+      <div className="space-y-4">
+        
+        <Button variant="ghost" onClick={() => navigate("/model-config")}>
+          <ArrowRightIcon className="size-4 rotate-180" />
+          返回模型配置
+        </Button>
+        <div className="rounded-[24px] border border-[rgba(185,28,28,0.14)] bg-[rgba(254,242,242,0.92)] px-5 py-5 text-[13px] text-red-700">
+          未找到对应的供应商配置，可能已被删除。
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 md:space-y-5">
+      <section className="space-y-3">
+        <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+                MCP Servers
+              </p>
+        <Button variant="ghost" onClick={() => navigate("/model-config")}>
+          <ArrowRightIcon className="size-4 rotate-180" />
+          返回模型配置
+        </Button>
+
+        <div className="overflow-hidden rounded-[28px] border border-[var(--line-strong)] bg-[rgba(255,255,255,0.8)]">
+          <div className="flex flex-col gap-4 px-5 py-5 md:flex-row md:items-start md:justify-between md:px-6">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+                {pageEyebrow}
+              </p>
+              <h2 className="mt-2 text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]">
+                {pageTitle}
+              </h2>
+              <p className="mt-2 max-w-2xl text-[13px] leading-6 text-[var(--muted)]">
+                维护可复用的供应商凭证、可选模型列表和默认接入地址。保存后即可在“使用配置”中引用。
+              </p>
+            </div>
+
+            {activeProviderConfig ? (
+              <div className="flex flex-wrap gap-2">
+                <Badge tone={activeProviderConfig.enabled ? "online" : "offline"}>
+                  {activeProviderConfig.enabled ? "已启用" : "已停用"}
+                </Badge>
+                <Badge tone="muted">
+                  模型 {formatCount(activeProviderConfig.model_ids.length)}
+                </Badge>
+                <Badge tone="muted">
+                  引用 {formatCount(activeProviderConfig.usage_count)}
+                </Badge>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      {loadError ? (
+        <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+          加载供应商配置失败：{loadError instanceof Error ? loadError.message : String(loadError)}
+        </div>
+      ) : null}
+
+      {!isEdit ? (
+        <section className="overflow-hidden rounded-[24px] border border-[var(--line-strong)] bg-[rgba(255,255,255,0.76)]">
+          <div className="border-b border-[var(--line)] px-5 py-4 md:px-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Provider Presets
+                </p>
+                <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">供应商预设</h3>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedPreset(undefined)}
+              >
+                <RefreshIcon className="size-4" />
+                清空预设
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 px-5 py-5 md:grid-cols-2 xl:grid-cols-3 md:px-6">
+            {MODEL_PROVIDER_PRESETS.map((preset) => {
+              const selected = selectedPreset?.provider === preset.provider;
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => setSelectedPreset(preset)}
+                  className={[
+                    "rounded-[18px] border px-4 py-4 text-left transition",
+                    selected
+                      ? "border-[rgba(21,110,99,0.22)] bg-[rgba(21,110,99,0.08)]"
+                      : "border-[var(--line)] bg-white/84 hover:border-[var(--line-strong)] hover:bg-white",
+                  ].join(" ")}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-[14px] border border-[var(--line)] bg-[rgba(246,249,250,0.9)]">
+                      <ProviderBrandIcon provider={preset.provider} className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-semibold text-[var(--ink)]">
+                        {preset.label}
+                      </span>
+                      <span className="mt-1 block text-[11px] leading-5 text-[var(--muted)]">
+                        {preset.description}
+                      </span>
+                      {preset.suggestedModelIds?.length ? (
+                        <span className="mt-2 block text-[11px] text-[var(--muted-strong)]">
+                          默认模型：{preset.suggestedModelIds.join(" / ")}
+                        </span>
+                      ) : null}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="overflow-hidden rounded-[24px] border border-[var(--line-strong)] bg-[rgba(255,255,255,0.76)]">
+        <form
+          className="space-y-5 px-5 py-5 md:px-6"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleSave();
+          }}
+        >
+          <div className="mt-1 grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+            <div className="space-y-5">
+              <div>
+                <label className="text-[12px] text-[var(--muted-strong)]">
+                  配置名称 *
+                </label>
+                <Input
+                  value={form.name}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      name: event.target.value,
+                    }))
+                  }
+                  placeholder="例如 DeepSeek 主供应商"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="text-[12px] text-[var(--muted-strong)]">
+                  Provider *
+                </label>
+                <Input
+                  value={form.provider}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      provider: event.target.value,
+                    }))
+                  }
+                  placeholder="openai / anthropic / moonshot"
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="rounded-[14px] border border-[var(--line)] bg-[rgba(246,249,250,0.82)] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[12px] font-medium text-[var(--muted-strong)]">
+                      Model ID 列表 *
+                    </p>
+                    <p className="mt-1 text-[11px] text-[var(--muted)]">
+                      这里维护该供应商配置允许被“使用配置”引用的模型。
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setForm((current) => ({
+                        ...current,
+                        modelIds: [...current.modelIds, ""],
+                      }))
+                    }
+                  >
+                    <PlusIcon className="size-4" />
+                    添加
+                  </Button>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {form.modelIds.map((value, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Input
+                        value={value}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            modelIds: current.modelIds.map((modelId, itemIndex) =>
+                              itemIndex === index ? event.target.value : modelId,
+                            ),
+                          }))
+                        }
+                        placeholder="例如 gpt-5"
+                      />
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() =>
+                          setForm((current) => ({
+                            ...current,
+                            modelIds:
+                              current.modelIds.length === 1
+                                ? [""]
+                                : current.modelIds.filter(
+                                    (_item, itemIndex) => itemIndex !== index,
+                                  ),
+                          }))
+                        }
+                        aria-label="删除 Model ID"
+                      >
+                        <XIcon className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className="text-[12px] text-[var(--muted-strong)]">
+                  API Key
+                </label>
+                <Input
+                  type="password"
+                  value={form.apiKey}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      apiKey: event.target.value,
+                    }))
+                  }
+                  placeholder={isEdit && form.apiKeySet ? "已设置，留空则不修改" : "sk-..."}
+                  className="mt-1"
+                />
+                <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--muted)]">
+                  <input
+                    type="checkbox"
+                    checked={form.clearApiKey}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        clearApiKey: event.target.checked,
+                        apiKey: event.target.checked ? "" : current.apiKey,
+                      }))
+                    }
+                    className="size-4 rounded accent-[var(--accent)]"
+                  />
+                  <span>清空已保存的 API Key</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[12px] text-[var(--muted-strong)]">
+                  Base URL
+                </label>
+                <Input
+                  value={form.baseUrl}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      baseUrl: event.target.value,
+                    }))
+                  }
+                  placeholder={form.baseUrlPlaceholder ?? "https://api.example.com/v1"}
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="rounded-[14px] border border-[var(--line)] bg-[rgba(252,253,253,0.9)] p-4">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  供应商状态
+                </p>
+                <label className="mt-3 flex items-center gap-2 text-[12px] text-[var(--muted-strong)]">
+                  <input
+                    type="checkbox"
+                    checked={form.enabled}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        enabled: event.target.checked,
+                      }))
+                    }
+                    className="size-4 rounded accent-[var(--accent)]"
+                  />
+                  启用此供应商配置
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {error ? (
+            <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[var(--line)] pt-4">
+            {isEdit && activeProviderConfig ? (
+              <Button variant="destructive" onClick={() => void handleDelete()}>
+                <TrashIcon className="size-4" />
+                删除供应商配置
+              </Button>
+            ) : null}
+            <Button variant="outline" onClick={() => navigate("/model-config")}>
+              取消
+            </Button>
+            <Button disabled={busy} type="submit">
+              {busy ? "保存中..." : isEdit ? "保存供应商配置" : "创建供应商配置"}
+            </Button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}

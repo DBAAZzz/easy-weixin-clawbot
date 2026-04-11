@@ -1,44 +1,49 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import type {
   AccountSummary,
   ConversationRow,
   ModelConfigDto,
   ModelProviderTemplateDto,
+  ModelProviderTemplatePingDto,
 } from "../../../shared/src/types.js";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
+import { CardOverflowMenu } from "../components/ui/admin-card.js";
 import {
-  CpuIcon,
+  AlertCircleIcon,
+  ChatIcon,
+  CheckCircleIcon,
+  LayersIcon,
+  LinkIcon,
+  PulseIcon,
   PencilIcon,
   PlusIcon,
   RefreshIcon,
+  StackIcon,
   TrashIcon,
   XIcon,
+  CpuIcon,
 } from "../components/ui/icons.js";
 import { Input } from "../components/ui/input.js";
 import { Select, type SelectOption } from "../components/ui/select.js";
-import { useAsyncResource } from "../hooks/use-async-resource.js";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAccounts } from "../hooks/useAccounts.js";
+import { useConversations } from "../hooks/useConversations.js";
+import { queryKeys } from "../lib/query-keys.js";
 import {
-  createModelProviderTemplate,
   deleteModelConfig,
   deleteModelProviderTemplate,
-  fetchAccounts,
-  fetchConversations,
   fetchModelConfigs,
   fetchModelProviderTemplates,
+  pingModelProviderTemplate,
   updateModelProviderTemplate,
   upsertModelConfig,
 } from "../lib/api.js";
 import { cn } from "../lib/cn.js";
 import { formatCount } from "../lib/format.js";
-import {
-  MODEL_PROVIDER_PRESETS,
-  type ModelProviderPreset,
-} from "./model-config/providerPresets.js";
-import {
-  normalizeModelIdList,
-  resolveNextSelectedModel,
-} from "./model-config/templateForm.js";
+import { ProviderBrandIcon } from "./model-config/providerBrandIcon.js";
+import { resolveNextSelectedModel } from "./model-config/templateForm.js";
 import {
   buildScopeKey,
   parseScopeSelection,
@@ -58,25 +63,9 @@ const PURPOSE_LABELS: Record<string, string> = {
 
 const SCOPE_TONES: Record<string, "online" | "muted" | "warning"> = {
   global: "muted",
-  account: "online",
+  account: "muted",
   conversation: "warning",
 };
-
-type TemplateEditorState =
-  | { mode: "create"; preset?: ModelProviderPreset }
-  | { mode: "edit"; templateId: string };
-
-interface TemplateEditorForm {
-  name: string;
-  provider: string;
-  modelIds: string[];
-  apiKey: string;
-  baseUrl: string;
-  enabled: boolean;
-  clearApiKey: boolean;
-  apiKeySet: boolean;
-  baseUrlPlaceholder?: string;
-}
 
 interface ConfigEditorForm {
   scope: "global" | "account" | "conversation";
@@ -90,17 +79,6 @@ interface ConfigEditorForm {
   priority: number;
 }
 
-const EMPTY_TEMPLATE_FORM: TemplateEditorForm = {
-  name: "",
-  provider: "",
-  modelIds: [""],
-  apiKey: "",
-  baseUrl: "",
-  enabled: true,
-  clearApiKey: false,
-  apiKeySet: false,
-};
-
 const EMPTY_CONFIG_FORM: ConfigEditorForm = {
   scope: "global",
   scopeKey: "*",
@@ -112,38 +90,6 @@ const EMPTY_CONFIG_FORM: ConfigEditorForm = {
   enabled: true,
   priority: 0,
 };
-
-function createTemplateForm(preset?: ModelProviderPreset): TemplateEditorForm {
-  return {
-    ...EMPTY_TEMPLATE_FORM,
-    name: preset ? `${preset.label} Template` : "",
-    provider: preset?.provider ?? "",
-    baseUrl: "",
-    baseUrlPlaceholder: preset?.baseUrlPlaceholder,
-  };
-}
-
-function createTemplateFormFromDto(
-  template: ModelProviderTemplateDto,
-): TemplateEditorForm {
-  const preset = MODEL_PROVIDER_PRESETS.find(
-    (item) => item.provider === template.provider,
-  );
-  return {
-    name: template.name,
-    provider: template.provider,
-    modelIds:
-      template.model_ids.length > 0
-        ? [...template.model_ids, ""]
-        : [""],
-    apiKey: "",
-    baseUrl: template.base_url ?? "",
-    enabled: template.enabled,
-    clearApiKey: false,
-    apiKeySet: template.api_key_set,
-    baseUrlPlaceholder: preset?.baseUrlPlaceholder,
-  };
-}
 
 function createConfigFormFromDto(dto: ModelConfigDto): ConfigEditorForm {
   const selection = parseScopeSelection(dto.scope, dto.scope_key);
@@ -198,20 +144,327 @@ function ensureSelectedOption(
   return [...options, { value, label }];
 }
 
+interface ProviderPingState {
+  phase: "idle" | "pending" | "resolved";
+  result: ModelProviderTemplatePingDto | null;
+}
+
+function createClientPingFailure(
+  templateId: string,
+  provider: string,
+  message: string,
+): ModelProviderTemplatePingDto {
+  return {
+    template_id: templateId,
+    provider,
+    reachable: false,
+    status_code: null,
+    latency_ms: null,
+    checked_at: new Date().toISOString(),
+    endpoint: null,
+    message,
+    model_count: null,
+  };
+}
+
+function getPingTone(
+  pingState: ProviderPingState | undefined,
+): "online" | "muted" | "warning" | "error" {
+  if (!pingState || pingState.phase === "idle") {
+    return "muted";
+  }
+  if (pingState.phase === "pending") {
+    return "warning";
+  }
+  if (pingState.result?.reachable) {
+    return "online";
+  }
+  if (
+    pingState.result?.message === "未配置 API Key" ||
+    pingState.result?.message === "Azure OpenAI 需要 Base URL" ||
+    pingState.result?.message === "未配置可探测的 Base URL"
+  ) {
+    return "warning";
+  }
+  return "error";
+}
+
+function getPingLabel(pingState: ProviderPingState | undefined): string {
+  if (!pingState || pingState.phase === "idle") {
+    return "检测供应商连通性";
+  }
+  if (pingState.phase === "pending") {
+    return "检测中";
+  }
+  if (pingState.result?.reachable) {
+    return pingState.result.latency_ms
+      ? `连接正常 · ${pingState.result.latency_ms}ms`
+      : "连接正常";
+  }
+  if (
+    pingState.result?.message === "未配置 API Key" ||
+    pingState.result?.message === "Azure OpenAI 需要 Base URL" ||
+    pingState.result?.message === "未配置可探测的 Base URL"
+  ) {
+    return pingState.result.message;
+  }
+  return pingState.result?.status_code
+    ? `连接失败 · ${pingState.result.status_code}`
+    : "连接失败";
+}
+
+function formatPingCheckedAt(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getPingMeta(pingState: ProviderPingState | undefined): string | null {
+  if (!pingState || pingState.phase !== "resolved" || !pingState.result) {
+    return null;
+  }
+
+  const parts = [`最近检测 ${formatPingCheckedAt(pingState.result.checked_at)}`];
+  if (pingState.result.reachable) {
+    if (pingState.result.latency_ms !== null) {
+      parts.push(`${pingState.result.latency_ms}ms`);
+    }
+    if (pingState.result.model_count !== null) {
+      parts.push(`返回 ${pingState.result.model_count} 个模型`);
+    }
+  } else {
+    parts.push(pingState.result.message);
+  }
+  return parts.join(" · ");
+}
+
+function CardToggle(props: {
+  enabled: boolean;
+  busy?: boolean;
+  label: string;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={props.busy}
+      aria-label={props.label}
+      aria-pressed={props.enabled}
+      title={props.enabled ? "已启用" : "已停用"}
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => {
+        event.stopPropagation();
+        props.onToggle();
+      }}
+      className={cn(
+        "relative inline-flex h-7 w-[46px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
+        props.enabled
+          ? "border-[rgba(28,100,242,0.14)] bg-[var(--accent)]"
+          : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.34)]",
+      )}
+    >
+      <span
+        className={cn(
+          "size-5 rounded-full bg-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          props.enabled ? "translate-x-[18px]" : "translate-x-0",
+        )}
+      />
+    </button>
+  );
+}
+
+function PingStatusButton(props: {
+  pingState?: ProviderPingState;
+  onPing: () => void;
+}) {
+  const tone = getPingTone(props.pingState);
+  const title = getPingLabel(props.pingState);
+  const isPending = props.pingState?.phase === "pending";
+
+  return (
+    <button
+      type="button"
+      disabled={isPending}
+      aria-label={title}
+      title={title}
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => {
+        event.stopPropagation();
+        props.onPing();
+      }}
+      className={cn(
+        "inline-flex size-7 shrink-0 items-center justify-center rounded-full border transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
+        tone === "online" &&
+          "border-emerald-200 bg-emerald-50 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-100",
+        tone === "warning" &&
+          "border-amber-200 bg-amber-50 text-amber-600 hover:border-amber-300 hover:bg-amber-100",
+        tone === "error" &&
+          "border-red-200 bg-red-50 text-red-600 hover:border-red-300 hover:bg-red-100",
+        tone === "muted" &&
+          "border-[var(--line)] bg-white text-[var(--muted)] hover:border-[var(--line-strong)] hover:text-[var(--muted-strong)]",
+      )}
+    >
+      {isPending ? (
+        <RefreshIcon className="size-3.5 animate-spin" />
+      ) : props.pingState?.result?.reachable ? (
+        <CheckCircleIcon className="size-3.5" />
+      ) : props.pingState?.phase === "resolved" ? (
+        <AlertCircleIcon className="size-3.5" />
+      ) : (
+        <PulseIcon className="size-3.5" />
+      )}
+    </button>
+  );
+}
+
+function IconTag(props: {
+  icon: ReactNode;
+  children: ReactNode;
+  tone?: "online" | "offline" | "muted" | "error" | "warning";
+}) {
+  return (
+    <Badge tone={props.tone ?? "muted"} className="gap-1.5 px-2.5 py-1.5 tracking-[0.08em]">
+      <span className="inline-flex size-3 items-center justify-center opacity-75">
+        {props.icon}
+      </span>
+      <span>{props.children}</span>
+    </Badge>
+  );
+}
+
+function MetricPanel(props: {
+  items: Array<{
+    icon: ReactNode;
+    label: string;
+    value: ReactNode;
+  }>;
+}) {
+  return (
+    <div className="mt-3 grid grid-cols-2 divide-x divide-[var(--line)] overflow-hidden rounded-[16px] border border-[var(--line)]/80 bg-[rgba(248,250,251,0.82)]">
+      {props.items.map((item) => (
+        <div key={item.label} className="px-3 py-2.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
+            <span className="inline-flex size-3.5 items-center justify-center">
+              {item.icon}
+            </span>
+            <span>{item.label}</span>
+          </div>
+          <p className="mt-1 text-[13px] font-medium text-[var(--muted-strong)]">
+            {item.value}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProviderConfigCard(props: {
+  template: ModelProviderTemplateDto;
+  pingState?: ProviderPingState;
+  toggleBusy?: boolean;
+  onPing: () => void;
+  onToggleEnabled: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { template } = props;
+
+  return (
+    <div className="reveal-up group relative rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.18)]">
+      <div className="flex items-start gap-3 px-5 pt-5">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-[14px] border border-[var(--line)] bg-white/90">
+          <ProviderBrandIcon provider={template.provider} className="size-5" />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <h3 className="truncate text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
+              {template.name}
+            </h3>
+          </div>
+          <p className="mt-0.5 text-[12px] text-[var(--muted)]">{template.provider}</p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2 self-start">
+          <PingStatusButton pingState={props.pingState} onPing={props.onPing} />
+          <CardToggle
+            enabled={template.enabled}
+            busy={props.toggleBusy}
+            label={template.enabled ? "停用供应商配置" : "启用供应商配置"}
+            onToggle={props.onToggleEnabled}
+          />
+          <CardOverflowMenu
+            items={[
+              {
+                label: "编辑",
+                tone: "primary",
+                onClick: props.onEdit,
+                icon: <PencilIcon className="size-4" />,
+              },
+              {
+                label: "删除",
+                tone: "danger",
+                onClick: props.onDelete,
+                icon: <TrashIcon className="size-4" />,
+              },
+            ]}
+          />
+        </div>
+      </div>
+
+      <div className="px-5">
+        <MetricPanel
+          items={[
+            {
+              icon: <StackIcon className="size-3.5" />,
+              label: "模型数",
+              value: formatCount(template.model_ids.length),
+            },
+            {
+              icon: <LinkIcon className="size-3.5" />,
+              label: "引用数",
+              value: formatCount(template.usage_count),
+            },
+          ]}
+        />
+      </div>
+
+      <div className="mt-2.5 flex flex-wrap gap-1.5 px-5 pb-4">
+        <IconTag icon={<StackIcon className="size-3" />}>
+          Model ID {formatCount(template.model_ids.length)}
+        </IconTag>
+        <IconTag icon={<LinkIcon className="size-3" />}>
+          使用配置 {formatCount(template.usage_count)}
+        </IconTag>
+      </div>
+
+      {getPingMeta(props.pingState) ? (
+        <p className="-mt-1 px-5 pb-4 text-[11px] text-[var(--muted)]">
+          {getPingMeta(props.pingState)}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function ModelConfigCard(props: {
   config: ModelConfigDto;
+  pingState?: ProviderPingState;
+  toggleBusy?: boolean;
+  onPing: () => void;
+  onToggleEnabled: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const { config } = props;
-  const statusTone = config.enabled
-    ? config.template_enabled
-      ? "online"
-      : "warning"
-    : "offline";
 
   return (
-    <div className="reveal-up group rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.18)]">
+    <div className="reveal-up group relative rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.18)]">
       <div className="flex items-start gap-3 px-5 pt-5">
         <span
           className={cn(
@@ -221,76 +474,111 @@ function ModelConfigCard(props: {
               : "border-amber-200 bg-amber-50 text-amber-600",
           )}
         >
-          <CpuIcon className="size-4" />
+          <ProviderBrandIcon provider={config.provider} className="size-5" />
         </span>
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <h3 className="truncate text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
               {config.template_name}
             </h3>
-            <Badge tone={statusTone}>
-              {config.enabled
-                ? config.template_enabled
-                  ? "生效中"
-                  : "模板已停用"
-                : "停用"}
-            </Badge>
           </div>
-          <p className="mt-1 text-[12px] text-[var(--muted)]">
+          <p className="mt-0.5 text-[12px] text-[var(--muted)]">
             {config.provider} / {config.model_id}
           </p>
         </div>
+
+        <div className="flex shrink-0 items-center gap-2 self-start">
+          <PingStatusButton pingState={props.pingState} onPing={props.onPing} />
+          <CardToggle
+            enabled={config.enabled}
+            busy={props.toggleBusy}
+            label={config.enabled ? "停用使用配置" : "启用使用配置"}
+            onToggle={props.onToggleEnabled}
+          />
+          <CardOverflowMenu
+            items={[
+              {
+                label: "编辑",
+                tone: "primary",
+                onClick: props.onEdit,
+                icon: <PencilIcon className="size-4" />,
+              },
+              {
+                label: "删除",
+                tone: "danger",
+                onClick: props.onDelete,
+                icon: <TrashIcon className="size-4" />,
+              },
+            ]}
+          />
+        </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 px-5 text-[12px]">
-        <div className="text-[var(--muted-strong)]">
-          <span className="text-[var(--muted)]">范围：</span>
-          {SCOPE_LABELS[config.scope] || config.scope}
-        </div>
-        <div className="text-[var(--muted-strong)]">
-          <span className="text-[var(--muted)]">用途：</span>
-          {PURPOSE_LABELS[config.purpose] || config.purpose}
-        </div>
-        <div className="text-[var(--muted-strong)]">
-          <span className="text-[var(--muted)]">Scope Key：</span>
+      <div className="px-5">
+        <MetricPanel
+          items={[
+            {
+              icon: <LayersIcon className="size-3.5" />,
+              label: "范围",
+              value: SCOPE_LABELS[config.scope] || config.scope,
+            },
+            {
+              icon: <ChatIcon className="size-3.5" />,
+              label: "用途",
+              value: PURPOSE_LABELS[config.purpose] || config.purpose,
+            },
+          ]}
+        />
+      </div>
+
+      <div className="mt-2 px-5 text-[11px] leading-5 text-[var(--muted)]">
+        Scope Key：
+        <span className="ml-1 font-[var(--font-mono)] text-[var(--muted-strong)]">
           {config.scope === "global" ? "*" : config.scope_key}
-        </div>
-        <div className="text-[var(--muted-strong)]">
-          <span className="text-[var(--muted)]">优先级：</span>
+        </span>
+        <span className="mx-2 text-[var(--line-strong)]">/</span>
+        优先级：
+        <span className="ml-1 font-[var(--font-mono)] text-[var(--muted-strong)]">
           {config.priority}
-        </div>
+        </span>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1 px-5 pb-4">
-        <Badge tone={SCOPE_TONES[config.scope] || "muted"}>
+      <div className="mt-2.5 flex flex-wrap gap-1.5 px-5 pb-4">
+        <IconTag icon={<LayersIcon className="size-3" />} tone={SCOPE_TONES[config.scope] || "muted"}>
           {SCOPE_LABELS[config.scope] || config.scope}
-        </Badge>
-        <Badge tone="muted">{PURPOSE_LABELS[config.purpose] || config.purpose}</Badge>
-        <Badge tone={config.template_enabled ? "muted" : "warning"}>
-          {config.template_enabled ? "模板可用" : "模板停用"}
-        </Badge>
+        </IconTag>
+        <IconTag icon={<ChatIcon className="size-3" />}>
+          {PURPOSE_LABELS[config.purpose] || config.purpose}
+        </IconTag>
+        <IconTag
+          icon={<LinkIcon className="size-3" />}
+          tone={config.template_enabled ? "muted" : "warning"}
+        >
+          {config.template_enabled ? "供应商可用" : "供应商已停用"}
+        </IconTag>
       </div>
 
-      <div className="flex items-center border-t border-[var(--line)]/40 px-4 py-2">
-        <button
-          type="button"
-          onClick={props.onEdit}
-          className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-[var(--muted-strong)] transition hover:bg-[rgba(21,110,99,0.06)] hover:text-[var(--accent-strong)]"
-        >
-          <PencilIcon className="size-3.5" />
-          编辑绑定
-        </button>
-        <div className="flex-1" />
-        <button
-          type="button"
-          onClick={props.onDelete}
-          className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-red-500 transition hover:bg-red-50 hover:text-red-600"
-        >
-          <TrashIcon className="size-3.5" />
-          删除
-        </button>
+      {getPingMeta(props.pingState) ? (
+        <p className="px-5 pb-4 text-[11px] text-[var(--muted)]">
+          {getPingMeta(props.pingState)}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function PageSectionHeader(props: {
+  title: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <h3 className="text-[16px] text-[var(--ink)]">{props.title}</h3>
       </div>
+
+      {props.action ? <div className="flex shrink-0 flex-wrap gap-2">{props.action}</div> : null}
     </div>
   );
 }
@@ -322,16 +610,13 @@ function ModelConfigEditorModal(props: {
     value: modelId,
     label: modelId,
   }));
+  const convAccountId =
+    form.scope === "conversation" && form.accountId ? form.accountId : undefined;
   const {
-    data: conversationData,
+    conversations: conversationData,
     loading: conversationsLoading,
     error: conversationsError,
-  } = useAsyncResource<ConversationRow[]>(
-    form.scope === "conversation" && form.accountId
-      ? () => fetchConversations(form.accountId)
-      : null,
-    [form.scope, form.accountId],
-  );
+  } = useConversations(convAccountId);
   const accountOptions = ensureSelectedOption(
     props.accounts.map((account) => ({
       value: account.id,
@@ -382,11 +667,11 @@ function ModelConfigEditorModal(props: {
   async function handleSubmit() {
     const scopeKey = buildScopeKey(form.scope, form.accountId, form.conversationId).trim();
     if (!form.templateId) {
-      setError("请先选择一个可用模板");
+      setError("请先选择一个可用供应商配置");
       return;
     }
     if (!form.modelId) {
-      setError("请从模板维护的 Model ID 列表中选择一个模型");
+      setError("请从供应商配置维护的 Model ID 列表中选择一个模型");
       return;
     }
     if (form.scope === "account" && !form.accountId.trim()) {
@@ -591,7 +876,9 @@ function ModelConfigEditorModal(props: {
 
           <div className="grid gap-4 rounded-[22px] border border-[var(--line)] bg-white/70 px-4 py-4">
             <div>
-              <label className="text-[12px] text-[var(--muted-strong)]">模板 *</label>
+              <label className="text-[12px] text-[var(--muted-strong)]">
+                供应商配置 *
+              </label>
               <Select
                 value={form.templateId}
                 options={availableTemplates.map((template) => ({
@@ -610,7 +897,7 @@ function ModelConfigEditorModal(props: {
                     ),
                   }));
                 }}
-                placeholder="选择一个模板"
+                placeholder="选择一个供应商配置"
                 className="mt-1"
                 disabled={availableTemplates.length === 0}
               />
@@ -628,8 +915,8 @@ function ModelConfigEditorModal(props: {
                 }
                 placeholder={
                   selectedTemplate
-                    ? "从模板维护的 Model ID 中选择"
-                    : "先选择模板"
+                    ? "从供应商配置维护的 Model ID 中选择"
+                    : "先选择供应商配置"
                 }
                 className="mt-1"
                 disabled={!selectedTemplate}
@@ -691,81 +978,51 @@ function ModelConfigEditorModal(props: {
 }
 
 export function ModelConfigPage() {
-  const [revision, setRevision] = useState(0);
-  const { data, loading, error } = useAsyncResource(
-    async () => {
-      const [templates, configs, accounts] = await Promise.all([
-        fetchModelProviderTemplates(),
-        fetchModelConfigs(),
-        fetchAccounts(),
-      ]);
-      return { templates, configs, accounts };
-    },
-    [revision],
-  );
-  const templates = data?.templates ?? [];
-  const configs = data?.configs ?? [];
-  const accounts = data?.accounts ?? [];
-  const [templateEditor, setTemplateEditor] = useState<TemplateEditorState | null>(null);
-  const [templateForm, setTemplateForm] = useState<TemplateEditorForm>(
-    EMPTY_TEMPLATE_FORM,
-  );
-  const [templateBusy, setTemplateBusy] = useState(false);
-  const [templateError, setTemplateError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const {
+    data: templatesData,
+    isPending: templatesLoading,
+    error: templatesError,
+  } = useQuery({
+    queryKey: queryKeys.modelProviderTemplates,
+    queryFn: fetchModelProviderTemplates,
+  });
+  const {
+    data: configsData,
+    isPending: configsLoading,
+    error: configsError,
+  } = useQuery({
+    queryKey: queryKeys.modelConfigs,
+    queryFn: fetchModelConfigs,
+  });
+  const { accounts, loading: accountsLoading, error: accountsError } = useAccounts();
+
+  const loading = templatesLoading || configsLoading || accountsLoading;
+  const error = templatesError ?? configsError ?? accountsError
+    ? [templatesError, configsError, accountsError]
+        .filter(Boolean)
+        .map((e) => (e instanceof Error ? e.message : String(e)))
+        .join("; ")
+    : null;
+  const templates = templatesData ?? [];
+  const configs = configsData ?? [];
+
   const [configEditorTarget, setConfigEditorTarget] = useState<
     ModelConfigDto | "create" | null
   >(null);
+  const [pingStates, setPingStates] = useState<Record<string, ProviderPingState>>({});
+  const [pendingTemplateToggleId, setPendingTemplateToggleId] = useState<string | null>(
+    null,
+  );
+  const [pendingConfigToggleId, setPendingConfigToggleId] = useState<string | null>(null);
 
-  const refresh = () => setRevision((current) => current + 1);
-  const enabledTemplateCount = templates.filter((template) => template.enabled).length;
-  const activeConfigCount = configs.filter((config) => config.enabled && config.template_enabled).length;
-  const stats = [
-    { label: "Provider 模板", value: formatCount(templates.length) },
-    { label: "启用模板", value: formatCount(enabledTemplateCount) },
-    { label: "使用配置", value: formatCount(configs.length) },
-    { label: "生效配置", value: formatCount(activeConfigCount) },
-  ];
-  const activeTemplate =
-    templateEditor?.mode === "edit"
-      ? templates.find((template) => template.id === templateEditor.templateId) ?? null
-      : null;
-
-  useEffect(() => {
-    if (templateEditor) {
-      if (
-        templateEditor.mode === "edit" &&
-        !templates.some((template) => template.id === templateEditor.templateId)
-      ) {
-        setTemplateEditor(
-          templates[0] ? { mode: "edit", templateId: templates[0].id } : { mode: "create" },
-        );
-      }
-      return;
-    }
-
-    setTemplateEditor(
-      templates[0] ? { mode: "edit", templateId: templates[0].id } : { mode: "create" },
-    );
-  }, [templateEditor, templates]);
-
-  useEffect(() => {
-    if (!templateEditor) {
-      return;
-    }
-
-    setTemplateError(null);
-    if (templateEditor.mode === "create") {
-      setTemplateForm(createTemplateForm(templateEditor.preset));
-      return;
-    }
-
-    const template = templates.find(
-      (item) => item.id === templateEditor.templateId,
-    );
-    if (template) {
-      setTemplateForm(createTemplateFormFromDto(template));
-    }
-  }, [templateEditor, templates]);
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.modelProviderTemplates }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.modelConfigs }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.accounts() }),
+    ]);
 
   useEffect(() => {
     if (!configEditorTarget) return;
@@ -776,84 +1033,108 @@ export function ModelConfigPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [configEditorTarget]);
 
-  async function handleTemplateSave() {
-    const modelIds = normalizeModelIdList(templateForm.modelIds);
-    if (!templateForm.name.trim() || !templateForm.provider.trim()) {
-      setTemplateError("Name 和 Provider 为必填项");
-      return;
-    }
-    if (modelIds.length === 0) {
-      setTemplateError("请至少维护一个 Model ID");
-      return;
-    }
-
-    setTemplateBusy(true);
-    setTemplateError(null);
-    try {
-      if (templateEditor?.mode === "edit" && activeTemplate) {
-        const updated = await updateModelProviderTemplate(activeTemplate.id, {
-          name: templateForm.name.trim(),
-          provider: templateForm.provider.trim(),
-          model_ids: modelIds,
-          ...(templateForm.apiKey.trim()
-            ? { api_key: templateForm.apiKey.trim() }
-            : {}),
-          ...(templateForm.clearApiKey ? { clear_api_key: true } : {}),
-          base_url: templateForm.baseUrl.trim() || null,
-          enabled: templateForm.enabled,
-        });
-        setTemplateEditor({ mode: "edit", templateId: updated.id });
-      } else {
-        const created = await createModelProviderTemplate({
-          name: templateForm.name.trim(),
-          provider: templateForm.provider.trim(),
-          model_ids: modelIds,
-          api_key: templateForm.apiKey.trim() || null,
-          base_url: templateForm.baseUrl.trim() || null,
-          enabled: templateForm.enabled,
-        });
-        setTemplateEditor({ mode: "edit", templateId: created.id });
-      }
-      refresh();
-    } catch (err) {
-      setTemplateError(err instanceof Error ? err.message : "保存失败");
-    } finally {
-      setTemplateBusy(false);
-    }
-  }
-
-  async function handleTemplateDelete(template: ModelProviderTemplateDto) {
-    if (!confirm(`确定要删除模板 ${template.name} 吗？`)) return;
+  async function handleProviderConfigDelete(template: ModelProviderTemplateDto) {
+    if (!confirm(`确定要删除供应商配置 ${template.name} 吗？`)) return;
     try {
       await deleteModelProviderTemplate(template.id);
-      setTemplateEditor(null);
-      refresh();
+      await refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : "删除失败");
     }
   }
 
+  async function handleProviderPing(templateId: string, provider: string) {
+    setPingStates((current) => ({
+      ...current,
+      [templateId]: {
+        phase: "pending",
+        result: current[templateId]?.result ?? null,
+      },
+    }));
+
+    try {
+      const result = await pingModelProviderTemplate(templateId);
+      setPingStates((current) => ({
+        ...current,
+        [templateId]: {
+          phase: "resolved",
+          result,
+        },
+      }));
+    } catch (err) {
+      setPingStates((current) => ({
+        ...current,
+        [templateId]: {
+          phase: "resolved",
+          result: createClientPingFailure(
+            templateId,
+            provider,
+            err instanceof Error ? err.message : "连接失败",
+          ),
+        },
+      }));
+    }
+  }
+
+  async function handleProviderToggle(template: ModelProviderTemplateDto) {
+    setPendingTemplateToggleId(template.id);
+    try {
+      await updateModelProviderTemplate(template.id, {
+        name: template.name,
+        provider: template.provider,
+        model_ids: template.model_ids,
+        base_url: template.base_url,
+        enabled: !template.enabled,
+      });
+      await refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "更新失败");
+    } finally {
+      setPendingTemplateToggleId(null);
+    }
+  }
+
+  async function handleConfigToggle(config: ModelConfigDto) {
+    setPendingConfigToggleId(config.id);
+    try {
+      await upsertModelConfig({
+        scope: config.scope,
+        scope_key: config.scope_key,
+        purpose: config.purpose,
+        template_id: config.template_id,
+        model_id: config.model_id,
+        enabled: !config.enabled,
+        priority: config.priority,
+      });
+      await refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "更新失败");
+    } finally {
+      setPendingConfigToggleId(null);
+    }
+  }
+
   async function handleConfigDelete(config: ModelConfigDto) {
-    if (!confirm(`确定要删除绑定 ${config.template_name}/${config.model_id} 吗？`)) {
+    if (!confirm(`确定要删除使用配置 ${config.template_name}/${config.model_id} 吗？`)) {
       return;
     }
     try {
       await deleteModelConfig(config.id);
-      refresh();
+      await refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : "删除失败");
     }
   }
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className="space-y-6 md:space-y-7">
       <section className="space-y-3">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.26em] text-[var(--muted)]">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
               Model Control Plane
             </p>
-            <h2 className="mt-1.5 text-[20px] text-[var(--ink)]">模型配置管理</h2>
+            <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">模型配置管理</h2>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -861,21 +1142,6 @@ export function ModelConfigPage() {
               <RefreshIcon className="size-4" />
               刷新
             </Button>
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]">
-          <div className="grid divide-y divide-[var(--line)] md:grid-cols-4 md:divide-x md:divide-y-0">
-            {stats.map((stat) => (
-              <div key={stat.label} className="px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                  {stat.label}
-                </p>
-                <p className="mt-1.5 font-[var(--font-mono)] text-[18px] font-semibold text-[var(--ink)]">
-                  {stat.value}
-                </p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -886,403 +1152,126 @@ export function ModelConfigPage() {
         </div>
       ) : null}
 
-      <section className="space-y-0">
-        <div className="overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.74)]">
-          <div className="border-b border-[var(--line)] px-3 py-3 md:px-4">
-            <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                  Provider Templates
-                </p>
-                <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">模板与 Provider</h3>
-              </div>
+      <section className="space-y-3">
+        <PageSectionHeader
+          title="供应商配置"
+          action={
+            <Button size="sm" onClick={() => navigate("/model-config/providers/new")}>
+              <PlusIcon className="size-4" />
+              新建供应商配置
+            </Button>
+          }
+        />
 
-              <Button size="sm" onClick={() => setTemplateEditor({ mode: "create" })}>
-                <PlusIcon className="size-4" />
-                新建模板
-              </Button>
-            </div>
+        {loading ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="ui-skeleton h-52 rounded-[18px]" />
+            ))}
           </div>
+        ) : null}
 
-          <div className="grid xl:grid-cols-[300px_minmax(0,1fr)]">
-            <aside className="border-b border-[var(--line)] bg-[rgba(246,249,250,0.78)] px-3 py-3 xl:border-b-0 xl:border-r md:px-4">
-              <div className="space-y-2">
-                {loading
-                  ? Array.from({ length: 3 }).map((_, index) => (
-                      <div key={index} className="ui-skeleton h-20 rounded-[12px]" />
-                    ))
-                  : null}
+        {!loading && templates.length === 0 ? (
+          <section className="rounded-[24px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
+            <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
+            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
+              暂无供应商配置
+            </p>
+            <Button
+              size="sm"
+              className="mt-4"
+              onClick={() => navigate("/model-config/providers/new")}
+            >
+              <PlusIcon className="size-4" />
+              新建第一个供应商配置
+            </Button>
+          </section>
+        ) : null}
 
-                {!loading && templates.length === 0 ? (
-                  <div className="rounded-[12px] border border-dashed border-[var(--line)] bg-white/70 px-4 py-6 text-center text-[12px] text-[var(--muted)]">
-                    暂无 Provider 模板
-                  </div>
-                ) : null}
-
-                {!loading
-                  ? templates.map((template) => {
-                      const selected =
-                        templateEditor?.mode === "edit" &&
-                        templateEditor.templateId === template.id;
-                      return (
-                        <button
-                          key={template.id}
-                          type="button"
-                          onClick={() =>
-                            setTemplateEditor({ mode: "edit", templateId: template.id })
-                          }
-                          className={cn(
-                            "w-full rounded-[12px] border px-3 py-3 text-left transition",
-                            selected
-                              ? "border-[rgba(21,110,99,0.2)] bg-[rgba(21,110,99,0.06)]"
-                              : "border-[var(--line)] bg-white/84 hover:border-[var(--line-strong)] hover:bg-white",
-                          )}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-[13px] font-semibold text-[var(--ink)]">
-                                {template.name}
-                              </div>
-                              <p className="mt-1 truncate text-[11px] text-[var(--muted)]">
-                                {template.provider}
-                              </p>
-                            </div>
-                            <Badge tone={template.enabled ? "online" : "offline"}>
-                              {template.enabled ? "Active" : "Inactive"}
-                            </Badge>
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            <Badge tone="muted">模型 {formatCount(template.model_ids.length)}</Badge>
-                            <Badge tone="muted">引用 {formatCount(template.usage_count)}</Badge>
-                          </div>
-                        </button>
-                      );
-                    })
-                  : null}
-              </div>
-
-              <div className="mt-4 border-t border-[var(--line)] pt-4">
-                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                  Provider 预设
-                </p>
-                <div className="mt-3 grid gap-2">
-                  {MODEL_PROVIDER_PRESETS.map((preset) => (
-                    <button
-                      key={preset.label}
-                      type="button"
-                      onClick={() => setTemplateEditor({ mode: "create", preset })}
-                      className="rounded-[12px] border border-[var(--line)] bg-white/84 px-3 py-3 text-left transition hover:border-[var(--line-strong)] hover:bg-white"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-[13px] font-semibold text-[var(--ink)]">
-                          {preset.label}
-                        </span>
-                        <PlusIcon className="size-3.5 text-[var(--muted)]" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </aside>
-
-            <div className="px-3 py-3 md:px-4 md:py-4">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                    {templateEditor?.mode === "edit" ? "Template Detail" : "New Template"}
-                  </p>
-                  <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">
-                    {templateEditor?.mode === "edit" ? "编辑 Provider 模板" : "新建 Provider 模板"}
-                  </h3>
-                </div>
-
-                {activeTemplate ? (
-                  <div className="flex flex-wrap gap-2">
-                    <Badge tone={activeTemplate.enabled ? "online" : "offline"}>
-                      {activeTemplate.enabled ? "已启用" : "已停用"}
-                    </Badge>
-                    <Badge tone="muted">模型 {formatCount(activeTemplate.model_ids.length)}</Badge>
-                    <Badge tone="muted">引用 {formatCount(activeTemplate.usage_count)}</Badge>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-                <div className="space-y-5">
-                  <div>
-                    <label className="text-[12px] text-[var(--muted-strong)]">模板名称 *</label>
-                    <Input
-                      value={templateForm.name}
-                      onChange={(event) =>
-                        setTemplateForm((current) => ({
-                          ...current,
-                          name: event.target.value,
-                        }))
-                      }
-                      placeholder="例如 OpenAI Main"
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[12px] text-[var(--muted-strong)]">Provider *</label>
-                    <Input
-                      value={templateForm.provider}
-                      onChange={(event) =>
-                        setTemplateForm((current) => ({
-                          ...current,
-                          provider: event.target.value,
-                        }))
-                      }
-                      placeholder="openai / anthropic / moonshot"
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div className="rounded-[14px] border border-[var(--line)] bg-[rgba(246,249,250,0.82)] p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-[12px] font-medium text-[var(--muted-strong)]">
-                          Model ID 列表 *
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setTemplateForm((current) => ({
-                            ...current,
-                            modelIds: [...current.modelIds, ""],
-                          }))
-                        }
-                      >
-                        <PlusIcon className="size-4" />
-                        添加
-                      </Button>
-                    </div>
-
-                    <div className="mt-4 space-y-2">
-                      {templateForm.modelIds.map((value, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <Input
-                            value={value}
-                            onChange={(event) =>
-                              setTemplateForm((current) => ({
-                                ...current,
-                                modelIds: current.modelIds.map((modelId, itemIndex) =>
-                                  itemIndex === index ? event.target.value : modelId,
-                                ),
-                              }))
-                            }
-                            placeholder="例如 gpt-5"
-                          />
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            onClick={() =>
-                              setTemplateForm((current) => ({
-                                ...current,
-                                modelIds:
-                                  current.modelIds.length === 1
-                                    ? [""]
-                                    : current.modelIds.filter(
-                                        (_item, itemIndex) => itemIndex !== index,
-                                      ),
-                              }))
-                            }
-                            aria-label="删除 Model ID"
-                          >
-                            <XIcon className="size-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-5">
-                  <div>
-                    <label className="text-[12px] text-[var(--muted-strong)]">
-                      API Key
-                    </label>
-                    <Input
-                      type="password"
-                      value={templateForm.apiKey}
-                      onChange={(event) =>
-                        setTemplateForm((current) => ({
-                          ...current,
-                          apiKey: event.target.value,
-                        }))
-                      }
-                      placeholder={
-                        templateEditor?.mode === "edit" && templateForm.apiKeySet
-                          ? "已设置，留空则不修改"
-                          : "sk-..."
-                      }
-                      className="mt-1"
-                    />
-                    <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--muted)]">
-                      <input
-                        type="checkbox"
-                        checked={templateForm.clearApiKey}
-                        onChange={(event) =>
-                          setTemplateForm((current) => ({
-                            ...current,
-                            clearApiKey: event.target.checked,
-                            apiKey: event.target.checked ? "" : current.apiKey,
-                          }))
-                        }
-                        className="size-4 rounded accent-[var(--accent)]"
-                      />
-                      <span>清空已保存的 API Key</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[12px] text-[var(--muted-strong)]">
-                      Base URL
-                    </label>
-                    <Input
-                      value={templateForm.baseUrl}
-                      onChange={(event) =>
-                        setTemplateForm((current) => ({
-                          ...current,
-                          baseUrl: event.target.value,
-                        }))
-                      }
-                      placeholder={
-                        templateForm.baseUrlPlaceholder ??
-                        "https://api.example.com/v1"
-                      }
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div className="rounded-[14px] border border-[var(--line)] bg-[rgba(252,253,253,0.9)] p-4">
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                      模板状态
-                    </p>
-                    <label className="mt-3 flex items-center gap-2 text-[12px] text-[var(--muted-strong)]">
-                      <input
-                        type="checkbox"
-                        checked={templateForm.enabled}
-                        onChange={(event) =>
-                          setTemplateForm((current) => ({
-                            ...current,
-                            enabled: event.target.checked,
-                          }))
-                        }
-                        className="size-4 rounded accent-[var(--accent)]"
-                      />
-                      启用此模板
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {templateError ? (
-                <div className="mt-5 rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
-                  {templateError}
-                </div>
-              ) : null}
-
-              <div className="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-[var(--line)] pt-4">
-                {activeTemplate ? (
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleTemplateDelete(activeTemplate)}
-                  >
-                    <TrashIcon className="size-4" />
-                    删除模板
-                  </Button>
-                ) : null}
-                <Button
-                  variant="outline"
-                  onClick={() => setTemplateEditor({ mode: "create" })}
-                >
-                  新建空白模板
-                </Button>
-                <Button disabled={templateBusy} onClick={() => void handleTemplateSave()}>
-                  {templateBusy
-                    ? "保存中..."
-                    : templateEditor?.mode === "edit"
-                      ? "保存模板"
-                      : "创建模板"}
-                </Button>
-              </div>
-            </div>
+        {!loading && templates.length > 0 ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {templates.map((template) => (
+              <ProviderConfigCard
+                key={template.id}
+                template={template}
+                pingState={pingStates[template.id]}
+                toggleBusy={pendingTemplateToggleId === template.id}
+                onPing={() => void handleProviderPing(template.id, template.provider)}
+                onToggleEnabled={() => void handleProviderToggle(template)}
+                onEdit={() => navigate(`/model-config/providers/${template.id}`)}
+                onDelete={() => void handleProviderConfigDelete(template)}
+              />
+            ))}
           </div>
+        ) : null}
+      </section>
 
-          <div className="border-t border-[var(--line)] px-3 py-3 md:px-4">
-            <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                  Runtime Bindings
-                </p>
-                <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">使用配置</h3>
-              </div>
+      <section className="space-y-3">
+        <PageSectionHeader
+          title="使用配置"
+          action={
+            <Button
+              size="sm"
+              onClick={() => setConfigEditorTarget("create")}
+              disabled={templates.every((template) => !template.enabled)}
+            >
+              <PlusIcon className="size-4" />
+              新建使用配置
+            </Button>
+          }
+        />
 
-              <Button
-                size="sm"
-                onClick={() => setConfigEditorTarget("create")}
-                disabled={templates.every((template) => !template.enabled)}
-              >
-                <PlusIcon className="size-4" />
-                新建使用配置
-              </Button>
-            </div>
+        {loading ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="ui-skeleton h-44 rounded-[18px]" />
+            ))}
           </div>
+        ) : null}
 
-          <div className="px-3 pb-3 md:px-4 md:pb-4">
-            {loading ? (
-              <div className="grid gap-4 xl:grid-cols-2">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="ui-skeleton h-44 rounded-[18px]" />
-                ))}
-              </div>
-            ) : null}
+        {!loading && templates.length === 0 ? (
+          <section className="rounded-[24px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
+            <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
+            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
+              暂无供应商配置
+            </p>
+          </section>
+        ) : null}
 
-            {!loading && templates.length === 0 ? (
-              <section className="rounded-[18px] border border-dashed border-[var(--line)] bg-[rgba(248,250,251,0.78)] px-5 py-10 text-center">
-                <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
-                <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
-                  暂无 Provider 模板
-                </p>
-              </section>
-            ) : null}
+        {!loading && templates.length > 0 && configs.length === 0 ? (
+          <section className="rounded-[24px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
+            <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
+            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
+              还没有使用配置
+            </p>
+            <Button
+              size="sm"
+              className="mt-4"
+              onClick={() => setConfigEditorTarget("create")}
+              disabled={templates.every((template) => !template.enabled)}
+            >
+              <PlusIcon className="size-4" />
+              新建第一个使用配置
+            </Button>
+          </section>
+        ) : null}
 
-            {!loading && templates.length > 0 && configs.length === 0 ? (
-              <section className="rounded-[18px] border border-dashed border-[var(--line)] bg-[rgba(248,250,251,0.78)] px-5 py-10 text-center">
-                <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
-                <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
-                  还没有使用配置
-                </p>
-                <Button
-                  size="sm"
-                  className="mt-4"
-                  onClick={() => setConfigEditorTarget("create")}
-                  disabled={templates.every((template) => !template.enabled)}
-                >
-                  <PlusIcon className="size-4" />
-                  新建第一个使用配置
-                </Button>
-              </section>
-            ) : null}
-
-            {!loading && configs.length > 0 ? (
-              <div className="grid gap-4 xl:grid-cols-2">
-                {configs.map((config) => (
-                  <ModelConfigCard
-                    key={config.id}
-                    config={config}
-                    onEdit={() => setConfigEditorTarget(config)}
-                    onDelete={() => void handleConfigDelete(config)}
-                  />
-                ))}
-              </div>
-            ) : null}
+        {!loading && configs.length > 0 ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {configs.map((config) => (
+              <ModelConfigCard
+                key={config.id}
+                config={config}
+                pingState={pingStates[config.template_id]}
+                toggleBusy={pendingConfigToggleId === config.id}
+                onPing={() => void handleProviderPing(config.template_id, config.provider)}
+                onToggleEnabled={() => void handleConfigToggle(config)}
+                onEdit={() => setConfigEditorTarget(config)}
+                onDelete={() => void handleConfigDelete(config)}
+              />
+            ))}
           </div>
-        </div>
+        ) : null}
       </section>
 
       {configEditorTarget ? (

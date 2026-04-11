@@ -1,18 +1,21 @@
-import { useState } from "react";
-import type { HealthStatus } from "@clawbot/shared";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchHealth } from "../lib/api.js";
-import { useAsyncResource } from "./use-async-resource.js";
+import { queryKeys } from "../lib/query-keys.js";
 
 export function useHealth() {
-  const [revision, setRevision] = useState(0);
-  const resource = useAsyncResource<HealthStatus>(() => fetchHealth(), [revision]);
+  const queryClient = useQueryClient();
+  const { data, isPending, error } = useQuery({
+    queryKey: queryKeys.health,
+    queryFn: fetchHealth,
+    staleTime: 60_000,
+  });
 
   return {
-    health: resource.data,
-    loading: resource.loading,
-    error: resource.error,
+    health: data ?? null,
+    loading: isPending,
+    error: error instanceof Error ? error.message : error ? String(error) : null,
     refresh() {
-      setRevision((value) => value + 1);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.health });
     },
   };
 }

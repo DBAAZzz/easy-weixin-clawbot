@@ -3,9 +3,13 @@ import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
 import {
+  CardOverflowMenu,
+  CardToggle,
+  IconTag,
+  MetricGrid,
+} from "../components/ui/admin-card.js";
+import {
   ClockIcon,
-  PlayIcon,
-  PauseIcon,
   ActivityIcon,
   RefreshIcon,
   ChevronDownIcon,
@@ -13,15 +17,19 @@ import {
   HistoryIcon,
   AlertCircleIcon,
   CheckCircleIcon,
+  LayersIcon,
+  LinkIcon,
+  StackIcon,
   XIcon,
 } from "../components/ui/icons.js";
-import { useAsyncResource } from "../hooks/use-async-resource.js";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchScheduledTasks,
   fetchScheduledTaskRuns,
-  fetchAccounts,
   toggleScheduledTask,
 } from "../lib/api.js";
+import { queryKeys } from "../lib/query-keys.js";
+import { useAccounts } from "../hooks/useAccounts.js";
 import type { ScheduledTaskDto, ScheduledTaskRunDto } from "../lib/api.js";
 import type { AccountSummary } from "@clawbot/shared";
 import { cn } from "../lib/cn.js";
@@ -97,25 +105,45 @@ function cronToHuman(cron: string): string {
 }
 
 function TaskStatusBadge({ status }: { status: ScheduledTaskDto["status"] }) {
-  const tone =
-    status === "running"
-      ? "online"
-      : status === "error"
-        ? "error"
-        : status === "paused"
-          ? "offline"
-          : "muted";
-  const label =
-    status === "idle"
-      ? "空闲"
-      : status === "running"
-        ? "运行中"
-        : status === "error"
-          ? "错误"
-          : status === "paused"
-            ? "已暂停"
-            : status;
+  const tone = getTaskStatusTone(status);
+  const label = getTaskStatusLabel(status);
   return <Badge tone={tone}>{label}</Badge>;
+}
+
+function getTaskStatusTone(
+  status: ScheduledTaskDto["status"],
+): "online" | "offline" | "muted" | "error" | "warning" {
+  return status === "running"
+    ? "online"
+    : status === "error"
+      ? "error"
+      : status === "paused"
+        ? "offline"
+        : "muted";
+}
+
+function getTaskStatusLabel(status: ScheduledTaskDto["status"]): string {
+  return status === "idle"
+    ? "空闲"
+    : status === "running"
+      ? "运行中"
+      : status === "error"
+        ? "错误"
+        : status === "paused"
+          ? "已暂停"
+          : status;
+}
+
+function getTaskStatusIcon(status: ScheduledTaskDto["status"]) {
+  return status === "running" ? (
+    <ActivityIcon className="size-3" />
+  ) : status === "error" ? (
+    <AlertCircleIcon className="size-3" />
+  ) : status === "paused" ? (
+    <ClockIcon className="size-3" />
+  ) : (
+    <CheckCircleIcon className="size-3" />
+  );
 }
 
 function RunStatusBadge({ status }: { status: ScheduledTaskRunDto["status"] }) {
@@ -162,10 +190,10 @@ function TaskRunsModal({
   account: AccountSummary | undefined;
   onClose: () => void;
 }) {
-  const { data: runs, loading } = useAsyncResource(
-    () => fetchScheduledTaskRuns(task.accountId, task.seq, 20),
-    []
-  );
+  const { data: runs, isPending: loading } = useQuery({
+    queryKey: queryKeys.scheduledTaskRuns(task.accountId, task.seq),
+    queryFn: () => fetchScheduledTaskRuns(task.accountId, task.seq, 20),
+  });
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -336,71 +364,115 @@ function ScheduledTaskCard({
     <>
       <div
         className={cn(
-          "reveal-up group rounded-[20px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)]",
+          "reveal-up group relative rounded-[24px] border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.38)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)]",
           expanded && "border-[rgba(21,110,99,0.14)] bg-[rgba(255,255,255,0.96)]"
         )}
       >
-        {/* ── Row 1: icon + name #seq (account)    [type] [status] ── */}
-        <div className="flex items-center gap-3 px-5 pt-4">
+        <div className="flex items-start gap-3 px-5 pt-5">
           <span
             className={cn(
-              "flex size-9 shrink-0 items-center justify-center rounded-[12px] border transition",
+              "flex size-10 shrink-0 items-center justify-center rounded-[14px] border transition",
               task.enabled
                 ? "border-emerald-200 bg-emerald-50 text-emerald-600"
                 : "border-[var(--line)] bg-[rgba(148,163,184,0.08)] text-[var(--muted)]"
             )}
           >
-            <ClockIcon className="size-4" />
+            <ClockIcon className="size-5" />
           </span>
 
           <div className="min-w-0 flex-1">
-            <span className="truncate text-[13px] font-semibold tracking-[-0.02em] text-[var(--ink)]">
-              {task.name}
-            </span>
-            <span className="ml-1.5 text-[11px] text-[var(--muted)]">
-              #{task.seq}
-            </span>
-            <span className="ml-1 text-[11px] text-[var(--muted)]">
-              ({accountLabel})
-            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="truncate text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
+                {task.name}
+              </span>
+              <span className="text-[11px] text-[var(--muted)]">#{task.seq}</span>
+            </div>
+            <p className="mt-0.5 truncate text-[12px] text-[var(--muted)]">
+              {accountLabel} · {task.conversationId}
+            </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Badge tone={task.type === "once" ? "warning" : "muted"}>
-              {task.type === "once" ? "单次" : "重复"}
-            </Badge>
-            <TaskStatusBadge status={task.status} />
+          <div className="flex shrink-0 items-center gap-2 self-start">
+            <CardToggle
+              enabled={task.enabled}
+              busy={toggling}
+              label={task.enabled ? "暂停定时任务" : "启用定时任务"}
+              onToggle={async () => {
+                setToggling(true);
+                try {
+                  await toggleScheduledTask(task.accountId, task.seq, !task.enabled);
+                  onRefresh();
+                } catch (err) {
+                  console.error("[ScheduledTasks] toggle failed:", err);
+                } finally {
+                  setToggling(false);
+                }
+              }}
+            />
+            <CardOverflowMenu
+              items={[
+                {
+                  label: "查看运行记录",
+                  tone: "primary",
+                  onClick: () => setShowRuns(true),
+                  icon: <HistoryIcon className="size-4" />,
+                },
+                {
+                  label: expanded ? "收起详情" : "展开详情",
+                  onClick: onToggleExpand,
+                  icon: expanded ? (
+                    <ChevronUpIcon className="size-4" />
+                  ) : (
+                    <ChevronDownIcon className="size-4" />
+                  ),
+                },
+              ]}
+            />
           </div>
         </div>
 
-        {/* ── Row 2-3: 2-column info grid ── */}
-        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 px-5 pb-3.5 text-[12px]">
-          {/* left col */}
-          <div className="text-[var(--muted-strong)]">
-            <span className="text-[var(--muted)]">下次运行：</span>
-            {nextRunText}
-          </div>
-          {/* right col */}
-          <div className="text-[var(--ink)]">
-            <span className="text-[var(--muted)]">执行周期：</span>
-            {scheduleLabel}
-          </div>
-          {/* left col */}
-          <div className="text-[var(--muted-strong)]">
-            <span className="text-[var(--muted)]">上次运行：</span>
-            {task.lastRunAt ? formatDateTime(task.lastRunAt) : "—"}
-          </div>
-          {/* right col */}
-          <div className="text-[var(--muted)]">
-            <span>运行次数：</span>
-            <span className="text-[var(--muted-strong)]">{formatCount(task.runCount)} 次</span>
-            {task.failStreak > 0 ? (
-              <span className="ml-1.5 text-red-500">连续失败 {task.failStreak}</span>
-            ) : null}
-          </div>
+        <div className="px-5">
+          <MetricGrid
+            items={[
+              {
+                icon: <ClockIcon className="size-3.5" />,
+                label: "下次运行",
+                value: nextRunText,
+              },
+              {
+                icon: <RefreshIcon className="size-3.5" />,
+                label: "执行周期",
+                value: scheduleLabel,
+              },
+              {
+                icon: <HistoryIcon className="size-3.5" />,
+                label: "上次运行",
+                value: task.lastRunAt ? formatDateTime(task.lastRunAt) : "—",
+              },
+              {
+                icon: <ActivityIcon className="size-3.5" />,
+                label: "运行次数",
+                value: `${formatCount(task.runCount)} 次`,
+              },
+            ]}
+          />
         </div>
 
-        {/* ── Expanded: prompt + error ── */}
+        <div className="mt-2.5 flex flex-wrap gap-1.5 px-5 pb-4">
+          <IconTag icon={<StackIcon className="size-3" />} tone={task.type === "once" ? "warning" : "muted"}>
+            {task.type === "once" ? "单次" : "重复"}
+          </IconTag>
+          <IconTag icon={getTaskStatusIcon(task.status)} tone={getTaskStatusTone(task.status)}>
+            {getTaskStatusLabel(task.status)}
+          </IconTag>
+          <IconTag icon={<LayersIcon className="size-3" />}>时区 {task.timezone}</IconTag>
+          {task.failStreak > 0 ? (
+            <IconTag icon={<AlertCircleIcon className="size-3" />} tone="error">
+              连续失败 {task.failStreak}
+            </IconTag>
+          ) : null}
+        </div>
+
         {expanded ? (
           <div className="border-t border-[var(--line)]/40 px-5 py-3">
             <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Prompt</p>
@@ -418,66 +490,6 @@ function ScheduledTaskCard({
             ) : null}
           </div>
         ) : null}
-
-        {/* ── Action bar ── */}
-        <div className="flex items-center border-t border-[var(--line)]/40 px-4 py-1.5">
-          <button
-            type="button"
-            onClick={() => setShowRuns(true)}
-            className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-[var(--muted-strong)] transition hover:bg-[rgba(21,110,99,0.06)] hover:text-[var(--accent-strong)]"
-          >
-            <HistoryIcon className="size-3.5" />
-            记录
-          </button>
-          <button
-            type="button"
-            disabled={toggling}
-            onClick={async () => {
-              setToggling(true);
-              try {
-                await toggleScheduledTask(task.accountId, task.seq, !task.enabled);
-                onRefresh();
-              } catch (err) {
-                console.error("[ScheduledTasks] toggle failed:", err);
-              } finally {
-                setToggling(false);
-              }
-            }}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium transition disabled:opacity-50",
-              task.enabled
-                ? "text-red-500 hover:bg-red-50 hover:text-red-600"
-                : "text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-            )}
-          >
-            {task.enabled ? (
-              <>
-                <PauseIcon className="size-3.5" />
-                暂停
-              </>
-            ) : (
-              <>
-                <PlayIcon className="size-3.5" />
-                启用
-              </>
-            )}
-          </button>
-
-          <div className="flex-1" />
-
-          <button
-            type="button"
-            onClick={onToggleExpand}
-            className="inline-flex items-center gap-1 rounded-[8px] px-2 py-1.5 text-[11px] text-[var(--muted)] transition hover:bg-[rgba(21,110,99,0.06)] hover:text-[var(--accent-strong)]"
-          >
-            {expanded ? "收起" : "详情"}
-            {expanded ? (
-              <ChevronUpIcon className="size-3.5" />
-            ) : (
-              <ChevronDownIcon className="size-3.5" />
-            )}
-          </button>
-        </div>
       </div>
 
       {showRuns ? (
@@ -488,26 +500,19 @@ function ScheduledTaskCard({
 }
 
 export function ScheduledTasksPage() {
-  const [revision, setRevision] = useState(0);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 
-  const { data: tasksData, loading, error } = useAsyncResource(
-    () => fetchScheduledTasks(),
-    [revision]
-  );
-  const { data: accountsData } = useAsyncResource(() => fetchAccounts(), []);
+  const { data: tasksData, isPending: loading, error: tasksRawError } = useQuery({
+    queryKey: queryKeys.scheduledTasks(),
+    queryFn: () => fetchScheduledTasks(),
+    staleTime: 15_000,
+  });
+  const { accounts } = useAccounts();
 
   const tasks = tasksData ?? [];
-  const accounts = accountsData ?? [];
-
-  // Debug logging
-  useEffect(() => {
-    console.log("[ScheduledTasks] tasksData:", tasksData);
-    console.log("[ScheduledTasks] tasks:", tasks);
-    console.log("[ScheduledTasks] loading:", loading);
-    console.log("[ScheduledTasks] error:", error);
-  }, [tasksData, tasks, loading, error]);
+  const error = tasksRawError instanceof Error ? tasksRawError.message : tasksRawError ? String(tasksRawError) : null;
 
   const filteredTasks = useMemo(() => {
     if (!searchQuery.trim()) return tasks;
@@ -520,7 +525,9 @@ export function ScheduledTasksPage() {
     );
   }, [tasks, searchQuery]);
 
-  const refresh = () => setRevision((r) => r + 1);
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.scheduledTasks() });
+  };
 
   const stats = useMemo(() => {
     const enabled = tasks.filter((t) => t.enabled).length;

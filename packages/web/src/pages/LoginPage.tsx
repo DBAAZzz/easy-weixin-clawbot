@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { QrCodeDisplay } from "../components/QrCodeDisplay.js";
 import { Button } from "../components/ui/button.js";
 import { ActivityIcon, ScanIcon } from "../components/ui/icons.js";
-import { cancelLogin, fetchLoginStatus, startLogin } from "../lib/api.js";
+import { cancelLogin, fetchLoginStatus, startLogin } from "@/api/wechat-login.js";
 
 function statusMeta(state: LoginState) {
   switch (state.status) {
@@ -123,8 +123,7 @@ export function LoginPage() {
       : state.status === "expired"
         ? "二维码已失效"
         : "等待生成二维码";
-  const emptyMessage =
-    state.status === "error" ? error ?? state.message : null;
+  const emptyMessage = state.status === "error" ? (error ?? state.message) : null;
   const emptyToneClassName =
     state.status === "error" || state.status === "expired"
       ? "border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] text-red-700"
@@ -167,7 +166,9 @@ export function LoginPage() {
             <QrCodeDisplay qrText={state.qr_text ?? ""} />
           ) : (
             <div className="flex h-full items-center justify-center bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(247,250,251,0.94))] px-6 py-8">
-              <div className={`w-full max-w-[320px] border px-5 py-6 text-center ${emptyToneClassName}`}>
+              <div
+                className={`w-full max-w-[320px] border px-5 py-6 text-center ${emptyToneClassName}`}
+              >
                 <p className="text-[15px] font-medium">{emptyTitle}</p>
                 {emptyMessage ? <p className="mt-2 text-[12px] leading-6">{emptyMessage}</p> : null}
               </div>

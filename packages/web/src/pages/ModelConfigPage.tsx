@@ -39,15 +39,12 @@ import {
   pingModelProviderTemplate,
   updateModelProviderTemplate,
   upsertModelConfig,
-} from "../lib/api.js";
+} from "@/api/model-config.js";
 import { cn } from "../lib/cn.js";
 import { formatCount } from "../lib/format.js";
 import { ProviderBrandIcon } from "./model-config/providerBrandIcon.js";
 import { resolveNextSelectedModel } from "./model-config/templateForm.js";
-import {
-  buildScopeKey,
-  parseScopeSelection,
-} from "./model-config/configForm.js";
+import { buildScopeKey, parseScopeSelection } from "./model-config/configForm.js";
 
 const SCOPE_LABELS: Record<string, string> = {
   global: "全局",
@@ -106,9 +103,7 @@ function createConfigFormFromDto(dto: ModelConfigDto): ConfigEditorForm {
   };
 }
 
-function createConfigForm(
-  templates: ModelProviderTemplateDto[],
-): ConfigEditorForm {
+function createConfigForm(templates: ModelProviderTemplateDto[]): ConfigEditorForm {
   const firstTemplate = templates.find((template) => template.enabled);
   return {
     ...EMPTY_CONFIG_FORM,
@@ -197,9 +192,7 @@ function getPingLabel(pingState: ProviderPingState | undefined): string {
     return "检测中";
   }
   if (pingState.result?.reachable) {
-    return pingState.result.latency_ms
-      ? `连接正常 · ${pingState.result.latency_ms}ms`
-      : "连接正常";
+    return pingState.result.latency_ms ? `连接正常 · ${pingState.result.latency_ms}ms` : "连接正常";
   }
   if (
     pingState.result?.message === "未配置 API Key" ||
@@ -208,9 +201,7 @@ function getPingLabel(pingState: ProviderPingState | undefined): string {
   ) {
     return pingState.result.message;
   }
-  return pingState.result?.status_code
-    ? `连接失败 · ${pingState.result.status_code}`
-    : "连接失败";
+  return pingState.result?.status_code ? `连接失败 · ${pingState.result.status_code}` : "连接失败";
 }
 
 function formatPingCheckedAt(value: string): string {
@@ -278,10 +269,7 @@ function CardToggle(props: {
   );
 }
 
-function PingStatusButton(props: {
-  pingState?: ProviderPingState;
-  onPing: () => void;
-}) {
+function PingStatusButton(props: { pingState?: ProviderPingState; onPing: () => void }) {
   const tone = getPingTone(props.pingState);
   const title = getPingLabel(props.pingState);
   const isPending = props.pingState?.phase === "pending";
@@ -349,14 +337,10 @@ function MetricPanel(props: {
       {props.items.map((item) => (
         <div key={item.label} className="px-3 py-2.5">
           <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
-            <span className="inline-flex size-3.5 items-center justify-center">
-              {item.icon}
-            </span>
+            <span className="inline-flex size-3.5 items-center justify-center">{item.icon}</span>
             <span>{item.label}</span>
           </div>
-          <p className="mt-1 text-[13px] font-medium text-[var(--muted-strong)]">
-            {item.value}
-          </p>
+          <p className="mt-1 text-[13px] font-medium text-[var(--muted-strong)]">{item.value}</p>
         </div>
       ))}
     </div>
@@ -545,7 +529,10 @@ function ModelConfigCard(props: {
       </div>
 
       <div className="mt-2.5 flex flex-wrap gap-1.5 px-5 pb-4">
-        <IconTag icon={<LayersIcon className="size-3" />} tone={SCOPE_TONES[config.scope] || "muted"}>
+        <IconTag
+          icon={<LayersIcon className="size-3" />}
+          tone={SCOPE_TONES[config.scope] || "muted"}
+        >
           {SCOPE_LABELS[config.scope] || config.scope}
         </IconTag>
         <IconTag icon={<ChatIcon className="size-3" />}>
@@ -560,18 +547,13 @@ function ModelConfigCard(props: {
       </div>
 
       {getPingMeta(props.pingState) ? (
-        <p className="px-5 pb-4 text-[11px] text-[var(--muted)]">
-          {getPingMeta(props.pingState)}
-        </p>
+        <p className="px-5 pb-4 text-[11px] text-[var(--muted)]">{getPingMeta(props.pingState)}</p>
       ) : null}
     </div>
   );
 }
 
-function PageSectionHeader(props: {
-  title: string;
-  action?: ReactNode;
-}) {
+function PageSectionHeader(props: { title: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
@@ -592,9 +574,7 @@ function ModelConfigEditorModal(props: {
 }) {
   const isEdit = Boolean(props.initial);
   const [form, setForm] = useState<ConfigEditorForm>(() =>
-    props.initial
-      ? createConfigFormFromDto(props.initial)
-      : createConfigForm(props.templates),
+    props.initial ? createConfigFormFromDto(props.initial) : createConfigForm(props.templates),
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -648,11 +628,7 @@ function ModelConfigEditorModal(props: {
   }, [availableTemplates, form.templateId, props.initial]);
 
   useEffect(() => {
-    const nextScopeKey = buildScopeKey(
-      form.scope,
-      form.accountId,
-      form.conversationId,
-    );
+    const nextScopeKey = buildScopeKey(form.scope, form.accountId, form.conversationId);
     if (form.scopeKey === nextScopeKey) {
       return;
     }
@@ -799,9 +775,7 @@ function ModelConfigEditorModal(props: {
             {form.scope !== "global" ? (
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <div className={cn(form.scope === "account" && "md:col-span-2")}>
-                  <label className="text-[12px] text-[var(--muted-strong)]">
-                    账号 *
-                  </label>
+                  <label className="text-[12px] text-[var(--muted-strong)]">账号 *</label>
                   <Select
                     value={form.accountId}
                     options={accountOptions}
@@ -809,13 +783,10 @@ function ModelConfigEditorModal(props: {
                       setForm((current) => ({
                         ...current,
                         accountId: value,
-                        conversationId:
-                          current.accountId === value ? current.conversationId : "",
+                        conversationId: current.accountId === value ? current.conversationId : "",
                       }))
                     }
-                    placeholder={
-                      accountOptions.length > 0 ? "选择一个账号" : "暂无可选账号"
-                    }
+                    placeholder={accountOptions.length > 0 ? "选择一个账号" : "暂无可选账号"}
                     className="mt-1"
                     disabled={accountOptions.length === 0}
                   />
@@ -823,9 +794,7 @@ function ModelConfigEditorModal(props: {
 
                 {form.scope === "conversation" ? (
                   <div>
-                    <label className="text-[12px] text-[var(--muted-strong)]">
-                      会话 *
-                    </label>
+                    <label className="text-[12px] text-[var(--muted-strong)]">会话 *</label>
                     <Select
                       value={form.conversationId}
                       options={conversationOptions}
@@ -846,9 +815,7 @@ function ModelConfigEditorModal(props: {
                       }
                       className="mt-1"
                       disabled={
-                        !form.accountId ||
-                        conversationsLoading ||
-                        conversationOptions.length === 0
+                        !form.accountId || conversationsLoading || conversationOptions.length === 0
                       }
                     />
                     {conversationsError ? (
@@ -877,9 +844,7 @@ function ModelConfigEditorModal(props: {
                   <button
                     key={purpose}
                     type="button"
-                    onClick={() =>
-                      setForm((current) => ({ ...current, purpose }))
-                    }
+                    onClick={() => setForm((current) => ({ ...current, purpose }))}
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-[12px] transition",
                       form.purpose === purpose
@@ -896,9 +861,7 @@ function ModelConfigEditorModal(props: {
 
           <div className="grid gap-4 rounded-xl border border-[var(--line)] bg-white/70 px-4 py-4">
             <div>
-              <label className="text-[12px] text-[var(--muted-strong)]">
-                供应商配置 *
-              </label>
+              <label className="text-[12px] text-[var(--muted-strong)]">供应商配置 *</label>
               <Select
                 value={form.templateId}
                 options={availableTemplates.map((template) => ({
@@ -924,19 +887,13 @@ function ModelConfigEditorModal(props: {
             </div>
 
             <div>
-              <label className="text-[12px] text-[var(--muted-strong)]">
-                Model ID *
-              </label>
+              <label className="text-[12px] text-[var(--muted-strong)]">Model ID *</label>
               <Select
                 value={form.modelId}
                 options={modelOptions}
-                onChange={(value) =>
-                  setForm((current) => ({ ...current, modelId: value }))
-                }
+                onChange={(value) => setForm((current) => ({ ...current, modelId: value }))}
                 placeholder={
-                  selectedTemplate
-                    ? "从供应商配置维护的 Model ID 中选择"
-                    : "先选择供应商配置"
+                  selectedTemplate ? "从供应商配置维护的 Model ID 中选择" : "先选择供应商配置"
                 }
                 className="mt-1"
                 disabled={!selectedTemplate}
@@ -1016,27 +973,30 @@ export function ModelConfigPage() {
     queryKey: queryKeys.modelConfigs,
     queryFn: fetchModelConfigs,
   });
-  const { accounts, loading: accountsLoading, error: accountsError } = useAccounts({
+  const {
+    accounts,
+    loading: accountsLoading,
+    error: accountsError,
+  } = useAccounts({
     status: "active",
   });
 
   const loading = templatesLoading || configsLoading || accountsLoading;
-  const error = templatesError ?? configsError ?? accountsError
-    ? [templatesError, configsError, accountsError]
-        .filter(Boolean)
-        .map((e) => (e instanceof Error ? e.message : String(e)))
-        .join("; ")
-    : null;
+  const error =
+    (templatesError ?? configsError ?? accountsError)
+      ? [templatesError, configsError, accountsError]
+          .filter(Boolean)
+          .map((e) => (e instanceof Error ? e.message : String(e)))
+          .join("; ")
+      : null;
   const templates = templatesData ?? [];
   const configs = configsData ?? [];
 
-  const [configEditorTarget, setConfigEditorTarget] = useState<
-    ModelConfigDto | "create" | null
-  >(null);
-  const [pingStates, setPingStates] = useState<Record<string, ProviderPingState>>({});
-  const [pendingTemplateToggleId, setPendingTemplateToggleId] = useState<string | null>(
+  const [configEditorTarget, setConfigEditorTarget] = useState<ModelConfigDto | "create" | null>(
     null,
   );
+  const [pingStates, setPingStates] = useState<Record<string, ProviderPingState>>({});
+  const [pendingTemplateToggleId, setPendingTemplateToggleId] = useState<string | null>(null);
   const [pendingConfigToggleId, setPendingConfigToggleId] = useState<string | null>(null);
 
   const refresh = () =>
@@ -1196,9 +1156,7 @@ export function ModelConfigPage() {
         {!loading && templates.length === 0 ? (
           <section className="rounded-lg border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
             <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
-            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
-              暂无供应商配置
-            </p>
+            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">暂无供应商配置</p>
             <Button
               size="sm"
               className="mt-4"
@@ -1254,18 +1212,14 @@ export function ModelConfigPage() {
         {!loading && templates.length === 0 ? (
           <section className="rounded-lg border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
             <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
-            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
-              暂无供应商配置
-            </p>
+            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">暂无供应商配置</p>
           </section>
         ) : null}
 
         {!loading && templates.length > 0 && configs.length === 0 ? (
           <section className="rounded-lg border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
             <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
-            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
-              还没有使用配置
-            </p>
+            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">还没有使用配置</p>
             <Button
               size="sm"
               className="mt-4"

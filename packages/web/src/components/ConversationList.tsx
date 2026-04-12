@@ -43,7 +43,8 @@ export function ConversationList(props: {
           />
         </div>
         <p className="mt-1.5 text-[11px] text-[var(--muted)]">
-          {formatCount(visibleConversations.length)} / {formatCount(props.conversations.length)} 条结果
+          {formatCount(visibleConversations.length)} / {formatCount(props.conversations.length)}{" "}
+          条结果
         </p>
       </div>
 
@@ -60,7 +61,7 @@ export function ConversationList(props: {
                 "reveal-up relative mb-1.5 w-full rounded-[10px] px-3 py-2.5 text-left transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
                 active
                   ? "bg-white shadow-[0_10px_24px_-18px_rgba(15,23,42,0.34)]"
-                  : "hover:bg-white/72"
+                  : "hover:bg-white/72",
               )}
               style={{ animationDelay: `${index * 40}ms` }}
             >
@@ -79,7 +80,9 @@ export function ConversationList(props: {
                       {conversation.title ?? conversation.conversation_id}
                     </p>
                     <span className="shrink-0 font-[var(--font-mono)] text-[10px] text-[var(--muted)]">
-                      {conversation.last_message_at ? formatTime(conversation.last_message_at) : "--:--"}
+                      {conversation.last_message_at
+                        ? formatTime(conversation.last_message_at)
+                        : "--:--"}
                     </span>
                   </div>
                   <p className="mt-0.5 truncate text-[11px] text-[var(--muted)]">

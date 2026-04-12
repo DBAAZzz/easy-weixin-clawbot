@@ -46,7 +46,12 @@ function toCanvasColor(hex: string, alpha: number) {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
-function drawDotGrid(ctx: CanvasRenderingContext2D, width: number, height: number, globalScale: number) {
+function drawDotGrid(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  globalScale: number,
+) {
   const spacing = 32;
   const dotRadius = 0.6 / globalScale;
   const transform = ctx.getTransform();
@@ -114,7 +119,10 @@ function drawDecisionIcon(ctx: CanvasRenderingContext2D, x: number, y: number, r
   ctx.fill();
 }
 
-const ICON_DRAWERS: Record<TapeGraphNode["category"], (ctx: CanvasRenderingContext2D, x: number, y: number, r: number) => void> = {
+const ICON_DRAWERS: Record<
+  TapeGraphNode["category"],
+  (ctx: CanvasRenderingContext2D, x: number, y: number, r: number) => void
+> = {
   fact: drawFactIcon,
   preference: drawPreferenceIcon,
   decision: drawDecisionIcon,
@@ -208,11 +216,7 @@ export function MemoryGraph(props: {
 
       const bbox = graph.getGraphBbox();
       if (bbox) {
-        graph.centerAt(
-          (bbox.x[0] + bbox.x[1]) / 2,
-          (bbox.y[0] + bbox.y[1]) / 2,
-          action.durationMs,
-        );
+        graph.centerAt((bbox.x[0] + bbox.x[1]) / 2, (bbox.y[0] + bbox.y[1]) / 2, action.durationMs);
       }
       graph.zoom(action.zoom, action.durationMs);
     }, 180);
@@ -222,7 +226,8 @@ export function MemoryGraph(props: {
 
   // Auto-zoom to search-highlighted nodes
   useEffect(() => {
-    if (!graphRef.current || !props.highlightedNodeIds || props.highlightedNodeIds.size === 0) return;
+    if (!graphRef.current || !props.highlightedNodeIds || props.highlightedNodeIds.size === 0)
+      return;
 
     const matchedNodes = props.nodes.filter((n) => props.highlightedNodeIds!.has(n.id));
     if (matchedNodes.length === 0) return;
@@ -348,7 +353,15 @@ export function MemoryGraph(props: {
             }
 
             // Draw the node with category shape
-            drawNode(ctx, node, x, y, isSelected ? nodeSize + 2 : nodeSize, isHighlighted, globalScale);
+            drawNode(
+              ctx,
+              node,
+              x,
+              y,
+              isSelected ? nodeSize + 2 : nodeSize,
+              isHighlighted,
+              globalScale,
+            );
 
             // Selection ring
             if (isSelected) {
@@ -380,7 +393,13 @@ export function MemoryGraph(props: {
               ctx.moveTo(bgX + radius, labelY);
               ctx.lineTo(bgX + bgWidth - radius, labelY);
               ctx.arcTo(bgX + bgWidth, labelY, bgX + bgWidth, labelY + radius, radius);
-              ctx.arcTo(bgX + bgWidth, labelY + bgHeight, bgX + bgWidth - radius, labelY + bgHeight, radius);
+              ctx.arcTo(
+                bgX + bgWidth,
+                labelY + bgHeight,
+                bgX + bgWidth - radius,
+                labelY + bgHeight,
+                radius,
+              );
               ctx.lineTo(bgX + radius, labelY + bgHeight);
               ctx.arcTo(bgX, labelY + bgHeight, bgX, labelY + bgHeight - radius, radius);
               ctx.arcTo(bgX, labelY, bgX + radius, labelY, radius);

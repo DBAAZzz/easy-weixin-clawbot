@@ -6,7 +6,7 @@ import {
   installSkill,
   removeSkill,
   updateSkill,
-} from "../lib/api.js";
+} from "@/api/skills.js";
 import { queryKeys } from "../lib/query-keys.js";
 
 export function useSkills() {

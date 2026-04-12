@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AccountStatusFilter } from "@clawbot/shared";
-import { fetchAccounts } from "../lib/api.js";
+import { fetchAccounts } from "@/api/accounts.js";
 import { queryKeys } from "../lib/query-keys.js";
 
 export function useAccounts(options?: { status?: AccountStatusFilter }) {

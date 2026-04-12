@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button.js";
 import { Card } from "../components/ui/card.js";
 import { Input } from "../components/ui/input.js";
-import { login } from "../lib/api.js";
+import { login } from "@/api/auth-login.js";
 import logoUrl from "../assets/images/logo.png";
 
 export function AuthLoginPage() {
@@ -33,7 +33,11 @@ export function AuthLoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4">
       <Card className="w-full max-w-[380px]">
         <div className="mb-6 text-center">
-          <img src={logoUrl} alt="Clawbot" className="mx-auto size-16 rounded-[18px] object-cover" />
+          <img
+            src={logoUrl}
+            alt="Clawbot"
+            className="mx-auto size-16 rounded-[18px] object-cover"
+          />
           <p className="mt-3 text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
             Clawbot
           </p>

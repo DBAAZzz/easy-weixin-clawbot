@@ -23,13 +23,7 @@ import { Link } from "react-router-dom";
 function matchesQuery(node: TapeGraphNode, query: string) {
   if (!query) return true;
 
-  const haystack = [
-    node.label,
-    node.key,
-    node.branch,
-    node.category,
-    formatMemoryValue(node.value),
-  ]
+  const haystack = [node.label, node.key, node.branch, node.category, formatMemoryValue(node.value)]
     .join(" ")
     .toLowerCase();
 
@@ -48,14 +42,19 @@ function StatCard(props: {
       {props.icon ? (
         <div
           className="flex size-9 shrink-0 items-center justify-center rounded-[12px]"
-          style={{ backgroundColor: props.color ? `${props.color}14` : "rgba(148,163,184,0.08)", color: props.color }}
+          style={{
+            backgroundColor: props.color ? `${props.color}14` : "rgba(148,163,184,0.08)",
+            color: props.color,
+          }}
         >
           {props.icon}
         </div>
       ) : null}
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">{props.label}</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">
+            {props.label}
+          </p>
           <p className="font-[var(--font-mono)] text-[18px] font-semibold text-[var(--ink)]">
             {props.value}
           </p>
@@ -85,7 +84,10 @@ export function MemoryGraphPage() {
       return;
     }
 
-    if (!selectedAccountId || !accounts.accounts.some((account) => account.id === selectedAccountId)) {
+    if (
+      !selectedAccountId ||
+      !accounts.accounts.some((account) => account.id === selectedAccountId)
+    ) {
       setSelectedAccountId(accounts.accounts[0].id);
     }
   }, [accounts.accounts, selectedAccountId]);
@@ -177,7 +179,9 @@ export function MemoryGraphPage() {
     return (
       <div className="space-y-4">
         <section className="space-y-3">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">Memory Graph</p>
+          <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+            Memory Graph
+          </p>
           <h2 className="text-[20px] text-[var(--ink)]">记忆图谱</h2>
         </section>
 
@@ -186,7 +190,10 @@ export function MemoryGraphPage() {
             <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">暂无账号</p>
           </div>
 
-          <Link to="/login" className={buttonClassName({ className: "justify-center", size: "sm" })}>
+          <Link
+            to="/login"
+            className={buttonClassName({ className: "justify-center", size: "sm" })}
+          >
             打开扫码连接
             <ScanIcon className="size-4" />
           </Link>
@@ -199,7 +206,9 @@ export function MemoryGraphPage() {
     <div className="space-y-4 md:space-y-5">
       <section className="flex items-start justify-between gap-4">
         <div className="space-y-1.5">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">Memory Graph</p>
+          <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+            Memory Graph
+          </p>
           <h2 className="text-[20px] text-[var(--ink)]">记忆图谱</h2>
         </div>
       </section>
@@ -228,7 +237,13 @@ export function MemoryGraphPage() {
             hint="前缀聚类组"
           />
           <StatCard
-            icon={isolatedCount > 0 ? <AlertCircleIcon className="size-4" /> : <CheckCircleIcon className="size-4" />}
+            icon={
+              isolatedCount > 0 ? (
+                <AlertCircleIcon className="size-4" />
+              ) : (
+                <CheckCircleIcon className="size-4" />
+              )
+            }
             color={isolatedCount > 0 ? "#F59E0B" : "#10B981"}
             label="Isolated"
             value={formatCount(isolatedCount)}
@@ -273,9 +288,7 @@ export function MemoryGraphPage() {
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--line)] bg-white/72 px-3.5 py-2">
             <div className="flex items-center gap-2 text-[12px] text-[var(--muted-strong)]">
               <PulseIcon className="size-4 text-[var(--accent-strong)]" />
-              <span>
-                {selectedAccountId ? `账号 ${selectedAccountId}` : "请选择账号"}
-              </span>
+              <span>{selectedAccountId ? `账号 ${selectedAccountId}` : "请选择账号"}</span>
             </div>
             <div className="h-4 w-px bg-[var(--line)]" />
             <span className="text-[12px] text-[var(--muted)]">
@@ -290,7 +303,9 @@ export function MemoryGraphPage() {
 
           <Card className="space-y-3 p-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">Prefix Groups</p>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                Prefix Groups
+              </p>
               <h3 className="mt-1 text-[15px] text-[var(--ink)]">分组概览</h3>
             </div>
 
@@ -306,7 +321,9 @@ export function MemoryGraphPage() {
                     className="rounded-[12px] border border-[var(--line)] bg-white/72 px-3 py-2"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <p className="truncate text-[12px] font-medium text-[var(--ink)]">{group.label}</p>
+                      <p className="truncate text-[12px] font-medium text-[var(--ink)]">
+                        {group.label}
+                      </p>
                       <span className="shrink-0 font-[var(--font-mono)] text-[11px] text-[var(--muted)]">
                         {group.children.length}
                       </span>
@@ -321,7 +338,6 @@ export function MemoryGraphPage() {
               </div>
             )}
           </Card>
-
         </div>
       </section>
     </div>

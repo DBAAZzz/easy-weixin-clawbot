@@ -4,18 +4,8 @@
 :root {
   color-scheme: light;
   --font-sans:
-    "Outfit",
-    "PingFang SC",
-    "Hiragino Sans GB",
-    "Microsoft YaHei",
-    "Segoe UI",
-    sans-serif;
-  --font-mono:
-    "JetBrains Mono",
-    "SFMono-Regular",
-    "Menlo",
-    "Monaco",
-    monospace;
+    "Outfit", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", "Menlo", "Monaco", monospace;
   --paper: #f4f7f8;
   --surface: #edf2f4;
   --panel: rgba(255, 255, 255, 0.78);
@@ -56,7 +46,9 @@ body {
     radial-gradient(circle at left 10% top 8%, rgba(82, 149, 177, 0.1), transparent 24%),
     linear-gradient(180deg, #f6f8f9 0%, #edf2f4 100%);
   font-family: var(--font-sans);
-  font-feature-settings: "ss01" 1, "cv01" 1;
+  font-feature-settings:
+    "ss01" 1,
+    "cv01" 1;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }

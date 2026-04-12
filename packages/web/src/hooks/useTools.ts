@@ -6,7 +6,7 @@ import {
   installTool,
   removeTool,
   updateTool,
-} from "../lib/api.js";
+} from "@/api/tools.js";
 import { queryKeys } from "../lib/query-keys.js";
 
 export function useTools() {

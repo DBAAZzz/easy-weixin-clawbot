@@ -52,11 +52,7 @@ export const MODEL_PROVIDER_PRESETS: ModelProviderPreset[] = [
     provider: "openrouter",
     description: "聚合多模型供应商",
     baseUrlPlaceholder: "https://openrouter.ai/api/v1",
-    suggestedModelIds: [
-      "openai/gpt-4o",
-      "anthropic/claude-3.7-sonnet",
-      "deepseek/deepseek-chat",
-    ],
+    suggestedModelIds: ["openai/gpt-4o", "anthropic/claude-3.7-sonnet", "deepseek/deepseek-chat"],
   },
   {
     label: "Azure OpenAI",

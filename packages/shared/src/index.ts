@@ -27,6 +27,7 @@ export type {
   MessageRow,
   ModelConfigDto,
   ModelProviderTemplateDto,
+  ModelProviderTemplatePingDto,
   PaginatedResponse,
   SkillInfo,
   ToolInfo,

@@ -42,10 +42,6 @@ export function Button({
   ...props
 }: ButtonProps) {
   return (
-    <button
-      type={type}
-      className={buttonClassName({ className, variant, size })}
-      {...props}
-    />
+    <button type={type} className={buttonClassName({ className, variant, size })} {...props} />
   );
 }

@@ -13,11 +13,7 @@ import { Card } from "../components/ui/card.js";
 import { Badge } from "../components/ui/badge.js";
 import { Button, buttonClassName } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
-import {
-  RefreshIcon,
-  SearchIcon,
-  TerminalIcon,
-} from "../components/ui/icons.js";
+import { RefreshIcon, SearchIcon, TerminalIcon } from "../components/ui/icons.js";
 import { Select } from "../components/ui/select.js";
 import { cn } from "../lib/cn.js";
 import { buildTraceDetailPath, getTraceStatus } from "../lib/observability.js";
@@ -44,7 +40,13 @@ function MetricCard(props: { label: string; value: string; hint?: string; toolti
         <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">{props.label}</p>
         {props.tooltip && (
           <span className="group relative">
-            <svg className="size-3 cursor-help text-[var(--muted)] transition hover:text-[var(--ink)]" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
+            <svg
+              className="size-3 cursor-help text-[var(--muted)] transition hover:text-[var(--ink)]"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.3"
+            >
               <circle cx="8" cy="8" r="6.5" />
               <path d="M6.2 6.5a1.8 1.8 0 0 1 3.5.5c0 1.2-1.7 1.2-1.7 2.2" strokeLinecap="round" />
               <circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none" />
@@ -248,7 +250,9 @@ export function ObservabilityPage() {
           <div className="border-b border-[var(--line)] px-4 py-4">
             <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">Traces</p>
+                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Traces
+                </p>
                 <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">Trace 列表</h3>
               </div>
 
@@ -321,7 +325,12 @@ export function ObservabilityPage() {
                           <p className="font-[var(--font-mono)] text-[12px] text-[var(--ink)]">
                             {trace.trace_id}
                           </p>
-                          <span className={cn("rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]", statusInfo.className)}>
+                          <span
+                            className={cn(
+                              "rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]",
+                              statusInfo.className,
+                            )}
+                          >
                             {statusInfo.label}
                           </span>
                           {trace.sampled ? <Badge>sampled</Badge> : <Badge>summary only</Badge>}
@@ -338,25 +347,33 @@ export function ObservabilityPage() {
 
                     <div className="grid gap-2 md:grid-cols-4">
                       <div className="rounded-lg border border-[var(--line)] bg-[rgba(248,250,252,0.86)] px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Total</p>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+                          Total
+                        </p>
                         <p className="mt-1 font-[var(--font-mono)] text-[12px] text-[var(--ink)]">
                           {formatMs(trace.total_ms)}
                         </p>
                       </div>
                       <div className="rounded-lg border border-[var(--line)] bg-[rgba(248,250,252,0.86)] px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Rounds</p>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+                          Rounds
+                        </p>
                         <p className="mt-1 font-[var(--font-mono)] text-[12px] text-[var(--ink)]">
                           {formatCount(trace.llm_rounds)}
                         </p>
                       </div>
                       <div className="rounded-lg border border-[var(--line)] bg-[rgba(248,250,252,0.86)] px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Tools</p>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+                          Tools
+                        </p>
                         <p className="mt-1 font-[var(--font-mono)] text-[12px] text-[var(--ink)]">
                           {formatCount(trace.tool_calls)}
                         </p>
                       </div>
                       <div className="rounded-lg border border-[var(--line)] bg-[rgba(248,250,252,0.86)] px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Tokens</p>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+                          Tokens
+                        </p>
                         <p className="mt-1 font-[var(--font-mono)] text-[12px] text-[var(--ink)]">
                           {formatTokens(trace.input_tokens + trace.output_tokens)}
                         </p>

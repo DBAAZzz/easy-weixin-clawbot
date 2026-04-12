@@ -1,17 +1,14 @@
 import type { AccountStatusFilter, ObservabilityWindow } from "@clawbot/shared";
 
 export const queryKeys = {
-  accounts: (status: AccountStatusFilter = "all") =>
-    ["accounts", status] as const,
+  accounts: (status: AccountStatusFilter = "all") => ["accounts", status] as const,
 
-  conversations: (accountId: string) =>
-    ["conversations", accountId] as const,
+  conversations: (accountId: string) => ["conversations", accountId] as const,
 
   messages: (accountId: string, conversationId: string) =>
     ["messages", accountId, conversationId] as const,
 
-  tapeGraph: (accountId: string, branch: string) =>
-    ["tapeGraph", accountId, branch] as const,
+  tapeGraph: (accountId: string, branch: string) => ["tapeGraph", accountId, branch] as const,
 
   health: ["health"] as const,
 
@@ -25,11 +22,9 @@ export const queryKeys = {
   toolSource: (name: string) => ["toolSource", name] as const,
 
   webhookTokens: ["webhookTokens"] as const,
-  webhookLogs: (source: string, limit: number) =>
-    ["webhookLogs", source, limit] as const,
+  webhookLogs: (source: string, limit: number) => ["webhookLogs", source, limit] as const,
 
-  scheduledTasks: (accountId?: string) =>
-    ["scheduledTasks", accountId] as const,
+  scheduledTasks: (accountId?: string) => ["scheduledTasks", accountId] as const,
   scheduledTaskRuns: (accountId: string, seq: number) =>
     ["scheduledTaskRuns", accountId, seq] as const,
 
@@ -44,6 +39,5 @@ export const queryKeys = {
     status?: "ok" | "error";
     query?: string;
   }) => ["observabilityTraces", filters] as const,
-  observabilityTrace: (traceId: string) =>
-    ["observabilityTrace", traceId] as const,
+  observabilityTrace: (traceId: string) => ["observabilityTrace", traceId] as const,
 } as const;

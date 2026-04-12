@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchTapeGraph } from "../lib/api.js";
+import { fetchTapeGraph } from "@/api/memory-graph.js";
 import { queryKeys } from "../lib/query-keys.js";
 
 export function useTapeGraph(accountId?: string, branch = "__global__") {

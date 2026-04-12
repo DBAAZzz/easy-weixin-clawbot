@@ -5,9 +5,15 @@ import { formatCount, formatDateTime } from "../lib/format.js";
 import { cn } from "../lib/cn.js";
 import { Badge } from "./ui/badge.js";
 import { ArrowRightIcon, ChatIcon, PencilIcon, CheckIcon, XIcon } from "./ui/icons.js";
-import { updateAccountAlias } from "../lib/api.js";
+import { updateAccountAlias } from "@/api/accounts.js";
 
-export function AccountCard({ account, onUpdate }: { account: AccountSummary; onUpdate?: () => void }) {
+export function AccountCard({
+  account,
+  onUpdate,
+}: {
+  account: AccountSummary;
+  onUpdate?: () => void;
+}) {
   const [isEditing, setIsEditing] = useState(false);
   const [alias, setAlias] = useState(account.alias ?? "");
 
@@ -35,7 +41,7 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
               <span
                 className={cn(
                   "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border border-white",
-                  account.deprecated ? "bg-slate-300" : "bg-emerald-500 status-dot"
+                  account.deprecated ? "bg-slate-300" : "bg-emerald-500 status-dot",
                 )}
               />
             </div>
@@ -48,7 +54,10 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
                     onChange={(e) => setAlias(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleSave();
-                      if (e.key === "Escape") { setAlias(account.alias ?? ""); setIsEditing(false); }
+                      if (e.key === "Escape") {
+                        setAlias(account.alias ?? "");
+                        setIsEditing(false);
+                      }
                     }}
                     className="w-96 h-7 rounded-lg border border-[var(--accent)] bg-white px-2 text-[12px] font-medium text-[var(--ink)] outline-none ring-2 ring-[rgba(21,110,99,0.14)]"
                     placeholder="设置别名"
@@ -61,7 +70,10 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
                     <CheckIcon className="size-4" />
                   </button>
                   <button
-                    onClick={() => { setAlias(account.alias ?? ""); setIsEditing(false); }}
+                    onClick={() => {
+                      setAlias(account.alias ?? "");
+                      setIsEditing(false);
+                    }}
                     className="flex size-7 items-center justify-center rounded-md border border-[var(--line-strong)] bg-white text-[var(--muted)] transition hover:bg-slate-50"
                   >
                     <XIcon className="size-4" />
@@ -73,7 +85,10 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
                     {displayName}
                   </p>
                   <button
-                    onClick={(e) => { e.preventDefault(); setIsEditing(true); }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsEditing(true);
+                    }}
                     className="opacity-0 transition group-hover/name:opacity-100 flex size-6 items-center justify-center rounded text-[var(--muted)] hover:bg-white/60 hover:text-[var(--ink)]"
                   >
                     <PencilIcon className="size-3.5" />
@@ -87,9 +102,7 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
           </div>
 
           <div>
-            <Badge tone={statusTone}>
-              {statusLabel}
-            </Badge>
+            <Badge tone={statusTone}>{statusLabel}</Badge>
           </div>
 
           <div className="font-[var(--font-mono)] text-[12px] text-[var(--ink)]">
@@ -122,10 +135,19 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
                     autoFocus
                   />
                   <div className="flex gap-2">
-                    <button onClick={handleSave} className="flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+                    <button
+                      onClick={handleSave}
+                      className="flex items-center gap-1 text-[11px] font-medium text-emerald-600"
+                    >
                       <CheckIcon className="size-3.5" /> 保存
                     </button>
-                    <button onClick={() => { setAlias(account.alias ?? ""); setIsEditing(false); }} className="flex items-center gap-1 text-[11px] text-[var(--muted)]">
+                    <button
+                      onClick={() => {
+                        setAlias(account.alias ?? "");
+                        setIsEditing(false);
+                      }}
+                      className="flex items-center gap-1 text-[11px] text-[var(--muted)]"
+                    >
                       <XIcon className="size-3.5" /> 取消
                     </button>
                   </div>
@@ -137,7 +159,10 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
                       {displayName}
                     </p>
                     <button
-                      onClick={(e) => { e.preventDefault(); setIsEditing(true); }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsEditing(true);
+                      }}
                       className="flex size-5 items-center justify-center rounded text-[var(--muted)]"
                     >
                       <PencilIcon className="size-5" />
@@ -149,9 +174,7 @@ export function AccountCard({ account, onUpdate }: { account: AccountSummary; on
                 </>
               )}
             </div>
-            <Badge tone={statusTone}>
-              {statusLabel}
-            </Badge>
+            <Badge tone={statusTone}>{statusLabel}</Badge>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

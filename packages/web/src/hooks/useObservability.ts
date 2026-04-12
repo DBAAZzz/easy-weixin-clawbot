@@ -1,14 +1,10 @@
-import {
-  useInfiniteQuery,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ObservabilityWindow } from "@clawbot/shared";
 import {
   fetchObservabilityOverview,
   fetchObservabilityTrace,
   fetchObservabilityTraces,
-} from "../lib/api.js";
+} from "@/api/observability.js";
 import { queryKeys } from "../lib/query-keys.js";
 
 export interface ObservabilityFilters {
@@ -43,8 +39,7 @@ export function useObservability(filters: ObservabilityFilters) {
         query: filters.query?.trim() || undefined,
       }),
     initialPageParam: undefined as number | undefined,
-    getNextPageParam: (lastPage) =>
-      lastPage.has_more ? lastPage.next_cursor : undefined,
+    getNextPageParam: (lastPage) => (lastPage.has_more ? lastPage.next_cursor : undefined),
   });
 
   const rawError = overviewQuery.error || tracesQuery.error;

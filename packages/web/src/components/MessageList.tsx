@@ -17,7 +17,12 @@ export function MessageList(props: {
       <div className="flex flex-col gap-3">
         {props.hasMore ? (
           <div className="flex justify-center">
-            <Button variant="outline" size="sm" onClick={props.onLoadMore} disabled={props.loadingMore}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={props.onLoadMore}
+              disabled={props.loadingMore}
+            >
               {props.loadingMore ? "正在读取更早消息..." : "加载更早消息"}
             </Button>
           </div>

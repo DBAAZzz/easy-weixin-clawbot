@@ -2,16 +2,9 @@ import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
-import {
-  ActivityIcon,
-  RefreshIcon,
-  WebhookIcon,
-} from "../components/ui/icons.js";
+import { ActivityIcon, RefreshIcon, WebhookIcon } from "../components/ui/icons.js";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  fetchWebhookLogs,
-  fetchWebhookTokens,
-} from "../lib/api.js";
+import { fetchWebhookLogs, fetchWebhookTokens } from "@/api/webhooks.js";
 import { queryKeys } from "../lib/query-keys.js";
 import { useAccounts } from "../hooks/useAccounts.js";
 import { cn } from "../lib/cn.js";
@@ -36,7 +29,7 @@ function statusClassName(status: string) {
       ? "bg-emerald-50 text-emerald-700"
       : status === "rejected"
         ? "bg-amber-50 text-amber-700"
-        : "bg-red-50 text-red-700"
+        : "bg-red-50 text-red-700",
   );
 }
 
@@ -62,7 +55,12 @@ export function WebhookLogsPage() {
   });
   const { accounts, loading: accountsLoading } = useAccounts();
 
-  const logsError = logsRawError instanceof Error ? logsRawError.message : logsRawError ? String(logsRawError) : null;
+  const logsError =
+    logsRawError instanceof Error
+      ? logsRawError.message
+      : logsRawError
+        ? String(logsRawError)
+        : null;
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.webhookLogs(source, 200) });
@@ -242,14 +240,19 @@ export function WebhookLogsPage() {
                   {logs.map((log, index) => {
                     const account = accounts?.find((item) => item.id === log.accountId);
                     return (
-                      <tr key={`${log.conversationId}-${log.createdAt}-${index}`} className="border-b border-[var(--line)]/50 align-top last:border-b-0">
+                      <tr
+                        key={`${log.conversationId}-${log.createdAt}-${index}`}
+                        className="border-b border-[var(--line)]/50 align-top last:border-b-0"
+                      >
                         <td className="px-4 py-3 text-[var(--muted-strong)]">
                           {formatDateTime(log.createdAt)}
                         </td>
                         <td className="px-4 py-3">
                           <div className="min-w-[160px]">
                             <p className="text-[var(--ink)]">
-                              {account?.alias || account?.display_name || log.accountId.slice(0, 12)}
+                              {account?.alias ||
+                                account?.display_name ||
+                                log.accountId.slice(0, 12)}
                             </p>
                             <p className="mt-1 font-[var(--font-mono)] text-[11px] text-[var(--muted)]">
                               {log.accountId}

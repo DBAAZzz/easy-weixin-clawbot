@@ -27,7 +27,10 @@ const CATEGORY_COLORS: Record<TapeGraphNode["category"], string> = {
   decision: "#F59E0B",
 };
 
-const CATEGORY_ICON_COMPONENTS: Record<TapeGraphNode["category"], (className: string) => ReactNode> = {
+const CATEGORY_ICON_COMPONENTS: Record<
+  TapeGraphNode["category"],
+  (className: string) => ReactNode
+> = {
   fact: (cls) => <BookIcon className={cls} />,
   preference: (cls) => <HeartIcon className={cls} />,
   decision: (cls) => <DiamondIcon className={cls} />,
@@ -40,14 +43,16 @@ function formatSourceEid(sourceEid: string) {
 
 function ConfidenceBar(props: { value: number }) {
   const percent = Math.round(props.value * 100);
-  const barColor =
-    props.value >= 0.8 ? "#10B981" : props.value >= 0.5 ? "#F59E0B" : "#EF4444";
+  const barColor = props.value >= 0.8 ? "#10B981" : props.value >= 0.5 ? "#F59E0B" : "#EF4444";
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Confidence</p>
-        <span className="font-[var(--font-mono)] text-[13px] font-semibold" style={{ color: barColor }}>
+        <span
+          className="font-[var(--font-mono)] text-[13px] font-semibold"
+          style={{ color: barColor }}
+        >
           {percent}%
         </span>
       </div>
@@ -78,10 +83,7 @@ function MetaCard(props: { label: string; value: string; mono?: boolean; title?:
   );
 }
 
-export function MemoryTooltip(props: {
-  node: TapeGraphNode | null;
-  highlightedCount: number;
-}) {
+export function MemoryTooltip(props: { node: TapeGraphNode | null; highlightedCount: number }) {
   if (!props.node) {
     return (
       <Card className="space-y-3 p-4 md:p-5">
@@ -136,9 +138,7 @@ export function MemoryTooltip(props: {
         </p>
       </div>
 
-      {typeof node.confidence === "number" ? (
-        <ConfidenceBar value={node.confidence} />
-      ) : null}
+      {typeof node.confidence === "number" ? <ConfidenceBar value={node.confidence} /> : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <MetaCard label="Key" value={node.key} mono title={node.key} />
@@ -149,7 +149,11 @@ export function MemoryTooltip(props: {
           mono
           title={node.sourceEid}
         />
-        <MetaCard label="Updated" value={formatDateTime(node.updatedAt)} title={formatDateTime(node.updatedAt)} />
+        <MetaCard
+          label="Updated"
+          value={formatDateTime(node.updatedAt)}
+          title={formatDateTime(node.updatedAt)}
+        />
       </div>
 
       {props.highlightedCount > 0 ? (

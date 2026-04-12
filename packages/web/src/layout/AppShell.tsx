@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar.js";
-import { useAccounts } from "../../hooks/useAccounts.js";
-import { useHealth } from "../../hooks/useHealth.js";
+import { useAccounts } from "../hooks/useAccounts.js";
+import { useHealth } from "../hooks/useHealth.js";
 
 export function AppShell() {
   const { accounts } = useAccounts();

@@ -115,7 +115,8 @@ export function CardOverflowMenu(props: {
         className={cn(
           "inline-flex size-7 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[#999] shadow-[0_8px_20px_-16px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
           "hover:border-[rgba(148,163,184,0.26)] hover:bg-[rgba(248,250,251,0.98)] hover:text-[var(--muted-strong)]",
-          open && "border-[rgba(148,163,184,0.26)] bg-[rgba(248,250,251,0.98)] text-[var(--muted-strong)]",
+          open &&
+            "border-[rgba(148,163,184,0.26)] bg-[rgba(248,250,251,0.98)] text-[var(--muted-strong)]",
         )}
       >
         <MoreHorizontalIcon className="size-4" />
@@ -241,14 +242,10 @@ export function MetricGrid(props: {
           className="bg-[rgba(248,250,251,0.82)] px-3 py-2.5"
         >
           <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
-            <span className="inline-flex size-3.5 items-center justify-center">
-              {item.icon}
-            </span>
+            <span className="inline-flex size-3.5 items-center justify-center">{item.icon}</span>
             <span>{item.label}</span>
           </div>
-          <p className="mt-1 text-[13px] font-medium text-[var(--muted-strong)]">
-            {item.value}
-          </p>
+          <p className="mt-1 text-[13px] font-medium text-[var(--muted-strong)]">{item.value}</p>
         </div>
       ))}
     </div>

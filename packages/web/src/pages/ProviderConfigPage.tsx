@@ -3,20 +3,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CardToggle } from "../components/ui/admin-card.js";
 import { Button } from "../components/ui/button.js";
-import {
-  ArrowRightIcon,
-  PlusIcon,
-  RefreshIcon,
-  TrashIcon,
-  XIcon,
-} from "../components/ui/icons.js";
+import { ArrowRightIcon, PlusIcon, RefreshIcon, TrashIcon, XIcon } from "../components/ui/icons.js";
 import { Input } from "../components/ui/input.js";
 import {
   createModelProviderTemplate,
   deleteModelProviderTemplate,
   fetchModelProviderTemplates,
   updateModelProviderTemplate,
-} from "../lib/api.js";
+} from "@/api/model-config.js";
 import { queryKeys } from "../lib/query-keys.js";
 import { ProviderBrandIcon } from "./model-config/providerBrandIcon.js";
 import {
@@ -36,9 +30,7 @@ export function ProviderConfigPage() {
   const { providerConfigId } = useParams();
   const isEdit = Boolean(providerConfigId);
   const [selectedPreset, setSelectedPreset] = useState<ModelProviderPreset | undefined>();
-  const [form, setForm] = useState<ProviderConfigFormState>(() =>
-    createProviderConfigForm(),
-  );
+  const [form, setForm] = useState<ProviderConfigFormState>(() => createProviderConfigForm());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +47,7 @@ export function ProviderConfigPage() {
   const activeProviderConfig = useMemo(
     () =>
       providerConfigId
-        ? providerConfigs.find((item) => item.id === providerConfigId) ?? null
+        ? (providerConfigs.find((item) => item.id === providerConfigId) ?? null)
         : null,
     [providerConfigId, providerConfigs],
   );
@@ -174,11 +166,7 @@ export function ProviderConfigPage() {
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-[16px] text-[var(--ink)]">供应商预设</h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedPreset(undefined)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setSelectedPreset(undefined)}>
               <RefreshIcon className="size-4" />
               清空预设
             </Button>
@@ -235,9 +223,7 @@ export function ProviderConfigPage() {
           <div className="mt-1 grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
             <div className="space-y-5">
               <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">
-                  配置名称 *
-                </label>
+                <label className="text-[12px] text-[var(--muted-strong)]">配置名称 *</label>
                 <Input
                   value={form.name}
                   onChange={(event) =>
@@ -252,9 +238,7 @@ export function ProviderConfigPage() {
               </div>
 
               <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">
-                  Provider *
-                </label>
+                <label className="text-[12px] text-[var(--muted-strong)]">Provider *</label>
                 <Input
                   value={form.provider}
                   onChange={(event) =>
@@ -329,9 +313,7 @@ export function ProviderConfigPage() {
 
             <div className="space-y-5">
               <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">
-                  API Key
-                </label>
+                <label className="text-[12px] text-[var(--muted-strong)]">API Key</label>
                 <Input
                   type="password"
                   value={form.apiKey}
@@ -362,9 +344,7 @@ export function ProviderConfigPage() {
               </div>
 
               <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">
-                  Base URL
-                </label>
+                <label className="text-[12px] text-[var(--muted-strong)]">Base URL</label>
                 <Input
                   value={form.baseUrl}
                   onChange={(event) =>

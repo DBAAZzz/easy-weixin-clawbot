@@ -42,7 +42,7 @@ export const TAPD_MCP_JSON_EXAMPLE = JSON.stringify(
     },
   },
   null,
-  2
+  2,
 );
 
 function stripToAscii(value: string) {
@@ -59,7 +59,7 @@ function deriveMcpSlug(value: string): string {
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9_-]+/g, "-")
-      .replace(/^[-_]+/g, "")
+      .replace(/^[-_]+/g, ""),
   );
 
   if (!normalized) {
@@ -198,10 +198,9 @@ export function parseMcpServerJsonText(text: string): {
   };
 }
 
-export function buildMcpServerJsonDocument(server: Pick<
-  McpServerInfo,
-  "name" | "command" | "args" | "env" | "cwd"
->): McpServerJsonDocument {
+export function buildMcpServerJsonDocument(
+  server: Pick<McpServerInfo, "name" | "command" | "args" | "env" | "cwd">,
+): McpServerJsonDocument {
   return {
     mcpServers: {
       [server.name]: buildDocumentEntryFromInput({
@@ -217,9 +216,8 @@ export function buildMcpServerJsonDocument(server: Pick<
   };
 }
 
-export function stringifyMcpServerJsonDocument(server: Pick<
-  McpServerInfo,
-  "name" | "command" | "args" | "env" | "cwd"
->): string {
+export function stringifyMcpServerJsonDocument(
+  server: Pick<McpServerInfo, "name" | "command" | "args" | "env" | "cwd">,
+): string {
   return JSON.stringify(buildMcpServerJsonDocument(server), null, 2);
 }

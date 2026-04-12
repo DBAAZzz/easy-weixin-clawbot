@@ -3,15 +3,10 @@ import type { MarkdownSource, SkillInfo } from "@clawbot/shared";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
-import {
-  ActivityIcon,
-  PuzzleIcon,
-  SearchIcon,
-  XIcon,
-} from "../components/ui/icons.js";
+import { ActivityIcon, PuzzleIcon, SearchIcon, XIcon } from "../components/ui/icons.js";
 import { useQuery } from "@tanstack/react-query";
 import { useSkills } from "../hooks/useSkills.js";
-import { fetchSkillSource } from "../lib/api.js";
+import { fetchSkillSource } from "@/api/skills.js";
 import { queryKeys } from "../lib/query-keys.js";
 import { cn } from "../lib/cn.js";
 import { formatCount } from "../lib/format.js";
@@ -31,7 +26,7 @@ function SkillAvatar(props: { origin: SkillInfo["origin"] }) {
         "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-[rgba(247,250,251,0.92)]",
         props.origin === "builtin"
           ? "border-[var(--line)] text-[var(--ink)]"
-          : "border-[rgba(21,110,99,0.12)] text-[var(--accent-strong)]"
+          : "border-[rgba(21,110,99,0.12)] text-[var(--accent-strong)]",
       )}
     >
       <PuzzleIcon className="size-[18px]" />
@@ -59,13 +54,13 @@ function SkillToggle(props: {
         "relative inline-flex h-8 w-[50px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
         props.enabled
           ? "border-[rgba(28,100,242,0.14)] bg-[var(--accent)]"
-          : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.38)]"
+          : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.38)]",
       )}
     >
       <span
         className={cn(
           "size-6 rounded-full bg-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          props.enabled ? "translate-x-[18px]" : "translate-x-0"
+          props.enabled ? "translate-x-[18px]" : "translate-x-0",
         )}
       />
     </button>
@@ -247,7 +242,7 @@ function SkillDetailModal(props: {
                 <pre className="max-h-[320px] overflow-auto rounded-[18px] border border-[var(--line)] bg-[rgba(255,255,255,0.94)] px-4 py-3 text-[11px] leading-6 text-[var(--ink-soft)]">
                   {props.source.error
                     ? `加载源码失败：${props.source.error}`
-                    : props.source.data?.markdown ?? "暂无源码"}
+                    : (props.source.data?.markdown ?? "暂无源码")}
                 </pre>
               )}
             </div>
@@ -270,13 +265,9 @@ export function SkillsPage() {
   const filteredSkills = skills.filter((skill) => {
     if (!normalizedQuery) return true;
 
-    return [
-      skill.name,
-      skill.summary,
-      skill.activation,
-      skill.origin,
-      skill.author ?? "",
-    ].some((value) => value.toLowerCase().includes(normalizedQuery));
+    return [skill.name, skill.summary, skill.activation, skill.origin, skill.author ?? ""].some(
+      (value) => value.toLowerCase().includes(normalizedQuery),
+    );
   });
   const activeSkill = skills.find((skill) => skill.name === activeSkillName) ?? null;
   const sourceQuery = useQuery({
@@ -287,7 +278,12 @@ export function SkillsPage() {
   const source = {
     data: sourceQuery.data ?? null,
     loading: Boolean(activeSkillName) && sourceQuery.isPending,
-    error: sourceQuery.error instanceof Error ? sourceQuery.error.message : sourceQuery.error ? String(sourceQuery.error) : null,
+    error:
+      sourceQuery.error instanceof Error
+        ? sourceQuery.error.message
+        : sourceQuery.error
+          ? String(sourceQuery.error)
+          : null,
   };
 
   useEffect(() => {

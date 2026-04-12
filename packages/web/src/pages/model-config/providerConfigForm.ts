@@ -1,8 +1,5 @@
 import type { ModelProviderTemplateDto } from "@clawbot/shared";
-import {
-  MODEL_PROVIDER_PRESETS,
-  type ModelProviderPreset,
-} from "./providerPresets.js";
+import { MODEL_PROVIDER_PRESETS, type ModelProviderPreset } from "./providerPresets.js";
 import { createEditableModelIdList } from "./templateForm.js";
 
 export interface ProviderConfigFormState {
@@ -28,9 +25,7 @@ export const EMPTY_PROVIDER_CONFIG_FORM: ProviderConfigFormState = {
   apiKeySet: false,
 };
 
-export function createProviderConfigForm(
-  preset?: ModelProviderPreset,
-): ProviderConfigFormState {
+export function createProviderConfigForm(preset?: ModelProviderPreset): ProviderConfigFormState {
   return {
     ...EMPTY_PROVIDER_CONFIG_FORM,
     name: preset ? `${preset.label} 供应商配置` : "",
@@ -44,9 +39,7 @@ export function createProviderConfigForm(
 export function createProviderConfigFormFromDto(
   template: ModelProviderTemplateDto,
 ): ProviderConfigFormState {
-  const preset = MODEL_PROVIDER_PRESETS.find(
-    (item) => item.provider === template.provider,
-  );
+  const preset = MODEL_PROVIDER_PRESETS.find((item) => item.provider === template.provider);
 
   return {
     name: template.name,

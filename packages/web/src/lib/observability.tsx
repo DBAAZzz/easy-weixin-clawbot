@@ -1,7 +1,4 @@
-import type {
-  ObservabilityTraceDetail,
-  ObservabilityTraceSummary,
-} from "@clawbot/shared";
+import type { ObservabilityTraceDetail, ObservabilityTraceSummary } from "@clawbot/shared";
 import React, { type ComponentType, type SVGProps } from "react";
 import { cn } from "./cn.js";
 import {
@@ -38,7 +35,9 @@ export function getTraceStatus(trace: TraceRecord) {
 const SPAN_ICON_MAP: Record<string, IconComponent> = {
   "llm.call": ChatIcon,
   "tool.execute": TerminalIcon,
-  "message.receive": (props) => <ArrowRightIcon {...props} className={cn(props.className, "rotate-180")} />,
+  "message.receive": (props) => (
+    <ArrowRightIcon {...props} className={cn(props.className, "rotate-180")} />
+  ),
   "message.send": ArrowRightIcon,
   "command.dispatch": BoltIcon,
   "conversation.lock": LockIcon,

@@ -8,10 +8,7 @@ import openaiIcon from "../../assets/images/providers/openai.svg";
 import openrouterIcon from "../../assets/images/providers/openrouter.svg";
 import { CpuIcon } from "../../components/ui/icons.js";
 import { cn } from "../../lib/cn.js";
-import {
-  getProviderBrandKey,
-  type ProviderBrandKey,
-} from "./providerBrand.js";
+import { getProviderBrandKey, type ProviderBrandKey } from "./providerBrand.js";
 
 const PROVIDER_BRAND_ICON_MAP: Record<ProviderBrandKey, string> = {
   openai: openaiIcon,
@@ -24,10 +21,7 @@ const PROVIDER_BRAND_ICON_MAP: Record<ProviderBrandKey, string> = {
   "azure-openai": azureOpenAiIcon,
 };
 
-export function ProviderBrandIcon(props: {
-  provider: string;
-  className?: string;
-}) {
+export function ProviderBrandIcon(props: { provider: string; className?: string }) {
   const brandKey = getProviderBrandKey(props.provider);
 
   if (!brandKey) {

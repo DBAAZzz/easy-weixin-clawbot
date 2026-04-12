@@ -3,3 +3,4 @@ dist
 .env
 /data/downloads/*
 .worktrees/
+*.tsbuildinfo

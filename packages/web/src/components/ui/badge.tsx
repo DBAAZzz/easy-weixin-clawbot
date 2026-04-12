@@ -15,7 +15,7 @@ export function Badge({ children, className, tone = "muted", ...props }: BadgePr
         tone === "muted" && "border-[var(--line)] bg-white/60 text-[var(--muted-strong)]",
         tone === "error" && "border-red-200 bg-red-50 text-red-700",
         tone === "warning" && "border-amber-200 bg-amber-50 text-amber-700",
-        className
+        className,
       )}
       {...props}
     >
@@ -24,7 +24,7 @@ export function Badge({ children, className, tone = "muted", ...props }: BadgePr
           className={cn(
             "size-1.5 rounded-full",
             tone === "online" && "bg-emerald-500 status-dot",
-            tone === "offline" && "bg-slate-400"
+            tone === "offline" && "bg-slate-400",
           )}
         />
       ) : null}

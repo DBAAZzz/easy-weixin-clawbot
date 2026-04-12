@@ -3,12 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
-import {
-  CardOverflowMenu,
-  CardToggle,
-  IconTag,
-  MetricGrid,
-} from "../components/ui/admin-card.js";
+import { CardOverflowMenu, CardToggle, IconTag, MetricGrid } from "../components/ui/admin-card.js";
 import {
   WebhookIcon,
   CopyIcon,
@@ -31,10 +26,10 @@ import {
   rotateWebhookToken,
   deleteWebhookToken,
   testWebhookToken,
-} from "../lib/api.js";
+} from "@/api/webhooks.js";
 import { queryKeys } from "../lib/query-keys.js";
 import { useAccounts } from "../hooks/useAccounts.js";
-import type { WebhookMessageType, WebhookTokenInfo } from "../lib/api.js";
+import type { WebhookMessageType, WebhookTokenInfo } from "@/api/webhooks.js";
 import type { AccountSummary } from "@clawbot/shared";
 import { cn } from "../lib/cn.js";
 import { formatCount, formatDateTime } from "../lib/format.js";
@@ -62,7 +57,7 @@ function WebhookTokenCard(props: {
             "flex size-10 shrink-0 items-center justify-center rounded-lg border transition",
             props.token.enabled
               ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-              : "border-[var(--line)] bg-[rgba(148,163,184,0.08)] text-[var(--muted)]"
+              : "border-[var(--line)] bg-[rgba(148,163,184,0.08)] text-[var(--muted)]",
           )}
         >
           <KeyIcon className="size-5" />
@@ -123,9 +118,7 @@ function WebhookTokenCard(props: {
             {
               icon: <KeyIcon className="size-3.5" />,
               label: "Token",
-              value: (
-                <span className="font-mono text-[12px]">{props.token.tokenPrefix}...</span>
-              ),
+              value: <span className="font-mono text-[12px]">{props.token.tokenPrefix}...</span>,
             },
             {
               icon: <LayersIcon className="size-3.5" />,
@@ -135,9 +128,7 @@ function WebhookTokenCard(props: {
             {
               icon: <ClockIcon className="size-3.5" />,
               label: "最近使用",
-              value: props.token.lastUsedAt
-                ? formatDateTime(props.token.lastUsedAt)
-                : "从未使用",
+              value: props.token.lastUsedAt ? formatDateTime(props.token.lastUsedAt) : "从未使用",
             },
             {
               icon: <StackIcon className="size-3.5" />,
@@ -319,7 +310,7 @@ function WebhookTestModal(props: {
                     "rounded-full border px-3 py-1.5 text-[12px] transition",
                     messageType === type
                       ? "border-[var(--accent)] bg-[rgba(21,110,99,0.1)] text-[var(--accent-strong)]"
-                      : "border-[var(--line)] text-[var(--muted-strong)] hover:bg-white"
+                      : "border-[var(--line)] text-[var(--muted-strong)] hover:bg-white",
                   )}
                 >
                   {type === "text" ? "文本消息" : "图片消息"}
@@ -349,7 +340,7 @@ function WebhookTestModal(props: {
                       "rounded-full border px-3 py-1 text-[12px] transition",
                       selectedAccountId === account.id
                         ? "border-[var(--accent)] bg-[rgba(21,110,99,0.1)] text-[var(--accent-strong)]"
-                        : "border-[var(--line)] text-[var(--muted-strong)] hover:bg-white"
+                        : "border-[var(--line)] text-[var(--muted-strong)] hover:bg-white",
                     )}
                   >
                     {account.label}
@@ -409,7 +400,7 @@ function WebhookTestModal(props: {
                   "rounded-[18px] border px-4 py-3 text-[12px] leading-6",
                   result.tone === "success"
                     ? "border-[rgba(21,110,99,0.14)] bg-[rgba(240,253,250,0.92)] text-[var(--accent-strong)]"
-                    : "border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] text-red-700"
+                    : "border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] text-red-700",
                 )}
               >
                 <p>{result.message}</p>
@@ -449,12 +440,18 @@ function CreateTokenModal(props: {
 
   const toggle = (id: string) =>
     setSelectedAccounts((prev) =>
-      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id],
     );
 
   const handleSubmit = async () => {
-    if (!source.trim()) { setError("请输入业务系统标识"); return; }
-    if (!selectedAccounts.length) { setError("请选择至少一个账号"); return; }
+    if (!source.trim()) {
+      setError("请输入业务系统标识");
+      return;
+    }
+    if (!selectedAccounts.length) {
+      setError("请选择至少一个账号");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -549,21 +546,23 @@ function CreateTokenModal(props: {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                {props.accounts.filter((account) => !account.deprecated).map((account) => (
-                  <button
-                    key={account.id}
-                    type="button"
-                    onClick={() => toggle(account.id)}
-                    className={cn(
-                      "rounded-full border px-3 py-1 text-[12px] transition",
-                      selectedAccounts.includes(account.id)
-                        ? "border-[var(--accent)] bg-[rgba(21,110,99,0.1)] text-[var(--accent-strong)]"
-                        : "border-[var(--line)] text-[var(--muted-strong)] hover:bg-white"
-                    )}
-                  >
-                    {account.alias || account.display_name || account.id}
-                  </button>
-                ))}
+                {props.accounts
+                  .filter((account) => !account.deprecated)
+                  .map((account) => (
+                    <button
+                      key={account.id}
+                      type="button"
+                      onClick={() => toggle(account.id)}
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-[12px] transition",
+                        selectedAccounts.includes(account.id)
+                          ? "border-[var(--accent)] bg-[rgba(21,110,99,0.1)] text-[var(--accent-strong)]"
+                          : "border-[var(--line)] text-[var(--muted-strong)] hover:bg-white",
+                      )}
+                    >
+                      {account.alias || account.display_name || account.id}
+                    </button>
+                  ))}
               </div>
             </div>
 
@@ -626,7 +625,11 @@ function TokenCreatedNotice(props: { token: string; onDismiss: () => void }) {
 export function WebhooksPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: tokensResp, isPending: loading, error: tokensError } = useQuery({
+  const {
+    data: tokensResp,
+    isPending: loading,
+    error: tokensError,
+  } = useQuery({
     queryKey: queryKeys.webhookTokens,
     queryFn: fetchWebhookTokens,
   });
@@ -638,7 +641,8 @@ export function WebhooksPage() {
   const [pendingToggle, setPendingToggle] = useState<string | null>(null);
 
   const tokens = tokensResp?.data ?? [];
-  const error = tokensError instanceof Error ? tokensError.message : tokensError ? String(tokensError) : null;
+  const error =
+    tokensError instanceof Error ? tokensError.message : tokensError ? String(tokensError) : null;
   const activeTestToken = tokens.find((token) => token.source === activeTestSource) ?? null;
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.webhookTokens });
@@ -705,9 +709,7 @@ export function WebhooksPage() {
       <section className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-              Webhooks
-            </p>
+            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">Webhooks</p>
             <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">Webhook Token 管理</h2>
           </div>
 
@@ -732,7 +734,6 @@ export function WebhooksPage() {
             <Badge tone="muted">停用 {formatCount(disabledCount)}</Badge>
             <Badge tone="muted">关联账号 {formatCount(activeAccountCount)}</Badge>
           </div>
-
         </div>
       </section>
 
@@ -743,10 +744,7 @@ export function WebhooksPage() {
       ) : null}
 
       {createdToken ? (
-        <TokenCreatedNotice
-          token={createdToken}
-          onDismiss={() => setCreatedToken(null)}
-        />
+        <TokenCreatedNotice token={createdToken} onDismiss={() => setCreatedToken(null)} />
       ) : null}
 
       {loading ? (

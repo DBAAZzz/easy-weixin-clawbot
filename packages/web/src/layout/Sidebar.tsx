@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import type { AccountSummary, HealthStatus } from "@clawbot/shared";
-import { cn } from "../../lib/cn.js";
-import { formatCount, formatDuration } from "../../lib/format.js";
+import { cn } from "../lib/cn.js";
+import { formatCount, formatDuration } from "../lib/format.js";
 import {
   ActivityIcon,
   ClockIcon,
@@ -18,15 +18,15 @@ import {
   SlidersIcon,
   TerminalIcon,
   WebhookIcon,
-} from "../ui/icons.js";
-import logoUrl from "../../assets/images/logo.png";
+} from "../components/ui/icons.js";
+import logoUrl from "../assets/images/logo.png";
 
 function navClassName(isActive: boolean) {
   return cn(
     "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
     isActive
       ? "bg-[rgba(21,110,99,0.12)] font-semibold text-[var(--ink)] shadow-[0_1px_2px_rgba(21,110,99,0.06)]"
-      : "text-[var(--muted-strong)] hover:bg-white/72 hover:text-[var(--ink)]"
+      : "text-[var(--muted-strong)] hover:bg-white/72 hover:text-[var(--ink)]",
   );
 }
 
@@ -56,7 +56,7 @@ function NavItem({ to, label, icon, badge, badgeVariant = "default" }: NavItemPr
         <span
           className={cn(
             "ml-auto rounded-full px-2 py-0.5 text-[11px] font-medium",
-            badgeStyles[badgeVariant]
+            badgeStyles[badgeVariant],
           )}
         >
           {badge}
@@ -150,11 +150,7 @@ export function Sidebar(props: {
 
         {/* 运维中心 */}
         <MenuSection label="运维中心">
-          <NavItem
-            to="/observability"
-            label="运行监控"
-            icon={<GaugeIcon className="size-4" />}
-          />
+          <NavItem to="/observability" label="运行监控" icon={<GaugeIcon className="size-4" />} />
           <NavItem
             to="/login"
             label="连接管理"

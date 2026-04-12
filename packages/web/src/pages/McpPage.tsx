@@ -21,10 +21,7 @@ import {
 } from "../lib/mcp-form.js";
 import { formatCount, formatDateTime, formatRelativeTime } from "../lib/format.js";
 
-type EditorState =
-  | { mode: "create" }
-  | { mode: "edit"; serverId: string }
-  | null;
+type EditorState = { mode: "create" } | { mode: "edit"; serverId: string } | null;
 
 function statusTone(status: McpServerInfo["status"]): "online" | "offline" | "muted" {
   if (status === "connected") {
@@ -59,7 +56,7 @@ function ServerAvatar(props: { status: McpServerInfo["status"] }) {
         "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-[rgba(247,250,251,0.92)]",
         props.status === "connected"
           ? "border-[rgba(21,110,99,0.14)] text-[var(--accent-strong)]"
-          : "border-[var(--line)] text-[var(--ink)]"
+          : "border-[var(--line)] text-[var(--ink)]",
       )}
     >
       <LinkIcon className="size-[18px]" />
@@ -86,13 +83,13 @@ function ToggleButton(props: {
         "relative inline-flex h-8 w-[50px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
         props.enabled
           ? "border-[rgba(21,110,99,0.14)] bg-[var(--accent)]"
-          : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.38)]"
+          : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.38)]",
       )}
     >
       <span
         className={cn(
           "size-6 rounded-full bg-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          props.enabled ? "translate-x-[18px]" : "translate-x-0"
+          props.enabled ? "translate-x-[18px]" : "translate-x-0",
         )}
       />
     </button>
@@ -150,7 +147,7 @@ function ServerCard(props: {
         "reveal-up group flex min-h-[120px] cursor-pointer items-center gap-3 rounded-lg border bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)] md:px-4",
         props.selected
           ? "border-[rgba(21,110,99,0.38)] ring-[2px] ring-[rgba(21,110,99,0.10)]"
-          : "border-[rgba(21,32,43,0.08)]"
+          : "border-[rgba(21,32,43,0.08)]",
       )}
       style={{ animationDelay: `${props.index * 40}ms` }}
     >
@@ -170,9 +167,15 @@ function ServerCard(props: {
         </p>
 
         <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--muted)]">
-          <span className="inline-flex items-center gap-0.5"><TerminalIcon className="size-3" />{props.server.transport}</span>
+          <span className="inline-flex items-center gap-0.5">
+            <TerminalIcon className="size-3" />
+            {props.server.transport}
+          </span>
           <span className="size-1 rounded-full bg-[var(--line-strong)]" />
-          <span className="inline-flex items-center gap-0.5"><PuzzleIcon className="size-3" />tools {formatCount(props.server.tool_count)}</span>
+          <span className="inline-flex items-center gap-0.5">
+            <PuzzleIcon className="size-3" />
+            tools {formatCount(props.server.tool_count)}
+          </span>
           <span className="size-1 rounded-full bg-[var(--line-strong)]" />
           <span>{formatRelativeTime(props.server.last_seen_at)}</span>
         </div>
@@ -207,12 +210,13 @@ function McpToolCard(props: {
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-[13px] font-medium text-[var(--ink)]">
-            {props.tool.remote_name}
-          </h3>
+          <h3 className="text-[13px] font-medium text-[var(--ink)]">{props.tool.remote_name}</h3>
           <Badge tone="muted">{props.tool.server_slug}</Badge>
         </div>
-        <p className="mt-1 truncate font-[var(--font-mono)] text-[10px] leading-5 text-[var(--muted)]" title={props.tool.local_name}>
+        <p
+          className="mt-1 truncate font-[var(--font-mono)] text-[10px] leading-5 text-[var(--muted)]"
+          title={props.tool.local_name}
+        >
           {props.tool.local_name}
         </p>
         <p className="mt-1.5 line-clamp-2 text-[11px] leading-5 text-[var(--muted-strong)]">
@@ -294,7 +298,12 @@ function ServerDetailModal(props: {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" disabled={props.serverBusy} onClick={() => void props.onRefresh()}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={props.serverBusy}
+              onClick={() => void props.onRefresh()}
+            >
               <ActivityIcon className="size-4" />
               刷新目录
             </Button>
@@ -302,10 +311,20 @@ function ServerDetailModal(props: {
               <PencilIcon className="size-4" />
               编辑配置
             </Button>
-            <Button size="sm" variant={props.server.enabled ? "outline" : "primary"} disabled={props.serverBusy} onClick={() => void props.onToggleServer()}>
+            <Button
+              size="sm"
+              variant={props.server.enabled ? "outline" : "primary"}
+              disabled={props.serverBusy}
+              onClick={() => void props.onToggleServer()}
+            >
               {props.server.enabled ? "停用 Server" : "启用 Server"}
             </Button>
-            <Button size="sm" variant="ghost" disabled={props.serverBusy} onClick={() => void props.onDelete()}>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={props.serverBusy}
+              onClick={() => void props.onDelete()}
+            >
               删除配置
             </Button>
           </div>
@@ -326,10 +345,7 @@ function ServerDetailModal(props: {
             </div>
           ) : null}
 
-          <ConfigBlock
-            label="Standard JSON"
-            value={stringifyMcpServerJsonDocument(props.server)}
-          />
+          <ConfigBlock label="Standard JSON" value={stringifyMcpServerJsonDocument(props.server)} />
 
           <div className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -437,9 +453,7 @@ function ServerEditorModal(props: {
         >
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">
-                MCP JSON
-              </p>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">MCP JSON</p>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" variant="outline" onClick={props.onFillExample}>
                   填入 TAPD 示例
@@ -461,10 +475,7 @@ function ServerEditorModal(props: {
               </div>
             ) : null}
 
-            <ConfigBlock
-              label="输入案例"
-              value={TAPD_MCP_JSON_EXAMPLE}
-            />
+            <ConfigBlock label="输入案例" value={TAPD_MCP_JSON_EXAMPLE} />
           </div>
 
           <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-[var(--line)] bg-[rgba(255,255,255,0.92)] px-1 pt-4">
@@ -516,7 +527,7 @@ export function McpPage() {
   const activeServer = servers.find((server) => server.id === activeServerId) ?? null;
   const editorServer =
     editorState?.mode === "edit"
-      ? servers.find((server) => server.id === editorState.serverId) ?? null
+      ? (servers.find((server) => server.id === editorState.serverId) ?? null)
       : null;
 
   const filteredServers = useMemo(() => {
@@ -528,7 +539,7 @@ export function McpPage() {
       [server.name, server.slug, server.command, server.transport, statusLabel(server.status)]
         .join(" ")
         .toLowerCase()
-        .includes(normalizedServerQuery)
+        .includes(normalizedServerQuery),
     );
   }, [normalizedServerQuery, servers]);
 
@@ -539,7 +550,7 @@ export function McpPage() {
         [tool.local_name, tool.remote_name, tool.server_name, tool.server_slug, tool.summary ?? ""]
           .join(" ")
           .toLowerCase()
-          .includes(normalizedToolQuery)
+          .includes(normalizedToolQuery),
       );
     }
     return result;
@@ -551,7 +562,9 @@ export function McpPage() {
   const connectedCount = servers.filter((server) => server.status === "connected").length;
   const enabledServerCount = servers.filter((server) => server.enabled).length;
   const enabledToolCount = tools.filter((tool) => tool.enabled).length;
-  const filterServer = filterServerId ? servers.find((s) => s.id === filterServerId) ?? null : null;
+  const filterServer = filterServerId
+    ? (servers.find((s) => s.id === filterServerId) ?? null)
+    : null;
 
   useEffect(() => {
     if (activeServerId && !servers.some((server) => server.id === activeServerId)) {
@@ -794,7 +807,12 @@ export function McpPage() {
                   index={index}
                   busy={serverBusyId === server.id}
                   selected={filterServerId === server.id}
-                  onOpen={() => startTransition(() => { setFilterServerId(server.id); setActiveServerId(server.id); })}
+                  onOpen={() =>
+                    startTransition(() => {
+                      setFilterServerId(server.id);
+                      setActiveServerId(server.id);
+                    })
+                  }
                   onToggle={() =>
                     handleServerAction(server, async () => {
                       const result = server.enabled
@@ -849,8 +867,8 @@ export function McpPage() {
           {!loading && filteredTools.length === 0 ? (
             <section className="rounded-lg border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-8 text-center">
               <p className="text-[14px] font-medium text-[var(--ink)]">
-              {filterServer ? `${filterServer.name} 下暂无匹配的 tool` : "没有匹配到 MCP tool"}
-            </p>
+                {filterServer ? `${filterServer.name} 下暂无匹配的 tool` : "没有匹配到 MCP tool"}
+              </p>
             </section>
           ) : null}
 
@@ -877,7 +895,9 @@ export function McpPage() {
           busyToolId={toolBusyId}
           onClose={() => setActiveServerId(null)}
           onRefresh={() => handleServerAction(activeServer, () => refreshServer(activeServer.id))}
-          onEdit={() => startTransition(() => setEditorState({ mode: "edit", serverId: activeServer.id }))}
+          onEdit={() =>
+            startTransition(() => setEditorState({ mode: "edit", serverId: activeServer.id }))
+          }
           onToggleServer={() =>
             handleServerAction(activeServer, async () => {
               const result = activeServer.enabled

@@ -11,7 +11,7 @@ import {
   fetchMcpTools,
   refreshMcpServer,
   updateMcpServer,
-} from "../lib/api.js";
+} from "@/api/mcp.js";
 import type { McpServerRequestPayload } from "../lib/mcp-form.js";
 import { queryKeys } from "../lib/query-keys.js";
 

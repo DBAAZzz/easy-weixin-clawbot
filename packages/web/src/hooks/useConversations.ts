@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchConversations } from "../lib/api.js";
+import { fetchConversations } from "@/api/accounts.js";
 import { queryKeys } from "../lib/query-keys.js";
 
 export function useConversations(accountId?: string) {

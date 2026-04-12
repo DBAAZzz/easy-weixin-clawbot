@@ -56,8 +56,10 @@ export function Select({
     function handleClick(e: MouseEvent) {
       const target = e.target as Node;
       if (
-        containerRef.current && !containerRef.current.contains(target) &&
-        listRef.current && !listRef.current.contains(target)
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        listRef.current &&
+        !listRef.current.contains(target)
       ) {
         setOpen(false);
       }
@@ -159,13 +161,13 @@ export function Select({
                 className={cn(
                   "flex cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-[12px] transition-colors duration-100",
                   isHighlighted && "bg-[rgba(21,110,99,0.06)]",
-                  isSelected
-                    ? "font-medium text-[var(--accent-strong)]"
-                    : "text-[var(--ink)]",
+                  isSelected ? "font-medium text-[var(--accent-strong)]" : "text-[var(--ink)]",
                 )}
               >
                 {option.icon ? (
-                  <span className="flex size-4 shrink-0 items-center justify-center">{option.icon}</span>
+                  <span className="flex size-4 shrink-0 items-center justify-center">
+                    {option.icon}
+                  </span>
                 ) : null}
                 <span className="flex-1 truncate">{option.label}</span>
                 {isSelected ? (

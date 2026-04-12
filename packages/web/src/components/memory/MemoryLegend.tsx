@@ -42,7 +42,10 @@ export function MemoryLegend(props: { variant?: "inline" | "floating" }) {
             key={item.label}
             className="flex items-center gap-2 rounded-full border border-[rgba(148,163,184,0.14)] bg-white/68 px-2.5 py-1"
           >
-            <span className="w-8 border-t border-[var(--muted-strong)]" style={{ borderStyle: item.line }} />
+            <span
+              className="w-8 border-t border-[var(--muted-strong)]"
+              style={{ borderStyle: item.line }}
+            />
             <span>{item.label}</span>
           </div>
         ))}

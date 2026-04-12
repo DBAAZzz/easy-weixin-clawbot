@@ -22,7 +22,10 @@ export function ObservabilityTracePage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Link to="/observability" className={buttonClassName({ variant: "outline", size: "sm" })}>
+            <Link
+              to="/observability"
+              className={buttonClassName({ variant: "outline", size: "sm" })}
+            >
               <ArrowRightIcon className="size-4 rotate-180" />
               返回 Trace 列表
             </Link>

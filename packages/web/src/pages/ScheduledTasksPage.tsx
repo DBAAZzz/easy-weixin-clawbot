@@ -2,12 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
-import {
-  CardOverflowMenu,
-  CardToggle,
-  IconTag,
-  MetricGrid,
-} from "../components/ui/admin-card.js";
+import { CardOverflowMenu, CardToggle, IconTag, MetricGrid } from "../components/ui/admin-card.js";
 import {
   ClockIcon,
   ActivityIcon,
@@ -27,10 +22,10 @@ import {
   fetchScheduledTasks,
   fetchScheduledTaskRuns,
   toggleScheduledTask,
-} from "../lib/api.js";
+} from "@/api/scheduled-tasks.js";
 import { queryKeys } from "../lib/query-keys.js";
 import { useAccounts } from "../hooks/useAccounts.js";
-import type { ScheduledTaskDto, ScheduledTaskRunDto } from "../lib/api.js";
+import type { ScheduledTaskDto, ScheduledTaskRunDto } from "@/api/scheduled-tasks.js";
 import type { AccountSummary } from "@clawbot/shared";
 import { cn } from "../lib/cn.js";
 import { formatCount, formatDateTime, formatDuration } from "../lib/format.js";
@@ -51,8 +46,14 @@ function cronToHuman(cron: string): string {
   let timeStr = "";
   if (hour !== "*" && minute !== "*") {
     // e.g. hour="9", minute="0" → "09:00"
-    if (!hour.includes(",") && !hour.includes("-") && !hour.includes("/") &&
-        !minute.includes(",") && !minute.includes("-") && !minute.includes("/")) {
+    if (
+      !hour.includes(",") &&
+      !hour.includes("-") &&
+      !hour.includes("/") &&
+      !minute.includes(",") &&
+      !minute.includes("-") &&
+      !minute.includes("/")
+    ) {
       timeStr = `${pad(hour)}:${pad(minute)}`;
     }
   }
@@ -72,8 +73,14 @@ function cronToHuman(cron: string): string {
 
   // Day-of-week mapping
   const weekMap: Record<string, string> = {
-    "0": "周日", "7": "周日", "1": "周一", "2": "周二",
-    "3": "周三", "4": "周四", "5": "周五", "6": "周六",
+    "0": "周日",
+    "7": "周日",
+    "1": "周一",
+    "2": "周二",
+    "3": "周三",
+    "4": "周四",
+    "5": "周五",
+    "6": "周六",
   };
 
   // Specific day of month
@@ -91,7 +98,10 @@ function cronToHuman(cron: string): string {
     if (weekMap[dayOfWeek]) return `每${weekMap[dayOfWeek]} ${timeStr}`.trim();
     // comma-separated days
     if (dayOfWeek.includes(",")) {
-      const days = dayOfWeek.split(",").map((d) => weekMap[d] ?? d).join("、");
+      const days = dayOfWeek
+        .split(",")
+        .map((d) => weekMap[d] ?? d)
+        .join("、");
       return `每${days} ${timeStr}`.trim();
     }
   }
@@ -229,7 +239,8 @@ function TaskRunsModal({
                 运行记录
               </h3>
               <p className="mt-2 text-[13px] leading-6 text-[var(--muted)]">
-                {task.name} · {account?.alias || account?.display_name || task.accountId.slice(0, 12)}
+                {task.name} ·{" "}
+                {account?.alias || account?.display_name || task.accountId.slice(0, 12)}
               </p>
             </div>
 
@@ -345,8 +356,7 @@ function ScheduledTaskCard({
   const [showRuns, setShowRuns] = useState(false);
   const [toggling, setToggling] = useState(false);
 
-  const accountLabel =
-    account?.alias || account?.display_name || task.accountId.slice(0, 12);
+  const accountLabel = account?.alias || account?.display_name || task.accountId.slice(0, 12);
 
   const nextRunText = useMemo(() => {
     if (!task.nextRunAt) return "未调度";
@@ -365,7 +375,7 @@ function ScheduledTaskCard({
       <div
         className={cn(
           "reveal-up group relative rounded-lg border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.38)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)]",
-          expanded && "border-[rgba(21,110,99,0.14)] bg-[rgba(255,255,255,0.96)]"
+          expanded && "border-[rgba(21,110,99,0.14)] bg-[rgba(255,255,255,0.96)]",
         )}
       >
         <div className="flex items-start gap-3 px-5 pt-5">
@@ -374,7 +384,7 @@ function ScheduledTaskCard({
               "flex size-10 shrink-0 items-center justify-center rounded-lg border transition",
               task.enabled
                 ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                : "border-[var(--line)] bg-[rgba(148,163,184,0.08)] text-[var(--muted)]"
+                : "border-[var(--line)] bg-[rgba(148,163,184,0.08)] text-[var(--muted)]",
             )}
           >
             <ClockIcon className="size-5" />
@@ -459,7 +469,10 @@ function ScheduledTaskCard({
         </div>
 
         <div className="mt-2.5 flex flex-wrap gap-1.5 px-5 pb-4">
-          <IconTag icon={<StackIcon className="size-3" />} tone={task.type === "once" ? "warning" : "muted"}>
+          <IconTag
+            icon={<StackIcon className="size-3" />}
+            tone={task.type === "once" ? "warning" : "muted"}
+          >
             {task.type === "once" ? "单次" : "重复"}
           </IconTag>
           <IconTag icon={getTaskStatusIcon(task.status)} tone={getTaskStatusTone(task.status)}>
@@ -504,7 +517,11 @@ export function ScheduledTasksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 
-  const { data: tasksData, isPending: loading, error: tasksRawError } = useQuery({
+  const {
+    data: tasksData,
+    isPending: loading,
+    error: tasksRawError,
+  } = useQuery({
     queryKey: queryKeys.scheduledTasks(),
     queryFn: () => fetchScheduledTasks(),
     staleTime: 15_000,
@@ -512,7 +529,12 @@ export function ScheduledTasksPage() {
   const { accounts } = useAccounts();
 
   const tasks = tasksData ?? [];
-  const error = tasksRawError instanceof Error ? tasksRawError.message : tasksRawError ? String(tasksRawError) : null;
+  const error =
+    tasksRawError instanceof Error
+      ? tasksRawError.message
+      : tasksRawError
+        ? String(tasksRawError)
+        : null;
 
   const filteredTasks = useMemo(() => {
     if (!searchQuery.trim()) return tasks;
@@ -521,7 +543,7 @@ export function ScheduledTasksPage() {
       (task) =>
         task.name.toLowerCase().includes(query) ||
         task.accountId.toLowerCase().includes(query) ||
-        task.cron.toLowerCase().includes(query)
+        task.cron.toLowerCase().includes(query),
     );
   }, [tasks, searchQuery]);
 
@@ -632,9 +654,7 @@ export function ScheduledTasksPage() {
                 expanded={expandedTaskId === `${task.accountId}-${task.seq}`}
                 onToggleExpand={() =>
                   setExpandedTaskId((id) =>
-                    id === `${task.accountId}-${task.seq}`
-                      ? null
-                      : `${task.accountId}-${task.seq}`
+                    id === `${task.accountId}-${task.seq}` ? null : `${task.accountId}-${task.seq}`,
                   )
                 }
                 onRefresh={refresh}

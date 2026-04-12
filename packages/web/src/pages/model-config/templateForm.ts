@@ -7,9 +7,6 @@ export function createEditableModelIdList(values: string[]): string[] {
   return normalized.length > 0 ? [...normalized, ""] : [""];
 }
 
-export function resolveNextSelectedModel(
-  current: string,
-  allowed: string[],
-): string {
+export function resolveNextSelectedModel(current: string, allowed: string[]): string {
   return allowed.includes(current) ? current : "";
 }

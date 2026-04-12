@@ -46,9 +46,7 @@ function buildRows(spans: ObservabilityTraceSpan[]): FlatRow[] {
 
   // 按 start_time 排序子节点
   for (const children of byParent.values()) {
-    children.sort(
-      (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
-    );
+    children.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
   }
 
   const rows: FlatRow[] = [];
@@ -319,7 +317,10 @@ export function WaterfallTimeline({ trace }: { trace: ObservabilityTraceDetail }
   return (
     <div className="overflow-hidden border border-[var(--line)] bg-white/90">
       {/* Header */}
-      <div className="grid border-b px-4 border-[var(--line)]" style={{ gridTemplateColumns: `${NAME_COL_WIDTH}px 1fr` }}>
+      <div
+        className="grid border-b px-4 border-[var(--line)]"
+        style={{ gridTemplateColumns: `${NAME_COL_WIDTH}px 1fr` }}
+      >
         <div className="border-r border-[var(--line)] px-4 py-2">
           <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
             Span · {rows.length} 个节点
@@ -342,14 +343,10 @@ export function WaterfallTimeline({ trace }: { trace: ObservabilityTraceDetail }
             <div key={row.span.span_id}>
               <button
                 type="button"
-                onClick={() =>
-                  setExpandedSpanId(isExpanded ? null : row.span.span_id)
-                }
+                onClick={() => setExpandedSpanId(isExpanded ? null : row.span.span_id)}
                 className={cn(
                   "grid w-full text-left transition-colors",
-                  isExpanded
-                    ? "bg-[rgba(21,110,99,0.04)]"
-                    : "hover:bg-[rgba(248,250,252,0.8)]",
+                  isExpanded ? "bg-[rgba(21,110,99,0.04)]" : "hover:bg-[rgba(248,250,252,0.8)]",
                   isError && "bg-red-50/40",
                 )}
                 style={{ gridTemplateColumns: `${NAME_COL_WIDTH}px 1fr` }}
@@ -362,10 +359,7 @@ export function WaterfallTimeline({ trace }: { trace: ObservabilityTraceDetail }
                   <TreeLines row={row} />
                   <SpanGlyph
                     name={row.span.name}
-                    className={cn(
-                      "size-3.5 text-[var(--muted-strong)]",
-                      isError && "text-red-600",
-                    )}
+                    className={cn("size-3.5 text-[var(--muted-strong)]", isError && "text-red-600")}
                   />
                   <span
                     className={cn(
@@ -406,7 +400,8 @@ export function WaterfallTimeline({ trace }: { trace: ObservabilityTraceDetail }
                     {formatMs(row.span.duration_ms)}
                     {row.span.input_tokens != null && (
                       <span className="ml-2 text-[var(--muted)]">
-                        {formatTokens(row.span.input_tokens)}→{formatTokens(row.span.output_tokens ?? 0)}
+                        {formatTokens(row.span.input_tokens)}→
+                        {formatTokens(row.span.output_tokens ?? 0)}
                       </span>
                     )}
                   </span>

@@ -15,19 +15,19 @@ export function buttonClassName(options?: {
   const size = options?.size ?? "default";
 
   return cn(
-    "inline-flex cursor-pointer select-none items-center justify-center gap-2 whitespace-nowrap border text-[12px] font-medium tracking-[-0.01em] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-    "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)]",
+    "inline-flex cursor-pointer select-none items-center justify-center gap-2 whitespace-nowrap border text-base font-medium tracking-body transition-all duration-200 ease-expo",
+    "focus-visible:outline-none focus-visible:shadow-focus-accent",
     "disabled:pointer-events-none disabled:opacity-50",
     "active:translate-y-px",
-    size === "default" && "h-9 rounded-[10px] px-4",
-    size === "sm" && "h-8 rounded-[8px] px-3 text-[11px]",
-    size === "icon" && "size-9 rounded-[10px]",
+    size === "default" && "h-9 rounded-card px-4",
+    size === "sm" && "h-8 rounded-lg px-3 text-sm",
+    size === "icon" && "size-9 rounded-card",
     variant === "primary" &&
-      "border-[var(--ink)] bg-[var(--ink)] text-white shadow-[0_1px_3px_rgba(15,23,42,0.2)] hover:bg-[var(--accent-strong)] hover:border-[var(--accent-strong)]",
+      "border-ink bg-ink text-white shadow-btn hover:bg-accent-strong hover:border-accent-strong",
     variant === "outline" &&
-      "border-[var(--line-strong)] bg-white/80 text-[var(--ink)] shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:bg-[rgba(246,249,250,0.9)] hover:text-[var(--accent-strong)]",
+      "border-line-strong bg-white/80 text-ink shadow-btn-soft hover:bg-hover-bg hover:text-accent-strong",
     variant === "ghost" &&
-      "border-transparent bg-transparent text-[var(--muted-strong)] hover:bg-[rgba(21,32,43,0.04)] hover:text-[var(--ink)]",
+      "border-transparent bg-transparent text-muted-strong hover:bg-ghost-hover hover:text-ink",
     variant === "destructive" &&
       "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-300",
     options?.className,

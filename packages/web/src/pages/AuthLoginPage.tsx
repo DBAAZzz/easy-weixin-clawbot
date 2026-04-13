@@ -30,23 +30,21 @@ export function AuthLoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-surface px-4">
       <Card className="w-full max-w-[380px]">
         <div className="mb-6 text-center">
           <img
             src={logoUrl}
             alt="Clawbot"
-            className="mx-auto size-16 rounded-[18px] object-cover"
+            className="mx-auto size-16 rounded-section object-cover"
           />
-          <p className="mt-3 text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-            Clawbot
-          </p>
-          <h1 className="mt-1.5 text-[20px] text-[var(--ink)]">登录</h1>
+          <p className="mt-3 text-xs uppercase tracking-label-xl text-muted">Clawbot</p>
+          <h1 className="mt-1.5 text-4xl text-ink">登录</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           {error && (
-            <div className="border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-3 py-2 text-[12px] text-red-700">
+            <div className="border border-notice-error-border bg-notice-error-bg px-3 py-2 text-base text-red-700">
               {error}
             </div>
           )}

@@ -12,19 +12,17 @@ import { formatCount, formatDateTime } from "../lib/format.js";
 
 function MetricCard(props: { label: string; value: string; hint: string }) {
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[rgba(255,255,255,0.82)] px-4 py-4">
-      <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">{props.label}</p>
-      <p className="mt-2 text-[24px] font-semibold tracking-[-0.04em] text-[var(--ink)]">
-        {props.value}
-      </p>
-      <p className="mt-1 text-[12px] leading-5 text-[var(--muted)]">{props.hint}</p>
+    <div className="rounded-xl border border-line bg-glass-82 px-4 py-4">
+      <p className="text-xs uppercase tracking-label-lg text-muted">{props.label}</p>
+      <p className="mt-2 text-6xl font-semibold tracking-heading text-ink">{props.value}</p>
+      <p className="mt-1 text-base leading-5 text-muted">{props.hint}</p>
     </div>
   );
 }
 
 function statusClassName(status: string) {
   return cn(
-    "rounded-full px-2 py-0.5 text-[11px] font-medium",
+    "rounded-full px-2 py-0.5 text-sm font-medium",
     status === "success"
       ? "bg-emerald-50 text-emerald-700"
       : status === "rejected"
@@ -89,7 +87,7 @@ export function WebhookLogsPage() {
 
   if (!source) {
     return (
-      <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+      <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
         缺少 Webhook source，无法加载日志详情。
       </div>
     );
@@ -100,12 +98,8 @@ export function WebhookLogsPage() {
       <section className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-              Webhook Logs
-            </p>
-            <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">
-              {token?.source ?? source} 调用日志
-            </h2>
+            <p className="text-xs uppercase tracking-label-xl text-muted">Webhook Logs</p>
+            <h2 className="mt-1.5 text-6xl text-ink">{token?.source ?? source} 调用日志</h2>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -119,7 +113,7 @@ export function WebhookLogsPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
           <Badge tone={token?.enabled ? "online" : "offline"}>
             {token?.enabled ? "Token 已启用" : "Token 已停用"}
           </Badge>
@@ -131,14 +125,15 @@ export function WebhookLogsPage() {
         </div>
 
         {token?.description ? (
-          <div className="rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.72)] px-4 py-2 text-[11px] text-[var(--muted)]">
+          <div className="bg-glass-72 rounded-lg border border-line px-4 py-2 text-sm text-muted">
+            {" "}
             {token.description}
           </div>
         ) : null}
       </section>
 
       {logsError ? (
-        <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+        <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
           加载日志失败：{logsError}
         </div>
       ) : null}
@@ -166,37 +161,33 @@ export function WebhookLogsPage() {
         />
       </section>
 
-      <section className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+      <section className="rounded-xl border border-line bg-detail-bg px-4 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-              Insight Canvas
-            </p>
+            <p className="text-xs uppercase tracking-label-lg text-muted">Insight Canvas</p>
           </div>
           <Badge tone="muted">Planning Space</Badge>
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div className="rounded-[18px] border border-dashed border-[var(--line)] bg-white/66 px-4 py-5">
-            <p className="text-[12px] font-medium text-[var(--ink)]">24h 请求趋势</p>
+          <div className="rounded-section border border-dashed border-line bg-white/66 px-4 py-5">
+            <p className="text-base font-medium text-ink">24h 请求趋势</p>
           </div>
-          <div className="rounded-[18px] border border-dashed border-[var(--line)] bg-white/66 px-4 py-5">
-            <p className="text-[12px] font-medium text-[var(--ink)]">状态分布</p>
+          <div className="rounded-section border border-dashed border-line bg-white/66 px-4 py-5">
+            <p className="text-base font-medium text-ink">状态分布</p>
           </div>
-          <div className="rounded-[18px] border border-dashed border-[var(--line)] bg-white/66 px-4 py-5">
-            <p className="text-[12px] font-medium text-[var(--ink)]">账号热度</p>
+          <div className="rounded-section border border-dashed border-line bg-white/66 px-4 py-5">
+            <p className="text-base font-medium text-ink">账号热度</p>
           </div>
         </div>
       </section>
 
-      <section className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+      <section className="rounded-xl border border-line bg-detail-bg px-4 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-              Log Stream
-            </p>
+            <p className="text-xs uppercase tracking-label-lg text-muted">Log Stream</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
             <Badge tone="muted">活跃账号 {formatCount(activeAccountCount)}</Badge>
             <Button size="sm" variant="ghost" onClick={refresh}>
               <RefreshIcon className="size-3.5" />
@@ -208,27 +199,24 @@ export function WebhookLogsPage() {
         {logsLoading || tokensLoading || accountsLoading ? (
           <div className="mt-4 grid gap-3">
             {Array.from({ length: 6 }).map((_, index) => (
-              <div
-                key={index}
-                className="rounded-[18px] border border-[var(--line)] bg-white/80 px-4 py-4"
-              >
-                <div className="ui-skeleton h-4 rounded-[8px]" />
-                <div className="mt-3 ui-skeleton h-3 rounded-[8px]" />
-                <div className="mt-2 ui-skeleton h-3 w-4/5 rounded-[8px]" />
+              <div key={index} className="rounded-section border border-line bg-white/80 px-4 py-4">
+                <div className="ui-skeleton h-4 rounded-lg" />
+                <div className="mt-3 ui-skeleton h-3 rounded-lg" />
+                <div className="mt-2 ui-skeleton h-3 w-4/5 rounded-lg" />
               </div>
             ))}
           </div>
         ) : logs.length === 0 ? (
-          <div className="mt-4 rounded-[18px] border border-dashed border-[var(--line)] bg-white/60 px-4 py-8 text-center">
-            <WebhookIcon className="mx-auto size-7 text-[var(--muted)]" />
-            <p className="mt-3 text-[14px] text-[var(--muted-strong)]">暂无调用日志</p>
+          <div className="mt-4 rounded-section border border-dashed border-line bg-white/60 px-4 py-8 text-center">
+            <WebhookIcon className="mx-auto size-7 text-muted" />
+            <p className="mt-3 text-lg text-muted-strong">暂无调用日志</p>
           </div>
         ) : (
-          <div className="mt-4 overflow-hidden rounded-[18px] border border-[var(--line)] bg-white/90">
+          <div className="mt-4 overflow-hidden rounded-section border border-line bg-white/90">
             <div className="overflow-x-auto">
-              <table className="min-w-full text-[12px]">
+              <table className="min-w-full text-base">
                 <thead>
-                  <tr className="border-b border-[var(--line)] bg-[rgba(247,250,251,0.84)] text-left text-[var(--muted)]">
+                  <tr className="border-b border-line bg-detail-bg text-left text-muted">
                     <th className="px-4 py-3 font-medium">时间</th>
                     <th className="px-4 py-3 font-medium">账号</th>
                     <th className="px-4 py-3 font-medium">会话</th>
@@ -242,30 +230,28 @@ export function WebhookLogsPage() {
                     return (
                       <tr
                         key={`${log.conversationId}-${log.createdAt}-${index}`}
-                        className="border-b border-[var(--line)]/50 align-top last:border-b-0"
+                        className="border-b border-line/50 align-top last:border-b-0"
                       >
-                        <td className="px-4 py-3 text-[var(--muted-strong)]">
+                        <td className="px-4 py-3 text-muted-strong">
                           {formatDateTime(log.createdAt)}
                         </td>
                         <td className="px-4 py-3">
                           <div className="min-w-[160px]">
-                            <p className="text-[var(--ink)]">
+                            <p className="text-ink">
                               {account?.alias ||
                                 account?.display_name ||
                                 log.accountId.slice(0, 12)}
                             </p>
-                            <p className="mt-1 font-[var(--font-mono)] text-[11px] text-[var(--muted)]">
-                              {log.accountId}
-                            </p>
+                            <p className="mt-1 font-mono text-sm text-muted">{log.accountId}</p>
                           </div>
                         </td>
-                        <td className="px-4 py-3 font-[var(--font-mono)] text-[11px] text-[var(--muted)]">
+                        <td className="px-4 py-3 font-mono text-sm text-muted">
                           {log.conversationId}
                         </td>
                         <td className="px-4 py-3">
                           <span className={statusClassName(log.status)}>{log.status}</span>
                         </td>
-                        <td className="px-4 py-3 text-[11px] leading-5 text-[var(--muted-strong)]">
+                        <td className="px-4 py-3 text-sm leading-5 text-muted-strong">
                           {log.error || "--"}
                         </td>
                       </tr>

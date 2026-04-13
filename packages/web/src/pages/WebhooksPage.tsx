@@ -50,14 +50,14 @@ function WebhookTokenCard(props: {
   });
 
   return (
-    <div className="reveal-up group relative rounded-lg border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.38)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)]">
+    <div className="reveal-up group relative rounded-lg border border-card-line bg-card-bg shadow-elevation transition duration-200 ease-expo hover:-translate-y-0.5 hover:border-notice-success-border hover:bg-card-hover">
       <div className="flex items-start gap-3 px-5 pt-5">
         <span
           className={cn(
             "flex size-10 shrink-0 items-center justify-center rounded-lg border transition",
             props.token.enabled
               ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-              : "border-[var(--line)] bg-[rgba(148,163,184,0.08)] text-[var(--muted)]",
+              : "border-line bg-slate-wash-soft text-muted",
           )}
         >
           <KeyIcon className="size-5" />
@@ -65,11 +65,11 @@ function WebhookTokenCard(props: {
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
+            <span className="truncate text-lg font-semibold tracking-title text-ink">
               {props.token.source}
             </span>
           </div>
-          <p className="mt-0.5 truncate text-[12px] text-[var(--muted)]">
+          <p className="mt-0.5 truncate text-base text-muted">
             {props.token.description || "未填写描述"}
           </p>
         </div>
@@ -118,7 +118,7 @@ function WebhookTokenCard(props: {
             {
               icon: <KeyIcon className="size-3.5" />,
               label: "Token",
-              value: <span className="font-mono text-[12px]">{props.token.tokenPrefix}...</span>,
+              value: <span className="font-mono text-base">{props.token.tokenPrefix}...</span>,
             },
             {
               icon: <LayersIcon className="size-3.5" />,
@@ -248,24 +248,22 @@ function WebhookTestModal(props: {
         type="button"
         aria-label="关闭 Webhook 调试弹窗"
         onClick={props.onClose}
-        className="absolute inset-0 bg-[rgba(15,23,42,0.24)] backdrop-blur-[8px]"
+        className="absolute inset-0 bg-overlay backdrop-blur-[8px]"
       />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="webhook-test-modal-title"
-        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[30px] border border-[rgba(21,32,43,0.1)] bg-[rgba(255,255,255,0.96)] shadow-[0_40px_120px_-56px_rgba(15,23,42,0.52)]"
+        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-pill border border-modal-border bg-card-hover shadow-modal"
       >
-        <div className="border-b border-[var(--line)] px-5 py-4 md:px-6">
+        <div className="border-b border-line px-5 py-4 md:px-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                Webhook Test
-              </p>
+              <p className="text-xs uppercase tracking-label-xl text-muted">Webhook Test</p>
               <h3
                 id="webhook-test-modal-title"
-                className="mt-1.5 text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]"
+                className="mt-1.5 text-5xl font-semibold tracking-heading text-ink"
               >
                 测试发送能力
               </h3>
@@ -274,7 +272,7 @@ function WebhookTestModal(props: {
             <button
               type="button"
               onClick={props.onClose}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-white/80 text-[var(--muted-strong)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-muted-strong transition hover:border-line-strong hover:text-ink"
             >
               <XIcon className="size-4" />
             </button>
@@ -297,9 +295,7 @@ function WebhookTestModal(props: {
           }}
         >
           <div className="space-y-3">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">
-              Message Type
-            </p>
+            <p className="text-sm uppercase tracking-label text-muted">Message Type</p>
             <div className="flex flex-wrap gap-2">
               {(["text", "image"] as const).map((type) => (
                 <button
@@ -307,10 +303,10 @@ function WebhookTestModal(props: {
                   type="button"
                   onClick={() => setMessageType(type)}
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-[12px] transition",
+                    "rounded-full border px-3 py-1.5 text-base transition",
                     messageType === type
-                      ? "border-[var(--accent)] bg-[rgba(21,110,99,0.1)] text-[var(--accent-strong)]"
-                      : "border-[var(--line)] text-[var(--muted-strong)] hover:bg-white",
+                      ? "border-accent bg-accent-soft text-accent-strong"
+                      : "border-line text-muted-strong hover:bg-white",
                   )}
                 >
                   {type === "text" ? "文本消息" : "图片消息"}
@@ -320,10 +316,10 @@ function WebhookTestModal(props: {
           </div>
 
           <div className="grid gap-4">
-            <div className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+            <div className="rounded-xl border border-line bg-detail-bg px-4 py-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  <p className="text-xs uppercase tracking-label-lg text-muted">
                     Authorized Accounts
                   </p>
                 </div>
@@ -337,10 +333,10 @@ function WebhookTestModal(props: {
                     type="button"
                     onClick={() => setSelectedAccountId(account.id)}
                     className={cn(
-                      "rounded-full border px-3 py-1 text-[12px] transition",
+                      "rounded-full border px-3 py-1 text-base transition",
                       selectedAccountId === account.id
-                        ? "border-[var(--accent)] bg-[rgba(21,110,99,0.1)] text-[var(--accent-strong)]"
-                        : "border-[var(--line)] text-[var(--muted-strong)] hover:bg-white",
+                        ? "border-accent bg-accent-soft text-accent-strong"
+                        : "border-line text-muted-strong hover:bg-white",
                     )}
                   >
                     {account.label}
@@ -350,7 +346,7 @@ function WebhookTestModal(props: {
             </div>
 
             <div>
-              <label className="text-[12px] text-[var(--muted-strong)]">Conversation ID *</label>
+              <label className="text-base text-muted-strong">Conversation ID *</label>
               <Input
                 value={conversationId}
                 onChange={(event) => setConversationId(event.target.value)}
@@ -361,7 +357,7 @@ function WebhookTestModal(props: {
 
             {messageType === "image" ? (
               <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">图片 URL *</label>
+                <label className="text-base text-muted-strong">图片 URL *</label>
                 <Input
                   value={imageUrl}
                   onChange={(event) => setImageUrl(event.target.value)}
@@ -372,7 +368,7 @@ function WebhookTestModal(props: {
             ) : null}
 
             <div>
-              <label className="text-[12px] text-[var(--muted-strong)]">
+              <label className="text-base text-muted-strong">
                 {messageType === "image" ? "附言" : "消息内容 *"}
               </label>
               <textarea
@@ -384,12 +380,12 @@ function WebhookTestModal(props: {
                     ? "可选：给图片附一段说明"
                     : "输入要通过 webhook 主动发送的文本"
                 }
-                className="mt-1 min-h-[120px] w-full rounded-[18px] border border-[var(--line-strong)] bg-[rgba(255,255,255,0.82)] px-4 py-3 text-[12px] leading-6 text-[var(--ink)] outline-none transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[rgba(21,110,99,0.14)]"
+                className="mt-1 min-h-[120px] w-full rounded-section border border-line-strong bg-glass-82 px-4 py-3 text-base leading-6 text-ink outline-none transition duration-300 ease-expo placeholder:text-muted focus:border-accent focus:shadow-focus-accent"
               />
             </div>
 
             {error ? (
-              <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+              <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
                 {error}
               </div>
             ) : null}
@@ -397,23 +393,21 @@ function WebhookTestModal(props: {
             {result ? (
               <div
                 className={cn(
-                  "rounded-[18px] border px-4 py-3 text-[12px] leading-6",
+                  "rounded-section border px-4 py-3 text-base leading-6",
                   result.tone === "success"
-                    ? "border-[rgba(21,110,99,0.14)] bg-[rgba(240,253,250,0.92)] text-[var(--accent-strong)]"
-                    : "border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] text-red-700",
+                    ? "border-notice-success-border bg-notice-success-bg text-accent-strong"
+                    : "border-notice-error-border bg-notice-error-bg text-red-700",
                 )}
               >
                 <p>{result.message}</p>
                 {result.messageId ? (
-                  <p className="mt-1 font-[var(--font-mono)] text-[11px] opacity-80">
-                    messageId: {result.messageId}
-                  </p>
+                  <p className="mt-1 font-mono text-sm opacity-80">messageId: {result.messageId}</p>
                 ) : null}
               </div>
             ) : null}
           </div>
 
-          <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-[var(--line)] bg-[rgba(255,255,255,0.92)] px-1 pt-4">
+          <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-line bg-glass-92 px-1 pt-4">
             <Button type="button" variant="outline" onClick={props.onClose}>
               关闭
             </Button>
@@ -474,24 +468,22 @@ function CreateTokenModal(props: {
         type="button"
         aria-label="关闭 Webhook Token 创建弹窗"
         onClick={props.onClose}
-        className="absolute inset-0 bg-[rgba(15,23,42,0.24)] backdrop-blur-[8px]"
+        className="absolute inset-0 bg-overlay backdrop-blur-[8px]"
       />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="webhook-token-editor-title"
-        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[30px] border border-[rgba(21,32,43,0.1)] bg-[rgba(255,255,255,0.96)] shadow-[0_40px_120px_-56px_rgba(15,23,42,0.52)]"
+        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-pill border border-modal-border bg-card-hover shadow-modal"
       >
-        <div className="border-b border-[var(--line)] px-5 py-4 md:px-6">
+        <div className="border-b border-line px-5 py-4 md:px-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                Create Token
-              </p>
+              <p className="text-xs uppercase tracking-label-xl text-muted">Create Token</p>
               <h3
                 id="webhook-token-editor-title"
-                className="mt-1.5 text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]"
+                className="mt-1.5 text-5xl font-semibold tracking-heading text-ink"
               >
                 新建 Webhook Token
               </h3>
@@ -500,7 +492,7 @@ function CreateTokenModal(props: {
             <button
               type="button"
               onClick={props.onClose}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-white/80 text-[var(--muted-strong)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-muted-strong transition hover:border-line-strong hover:text-ink"
             >
               <XIcon className="size-4" />
             </button>
@@ -516,7 +508,7 @@ function CreateTokenModal(props: {
         >
           <div className="grid gap-4">
             <div>
-              <label className="text-[12px] text-[var(--muted-strong)]">业务系统标识 *</label>
+              <label className="text-base text-muted-strong">业务系统标识 *</label>
               <Input
                 value={source}
                 onChange={(event) => setSource(event.target.value)}
@@ -526,7 +518,7 @@ function CreateTokenModal(props: {
             </div>
 
             <div>
-              <label className="text-[12px] text-[var(--muted-strong)]">描述</label>
+              <label className="text-base text-muted-strong">描述</label>
               <Input
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
@@ -535,10 +527,10 @@ function CreateTokenModal(props: {
               />
             </div>
 
-            <div className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+            <div className="rounded-xl border border-line bg-detail-bg px-4 py-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  <p className="text-xs uppercase tracking-label-lg text-muted">
                     Authorized Accounts
                   </p>
                 </div>
@@ -554,10 +546,10 @@ function CreateTokenModal(props: {
                       type="button"
                       onClick={() => toggle(account.id)}
                       className={cn(
-                        "rounded-full border px-3 py-1 text-[12px] transition",
+                        "rounded-full border px-3 py-1 text-base transition",
                         selectedAccounts.includes(account.id)
-                          ? "border-[var(--accent)] bg-[rgba(21,110,99,0.1)] text-[var(--accent-strong)]"
-                          : "border-[var(--line)] text-[var(--muted-strong)] hover:bg-white",
+                          ? "border-accent bg-accent-soft text-accent-strong"
+                          : "border-line text-muted-strong hover:bg-white",
                       )}
                     >
                       {account.alias || account.display_name || account.id}
@@ -567,13 +559,13 @@ function CreateTokenModal(props: {
             </div>
 
             {error ? (
-              <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+              <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
                 {error}
               </div>
             ) : null}
           </div>
 
-          <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-[var(--line)] bg-[rgba(255,255,255,0.92)] px-1 pt-4">
+          <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-line bg-glass-92 px-1 pt-4">
             <Button type="button" variant="outline" onClick={props.onClose}>
               取消
             </Button>
@@ -597,18 +589,18 @@ function TokenCreatedNotice(props: { token: string; onDismiss: () => void }) {
   };
 
   return (
-    <div className="rounded-[18px] border border-emerald-200 bg-emerald-50/80 p-5">
+    <div className="rounded-section border border-emerald-200 bg-emerald-50/80 p-5">
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-[14px] font-semibold text-emerald-800">Token 创建成功</h3>
-          <p className="mt-1 text-[12px] text-emerald-600">请立即复制保存，此 Token 仅显示一次</p>
+          <h3 className="text-lg font-semibold text-emerald-800">Token 创建成功</h3>
+          <p className="mt-1 text-base text-emerald-600">请立即复制保存，此 Token 仅显示一次</p>
         </div>
         <button onClick={props.onDismiss} className="text-emerald-400 hover:text-emerald-600">
           <XIcon className="size-4" />
         </button>
       </div>
       <div className="mt-3 flex items-center gap-2">
-        <code className="flex-1 rounded-lg bg-white/80 px-3 py-2 text-[12px] font-mono text-emerald-800 break-all">
+        <code className="flex-1 rounded-lg bg-white/80 px-3 py-2 text-base font-mono text-emerald-800 break-all">
           {props.token}
         </code>
         <button
@@ -709,8 +701,8 @@ export function WebhooksPage() {
       <section className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">Webhooks</p>
-            <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">Webhook Token 管理</h2>
+            <p className="text-xs uppercase tracking-label-xl text-muted">Webhooks</p>
+            <h2 className="mt-1.5 text-6xl text-ink">Webhook Token 管理</h2>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -728,7 +720,7 @@ export function WebhooksPage() {
         </div>
 
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
             <Badge tone="muted">总数 {formatCount(tokens.length)}</Badge>
             <Badge tone="muted">启用 {formatCount(enabledCount)}</Badge>
             <Badge tone="muted">停用 {formatCount(disabledCount)}</Badge>
@@ -738,7 +730,7 @@ export function WebhooksPage() {
       </section>
 
       {error ? (
-        <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+        <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
           加载 Webhook Token 失败：{error}
         </div>
       ) : null}
@@ -752,13 +744,13 @@ export function WebhooksPage() {
           {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
-              className="overflow-hidden rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.8)] px-4 py-4 md:px-5"
+              className="overflow-hidden rounded-lg border border-line bg-glass-80 px-4 py-4 md:px-5"
             >
               <div className="flex items-center gap-3">
                 <div className="ui-skeleton size-10 rounded-lg" />
                 <div className="min-w-0 flex-1 space-y-2">
-                  <div className="ui-skeleton h-5 rounded-[8px]" />
-                  <div className="ui-skeleton h-4 rounded-[8px]" />
+                  <div className="ui-skeleton h-5 rounded-lg" />
+                  <div className="ui-skeleton h-4 rounded-lg" />
                   <div className="ui-skeleton h-3 w-2/3 rounded-full" />
                 </div>
                 <div className="ui-skeleton h-8 w-[50px] rounded-full" />
@@ -766,7 +758,7 @@ export function WebhooksPage() {
               <div className="mt-4 space-y-2">
                 <div className="ui-skeleton h-3 rounded-full" />
                 <div className="ui-skeleton h-3 w-4/5 rounded-full" />
-                <div className="ui-skeleton h-8 w-2/3 rounded-[12px]" />
+                <div className="ui-skeleton h-8 w-2/3 rounded-panel" />
               </div>
             </div>
           ))}
@@ -774,16 +766,16 @@ export function WebhooksPage() {
       ) : null}
 
       {!loading && tokens.length === 0 && !showCreate ? (
-        <section className="rounded-[28px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-10 text-center">
-          <WebhookIcon className="mx-auto size-8 text-[var(--muted)]" />
-          <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">暂无 Webhook Token</p>
+        <section className="rounded-dialog border border-dashed border-line bg-glass-48 px-5 py-10 text-center">
+          <WebhookIcon className="mx-auto size-8 text-muted" />
+          <p className="mt-3 text-xl font-medium text-ink">暂无 Webhook Token</p>
         </section>
       ) : null}
 
       {!loading && tokens.length > 0 ? (
         <section className="space-y-3">
-          <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
-            <WebhookIcon className="size-4 text-[var(--muted-strong)]" />
+          <div className="flex items-center gap-2 text-sm text-muted">
+            <WebhookIcon className="size-4 text-muted-strong" />
             <span>当前展示 {formatCount(tokens.length)} 个 Webhook Token</span>
           </div>
 

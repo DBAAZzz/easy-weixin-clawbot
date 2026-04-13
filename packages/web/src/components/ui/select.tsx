@@ -140,7 +140,7 @@ export function Select({
           role="listbox"
           style={dropdownStyle}
           className={cn(
-            "z-[9999] max-h-[240px] overflow-auto rounded-[12px] border border-[var(--line-strong)] bg-white p-1 shadow-[0_8px_30px_-8px_rgba(15,23,42,0.18)]",
+            "z-[9999] max-h-[240px] overflow-auto rounded-panel border border-line-strong bg-white p-1 shadow-popover",
             "animate-[selectIn_0.15s_ease-out]",
           )}
         >
@@ -159,9 +159,9 @@ export function Select({
                   setOpen(false);
                 }}
                 className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-[12px] transition-colors duration-100",
-                  isHighlighted && "bg-[rgba(21,110,99,0.06)]",
-                  isSelected ? "font-medium text-[var(--accent-strong)]" : "text-[var(--ink)]",
+                  "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-base transition-colors duration-100",
+                  isHighlighted && "bg-accent-subtle",
+                  isSelected ? "font-medium text-accent-strong" : "text-ink",
                 )}
               >
                 {option.icon ? (
@@ -170,9 +170,7 @@ export function Select({
                   </span>
                 ) : null}
                 <span className="flex-1 truncate">{option.label}</span>
-                {isSelected ? (
-                  <CheckIcon className="size-3.5 shrink-0 text-[var(--accent-strong)]" />
-                ) : null}
+                {isSelected ? <CheckIcon className="size-3.5 shrink-0 text-accent-strong" /> : null}
               </li>
             );
           })}
@@ -192,15 +190,15 @@ export function Select({
         disabled={disabled}
         onClick={() => !disabled && setOpen((o) => !o)}
         className={cn(
-          "inline-flex w-full items-center justify-between gap-2 rounded-[10px] border border-[var(--line-strong)] bg-[rgba(255,255,255,0.82)] text-[12px] text-[var(--ink)] outline-none transition duration-200",
-          "hover:border-[var(--accent)] hover:bg-white",
-          "focus-visible:border-[var(--accent)] focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)]",
+          "inline-flex w-full items-center justify-between gap-2 rounded-card border border-line-strong bg-panel-strong text-base text-ink outline-none transition duration-200",
+          "hover:border-accent hover:bg-white",
+          "focus-visible:border-accent focus-visible:shadow-focus-accent",
           "disabled:pointer-events-none disabled:opacity-50",
           size === "default" && "h-10 px-3.5",
           size === "sm" && "h-9 px-3",
         )}
       >
-        <span className={cn("truncate", !selected && "text-[var(--muted)]")}>
+        <span className={cn("truncate", !selected && "text-muted")}>
           {selected ? (
             <span className="flex items-center gap-2">
               {selected.icon}
@@ -212,7 +210,7 @@ export function Select({
         </span>
         <ChevronDownIcon
           className={cn(
-            "size-4 shrink-0 text-[var(--muted)] transition-transform duration-200",
+            "size-4 shrink-0 text-muted transition-transform duration-200",
             open && "rotate-180",
           )}
         />

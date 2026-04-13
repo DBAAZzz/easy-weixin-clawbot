@@ -12,7 +12,7 @@ export function TraceFlagList({ flags }: { flags: string[] }) {
         <span
           key={flag}
           className={cn(
-            "inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em]",
+            "inline-flex rounded-full border px-2 py-1 text-xs font-semibold uppercase tracking-flag",
             flag === "error" && "border-red-200 bg-red-50 text-red-700",
             flag === "slow" && "border-amber-200 bg-amber-50 text-amber-700",
             flag === "expensive" && "border-violet-200 bg-violet-50 text-violet-700",

@@ -25,7 +25,7 @@ export function MemoryFilters(props: {
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_auto] xl:items-end">
       <div className="space-y-1.5">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">账号</span>
+        <span className="text-xs uppercase tracking-caps-lg text-muted">账号</span>
         <Select
           value={props.selectedAccountId}
           options={props.accountOptions}
@@ -36,7 +36,7 @@ export function MemoryFilters(props: {
       </div>
 
       <div className="space-y-1.5">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">分支</span>
+        <span className="text-xs uppercase tracking-caps-lg text-muted">分支</span>
         <Select
           value={props.selectedBranch}
           options={props.branchOptions}
@@ -47,9 +47,9 @@ export function MemoryFilters(props: {
       </div>
 
       <label className="space-y-1.5">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">搜索</span>
+        <span className="text-xs uppercase tracking-caps-lg text-muted">搜索</span>
         <div className="relative">
-          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
+          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
           <Input
             value={props.query}
             disabled={disabled}

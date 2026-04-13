@@ -277,7 +277,7 @@ export function MemoryGraph(props: {
   return (
     <div
       ref={containerRef}
-      className="memory-graph-container relative h-[680px] min-h-[460px] overflow-hidden rounded-xl border border-[rgba(148,163,184,0.18)] shadow-[0_32px_72px_-52px_rgba(15,23,42,0.36)]"
+      className="memory-graph-container relative h-[680px] min-h-[460px] overflow-hidden rounded-xl border border-slate-border-18 shadow-graph"
     >
       {size.width > 0 && props.nodes.length > 0 ? (
         <ForceGraph2D<TapeGraphNode, GraphLink>
@@ -441,7 +441,7 @@ export function MemoryGraph(props: {
       ) : null}
 
       {props.nodes.length === 0 ? (
-        <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-[12px] leading-6 text-[var(--muted)]">
+        <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-base leading-6 text-muted">
           当前筛选条件下没有可展示的记忆节点。
         </div>
       ) : null}

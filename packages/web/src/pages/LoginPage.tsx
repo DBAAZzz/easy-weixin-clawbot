@@ -58,7 +58,7 @@ export function LoginPage() {
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
       : meta.tone === "offline"
         ? "border-slate-200 bg-slate-100 text-slate-600"
-        : "border-[var(--line)] bg-white/72 text-[var(--muted-strong)]";
+        : "border-line bg-white/72 text-muted-strong";
 
   // 进入页面时只查状态，不自动触发登录
   useEffect(() => {
@@ -126,23 +126,21 @@ export function LoginPage() {
   const emptyMessage = state.status === "error" ? (error ?? state.message) : null;
   const emptyToneClassName =
     state.status === "error" || state.status === "expired"
-      ? "border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] text-red-700"
-      : "border-dashed border-[var(--line)] bg-[rgba(247,250,251,0.72)] text-[var(--muted)]";
+      ? "border-notice-error-border bg-notice-error-bg text-red-700"
+      : "border-dashed border-line bg-frost-72 text-muted";
 
   return (
     <div className="flex min-h-full flex-col gap-2.5 md:gap-3">
       <section className="space-y-2.5">
         <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-              Bind Clawbot
-            </p>
-            <h2 className="mt-1.5 text-[20px] text-[var(--ink)]">扫码绑定 Clawbot</h2>
+            <p className="text-xs uppercase tracking-label-xl text-muted">Bind Clawbot</p>
+            <h2 className="mt-1.5 text-4xl text-ink">扫码绑定 Clawbot</h2>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <span
-              className={`inline-flex items-center border px-2.5 py-1 text-[10px] font-medium tracking-[0.12em] ${statusToneClassName}`}
+              className={`inline-flex items-center border px-2.5 py-1 text-xs font-medium tracking-badge ${statusToneClassName}`}
             >
               {meta.label}
             </span>
@@ -161,16 +159,17 @@ export function LoginPage() {
       </section>
 
       <section className="flex flex-1 items-center justify-center">
-        <div className="aspect-square w-full max-w-[540px] overflow-hidden rounded-lg border border-[var(--line-strong)] bg-[rgba(255,255,255,0.78)]">
+        <div className="aspect-square w-full max-w-[540px] overflow-hidden rounded-lg border border-line-strong bg-panel">
+          {" "}
           {qrVisible ? (
             <QrCodeDisplay qrText={state.qr_text ?? ""} />
           ) : (
-            <div className="flex h-full items-center justify-center bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(247,250,251,0.94))] px-6 py-8">
+            <div className="bg-qr-shell-soft flex h-full items-center justify-center px-6 py-8">
               <div
                 className={`w-full max-w-[320px] border px-5 py-6 text-center ${emptyToneClassName}`}
               >
-                <p className="text-[15px] font-medium">{emptyTitle}</p>
-                {emptyMessage ? <p className="mt-2 text-[12px] leading-6">{emptyMessage}</p> : null}
+                <p className="text-xl font-medium">{emptyTitle}</p>
+                {emptyMessage ? <p className="mt-2 text-base leading-6">{emptyMessage}</p> : null}
               </div>
             </div>
           )}

@@ -53,10 +53,10 @@ function ServerAvatar(props: { status: McpServerInfo["status"] }) {
   return (
     <span
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-[rgba(247,250,251,0.92)]",
+        "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-frost-92",
         props.status === "connected"
-          ? "border-[rgba(21,110,99,0.14)] text-[var(--accent-strong)]"
-          : "border-[var(--line)] text-[var(--ink)]",
+          ? "border-notice-success-border text-accent-strong"
+          : "border-line text-ink",
       )}
     >
       <LinkIcon className="size-[18px]" />
@@ -80,15 +80,15 @@ function ToggleButton(props: {
         void props.onToggle();
       }}
       className={cn(
-        "relative inline-flex h-8 w-[50px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
+        "relative inline-flex h-8 w-[50px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-expo disabled:cursor-not-allowed disabled:opacity-60",
         props.enabled
-          ? "border-[rgba(21,110,99,0.14)] bg-[var(--accent)]"
-          : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.38)]",
+          ? "border-notice-success-border bg-accent"
+          : "border-line-strong bg-toggle-off-strong",
       )}
     >
       <span
         className={cn(
-          "size-6 rounded-full bg-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "size-6 rounded-full bg-white shadow-float transition duration-200 ease-expo",
           props.enabled ? "translate-x-[18px]" : "translate-x-0",
         )}
       />
@@ -98,24 +98,22 @@ function ToggleButton(props: {
 
 function DetailItem(props: { label: string; value: string }) {
   return (
-    <div className="rounded-[18px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-3">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">{props.label}</p>
-      <p className="mt-1.5 text-[13px] font-medium text-[var(--ink)]">{props.value}</p>
+    <div className="rounded-section border border-line bg-detail-bg px-4 py-3">
+      <p className="text-xs uppercase tracking-label text-muted">{props.label}</p>
+      <p className="mt-1.5 text-md font-medium text-ink">{props.value}</p>
     </div>
   );
 }
 
 function ConfigBlock(props: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+    <div className="rounded-xl border border-line bg-detail-bg px-4 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-            {props.label}
-          </p>
+          <p className="text-xs uppercase tracking-label-lg text-muted">{props.label}</p>
         </div>
       </div>
-      <pre className="mt-3 overflow-auto rounded-[18px] border border-[var(--line)] bg-[rgba(255,255,255,0.94)] px-4 py-3 text-[11px] leading-6 text-[var(--ink-soft)]">
+      <pre className="mt-3 overflow-auto rounded-section border border-line bg-detail-bg-strong px-4 py-3 text-sm leading-6 text-ink-soft">
         {props.value || "暂无配置"}
       </pre>
     </div>
@@ -144,10 +142,10 @@ function ServerCard(props: {
         }
       }}
       className={cn(
-        "reveal-up group flex min-h-[120px] cursor-pointer items-center gap-3 rounded-lg border bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)] md:px-4",
+        "reveal-up group flex min-h-[120px] cursor-pointer items-center gap-3 rounded-lg border bg-card-bg px-3.5 py-3.5 transition duration-200 ease-expo hover:-translate-y-0.5 hover:border-notice-success-border hover:bg-card-hover focus-visible:outline-none focus-visible:shadow-focus-accent md:px-4",
         props.selected
-          ? "border-[rgba(21,110,99,0.38)] ring-[2px] ring-[rgba(21,110,99,0.10)]"
-          : "border-[rgba(21,32,43,0.08)]",
+          ? "border-accent-selected ring-2 ring-accent-selected-ring"
+          : "border-card-line",
       )}
       style={{ animationDelay: `${props.index * 40}ms` }}
     >
@@ -155,33 +153,31 @@ function ServerCard(props: {
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
-            {props.server.name}
-          </h3>
+          <h3 className="text-lg font-semibold tracking-title text-ink">{props.server.name}</h3>
           <Badge tone={statusTone(props.server.status)}>{statusLabel(props.server.status)}</Badge>
           <Badge tone="muted">{props.server.slug}</Badge>
         </div>
 
-        <p className="mt-1 truncate text-[12px] leading-5 text-[var(--muted-strong)]">
+        <p className="mt-1 truncate text-base leading-5 text-muted-strong">
           {props.server.command}
         </p>
 
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--muted)]">
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
           <span className="inline-flex items-center gap-0.5">
             <TerminalIcon className="size-3" />
             {props.server.transport}
           </span>
-          <span className="size-1 rounded-full bg-[var(--line-strong)]" />
+          <span className="size-1 rounded-full bg-line-strong" />
           <span className="inline-flex items-center gap-0.5">
             <PuzzleIcon className="size-3" />
             tools {formatCount(props.server.tool_count)}
           </span>
-          <span className="size-1 rounded-full bg-[var(--line-strong)]" />
+          <span className="size-1 rounded-full bg-line-strong" />
           <span>{formatRelativeTime(props.server.last_seen_at)}</span>
         </div>
 
         {props.server.last_error ? (
-          <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-red-600">
+          <p className="mt-2 line-clamp-2 text-sm leading-5 text-red-600">
             {props.server.last_error}
           </p>
         ) : null}
@@ -189,7 +185,7 @@ function ServerCard(props: {
 
       <div className="flex shrink-0 flex-col items-end gap-0.5">
         <ToggleButton enabled={props.server.enabled} busy={props.busy} onToggle={props.onToggle} />
-        <span className="text-[9px] font-medium text-[var(--muted)]">
+        <span className="text-2xs font-medium text-muted">
           {props.server.enabled ? "已启用" : "已停用"}
         </span>
       </div>
@@ -203,30 +199,30 @@ function McpToolCard(props: {
   onToggle: () => void | Promise<void>;
 }) {
   return (
-    <div className="flex min-h-[108px] items-center gap-3 rounded-lg border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 md:px-4">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] bg-[rgba(247,250,251,0.92)] text-[var(--ink)]">
+    <div className="flex min-h-[108px] items-center gap-3 rounded-lg border border-card-line bg-card-bg px-3.5 py-3.5 md:px-4">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-line bg-frost-92 text-ink">
         <TerminalIcon className="size-[18px]" />
       </span>
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-[13px] font-medium text-[var(--ink)]">{props.tool.remote_name}</h3>
+          <h3 className="text-md font-medium text-ink">{props.tool.remote_name}</h3>
           <Badge tone="muted">{props.tool.server_slug}</Badge>
         </div>
         <p
-          className="mt-1 truncate font-[var(--font-mono)] text-[10px] leading-5 text-[var(--muted)]"
+          className="mt-1 truncate font-mono text-xs leading-5 text-muted"
           title={props.tool.local_name}
         >
           {props.tool.local_name}
         </p>
-        <p className="mt-1.5 line-clamp-2 text-[11px] leading-5 text-[var(--muted-strong)]">
+        <p className="mt-1.5 line-clamp-2 text-sm leading-5 text-muted-strong">
           {props.tool.summary ?? "该 tool 未提供描述。"}
         </p>
       </div>
 
       <div className="flex shrink-0 flex-col items-end gap-0.5">
         <ToggleButton enabled={props.tool.enabled} busy={props.busy} onToggle={props.onToggle} />
-        <span className="text-[9px] font-medium text-[var(--muted)]">
+        <span className="text-2xs font-medium text-muted">
           {props.tool.enabled ? "已启用" : "已停用"}
         </span>
       </div>
@@ -252,39 +248,35 @@ function ServerDetailModal(props: {
         type="button"
         aria-label="关闭 MCP server 详情"
         onClick={props.onClose}
-        className="absolute inset-0 bg-[rgba(15,23,42,0.24)] backdrop-blur-[8px]"
+        className="absolute inset-0 bg-overlay backdrop-blur-[8px]"
       />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="mcp-server-detail-title"
-        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[30px] border border-[rgba(21,32,43,0.1)] bg-[rgba(255,255,255,0.96)] shadow-[0_40px_120px_-56px_rgba(15,23,42,0.52)]"
+        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-pill border border-modal-border bg-card-hover shadow-modal"
       >
-        <div className="border-b border-[var(--line)] px-5 py-4 md:px-6">
+        <div className="border-b border-line px-5 py-4 md:px-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-4">
               <ServerAvatar status={props.server.status} />
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                  MCP Server Detail
-                </p>
+                <p className="text-xs uppercase tracking-label-xl text-muted">MCP Server Detail</p>
                 <h3
                   id="mcp-server-detail-title"
-                  className="mt-1.5 truncate text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]"
+                  className="mt-1.5 truncate text-5xl font-semibold tracking-heading text-ink"
                 >
                   {props.server.name}
                 </h3>
-                <p className="mt-2 text-[13px] leading-6 text-[var(--muted-strong)]">
-                  {props.server.command}
-                </p>
+                <p className="mt-2 text-md leading-6 text-muted-strong">{props.server.command}</p>
               </div>
             </div>
 
             <button
               type="button"
               onClick={props.onClose}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-white/80 text-[var(--muted-strong)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-muted-strong transition hover:border-line-strong hover:text-ink"
             >
               <XIcon className="size-4" />
             </button>
@@ -339,20 +331,18 @@ function ServerDetailModal(props: {
           </div>
 
           {props.server.last_error ? (
-            <div className="rounded-xl border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-4">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-red-600">Last Error</p>
-              <p className="mt-2 text-[12px] leading-6 text-red-700">{props.server.last_error}</p>
+            <div className="rounded-xl border border-notice-error-border bg-notice-error-bg px-4 py-4">
+              <p className="text-xs uppercase tracking-label-lg text-red-600">Last Error</p>
+              <p className="mt-2 text-base leading-6 text-red-700">{props.server.last_error}</p>
             </div>
           ) : null}
 
           <ConfigBlock label="Standard JSON" value={stringifyMcpServerJsonDocument(props.server)} />
 
-          <div className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+          <div className="rounded-xl border border-line bg-detail-bg px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                  Discovered Tools
-                </p>
+                <p className="text-xs uppercase tracking-label-lg text-muted">Discovered Tools</p>
               </div>
               <Badge tone="muted">{formatCount(props.tools.length)} items</Badge>
             </div>
@@ -362,16 +352,14 @@ function ServerDetailModal(props: {
                 props.tools.map((tool) => (
                   <div
                     key={tool.id}
-                    className="flex items-center gap-3 rounded-[18px] border border-[var(--line)] bg-white/86 px-3.5 py-3"
+                    className="flex items-center gap-3 rounded-section border border-line bg-white/86 px-3.5 py-3"
                   >
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] bg-[rgba(247,250,251,0.92)] text-[var(--ink)]">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-line bg-frost-92 text-ink">
                       <TerminalIcon className="size-4" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-[var(--font-mono)] text-[11px] text-[var(--ink)]">
-                        {tool.local_name}
-                      </p>
-                      <p className="mt-1 truncate text-[12px] text-[var(--muted-strong)]">
+                      <p className="truncate font-mono text-sm text-ink">{tool.local_name}</p>
+                      <p className="mt-1 truncate text-base text-muted-strong">
                         {tool.remote_name}
                       </p>
                     </div>
@@ -383,7 +371,7 @@ function ServerDetailModal(props: {
                   </div>
                 ))
               ) : (
-                <div className="rounded-[18px] border border-dashed border-[var(--line)] bg-white/60 px-4 py-6 text-center text-[12px] text-[var(--muted)]">
+                <div className="rounded-section border border-dashed border-line bg-white/60 px-4 py-6 text-center text-base text-muted">
                   暂无 MCP tool
                 </div>
               )}
@@ -411,24 +399,24 @@ function ServerEditorModal(props: {
         type="button"
         aria-label="关闭 MCP server 编辑器"
         onClick={props.onClose}
-        className="absolute inset-0 bg-[rgba(15,23,42,0.24)] backdrop-blur-[8px]"
+        className="absolute inset-0 bg-overlay backdrop-blur-[8px]"
       />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="mcp-server-editor-title"
-        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[30px] border border-[rgba(21,32,43,0.1)] bg-[rgba(255,255,255,0.96)] shadow-[0_40px_120px_-56px_rgba(15,23,42,0.52)]"
+        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-pill border border-modal-border bg-card-hover shadow-modal"
       >
-        <div className="border-b border-[var(--line)] px-5 py-4 md:px-6">
+        <div className="border-b border-line px-5 py-4 md:px-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+              <p className="text-xs uppercase tracking-label-xl text-muted">
                 {props.mode === "create" ? "Create Server" : "Edit Server"}
               </p>
               <h3
                 id="mcp-server-editor-title"
-                className="mt-1.5 text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]"
+                className="mt-1.5 text-5xl font-semibold tracking-heading text-ink"
               >
                 {props.mode === "create" ? "粘贴标准 MCP JSON" : "编辑 MCP JSON 配置"}
               </h3>
@@ -437,7 +425,7 @@ function ServerEditorModal(props: {
             <button
               type="button"
               onClick={props.onClose}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-white/80 text-[var(--muted-strong)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-muted-strong transition hover:border-line-strong hover:text-ink"
             >
               <XIcon className="size-4" />
             </button>
@@ -453,7 +441,7 @@ function ServerEditorModal(props: {
         >
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">MCP JSON</p>
+              <p className="text-sm uppercase tracking-label text-muted">MCP JSON</p>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" variant="outline" onClick={props.onFillExample}>
                   填入 TAPD 示例
@@ -466,11 +454,11 @@ function ServerEditorModal(props: {
               onChange={(event) => props.onChange(event.target.value)}
               spellCheck={false}
               placeholder={TAPD_MCP_JSON_EXAMPLE}
-              className="min-h-[320px] w-full rounded-[18px] border border-[var(--line-strong)] bg-[rgba(255,255,255,0.82)] px-4 py-3 font-[var(--font-mono)] text-[12px] leading-6 text-[var(--ink)] outline-none transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[rgba(21,110,99,0.14)]"
+              className="min-h-[320px] w-full rounded-section border border-line-strong bg-glass-82 px-4 py-3 font-mono text-base leading-6 text-ink outline-none transition duration-300 ease-expo placeholder:text-muted focus:border-accent focus:shadow-focus-accent"
             />
 
             {props.error ? (
-              <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+              <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
                 {props.error}
               </div>
             ) : null}
@@ -478,7 +466,7 @@ function ServerEditorModal(props: {
             <ConfigBlock label="输入案例" value={TAPD_MCP_JSON_EXAMPLE} />
           </div>
 
-          <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-[var(--line)] bg-[rgba(255,255,255,0.92)] px-1 pt-4">
+          <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-line bg-glass-92 px-1 pt-4">
             <Button type="button" variant="outline" onClick={props.onClose}>
               取消
             </Button>
@@ -709,12 +697,10 @@ export function McpPage() {
         <section className="space-y-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                MCP Servers
-              </p>
-              <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">
+              <p className="text-xs uppercase tracking-label-xl text-muted">MCP Servers</p>
+              <h2 className="mt-1.5 text-6xl text-ink">
                 远端 tools 接入中心
-                <span className="ml-2 align-middle text-[14px] font-normal text-[var(--muted)]">
+                <span className="ml-2 align-middle text-lg font-normal text-muted">
                   ({connectedCount}/{servers.length} 已连接)
                 </span>
               </h2>
@@ -735,7 +721,7 @@ export function McpPage() {
           </div>
 
           <div className="relative w-full xl:max-w-[360px]">
-            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
             <Input
               value={serverQuery}
               onChange={(event) => setServerQuery(event.target.value)}
@@ -746,19 +732,19 @@ export function McpPage() {
         </section>
 
         {error ? (
-          <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+          <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
             加载 MCP 列表失败：{error}
           </div>
         ) : null}
 
         {mutationError ? (
-          <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+          <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
             操作失败：{mutationError}
           </div>
         ) : null}
 
         {notice ? (
-          <div className="rounded-[18px] border border-[rgba(21,110,99,0.14)] bg-[rgba(240,253,250,0.92)] px-4 py-3 text-[12px] leading-6 text-[var(--accent-strong)]">
+          <div className="rounded-section border border-notice-success-border bg-notice-success-bg px-4 py-3 text-base leading-6 text-accent-strong">
             {notice}
           </div>
         ) : null}
@@ -768,13 +754,13 @@ export function McpPage() {
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="overflow-hidden rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.8)] px-3.5 py-3.5 md:px-4"
+                className="overflow-hidden rounded-lg border border-line bg-glass-80 px-3.5 py-3.5 md:px-4"
               >
                 <div className="flex items-center gap-3">
                   <div className="ui-skeleton size-10 rounded-lg" />
                   <div className="min-w-0 flex-1 space-y-2">
-                    <div className="ui-skeleton h-5 rounded-[8px]" />
-                    <div className="ui-skeleton h-4 rounded-[8px]" />
+                    <div className="ui-skeleton h-5 rounded-lg" />
+                    <div className="ui-skeleton h-4 rounded-lg" />
                     <div className="ui-skeleton h-3 w-2/3 rounded-full" />
                   </div>
                   <div className="ui-skeleton h-8 w-[50px] rounded-full" />
@@ -785,8 +771,8 @@ export function McpPage() {
         ) : null}
 
         {!loading && filteredServers.length === 0 ? (
-          <section className="rounded-[28px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-10 text-center">
-            <p className="text-[15px] font-medium text-[var(--ink)]">
+          <section className="rounded-dialog border border-dashed border-line bg-glass-48 px-5 py-10 text-center">
+            <p className="text-xl font-medium text-ink">
               {servers.length === 0 ? "还没有 MCP 配置" : "没有匹配到 MCP server"}
             </p>
           </section>
@@ -794,8 +780,8 @@ export function McpPage() {
 
         {!loading && filteredServers.length > 0 ? (
           <section className="space-y-3">
-            <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
-              <LinkIcon className="size-4 text-[var(--muted-strong)]" />
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <LinkIcon className="size-4 text-muted-strong" />
               <span>当前展示 {formatCount(filteredServers.length)} 个 MCP server</span>
             </div>
 
@@ -827,16 +813,15 @@ export function McpPage() {
           </section>
         ) : null}
 
-        <section className="mt-2 space-y-3 rounded-[28px] bg-[rgba(247,250,251,0.72)] py-5">
+        <section className="bg-frost-72 mt-2 space-y-3 rounded-dialog py-5">
+          {" "}
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex flex-wrap items-end gap-3">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                  Discovered Tools
-                </p>
-                <h3 className="mt-1.5 text-[22px] text-[var(--ink)]">
+                <p className="text-xs uppercase tracking-label-xl text-muted">Discovered Tools</p>
+                <h3 className="mt-1.5 text-5xl text-ink">
                   MCP tools 目录
-                  <span className="ml-2 align-middle text-[13px] font-normal text-[var(--muted)]">
+                  <span className="ml-2 align-middle text-md font-normal text-muted">
                     ({enabledToolCount}/{tools.length} 已启用)
                   </span>
                 </h3>
@@ -845,7 +830,7 @@ export function McpPage() {
                 <button
                   type="button"
                   onClick={() => setFilterServerId(null)}
-                  className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-[rgba(21,110,99,0.14)] bg-[rgba(240,253,250,0.92)] px-3 py-1 text-[11px] font-medium text-[var(--accent-strong)] transition hover:bg-[rgba(240,253,250,1)]"
+                  className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-notice-success-border bg-notice-success-bg px-3 py-1 text-sm font-medium text-accent-strong transition hover:bg-success-solid"
                 >
                   筛选：{filterServer.name}
                   <XIcon className="size-3" />
@@ -854,7 +839,7 @@ export function McpPage() {
             </div>
 
             <div className="relative w-full xl:max-w-[360px]">
-              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
+              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
               <Input
                 value={toolQuery}
                 onChange={(event) => setToolQuery(event.target.value)}
@@ -863,15 +848,13 @@ export function McpPage() {
               />
             </div>
           </div>
-
           {!loading && filteredTools.length === 0 ? (
-            <section className="rounded-lg border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-8 text-center">
-              <p className="text-[14px] font-medium text-[var(--ink)]">
+            <section className="rounded-lg border border-dashed border-line bg-glass-48 px-5 py-8 text-center">
+              <p className="text-lg font-medium text-ink">
                 {filterServer ? `${filterServer.name} 下暂无匹配的 tool` : "没有匹配到 MCP tool"}
               </p>
             </section>
           ) : null}
-
           {filteredTools.length > 0 ? (
             <div className="grid gap-4 xl:grid-cols-2">
               {filteredTools.map((tool) => (

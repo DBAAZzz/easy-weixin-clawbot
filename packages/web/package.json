@@ -10,7 +10,8 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "lint": "oxlint",
-    "lint:fix": "oxlint --fix"
+    "lint:fix": "oxlint --fix",
+    "lint:arbitrary": "! grep -rnE '(bg|text|border|rounded|shadow|ring|ease|tracking)-\\[' src/ --include='*.tsx' --include='*.ts' | grep -vF -f .token-exempt-whitelist | grep -v 'linear-gradient' | grep -v 'inset_0' | grep -v 'calc('"
   },
   "dependencies": {
     "@clawbot/shared": "workspace:*",

@@ -25,8 +25,8 @@ export function CardActionButton(props: {
         props.onClick();
       }}
       className={cn(
-        "pointer-events-auto inline-flex size-7 items-center justify-center rounded-full border border-transparent bg-transparent text-[#999] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-45",
-        "md:group-hover:border-[rgba(148,163,184,0.24)] md:group-hover:bg-white/92 md:group-hover:shadow-[0_10px_24px_-18px_rgba(15,23,42,0.45)]",
+        "pointer-events-auto inline-flex size-7 items-center justify-center rounded-full border border-transparent bg-transparent text-icon-muted transition duration-200 ease-expo disabled:cursor-not-allowed disabled:opacity-45",
+        "md:group-hover:border-slate-border-strong md:group-hover:bg-white/92 md:group-hover:shadow-popover-strong",
         props.tone === "primary" &&
           "md:group-hover:text-sky-600 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-600",
         props.tone === "success" &&
@@ -39,7 +39,7 @@ export function CardActionButton(props: {
           props.tone !== "success" &&
           props.tone !== "warning" &&
           props.tone !== "danger" &&
-          "hover:border-[rgba(148,163,184,0.24)] hover:bg-white/92 hover:text-[var(--muted-strong)]",
+          "hover:border-slate-border-strong hover:bg-white/92 hover:text-muted-strong",
         props.className,
       )}
     >
@@ -113,17 +113,16 @@ export function CardOverflowMenu(props: {
           setOpen((value) => !value);
         }}
         className={cn(
-          "inline-flex size-7 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[#999] shadow-[0_8px_20px_-16px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          "hover:border-[rgba(148,163,184,0.26)] hover:bg-[rgba(248,250,251,0.98)] hover:text-[var(--muted-strong)]",
-          open &&
-            "border-[rgba(148,163,184,0.26)] bg-[rgba(248,250,251,0.98)] text-[var(--muted-strong)]",
+          "inline-flex size-7 items-center justify-center rounded-full border border-line bg-white text-icon-muted shadow-overflow-btn transition duration-200 ease-expo",
+          "hover:border-slate-border-26 hover:bg-pane-98 hover:text-muted-strong",
+          open && "border-slate-border-26 bg-pane-98 text-muted-strong",
         )}
       >
         <MoreHorizontalIcon className="size-4" />
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-9 z-20 min-w-[168px] overflow-hidden rounded-lg border border-[var(--line)] bg-white/98 p-1.5 shadow-[0_24px_55px_-32px_rgba(15,23,42,0.42)] backdrop-blur">
+        <div className="absolute right-0 top-9 z-20 min-w-[168px] overflow-hidden rounded-lg border border-line bg-white/98 p-1.5 shadow-menu backdrop-blur">
           {props.items.map((item) => (
             <button
               key={item.label}
@@ -136,8 +135,8 @@ export function CardOverflowMenu(props: {
                 item.onClick();
               }}
               className={cn(
-                "flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[12px] text-[var(--muted-strong)] transition disabled:cursor-not-allowed disabled:opacity-45",
-                "hover:bg-[rgba(21,32,43,0.04)] hover:text-[var(--ink)]",
+                "flex w-full items-center gap-2 rounded-card px-3 py-2 text-left text-base text-muted-strong transition disabled:cursor-not-allowed disabled:opacity-45",
+                "hover:bg-ghost-hover hover:text-ink",
               )}
             >
               {item.icon ? (
@@ -176,17 +175,15 @@ export function CardToggle(
         onToggle();
       }}
       className={cn(
-        "relative inline-flex h-7 w-[46px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
-        enabled
-          ? "border-[rgba(28,100,242,0.14)] bg-[var(--accent)]"
-          : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.34)]",
+        "relative inline-flex h-7 w-[46px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-expo disabled:cursor-not-allowed disabled:opacity-60",
+        enabled ? "border-toggle-border bg-accent" : "border-line-strong bg-toggle-off",
         className,
       )}
       {...rest}
     >
       <span
         className={cn(
-          "size-5 rounded-full bg-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "size-5 rounded-full bg-white shadow-float transition duration-200 ease-expo",
           enabled ? "translate-x-[18px]" : "translate-x-0",
         )}
       />
@@ -203,7 +200,7 @@ export function IconTag(props: {
   return (
     <Badge
       tone={props.tone ?? "muted"}
-      className={cn("gap-1.5 px-2.5 py-1.5 tracking-[0.08em]", props.className)}
+      className={cn("gap-1.5 px-2.5 py-1.5 tracking-tag", props.className)}
     >
       <span className="inline-flex size-3 items-center justify-center opacity-75">
         {props.icon}
@@ -229,7 +226,7 @@ export function MetricGrid(props: {
   return (
     <div
       className={cn(
-        "mt-3 grid gap-px overflow-hidden rounded-lg border border-[var(--line)]/80 bg-[var(--line)]/80",
+        "mt-3 grid gap-px overflow-hidden rounded-lg border border-line/80 bg-line/80",
         columns === 2 && "grid-cols-2",
         columns === 3 && "grid-cols-3",
         columns === 4 && "grid-cols-4",
@@ -237,15 +234,12 @@ export function MetricGrid(props: {
       )}
     >
       {props.items.map((item) => (
-        <div
-          key={`${item.label}-${String(item.value)}`}
-          className="bg-[rgba(248,250,251,0.82)] px-3 py-2.5"
-        >
-          <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
+        <div key={`${item.label}-${String(item.value)}`} className="bg-pane-82 px-3 py-2.5">
+          <div className="flex items-center gap-1.5 text-sm text-muted">
             <span className="inline-flex size-3.5 items-center justify-center">{item.icon}</span>
             <span>{item.label}</span>
           </div>
-          <p className="mt-1 text-[13px] font-medium text-[var(--muted-strong)]">{item.value}</p>
+          <p className="mt-1 text-md font-medium text-muted-strong">{item.value}</p>
         </div>
       ))}
     </div>

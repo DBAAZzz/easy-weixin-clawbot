@@ -29,20 +29,18 @@ export function ConversationList(props: {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-[var(--line)] px-4 py-3">
-        <label className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-          搜索会话
-        </label>
+      <div className="border-b border-line px-4 py-3">
+        <label className="text-xs uppercase tracking-label-lg text-muted">搜索会话</label>
         <div className="relative mt-2.5">
-          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
+          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="搜索标题或 conversation id"
-            className="h-9 rounded-[8px] pl-10"
+            className="h-9 rounded-lg pl-10"
           />
         </div>
-        <p className="mt-1.5 text-[11px] text-[var(--muted)]">
+        <p className="mt-1.5 text-sm text-muted">
           {formatCount(visibleConversations.length)} / {formatCount(props.conversations.length)}{" "}
           条结果
         </p>
@@ -58,40 +56,38 @@ export function ConversationList(props: {
               type="button"
               onClick={() => props.onSelect(conversation.conversation_id)}
               className={cn(
-                "reveal-up relative mb-1.5 w-full rounded-[10px] px-3 py-2.5 text-left transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                active
-                  ? "bg-white shadow-[0_10px_24px_-18px_rgba(15,23,42,0.34)]"
-                  : "hover:bg-white/72",
+                "reveal-up relative mb-1.5 w-full rounded-card px-3 py-2.5 text-left transition duration-200 ease-expo",
+                active ? "bg-white shadow-convo-active" : "hover:bg-white/72",
               )}
               style={{ animationDelay: `${index * 40}ms` }}
             >
               {active ? (
-                <span className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-[var(--accent)]" />
+                <span className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-accent" />
               ) : null}
 
               <div className="flex items-center gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[rgba(21,110,99,0.08)] text-[12px] font-semibold text-[var(--accent-strong)]">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-mist text-base font-semibold text-accent-strong">
                   {badgeForConversation(conversation)}
                 </span>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-[12px] font-medium text-[var(--ink)]">
+                    <p className="truncate text-base font-medium text-ink">
                       {conversation.title ?? conversation.conversation_id}
                     </p>
-                    <span className="shrink-0 font-[var(--font-mono)] text-[10px] text-[var(--muted)]">
+                    <span className="shrink-0 font-mono text-xs text-muted">
                       {conversation.last_message_at
                         ? formatTime(conversation.last_message_at)
                         : "--:--"}
                     </span>
                   </div>
-                  <p className="mt-0.5 truncate text-[11px] text-[var(--muted)]">
+                  <p className="mt-0.5 truncate text-sm text-muted">
                     {conversation.conversation_id}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-2 flex items-center justify-between gap-3 pl-12 text-[10px] text-[var(--muted)]">
+              <div className="mt-2 flex items-center justify-between gap-3 pl-12 text-xs text-muted">
                 <span>{formatCount(conversation.message_count)} 条消息</span>
                 <span>{formatRelativeTime(conversation.last_message_at)}</span>
               </div>
@@ -100,7 +96,7 @@ export function ConversationList(props: {
         })}
 
         {visibleConversations.length === 0 ? (
-          <div className="rounded-[10px] border border-dashed border-[var(--line)] px-4 py-6 text-[12px] leading-6 text-[var(--muted)]">
+          <div className="rounded-card border border-dashed border-line px-4 py-6 text-base leading-6 text-muted">
             没有匹配到会话。可以尝试搜索标题片段，或者直接输入 conversation id。
           </div>
         ) : null}

@@ -133,7 +133,8 @@ export function ProviderConfigPage() {
           <ArrowRightIcon className="size-4 rotate-180" />
           返回模型配置
         </Button>
-        <div className="rounded-lg border border-[rgba(185,28,28,0.14)] bg-[rgba(254,242,242,0.92)] px-5 py-5 text-[13px] text-red-700">
+        <div className="rounded-lg border border-notice-error-border-strong bg-notice-error-bg-strong px-5 py-5 text-md text-red-700">
+          {" "}
           未找到对应的供应商配置，可能已被删除。
         </div>
       </div>
@@ -149,15 +150,15 @@ export function ProviderConfigPage() {
         </Button>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[20px] text-[var(--ink)]">{pageTitle}</h2>
+          <h2 className="text-4xl text-ink">{pageTitle}</h2>
           {isEdit && activeProviderConfig ? (
-            <div className="text-[12px] text-[var(--muted)]">{activeProviderConfig.provider}</div>
+            <div className="text-base text-muted">{activeProviderConfig.provider}</div>
           ) : null}
         </div>
       </section>
 
       {loadError ? (
-        <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+        <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
           加载供应商配置失败：{loadError instanceof Error ? loadError.message : String(loadError)}
         </div>
       ) : null}
@@ -165,7 +166,7 @@ export function ProviderConfigPage() {
       {!isEdit ? (
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-[16px] text-[var(--ink)]">供应商预设</h3>
+            <h3 className="text-2xl text-ink">供应商预设</h3>
             <Button variant="outline" size="sm" onClick={() => setSelectedPreset(undefined)}>
               <RefreshIcon className="size-4" />
               清空预设
@@ -181,25 +182,23 @@ export function ProviderConfigPage() {
                   type="button"
                   onClick={() => setSelectedPreset(preset)}
                   className={[
-                    "rounded-[18px] border px-4 py-4 text-left transition",
+                    "rounded-section border px-4 py-4 text-left transition",
                     selected
-                      ? "border-[rgba(21,110,99,0.2)] bg-[rgba(21,110,99,0.07)]"
-                      : "border-[var(--line)] bg-white/84 hover:border-[var(--line-strong)] hover:bg-white",
+                      ? "border-accent-border-active bg-accent-mist-strong"
+                      : "border-line bg-white/84 hover:border-line-strong hover:bg-white",
                   ].join(" ")}
                 >
                   <div className="flex items-start gap-3">
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] bg-[rgba(246,249,250,0.9)]">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-line bg-hover-bg">
                       <ProviderBrandIcon provider={preset.provider} className="size-5" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-semibold text-[var(--ink)]">
-                        {preset.label}
-                      </span>
-                      <span className="mt-1 block text-[11px] leading-5 text-[var(--muted)]">
+                      <span className="block text-md font-semibold text-ink">{preset.label}</span>
+                      <span className="mt-1 block text-sm leading-5 text-muted">
                         {preset.provider}
                       </span>
                       {preset.suggestedModelIds?.length ? (
-                        <span className="mt-2 block text-[11px] text-[var(--muted-strong)]">
+                        <span className="mt-2 block text-sm text-muted-strong">
                           {preset.suggestedModelIds.join(" / ")}
                         </span>
                       ) : null}
@@ -223,7 +222,7 @@ export function ProviderConfigPage() {
           <div className="mt-1 grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
             <div className="space-y-5">
               <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">配置名称 *</label>
+                <label className="text-base text-muted-strong">配置名称 *</label>
                 <Input
                   value={form.name}
                   onChange={(event) =>
@@ -238,7 +237,7 @@ export function ProviderConfigPage() {
               </div>
 
               <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">Provider *</label>
+                <label className="text-base text-muted-strong">Provider *</label>
                 <Input
                   value={form.provider}
                   onChange={(event) =>
@@ -254,9 +253,7 @@ export function ProviderConfigPage() {
 
               <div>
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-[12px] font-medium text-[var(--muted-strong)]">
-                    Model ID 列表 *
-                  </label>
+                  <label className="text-base font-medium text-muted-strong">Model ID 列表 *</label>
                   <Button
                     size="sm"
                     variant="outline"
@@ -313,7 +310,7 @@ export function ProviderConfigPage() {
 
             <div className="space-y-5">
               <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">API Key</label>
+                <label className="text-base text-muted-strong">API Key</label>
                 <Input
                   type="password"
                   value={form.apiKey}
@@ -326,7 +323,7 @@ export function ProviderConfigPage() {
                   placeholder={isEdit && form.apiKeySet ? "已设置，留空则不修改" : "sk-..."}
                   className="mt-1"
                 />
-                <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--muted)]">
+                <div className="mt-2 flex items-center gap-2 text-sm text-muted">
                   <input
                     type="checkbox"
                     checked={form.clearApiKey}
@@ -337,14 +334,14 @@ export function ProviderConfigPage() {
                         apiKey: event.target.checked ? "" : current.apiKey,
                       }))
                     }
-                    className="size-4 rounded accent-[var(--accent)]"
+                    className="size-4 rounded accent-accent"
                   />
                   <span>清空已保存的 API Key</span>
                 </div>
               </div>
 
               <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">Base URL</label>
+                <label className="text-base text-muted-strong">Base URL</label>
                 <Input
                   value={form.baseUrl}
                   onChange={(event) =>
@@ -358,8 +355,9 @@ export function ProviderConfigPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-between rounded-[14px] border border-[var(--line)] bg-[rgba(252,253,253,0.9)] px-3 py-2.5">
-                <p className="text-[12px] text-[var(--muted-strong)]">启用此供应商配置</p>
+              <div className="bg-shell-soft flex items-center justify-between rounded-control border border-line px-3 py-2.5">
+                {" "}
+                <p className="text-base text-muted-strong">启用此供应商配置</p>
                 <CardToggle
                   enabled={form.enabled}
                   label={form.enabled ? "停用供应商配置" : "启用供应商配置"}
@@ -375,7 +373,7 @@ export function ProviderConfigPage() {
           </div>
 
           {error ? (
-            <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+            <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
               {error}
             </div>
           ) : null}

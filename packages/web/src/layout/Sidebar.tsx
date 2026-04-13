@@ -23,10 +23,10 @@ import logoUrl from "../assets/images/logo.png";
 
 function navClassName(isActive: boolean) {
   return cn(
-    "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+    "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-md transition duration-200 ease-expo",
     isActive
-      ? "bg-[rgba(21,110,99,0.12)] font-semibold text-[var(--ink)] shadow-[0_1px_2px_rgba(21,110,99,0.06)]"
-      : "text-[var(--muted-strong)] hover:bg-white/72 hover:text-[var(--ink)]",
+      ? "bg-accent-active font-semibold text-ink shadow-accent-xs"
+      : "text-muted-strong hover:bg-white/72 hover:text-ink",
   );
 }
 
@@ -40,7 +40,7 @@ interface NavItemProps {
 
 function NavItem({ to, label, icon, badge, badgeVariant = "default" }: NavItemProps) {
   const badgeStyles = {
-    default: "bg-[var(--muted)]/15 text-[var(--muted-strong)]",
+    default: "bg-muted/15 text-muted-strong",
     success: "bg-emerald-500/15 text-emerald-600",
     warning: "bg-amber-500/15 text-amber-600",
     danger: "bg-rose-500/15 text-rose-600",
@@ -48,14 +48,12 @@ function NavItem({ to, label, icon, badge, badgeVariant = "default" }: NavItemPr
 
   return (
     <NavLink to={to} className={({ isActive }) => navClassName(isActive)}>
-      <span className="text-[var(--muted-strong)] transition group-hover:text-[var(--ink)]">
-        {icon}
-      </span>
+      <span className="text-muted-strong transition group-hover:text-ink">{icon}</span>
       <span className="truncate">{label}</span>
       {badge !== undefined && (
         <span
           className={cn(
-            "ml-auto rounded-full px-2 py-0.5 text-[11px] font-medium",
+            "ml-auto rounded-full px-2 py-0.5 text-sm font-medium",
             badgeStyles[badgeVariant],
           )}
         >
@@ -74,9 +72,7 @@ interface MenuSectionProps {
 function MenuSection({ label, children }: MenuSectionProps) {
   return (
     <div className="mt-5 first:mt-4">
-      <p className="px-3 text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--muted)]">
-        {label}
-      </p>
+      <p className="px-3 text-xs font-medium uppercase tracking-label text-muted">{label}</p>
       <nav className="mt-2 grid gap-1">{children}</nav>
     </div>
   );
@@ -111,18 +107,18 @@ export function Sidebar(props: {
   const isOnline = props.health && !props.healthLoading;
 
   return (
-    <aside className="h-[100dvh] overflow-hidden border-r border-[var(--line)] bg-[linear-gradient(180deg,rgba(247,250,251,0.94),rgba(241,245,247,0.98))]">
+    <aside className="bg-sidebar-shell h-dvh overflow-hidden border-r border-line">
       <div className="flex h-full flex-col overflow-y-auto px-3 py-4 md:px-4 md:py-5">
         {/* Logo */}
-        <div className="flex items-center gap-3 rounded-[18px] px-3 py-2.5">
+        <div className="flex items-center gap-3 rounded-section px-3 py-2.5">
           <img
             src={logoUrl}
             alt="Clawbot"
-            className="size-10 rounded-lg object-cover shadow-[0_16px_34px_-22px_rgba(15,23,42,0.45)]"
+            className="size-10 rounded-lg object-cover shadow-logo"
           />
           <div className="min-w-0">
-            <p className="text-[14px] font-semibold text-[var(--ink)]">Clawbot</p>
-            <p className="mt-0.5 text-[11px] text-[var(--muted)]">运营控制台</p>
+            <p className="text-lg font-semibold text-ink">Clawbot</p>
+            <p className="mt-0.5 text-sm text-muted">运营控制台</p>
           </div>
         </div>
 
@@ -161,29 +157,25 @@ export function Sidebar(props: {
         </MenuSection>
 
         {/* 系统状态卡片 */}
-        <div className="mt-5 border-t border-[var(--line)] pt-4">
-          <p className="px-3 text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--muted)]">
-            系统状态
-          </p>
-          <div className="mt-3 rounded-lg border border-[var(--line)] bg-white/60 p-3">
+        <div className="mt-5 border-t border-line pt-4">
+          <p className="px-3 text-xs font-medium uppercase tracking-label text-muted">系统状态</p>
+          <div className="mt-3 rounded-lg border border-line bg-white/60 p-3">
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-[12px] bg-white/80 px-3 py-2">
-                <p className="text-[10px] text-[var(--muted)]">运行时长</p>
-                <p className="mt-0.5 text-[12px] font-medium text-[var(--ink)]">{runtimeLabel}</p>
+              <div className="rounded-panel bg-white/80 px-3 py-2">
+                <p className="text-xs text-muted">运行时长</p>
+                <p className="mt-0.5 text-base font-medium text-ink">{runtimeLabel}</p>
               </div>
-              <div className="rounded-[12px] bg-white/80 px-3 py-2">
-                <p className="text-[10px] text-[var(--muted)]">待写入队列</p>
-                <p className="mt-0.5 text-[12px] font-medium text-[var(--ink)]">{queueLabel}</p>
+              <div className="rounded-panel bg-white/80 px-3 py-2">
+                <p className="text-xs text-muted">待写入队列</p>
+                <p className="mt-0.5 text-base font-medium text-ink">{queueLabel}</p>
               </div>
-              <div className="col-span-2 rounded-[12px] bg-white/80 px-3 py-2">
+              <div className="col-span-2 rounded-panel bg-white/80 px-3 py-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <ActivityIcon className="size-3.5 text-[var(--muted)]" />
-                    <span className="text-[10px] text-[var(--muted)]">Trace 队列</span>
+                    <ActivityIcon className="size-3.5 text-muted" />
+                    <span className="text-xs text-muted">Trace 队列</span>
                   </div>
-                  <span className="text-[12px] font-medium text-[var(--ink)]">
-                    {traceQueueLabel}
-                  </span>
+                  <span className="text-base font-medium text-ink">{traceQueueLabel}</span>
                 </div>
               </div>
             </div>
@@ -197,7 +189,7 @@ export function Sidebar(props: {
               localStorage.removeItem("auth_token");
               navigate("/auth/login", { replace: true });
             }}
-            className="flex w-full items-center gap-3 rounded-lg border border-[var(--line)] bg-white/55 px-3 py-2.5 text-[13px] text-[var(--muted-strong)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/72 hover:text-[var(--ink)]"
+            className="flex w-full items-center gap-3 rounded-lg border border-line bg-white/55 px-3 py-2.5 text-md text-muted-strong transition duration-200 ease-expo hover:bg-white/72 hover:text-ink"
           >
             <LogOutIcon className="size-4" />
             <span>退出登录</span>

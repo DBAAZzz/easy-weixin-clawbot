@@ -23,10 +23,10 @@ function SkillAvatar(props: { origin: SkillInfo["origin"] }) {
   return (
     <span
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-[rgba(247,250,251,0.92)]",
+        "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-frost-92",
         props.origin === "builtin"
-          ? "border-[var(--line)] text-[var(--ink)]"
-          : "border-[rgba(21,110,99,0.12)] text-[var(--accent-strong)]",
+          ? "border-line text-ink"
+          : "border-accent-border text-accent-strong",
       )}
     >
       <PuzzleIcon className="size-[18px]" />
@@ -51,15 +51,15 @@ function SkillToggle(props: {
         void props.onToggle();
       }}
       className={cn(
-        "relative inline-flex h-8 w-[50px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
+        "relative inline-flex h-8 w-[50px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-expo disabled:cursor-not-allowed disabled:opacity-60",
         props.enabled
-          ? "border-[rgba(28,100,242,0.14)] bg-[var(--accent)]"
-          : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.38)]",
+          ? "border-toggle-border bg-accent"
+          : "border-line-strong bg-toggle-off-strong",
       )}
     >
       <span
         className={cn(
-          "size-6 rounded-full bg-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "size-6 rounded-full bg-white shadow-float transition duration-200 ease-expo",
           props.enabled ? "translate-x-[18px]" : "translate-x-0",
         )}
       />
@@ -93,32 +93,28 @@ function SkillCard(props: {
           props.onOpen();
         }
       }}
-      className="reveal-up group flex min-h-[108px] cursor-pointer items-center gap-3 rounded-lg border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] px-3.5 py-3.5 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(21,110,99,0.14)] md:px-4"
+      className="reveal-up group flex min-h-[108px] cursor-pointer items-center gap-3 rounded-lg border border-card-line bg-card-bg px-3.5 py-3.5 transition duration-200 ease-expo hover:-translate-y-0.5 hover:border-notice-success-border hover:bg-card-hover focus-visible:outline-none focus-visible:shadow-focus-accent md:px-4"
       style={{ animationDelay: `${props.index * 40}ms` }}
     >
       <SkillAvatar origin={props.skill.origin} />
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
-            {props.skill.name}
-          </h3>
+          <h3 className="text-lg font-semibold tracking-title text-ink">{props.skill.name}</h3>
           <Badge
             tone="muted"
-            className="border-transparent bg-[rgba(21,110,99,0.08)] px-2 py-1 text-[9px] tracking-[0.08em] text-[var(--accent-strong)]"
+            className="border-transparent bg-accent-mist px-2 py-1 text-2xs tracking-tag text-accent-strong"
           >
             {formatActivationLabel(props.skill.activation)}
           </Badge>
         </div>
 
-        <p className="mt-1 truncate text-[12px] leading-5 text-[var(--muted-strong)]">
-          {props.skill.summary}
-        </p>
+        <p className="mt-1 truncate text-base leading-5 text-muted-strong">{props.skill.summary}</p>
 
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--muted)]">
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
           {metadata.map((item, index) => (
             <span key={item} className="flex items-center gap-2">
-              {index > 0 ? <span className="size-1 rounded-full bg-[var(--line-strong)]" /> : null}
+              {index > 0 ? <span className="size-1 rounded-full bg-line-strong" /> : null}
               <span>{item}</span>
             </span>
           ))}
@@ -127,7 +123,7 @@ function SkillCard(props: {
 
       <div className="flex shrink-0 flex-col items-end gap-1.5">
         <SkillToggle enabled={props.skill.enabled} busy={props.busy} onToggle={props.onToggle} />
-        <span className="text-[10px] font-medium text-[var(--muted)]">
+        <span className="text-xs font-medium text-muted">
           {props.skill.enabled ? "已启用" : "已停用"}
         </span>
       </div>
@@ -137,9 +133,9 @@ function SkillCard(props: {
 
 function DetailItem(props: { label: string; value: string }) {
   return (
-    <div className="rounded-[18px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-3">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">{props.label}</p>
-      <p className="mt-1.5 text-[13px] font-medium text-[var(--ink)]">{props.value}</p>
+    <div className="rounded-section border border-line bg-detail-bg px-4 py-3">
+      <p className="text-xs uppercase tracking-label text-muted">{props.label}</p>
+      <p className="mt-1.5 text-md font-medium text-ink">{props.value}</p>
     </div>
   );
 }
@@ -157,30 +153,28 @@ function SkillDetailModal(props: {
         type="button"
         aria-label="关闭 skill 详情"
         onClick={props.onClose}
-        className="absolute inset-0 bg-[rgba(15,23,42,0.24)] backdrop-blur-[8px]"
+        className="absolute inset-0 bg-overlay backdrop-blur-[8px]"
       />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="skill-detail-title"
-        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[30px] border border-[rgba(21,32,43,0.1)] bg-[rgba(255,255,255,0.96)] shadow-[0_40px_120px_-56px_rgba(15,23,42,0.52)]"
+        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-pill border border-modal-border bg-card-hover shadow-modal"
       >
-        <div className="border-b border-[var(--line)] px-5 py-4 md:px-6">
+        <div className="border-b border-line px-5 py-4 md:px-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-4">
               <SkillAvatar origin={props.skill.origin} />
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                  Skill Detail
-                </p>
+                <p className="text-xs uppercase tracking-label-xl text-muted">Skill Detail</p>
                 <h3
                   id="skill-detail-title"
-                  className="mt-1.5 truncate text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]"
+                  className="mt-1.5 truncate text-5xl font-semibold tracking-heading text-ink"
                 >
                   {props.skill.name}
                 </h3>
-                <p className="mt-2 max-w-2xl text-[13px] leading-6 text-[var(--muted-strong)]">
+                <p className="mt-2 max-w-2xl text-md leading-6 text-muted-strong">
                   {props.skill.summary}
                 </p>
               </div>
@@ -189,7 +183,7 @@ function SkillDetailModal(props: {
             <button
               type="button"
               onClick={props.onClose}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-white/80 text-[var(--muted-strong)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-muted-strong transition hover:border-line-strong hover:text-ink"
             >
               <XIcon className="size-4" />
             </button>
@@ -212,12 +206,10 @@ function SkillDetailModal(props: {
             <DetailItem label="Status" value={props.skill.enabled ? "已启用" : "已停用"} />
           </div>
 
-          <div className="rounded-xl border border-[var(--line)] bg-[rgba(247,250,251,0.84)] px-4 py-4">
+          <div className="rounded-xl border border-line bg-detail-bg px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                  Markdown Source
-                </p>
+                <p className="text-xs uppercase tracking-label-lg text-muted">Markdown Source</p>
               </div>
 
               <Button
@@ -233,13 +225,13 @@ function SkillDetailModal(props: {
             <div className="mt-4">
               {props.source.loading ? (
                 <div className="space-y-2">
-                  <div className="ui-skeleton h-4 rounded-[8px]" />
-                  <div className="ui-skeleton h-4 rounded-[8px]" />
-                  <div className="ui-skeleton h-4 rounded-[8px]" />
+                  <div className="ui-skeleton h-4 rounded-lg" />
+                  <div className="ui-skeleton h-4 rounded-lg" />
+                  <div className="ui-skeleton h-4 rounded-lg" />
                   <div className="ui-skeleton h-28 rounded-lg" />
                 </div>
               ) : (
-                <pre className="max-h-[320px] overflow-auto rounded-[18px] border border-[var(--line)] bg-[rgba(255,255,255,0.94)] px-4 py-3 text-[11px] leading-6 text-[var(--ink-soft)]">
+                <pre className="max-h-[320px] overflow-auto rounded-section border border-line bg-detail-bg-strong px-4 py-3 text-sm leading-6 text-ink-soft">
                   {props.source.error
                     ? `加载源码失败：${props.source.error}`
                     : (props.source.data?.markdown ?? "暂无源码")}
@@ -338,8 +330,8 @@ export function SkillsPage() {
         <section className="space-y-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">Skills</p>
-              <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">已安装技能</h2>
+              <p className="text-xs uppercase tracking-label-xl text-muted">Skills</p>
+              <h2 className="mt-1.5 text-6xl text-ink">已安装技能</h2>
             </div>
 
             <Button size="sm" onClick={() => void handleRefresh()}>
@@ -350,7 +342,7 @@ export function SkillsPage() {
 
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="relative w-full xl:max-w-[360px]">
-              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
+              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -359,7 +351,7 @@ export function SkillsPage() {
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
               <Badge tone="muted">已安装 {formatCount(skills.length)}</Badge>
               <Badge tone="muted">启用 {formatCount(enabledCount)}</Badge>
               <Badge tone="muted">Always-On {formatCount(alwaysOnCount)}</Badge>
@@ -369,19 +361,19 @@ export function SkillsPage() {
         </section>
 
         {error ? (
-          <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+          <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
             加载 skill 列表失败：{error}
           </div>
         ) : null}
 
         {mutationError ? (
-          <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+          <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
             操作失败：{mutationError}
           </div>
         ) : null}
 
         {notice ? (
-          <div className="rounded-[18px] border border-[rgba(21,110,99,0.14)] bg-[rgba(240,253,250,0.92)] px-4 py-3 text-[12px] leading-6 text-[var(--accent-strong)]">
+          <div className="rounded-section border border-notice-success-border bg-notice-success-bg px-4 py-3 text-base leading-6 text-accent-strong">
             {notice}
           </div>
         ) : null}
@@ -391,13 +383,13 @@ export function SkillsPage() {
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="overflow-hidden rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.8)] px-3.5 py-3.5 md:px-4"
+                className="overflow-hidden rounded-lg border border-line bg-glass-80 px-3.5 py-3.5 md:px-4"
               >
                 <div className="flex items-center gap-3">
                   <div className="ui-skeleton size-10 rounded-lg" />
                   <div className="min-w-0 flex-1 space-y-2">
-                    <div className="ui-skeleton h-5 rounded-[8px]" />
-                    <div className="ui-skeleton h-4 rounded-[8px]" />
+                    <div className="ui-skeleton h-5 rounded-lg" />
+                    <div className="ui-skeleton h-4 rounded-lg" />
                     <div className="ui-skeleton h-3 w-2/3 rounded-full" />
                   </div>
                   <div className="ui-skeleton h-8 w-[50px] rounded-full" />
@@ -408,15 +400,15 @@ export function SkillsPage() {
         ) : null}
 
         {!loading && filteredSkills.length === 0 ? (
-          <section className="rounded-[28px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-10 text-center">
-            <p className="text-[15px] font-medium text-[var(--ink)]">没有匹配到 skill</p>
+          <section className="rounded-dialog border border-dashed border-line bg-glass-48 px-5 py-10 text-center">
+            <p className="text-xl font-medium text-ink">没有匹配到 skill</p>
           </section>
         ) : null}
 
         {!loading && filteredSkills.length > 0 ? (
           <section className="space-y-3">
-            <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
-              <PuzzleIcon className="size-4 text-[var(--muted-strong)]" />
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <PuzzleIcon className="size-4 text-muted-strong" />
               <span>当前展示 {formatCount(filteredSkills.length)} 个已安装 skill</span>
             </div>
 

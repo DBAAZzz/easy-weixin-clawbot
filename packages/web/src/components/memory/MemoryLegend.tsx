@@ -15,20 +15,20 @@ export function MemoryLegend(props: { variant?: "inline" | "floating" }) {
   return (
     <div
       className={[
-        "flex flex-wrap items-center gap-2 rounded-[18px] border px-3 py-2.5 text-[11px] shadow-[0_24px_48px_-36px_rgba(15,23,42,0.35)] backdrop-blur-xl",
+        "flex flex-wrap items-center gap-2 rounded-section border px-3 py-2.5 text-sm shadow-legend backdrop-blur-xl",
         floating
-          ? "absolute bottom-4 right-4 z-10 max-w-[calc(100%-2rem)] border-white/70 bg-[rgba(255,255,255,0.82)]"
-          : "border-[var(--line)] bg-white/72",
+          ? "absolute bottom-4 right-4 z-10 max-w-[calc(100%-2rem)] border-white/70 bg-glass-82"
+          : "border-line bg-white/72",
       ].join(" ")}
     >
       <div className="flex flex-wrap gap-2">
         {NODE_LEGEND.map((item) => (
           <div
             key={item.label}
-            className="flex items-center gap-2 rounded-full border border-[rgba(148,163,184,0.14)] bg-white/82 px-2.5 py-1 text-[11px] text-[var(--muted-strong)]"
+            className="flex items-center gap-2 rounded-full border border-slate-border bg-white/82 px-2.5 py-1 text-sm text-muted-strong"
           >
             <span
-              className="size-2.5 rounded-full shadow-[0_0_0_3px_rgba(255,255,255,0.85)]"
+              className="size-2.5 rounded-full shadow-legend-dot"
               style={{ backgroundColor: item.color }}
             />
             <span>{item.description}</span>
@@ -36,16 +36,13 @@ export function MemoryLegend(props: { variant?: "inline" | "floating" }) {
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2 text-[11px] text-[var(--muted)]">
+      <div className="flex flex-wrap gap-2 text-sm text-muted">
         {EDGE_LEGEND.map((item) => (
           <div
             key={item.label}
-            className="flex items-center gap-2 rounded-full border border-[rgba(148,163,184,0.14)] bg-white/68 px-2.5 py-1"
+            className="flex items-center gap-2 rounded-full border border-slate-border bg-white/68 px-2.5 py-1"
           >
-            <span
-              className="w-8 border-t border-[var(--muted-strong)]"
-              style={{ borderStyle: item.line }}
-            />
+            <span className="w-8 border-t border-muted-strong" style={{ borderStyle: item.line }} />
             <span>{item.label}</span>
           </div>
         ))}

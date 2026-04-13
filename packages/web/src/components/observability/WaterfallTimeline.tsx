@@ -165,7 +165,7 @@ function TreeLines({ row }: { row: FlatRow }) {
         isLast ? null : (
           <span
             key={level}
-            className="absolute top-0 h-full border-l border-[rgba(148,163,184,0.3)]"
+            className="absolute top-0 h-full border-l border-slate-border-heavy"
             style={{ left: `${level * INDENT_WIDTH + 9}px` }}
           />
         ),
@@ -173,7 +173,7 @@ function TreeLines({ row }: { row: FlatRow }) {
 
       {/* 当前节点的拐角线 */}
       <span
-        className="absolute border-l border-b border-[rgba(148,163,184,0.3)]"
+        className="absolute border-l border-b border-slate-border-heavy"
         style={{
           left: `${(row.depth - 1) * INDENT_WIDTH + 9}px`,
           top: 0,
@@ -203,28 +203,26 @@ function SpanDetail({ span }: { span: ObservabilityTraceSpan }) {
   ];
 
   return (
-    <div className="border-t border-[var(--line)] bg-[rgba(248,250,252,0.95)]">
-      <div className="flex items-center gap-1 border-b border-[var(--line)] px-4 py-2">
+    <div className="bg-pane-95 border-t border-line">
+      {" "}
+      <div className="flex items-center gap-1 border-b border-line px-4 py-2">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-[11px] transition",
-              tab === t.key
-                ? "bg-[rgba(21,110,99,0.1)] text-[var(--ink)]"
-                : "text-[var(--muted)] hover:text-[var(--ink)]",
+              "rounded-lg px-3 py-1.5 text-sm transition",
+              tab === t.key ? "bg-accent-soft text-ink" : "text-muted hover:text-ink",
             )}
           >
             {t.label}
           </button>
         ))}
       </div>
-
       <div className="px-4 py-3">
         {tab === "attributes" && (
-          <div className="grid gap-x-6 gap-y-2 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
             <Attr label="Span ID" value={span.span_id} mono />
             <Attr label="状态" value={span.status} />
             <Attr label="耗时" value={formatMs(span.duration_ms)} />
@@ -246,13 +244,13 @@ function SpanDetail({ span }: { span: ObservabilityTraceSpan }) {
         )}
 
         {tab === "prompt" && span.payload && (
-          <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-[var(--line)] bg-white p-4 font-[var(--font-mono)] text-[11px] leading-6 text-[var(--ink)]">
+          <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-line bg-white p-4 font-mono text-sm leading-6 text-ink">
             {span.payload.prompt || "(empty)"}
           </pre>
         )}
 
         {tab === "completion" && span.payload && (
-          <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-[var(--line)] bg-white p-4 font-[var(--font-mono)] text-[11px] leading-6 text-[var(--ink)]">
+          <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-line bg-white p-4 font-mono text-sm leading-6 text-ink">
             {span.payload.completion || "(empty)"}
           </pre>
         )}
@@ -264,12 +262,12 @@ function SpanDetail({ span }: { span: ObservabilityTraceSpan }) {
 function Attr(props: { label: string; value: string; mono?: boolean; error?: boolean }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-[0.15em] text-[var(--muted)]">{props.label}</p>
+      <p className="text-xs uppercase tracking-wide text-muted">{props.label}</p>
       <p
         className={cn(
-          "mt-0.5 break-all text-[12px]",
-          props.error ? "text-red-600" : "text-[var(--ink)]",
-          props.mono && "font-[var(--font-mono)]",
+          "mt-0.5 break-all text-base",
+          props.error ? "text-red-600" : "text-ink",
+          props.mono && "font-mono",
         )}
       >
         {props.value}
@@ -290,15 +288,16 @@ function TimeRuler({ total }: { total: number }) {
   }, [total]);
 
   return (
-    <div className="relative h-6 border-b h-full border-[var(--line)] bg-[rgba(248,250,252,0.6)]">
+    <div className="bg-pane-60 relative h-6 border-b h-full border-line">
+      {" "}
       {ticks.map((tick) => (
         <span
           key={tick.pct}
           className="absolute top-0 flex h-full flex-col items-center justify-end"
           style={{ left: `${tick.pct}%`, transform: "translateX(-50%)" }}
         >
-          <span className="text-[9px] tabular-nums text-[var(--muted)]">{tick.label}</span>
-          <span className="mt-0.5 h-1.5 border-l border-[rgba(148,163,184,0.3)]" />
+          <span className="text-2xs tabular-nums text-muted">{tick.label}</span>
+          <span className="mt-0.5 h-1.5 border-l border-slate-border-heavy" />
         </span>
       ))}
     </div>
@@ -315,14 +314,14 @@ export function WaterfallTimeline({ trace }: { trace: ObservabilityTraceDetail }
   const NAME_COL_WIDTH = 260; // px
 
   return (
-    <div className="overflow-hidden border border-[var(--line)] bg-white/90">
+    <div className="overflow-hidden border border-line bg-white/90">
       {/* Header */}
       <div
-        className="grid border-b px-4 border-[var(--line)]"
+        className="grid border-b px-4 border-line"
         style={{ gridTemplateColumns: `${NAME_COL_WIDTH}px 1fr` }}
       >
-        <div className="border-r border-[var(--line)] px-4 py-2">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+        <div className="border-r border-line px-4 py-2">
+          <p className="text-xs uppercase tracking-caps-lg text-muted">
             Span · {rows.length} 个节点
           </p>
         </div>
@@ -346,31 +345,26 @@ export function WaterfallTimeline({ trace }: { trace: ObservabilityTraceDetail }
                 onClick={() => setExpandedSpanId(isExpanded ? null : row.span.span_id)}
                 className={cn(
                   "grid w-full text-left transition-colors",
-                  isExpanded ? "bg-[rgba(21,110,99,0.04)]" : "hover:bg-[rgba(248,250,252,0.8)]",
+                  isExpanded ? "bg-accent-hover" : "hover:bg-pane-80",
                   isError && "bg-red-50/40",
                 )}
                 style={{ gridTemplateColumns: `${NAME_COL_WIDTH}px 1fr` }}
               >
                 {/* 左：span 名称 + 树线 */}
                 <div
-                  className="relative flex items-center gap-1.5 overflow-hidden border-r border-[var(--line)] py-2.5 pr-2"
+                  className="relative flex items-center gap-1.5 overflow-hidden border-r border-line py-2.5 pr-2"
                   style={{ paddingLeft: `${row.depth * INDENT_WIDTH + 12}px` }}
                 >
                   <TreeLines row={row} />
                   <SpanGlyph
                     name={row.span.name}
-                    className={cn("size-3.5 text-[var(--muted-strong)]", isError && "text-red-600")}
+                    className={cn("size-3.5 text-muted-strong", isError && "text-red-600")}
                   />
-                  <span
-                    className={cn(
-                      "truncate text-[12px]",
-                      isError ? "text-red-600" : "text-[var(--ink)]",
-                    )}
-                  >
+                  <span className={cn("truncate text-base", isError ? "text-red-600" : "text-ink")}>
                     {getSpanTitle(row.span, row.llmRound)}
                   </span>
                   {isError && (
-                    <span className="shrink-0 rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-red-600">
+                    <span className="shrink-0 rounded-full bg-red-100 px-1.5 py-0.5 text-2xs font-semibold uppercase text-red-600">
                       err
                     </span>
                   )}
@@ -392,14 +386,14 @@ export function WaterfallTimeline({ trace }: { trace: ObservabilityTraceDetail }
                   />
                   {/* 耗时标签 */}
                   <span
-                    className="relative z-10 whitespace-nowrap text-[10px] tabular-nums text-[var(--muted-strong)]"
+                    className="relative z-10 whitespace-nowrap text-xs tabular-nums text-muted-strong"
                     style={{
                       marginLeft: `${Math.min(leftPct + widthPct + 1, 85)}%`,
                     }}
                   >
                     {formatMs(row.span.duration_ms)}
                     {row.span.input_tokens != null && (
-                      <span className="ml-2 text-[var(--muted)]">
+                      <span className="ml-2 text-muted">
                         {formatTokens(row.span.input_tokens)}→
                         {formatTokens(row.span.output_tokens ?? 0)}
                       </span>
@@ -416,7 +410,7 @@ export function WaterfallTimeline({ trace }: { trace: ObservabilityTraceDetail }
       </div>
 
       {/* Footer: legend */}
-      <div className="flex flex-wrap gap-4 border-t border-[var(--line)] px-4 py-2.5">
+      <div className="flex flex-wrap gap-4 border-t border-line px-4 py-2.5">
         {[
           { name: "LLM", color: "bg-indigo-500" },
           { name: "Tool", color: "bg-amber-500" },
@@ -426,7 +420,7 @@ export function WaterfallTimeline({ trace }: { trace: ObservabilityTraceDetail }
         ].map((item) => (
           <div key={item.name} className="flex items-center gap-1.5">
             <span className={cn("inline-block h-2.5 w-5 rounded-sm", item.color)} />
-            <span className="text-[10px] text-[var(--muted)]">{item.name}</span>
+            <span className="text-xs text-muted">{item.name}</span>
           </div>
         ))}
       </div>

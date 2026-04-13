@@ -15,10 +15,8 @@ export function ObservabilityTracePage() {
       <section className="space-y-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-              Trace Detail
-            </p>
-            <h2 className="mt-1.5 text-[20px] text-[var(--ink)]">链路详情</h2>
+            <p className="text-xs uppercase tracking-label-xl text-muted">Trace Detail</p>
+            <h2 className="mt-1.5 text-4xl text-ink">链路详情</h2>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -37,14 +35,12 @@ export function ObservabilityTracePage() {
         </div>
 
         <Card className="space-y-2">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Trace ID</p>
-          <p className="break-all font-[var(--font-mono)] text-[13px] text-[var(--ink)]">
-            {traceId ?? "missing-trace-id"}
-          </p>
+          <p className="text-xs uppercase tracking-caps-lg text-muted">Trace ID</p>
+          <p className="break-all font-mono text-md text-ink">{traceId ?? "missing-trace-id"}</p>
         </Card>
 
         {trace.error ? (
-          <div className="rounded-lg border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+          <div className="rounded-lg border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
             加载链路详情失败：{trace.error}
           </div>
         ) : null}

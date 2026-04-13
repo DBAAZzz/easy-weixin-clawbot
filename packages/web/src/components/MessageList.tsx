@@ -13,7 +13,8 @@ export function MessageList(props: {
   const items = Array.isArray(props.messages) ? props.messages : [];
 
   return (
-    <ScrollArea className="flex min-h-0 flex-1 flex-col bg-[rgba(252,253,255,0.72)] px-4 py-4">
+    <ScrollArea className="bg-quiet-surface flex min-h-0 flex-1 flex-col px-4 py-4">
+      {" "}
       <div className="flex flex-col gap-3">
         {props.hasMore ? (
           <div className="flex justify-center">
@@ -37,7 +38,7 @@ export function MessageList(props: {
         ) : null}
 
         {!props.loading && items.length === 0 ? (
-          <div className="rounded-[10px] border border-dashed border-[var(--line)] px-4 py-10 text-center text-[12px] leading-6 text-[var(--muted)]">
+          <div className="rounded-card border border-dashed border-line px-4 py-10 text-center text-base leading-6 text-muted">
             这条会话还没有持久化消息记录。
           </div>
         ) : null}

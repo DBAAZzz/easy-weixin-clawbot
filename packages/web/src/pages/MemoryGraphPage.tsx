@@ -38,10 +38,11 @@ function StatCard(props: {
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="flex h-full items-center gap-3 rounded-lg border border-[rgba(148,163,184,0.14)] bg-[rgba(255,255,255,0.76)] px-3.5 py-3">
+    <div className="bg-glass-76 flex h-full items-center gap-3 rounded-lg border border-slate-border px-3.5 py-3">
+      {" "}
       {props.icon ? (
         <div
-          className="flex size-9 shrink-0 items-center justify-center rounded-[12px]"
+          className="flex size-9 shrink-0 items-center justify-center rounded-panel"
           style={{
             backgroundColor: props.color ? `${props.color}14` : "rgba(148,163,184,0.08)",
             color: props.color,
@@ -52,14 +53,10 @@ function StatCard(props: {
       ) : null}
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">
-            {props.label}
-          </p>
-          <p className="font-[var(--font-mono)] text-[18px] font-semibold text-[var(--ink)]">
-            {props.value}
-          </p>
+          <p className="text-xs uppercase tracking-label text-muted">{props.label}</p>
+          <p className="font-mono text-3xl font-semibold text-ink">{props.value}</p>
         </div>
-        <p className="mt-1 text-[11px] leading-5 text-[var(--muted)]">{props.hint}</p>
+        <p className="mt-1 text-sm leading-5 text-muted">{props.hint}</p>
       </div>
     </div>
   );
@@ -179,15 +176,13 @@ export function MemoryGraphPage() {
     return (
       <div className="space-y-4">
         <section className="space-y-3">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-            Memory Graph
-          </p>
-          <h2 className="text-[20px] text-[var(--ink)]">记忆图谱</h2>
+          <p className="text-xs uppercase tracking-label-xl text-muted">Memory Graph</p>
+          <h2 className="text-4xl text-ink">记忆图谱</h2>
         </section>
 
         <Card className="grid gap-5 px-5 py-7 md:grid-cols-[minmax(0,1fr)_180px] md:items-end">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">暂无账号</p>
+            <p className="text-xs uppercase tracking-label-xl text-muted">暂无账号</p>
           </div>
 
           <Link
@@ -206,10 +201,8 @@ export function MemoryGraphPage() {
     <div className="space-y-4 md:space-y-5">
       <section className="flex items-start justify-between gap-4">
         <div className="space-y-1.5">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-            Memory Graph
-          </p>
-          <h2 className="text-[20px] text-[var(--ink)]">记忆图谱</h2>
+          <p className="text-xs uppercase tracking-label-xl text-muted">Memory Graph</p>
+          <h2 className="text-4xl text-ink">记忆图谱</h2>
         </div>
       </section>
 
@@ -251,7 +244,7 @@ export function MemoryGraphPage() {
           />
         </div>
 
-        <div className="h-px bg-[var(--line)]" />
+        <div className="h-px bg-line" />
 
         <MemoryFilters
           accountOptions={accountOptions}
@@ -268,7 +261,7 @@ export function MemoryGraphPage() {
       </Card>
 
       {graph.error ? (
-        <div className="rounded-lg border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+        <div className="rounded-lg border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
           加载记忆图失败：{graph.error}
         </div>
       ) : null}
@@ -285,13 +278,13 @@ export function MemoryGraphPage() {
             onNodeSelect={setSelectedNode}
           />
 
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--line)] bg-white/72 px-3.5 py-2">
-            <div className="flex items-center gap-2 text-[12px] text-[var(--muted-strong)]">
-              <PulseIcon className="size-4 text-[var(--accent-strong)]" />
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white/72 px-3.5 py-2">
+            <div className="flex items-center gap-2 text-base text-muted-strong">
+              <PulseIcon className="size-4 text-accent-strong" />
               <span>{selectedAccountId ? `账号 ${selectedAccountId}` : "请选择账号"}</span>
             </div>
-            <div className="h-4 w-px bg-[var(--line)]" />
-            <span className="text-[12px] text-[var(--muted)]">
+            <div className="h-4 w-px bg-line" />
+            <span className="text-base text-muted">
               分支 {selectedBranch} · 生成时间 {formatDateTime(graph.graph?.meta.generatedAt)}
             </span>
           </div>
@@ -303,14 +296,12 @@ export function MemoryGraphPage() {
 
           <Card className="space-y-3 p-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-                Prefix Groups
-              </p>
-              <h3 className="mt-1 text-[15px] text-[var(--ink)]">分组概览</h3>
+              <p className="text-xs uppercase tracking-label-lg text-muted">Prefix Groups</p>
+              <h3 className="mt-1 text-xl text-ink">分组概览</h3>
             </div>
 
             {groups.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-[var(--line)] bg-white/60 px-4 py-4 text-center text-[12px] leading-6 text-[var(--muted)]">
+              <div className="rounded-lg border border-dashed border-line bg-white/60 px-4 py-4 text-center text-base leading-6 text-muted">
                 当前分支还没有可聚类的层级 key
               </div>
             ) : (
@@ -318,22 +309,18 @@ export function MemoryGraphPage() {
                 {groups.slice(0, 8).map((group) => (
                   <div
                     key={group.id}
-                    className="rounded-[12px] border border-[var(--line)] bg-white/72 px-3 py-2"
+                    className="rounded-panel border border-line bg-white/72 px-3 py-2"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <p className="truncate text-[12px] font-medium text-[var(--ink)]">
-                        {group.label}
-                      </p>
-                      <span className="shrink-0 font-[var(--font-mono)] text-[11px] text-[var(--muted)]">
+                      <p className="truncate text-base font-medium text-ink">{group.label}</p>
+                      <span className="shrink-0 font-mono text-sm text-muted">
                         {group.children.length}
                       </span>
                     </div>
                   </div>
                 ))}
                 {groups.length > 8 ? (
-                  <p className="px-1 text-[11px] text-[var(--muted)]">
-                    还有 {groups.length - 8} 个分组…
-                  </p>
+                  <p className="px-1 text-sm text-muted">还有 {groups.length - 8} 个分组…</p>
                 ) : null}
               </div>
             )}

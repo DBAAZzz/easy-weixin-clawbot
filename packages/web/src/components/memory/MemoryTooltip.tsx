@@ -48,15 +48,12 @@ function ConfidenceBar(props: { value: number }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Confidence</p>
-        <span
-          className="font-[var(--font-mono)] text-[13px] font-semibold"
-          style={{ color: barColor }}
-        >
+        <p className="text-xs uppercase tracking-caps-lg text-muted">Confidence</p>
+        <span className="font-mono text-md font-semibold" style={{ color: barColor }}>
           {percent}%
         </span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-[rgba(148,163,184,0.12)]">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-wash">
         <div
           className="h-full rounded-full transition-all duration-500 ease-out"
           style={{ width: `${percent}%`, backgroundColor: barColor }}
@@ -68,13 +65,14 @@ function ConfidenceBar(props: { value: number }) {
 
 function MetaCard(props: { label: string; value: string; mono?: boolean; title?: string }) {
   return (
-    <div className="rounded-lg border border-[rgba(148,163,184,0.14)] bg-[rgba(248,250,252,0.74)] px-3 py-2.5">
-      <p className="text-[9px] uppercase tracking-[0.18em] text-[var(--muted)]">{props.label}</p>
+    <div className="bg-pane-74 rounded-lg border border-slate-border px-3 py-2.5">
+      {" "}
+      <p className="text-2xs uppercase tracking-caps-lg text-muted">{props.label}</p>
       <p
         title={props.title}
         className={[
-          "mt-1 truncate text-[12px] leading-5 text-[var(--ink)]",
-          props.mono ? "font-[var(--font-mono)]" : "",
+          "mt-1 truncate text-base leading-5 text-ink",
+          props.mono ? "font-mono" : "",
         ].join(" ")}
       >
         {props.value}
@@ -88,16 +86,14 @@ export function MemoryTooltip(props: { node: TapeGraphNode | null; highlightedCo
     return (
       <Card className="space-y-3 p-4 md:p-5">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">Node Detail</p>
-          <h3 className="mt-1.5 text-[16px] text-[var(--ink)]">节点详情</h3>
+          <p className="text-xs uppercase tracking-label-lg text-muted">Node Detail</p>
+          <h3 className="mt-1.5 text-2xl text-ink">节点详情</h3>
         </div>
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-[var(--line)] bg-white/60 px-4 py-8 text-center">
-          <div className="flex size-10 items-center justify-center rounded-full bg-[rgba(148,163,184,0.08)]">
-            <SearchIcon className="size-5 text-[var(--muted)]" />
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-line bg-white/60 px-4 py-8 text-center">
+          <div className="flex size-10 items-center justify-center rounded-full bg-slate-wash-soft">
+            <SearchIcon className="size-5 text-muted" />
           </div>
-          <p className="text-[12px] leading-6 text-[var(--muted)]">
-            悬停或点击图中的节点查看记忆详情
-          </p>
+          <p className="text-base leading-6 text-muted">悬停或点击图中的节点查看记忆详情</p>
         </div>
       </Card>
     );
@@ -116,24 +112,25 @@ export function MemoryTooltip(props: { node: TapeGraphNode | null; highlightedCo
           {CATEGORY_ICON_COMPONENTS[node.category](`size-4.5`)}
         </div>
         <div className="min-w-0">
-          <h3 className="truncate text-[16px] font-semibold text-[var(--ink)]">{node.label}</h3>
+          <h3 className="truncate text-2xl font-semibold text-ink">{node.label}</h3>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <span
-              className="rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
+              className="rounded-full px-2.5 py-1 text-xs font-medium uppercase tracking-caps"
               style={{ backgroundColor: `${color}14`, color }}
             >
               {CATEGORY_LABELS[node.category]}
             </span>
-            <span className="rounded-full bg-[rgba(148,163,184,0.12)] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted-strong)]">
+            <span className="rounded-full bg-slate-wash px-2.5 py-1 text-xs font-medium uppercase tracking-caps text-muted-strong">
               {node.scope === "global" ? "全局" : "会话"}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="rounded-lg border border-[rgba(148,163,184,0.12)] bg-[linear-gradient(180deg,rgba(247,249,251,0.96),rgba(255,255,255,0.86))] px-4 py-3.5">
-        <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--muted)]">Value</p>
-        <p className="mt-2 whitespace-pre-wrap break-all text-[14px] leading-6 text-[var(--ink)]">
+      <div className="bg-tooltip-value rounded-lg border border-slate-border-soft px-4 py-3.5">
+        {" "}
+        <p className="text-2xs uppercase tracking-label text-muted">Value</p>
+        <p className="mt-2 whitespace-pre-wrap break-all text-lg leading-6 text-ink">
           {formatMemoryValue(node.value)}
         </p>
       </div>
@@ -157,9 +154,9 @@ export function MemoryTooltip(props: { node: TapeGraphNode | null; highlightedCo
       </div>
 
       {props.highlightedCount > 0 ? (
-        <div className="flex items-center gap-2 rounded-[12px] bg-[rgba(99,102,241,0.06)] px-3 py-2 text-[12px] text-[var(--muted-strong)]">
-          <span className="inline-block size-1.5 rounded-full bg-[rgba(99,102,241,0.6)]" />
-          关联节点 {props.highlightedCount} 个
+        <div className="bg-indigo-soft flex items-center gap-2 rounded-panel px-3 py-2 text-base text-muted-strong">
+          <span className="bg-indigo-medium inline-block size-1.5 rounded-full" /> 关联节点{" "}
+          {props.highlightedCount} 个
         </div>
       ) : null}
     </Card>

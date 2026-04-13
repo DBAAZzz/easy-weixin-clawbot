@@ -253,15 +253,13 @@ function CardToggle(props: {
         props.onToggle();
       }}
       className={cn(
-        "relative inline-flex h-7 w-[46px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
-        props.enabled
-          ? "border-[rgba(28,100,242,0.14)] bg-[var(--accent)]"
-          : "border-[var(--line-strong)] bg-[rgba(148,163,184,0.34)]",
+        "relative inline-flex h-7 w-[46px] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-expo disabled:cursor-not-allowed disabled:opacity-60",
+        props.enabled ? "border-toggle-border bg-accent" : "border-line-strong bg-toggle-off",
       )}
     >
       <span
         className={cn(
-          "size-5 rounded-full bg-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "size-5 rounded-full bg-white shadow-float transition duration-200 ease-expo",
           props.enabled ? "translate-x-[18px]" : "translate-x-0",
         )}
       />
@@ -286,7 +284,7 @@ function PingStatusButton(props: { pingState?: ProviderPingState; onPing: () => 
         props.onPing();
       }}
       className={cn(
-        "inline-flex size-7 shrink-0 items-center justify-center rounded-full border transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex size-7 shrink-0 items-center justify-center rounded-full border transition duration-200 ease-expo disabled:cursor-not-allowed disabled:opacity-60",
         tone === "online" &&
           "border-emerald-200 bg-emerald-50 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-100",
         tone === "warning" &&
@@ -294,7 +292,7 @@ function PingStatusButton(props: { pingState?: ProviderPingState; onPing: () => 
         tone === "error" &&
           "border-red-200 bg-red-50 text-red-600 hover:border-red-300 hover:bg-red-100",
         tone === "muted" &&
-          "border-[var(--line)] bg-white text-[var(--muted)] hover:border-[var(--line-strong)] hover:text-[var(--muted-strong)]",
+          "border-line bg-white text-muted hover:border-line-strong hover:text-muted-strong",
       )}
     >
       {isPending ? (
@@ -316,7 +314,7 @@ function IconTag(props: {
   tone?: "online" | "offline" | "muted" | "error" | "warning";
 }) {
   return (
-    <Badge tone={props.tone ?? "muted"} className="gap-1.5 px-2.5 py-1.5 tracking-[0.08em]">
+    <Badge tone={props.tone ?? "muted"} className="gap-1.5 px-2.5 py-1.5 tracking-tag">
       <span className="inline-flex size-3 items-center justify-center opacity-75">
         {props.icon}
       </span>
@@ -333,14 +331,15 @@ function MetricPanel(props: {
   }>;
 }) {
   return (
-    <div className="mt-3 grid grid-cols-2 divide-x divide-[var(--line)] overflow-hidden rounded-lg border border-[var(--line)]/80 bg-[rgba(248,250,251,0.82)]">
+    <div className="bg-pane-82 mt-3 grid grid-cols-2 divide-x divide-line overflow-hidden rounded-lg border border-line/80">
+      {" "}
       {props.items.map((item) => (
         <div key={item.label} className="px-3 py-2.5">
-          <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
+          <div className="flex items-center gap-1.5 text-sm text-muted">
             <span className="inline-flex size-3.5 items-center justify-center">{item.icon}</span>
             <span>{item.label}</span>
           </div>
-          <p className="mt-1 text-[13px] font-medium text-[var(--muted-strong)]">{item.value}</p>
+          <p className="mt-1 text-md font-medium text-muted-strong">{item.value}</p>
         </div>
       ))}
     </div>
@@ -359,19 +358,19 @@ function ProviderConfigCard(props: {
   const { template } = props;
 
   return (
-    <div className="reveal-up group relative rounded-lg border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.18)]">
+    <div className="reveal-up group relative rounded-lg border border-card-line bg-glass-90 shadow-card-hover transition duration-200 ease-expo hover:-translate-y-0.5 hover:border-accent-border-strong">
       <div className="flex items-start gap-3 px-5 pt-5">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] bg-white/90">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-line bg-white/90">
           <ProviderBrandIcon provider={template.provider} className="size-5" />
         </span>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <h3 className="truncate text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
+            <h3 className="truncate text-lg font-semibold tracking-title text-ink">
               {template.name}
             </h3>
           </div>
-          <p className="mt-0.5 text-[12px] text-[var(--muted)]">{template.provider}</p>
+          <p className="mt-0.5 text-base text-muted">{template.provider}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-2 self-start">
@@ -428,9 +427,7 @@ function ProviderConfigCard(props: {
       </div>
 
       {getPingMeta(props.pingState) ? (
-        <p className="-mt-1 px-5 pb-4 text-[11px] text-[var(--muted)]">
-          {getPingMeta(props.pingState)}
-        </p>
+        <p className="-mt-1 px-5 pb-4 text-sm text-muted">{getPingMeta(props.pingState)}</p>
       ) : null}
     </div>
   );
@@ -448,7 +445,7 @@ function ModelConfigCard(props: {
   const { config } = props;
 
   return (
-    <div className="reveal-up group relative rounded-lg border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.45)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.18)]">
+    <div className="reveal-up group relative rounded-lg border border-card-line bg-glass-90 shadow-card-hover transition duration-200 ease-expo hover:-translate-y-0.5 hover:border-accent-border-strong">
       <div className="flex items-start gap-3 px-5 pt-5">
         <span
           className={cn(
@@ -463,11 +460,11 @@ function ModelConfigCard(props: {
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <h3 className="truncate text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
+            <h3 className="truncate text-lg font-semibold tracking-title text-ink">
               {config.template_name}
             </h3>
           </div>
-          <p className="mt-0.5 text-[12px] text-[var(--muted)]">
+          <p className="mt-0.5 text-base text-muted">
             {config.provider} / {config.model_id}
           </p>
         </div>
@@ -516,16 +513,14 @@ function ModelConfigCard(props: {
         />
       </div>
 
-      <div className="mt-2 px-5 text-[11px] leading-5 text-[var(--muted)]">
+      <div className="mt-2 px-5 text-sm leading-5 text-muted">
         Scope Key：
-        <span className="ml-1 font-[var(--font-mono)] text-[var(--muted-strong)]">
+        <span className="ml-1 font-mono text-muted-strong">
           {config.scope === "global" ? "*" : config.scope_key}
         </span>
-        <span className="mx-2 text-[var(--line-strong)]">/</span>
+        <span className="mx-2 text-line-strong">/</span>
         优先级：
-        <span className="ml-1 font-[var(--font-mono)] text-[var(--muted-strong)]">
-          {config.priority}
-        </span>
+        <span className="ml-1 font-mono text-muted-strong">{config.priority}</span>
       </div>
 
       <div className="mt-2.5 flex flex-wrap gap-1.5 px-5 pb-4">
@@ -547,7 +542,7 @@ function ModelConfigCard(props: {
       </div>
 
       {getPingMeta(props.pingState) ? (
-        <p className="px-5 pb-4 text-[11px] text-[var(--muted)]">{getPingMeta(props.pingState)}</p>
+        <p className="px-5 pb-4 text-sm text-muted">{getPingMeta(props.pingState)}</p>
       ) : null}
     </div>
   );
@@ -557,7 +552,7 @@ function PageSectionHeader(props: { title: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <h3 className="text-[16px] text-[var(--ink)]">{props.title}</h3>
+        <h3 className="text-2xl text-ink">{props.title}</h3>
       </div>
 
       {props.action ? <div className="flex shrink-0 flex-wrap gap-2">{props.action}</div> : null}
@@ -713,21 +708,21 @@ function ModelConfigEditorModal(props: {
         type="button"
         aria-label="关闭模型绑定弹窗"
         onClick={props.onClose}
-        className="absolute inset-0 bg-[rgba(15,23,42,0.28)] backdrop-blur-[8px]"
+        className="bg-overlay-strong absolute inset-0 backdrop-blur-[8px]"
       />
 
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[30px] border border-[rgba(21,32,43,0.1)] bg-[rgba(255,255,255,0.96)] shadow-[0_40px_120px_-56px_rgba(15,23,42,0.52)]"
+        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-pill border border-modal-border bg-card-hover shadow-modal"
       >
-        <div className="border-b border-[var(--line)] px-5 py-4 md:px-6">
+        <div className="border-b border-line px-5 py-4 md:px-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
+              <p className="text-xs uppercase tracking-label-xl text-muted">
                 {isEdit ? "Edit Binding" : "New Binding"}
               </p>
-              <h3 className="mt-1.5 text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]">
+              <h3 className="mt-1.5 text-5xl font-semibold tracking-heading text-ink">
                 {isEdit ? "编辑使用配置" : "新建使用配置"}
               </h3>
             </div>
@@ -735,7 +730,7 @@ function ModelConfigEditorModal(props: {
             <button
               type="button"
               onClick={props.onClose}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-white/80 text-[var(--muted-strong)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-muted-strong transition hover:border-line-strong hover:text-ink"
             >
               <XIcon className="size-4" />
             </button>
@@ -749,11 +744,9 @@ function ModelConfigEditorModal(props: {
             void handleSubmit();
           }}
         >
-          <div className="rounded-xl border border-[var(--line)] bg-[rgba(246,249,250,0.82)] px-4 py-4">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-              Scope & Purpose
-            </p>
-
+          <div className="bg-pane-82-cool rounded-xl border border-line px-4 py-4">
+            {" "}
+            <p className="text-xs uppercase tracking-label-lg text-muted">Scope & Purpose</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {(["global", "account", "conversation"] as const).map((scope) => (
                 <button
@@ -761,21 +754,20 @@ function ModelConfigEditorModal(props: {
                   type="button"
                   onClick={() => setForm((current) => ({ ...current, scope }))}
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-[12px] transition",
+                    "rounded-full border px-3 py-1.5 text-base transition",
                     form.scope === scope
-                      ? "border-[var(--accent)] bg-[rgba(21,110,99,0.1)] text-[var(--accent-strong)]"
-                      : "border-[var(--line)] text-[var(--muted-strong)] hover:bg-white",
+                      ? "border-accent bg-accent-soft text-accent-strong"
+                      : "border-line text-muted-strong hover:bg-white",
                   )}
                 >
                   {SCOPE_LABELS[scope]}
                 </button>
               ))}
             </div>
-
             {form.scope !== "global" ? (
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <div className={cn(form.scope === "account" && "md:col-span-2")}>
-                  <label className="text-[12px] text-[var(--muted-strong)]">账号 *</label>
+                  <label className="text-base text-muted-strong">账号 *</label>
                   <Select
                     value={form.accountId}
                     options={accountOptions}
@@ -794,7 +786,7 @@ function ModelConfigEditorModal(props: {
 
                 {form.scope === "conversation" ? (
                   <div>
-                    <label className="text-[12px] text-[var(--muted-strong)]">会话 *</label>
+                    <label className="text-base text-muted-strong">会话 *</label>
                     <Select
                       value={form.conversationId}
                       options={conversationOptions}
@@ -819,7 +811,7 @@ function ModelConfigEditorModal(props: {
                       }
                     />
                     {conversationsError ? (
-                      <p className="mt-2 text-[11px] text-red-600">
+                      <p className="mt-2 text-sm text-red-600">
                         会话列表加载失败：{conversationsError}
                       </p>
                     ) : null}
@@ -827,18 +819,17 @@ function ModelConfigEditorModal(props: {
                 ) : null}
 
                 <div className="md:col-span-2">
-                  <p className="text-[11px] text-[var(--muted)]">
+                  <p className="text-sm text-muted">
                     Scope Key 将自动生成：
-                    <span className="ml-1 font-[var(--font-mono)] text-[var(--muted-strong)]">
+                    <span className="ml-1 font-mono text-muted-strong">
                       {form.scopeKey || "请先完成选择"}
                     </span>
                   </p>
                 </div>
               </div>
             ) : null}
-
             <div className="mt-4">
-              <p className="text-[11px] text-[var(--muted)]">用途</p>
+              <p className="text-sm text-muted">用途</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {(["*", "chat", "extraction"] as const).map((purpose) => (
                   <button
@@ -846,10 +837,10 @@ function ModelConfigEditorModal(props: {
                     type="button"
                     onClick={() => setForm((current) => ({ ...current, purpose }))}
                     className={cn(
-                      "rounded-full border px-3 py-1.5 text-[12px] transition",
+                      "rounded-full border px-3 py-1.5 text-base transition",
                       form.purpose === purpose
-                        ? "border-[var(--accent)] bg-[rgba(21,110,99,0.1)] text-[var(--accent-strong)]"
-                        : "border-[var(--line)] text-[var(--muted-strong)] hover:bg-white",
+                        ? "border-accent bg-accent-soft text-accent-strong"
+                        : "border-line text-muted-strong hover:bg-white",
                     )}
                   >
                     {PURPOSE_LABELS[purpose]}
@@ -859,9 +850,9 @@ function ModelConfigEditorModal(props: {
             </div>
           </div>
 
-          <div className="grid gap-4 rounded-xl border border-[var(--line)] bg-white/70 px-4 py-4">
+          <div className="grid gap-4 rounded-xl border border-line bg-white/70 px-4 py-4">
             <div>
-              <label className="text-[12px] text-[var(--muted-strong)]">供应商配置 *</label>
+              <label className="text-base text-muted-strong">供应商配置 *</label>
               <Select
                 value={form.templateId}
                 options={availableTemplates.map((template) => ({
@@ -887,7 +878,7 @@ function ModelConfigEditorModal(props: {
             </div>
 
             <div>
-              <label className="text-[12px] text-[var(--muted-strong)]">Model ID *</label>
+              <label className="text-base text-muted-strong">Model ID *</label>
               <Select
                 value={form.modelId}
                 options={modelOptions}
@@ -902,7 +893,7 @@ function ModelConfigEditorModal(props: {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[12px] text-[var(--muted-strong)]">优先级</label>
+                <label className="text-base text-muted-strong">优先级</label>
                 <Input
                   type="number"
                   value={String(form.priority)}
@@ -916,7 +907,7 @@ function ModelConfigEditorModal(props: {
                 />
               </div>
               <div className="flex items-end pb-1">
-                <label className="flex items-center gap-2 text-[12px] text-[var(--muted-strong)]">
+                <label className="flex items-center gap-2 text-base text-muted-strong">
                   <input
                     type="checkbox"
                     checked={form.enabled}
@@ -926,7 +917,7 @@ function ModelConfigEditorModal(props: {
                         enabled: event.target.checked,
                       }))
                     }
-                    className="size-4 rounded accent-[var(--accent)]"
+                    className="size-4 rounded accent-accent"
                   />
                   启用此使用配置
                 </label>
@@ -935,12 +926,12 @@ function ModelConfigEditorModal(props: {
           </div>
 
           {error ? (
-            <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+            <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
               {error}
             </div>
           ) : null}
 
-          <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-[var(--line)] bg-[rgba(255,255,255,0.92)] px-1 pt-4">
+          <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-line bg-glass-92 px-1 pt-4">
             <Button type="button" variant="outline" onClick={props.onClose}>
               取消
             </Button>
@@ -1113,10 +1104,8 @@ export function ModelConfigPage() {
       <section className="space-y-3">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-              Model Control Plane
-            </p>
-            <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">模型配置管理</h2>
+            <p className="text-xs uppercase tracking-label-xl text-muted">Model Control Plane</p>
+            <h2 className="mt-1.5 text-6xl text-ink">模型配置管理</h2>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -1129,7 +1118,7 @@ export function ModelConfigPage() {
       </section>
 
       {error ? (
-        <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+        <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
           加载模型配置失败：{error}
         </div>
       ) : null}
@@ -1148,15 +1137,15 @@ export function ModelConfigPage() {
         {loading ? (
           <div className="grid gap-4 xl:grid-cols-2">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="ui-skeleton h-52 rounded-[18px]" />
+              <div key={index} className="ui-skeleton h-52 rounded-section" />
             ))}
           </div>
         ) : null}
 
         {!loading && templates.length === 0 ? (
-          <section className="rounded-lg border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
-            <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
-            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">暂无供应商配置</p>
+          <section className="rounded-lg border border-dashed border-line bg-glass-52 px-5 py-10 text-center">
+            <CpuIcon className="mx-auto size-8 text-muted" />
+            <p className="mt-3 text-xl font-medium text-ink">暂无供应商配置</p>
             <Button
               size="sm"
               className="mt-4"
@@ -1204,22 +1193,22 @@ export function ModelConfigPage() {
         {loading ? (
           <div className="grid gap-4 xl:grid-cols-2">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="ui-skeleton h-44 rounded-[18px]" />
+              <div key={index} className="ui-skeleton h-44 rounded-section" />
             ))}
           </div>
         ) : null}
 
         {!loading && templates.length === 0 ? (
-          <section className="rounded-lg border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
-            <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
-            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">暂无供应商配置</p>
+          <section className="rounded-lg border border-dashed border-line bg-glass-52 px-5 py-10 text-center">
+            <CpuIcon className="mx-auto size-8 text-muted" />
+            <p className="mt-3 text-xl font-medium text-ink">暂无供应商配置</p>
           </section>
         ) : null}
 
         {!loading && templates.length > 0 && configs.length === 0 ? (
-          <section className="rounded-lg border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.52)] px-5 py-10 text-center">
-            <CpuIcon className="mx-auto size-8 text-[var(--muted)]" />
-            <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">还没有使用配置</p>
+          <section className="rounded-lg border border-dashed border-line bg-glass-52 px-5 py-10 text-center">
+            <CpuIcon className="mx-auto size-8 text-muted" />
+            <p className="mt-3 text-xl font-medium text-ink">还没有使用配置</p>
             <Button
               size="sm"
               className="mt-4"

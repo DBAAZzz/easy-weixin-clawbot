@@ -1,25 +1,202 @@
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
-:root {
-  color-scheme: light;
+/* ===== Theme Tokens (主真源) ===== */
+@theme {
+  /* ── Color: Foundation (solid) ── */
+  --color-paper: #f4f7f8;
+  --color-surface: #edf2f4;
+  --color-ink: #15202b;
+  --color-ink-deep: #111827;
+  --color-ink-soft: #233140;
+  --color-muted: #667383;
+  --color-muted-strong: #4b5969;
+  --color-accent: #156e63;
+  --color-accent-strong: #0f5b52;
+
+  /* ── Color: Foundation (rgba, reference :root vars) ── */
+  --color-panel: var(--panel);
+  --color-panel-strong: var(--panel-strong);
+  --color-sidebar: var(--sidebar);
+  --color-accent-soft: var(--accent-soft);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  /* ── Color: Extended palette ── */
+  --color-ring-accent: rgba(21, 110, 99, 0.14);
+  --color-accent-mist: rgba(21, 110, 99, 0.08);
+  --color-accent-border: rgba(21, 110, 99, 0.12);
+  --color-accent-border-strong: rgba(21, 110, 99, 0.18);
+  --color-overlay: rgba(15, 23, 42, 0.24);
+  --color-overlay-strong: rgba(15, 23, 42, 0.28);
+  --color-toggle-off: rgba(148, 163, 184, 0.34);
+  --color-toggle-off-strong: rgba(148, 163, 184, 0.38);
+  --color-toggle-border: rgba(28, 100, 242, 0.14);
+  --color-notice-error-bg: rgba(254, 242, 242, 0.9);
+  --color-notice-error-border: rgba(185, 28, 28, 0.12);
+  --color-notice-success-bg: rgba(240, 253, 250, 0.92);
+  --color-notice-success-border: rgba(21, 110, 99, 0.14);
+  --color-detail-bg: rgba(247, 250, 251, 0.84);
+  --color-table-header: rgba(246, 249, 250, 0.92);
+  --color-card-line: rgba(21, 32, 43, 0.08);
+  --color-card-bg: rgba(255, 255, 255, 0.88);
+  --color-card-hover: rgba(255, 255, 255, 0.96);
+  --color-ghost-hover: rgba(21, 32, 43, 0.04);
+  --color-hover-bg: rgba(246, 249, 250, 0.9);
+  --color-detail-bg-strong: rgba(255, 255, 255, 0.94);
+  --color-state-success: #22c55e;
+  --color-state-error: #ef4444;
+  --color-state-warning: #f59e0b;
+  --color-modal-border: rgba(21, 32, 43, 0.1);
+  --color-accent-hover: rgba(21, 110, 99, 0.04);
+  --color-accent-active: rgba(21, 110, 99, 0.12);
+  --color-accent-ring-soft: rgba(21, 110, 99, 0.15);
+  --color-accent-subtle: rgba(21, 110, 99, 0.06);
+  --color-accent-border-active: rgba(21, 110, 99, 0.2);
+  --color-accent-mist-strong: rgba(21, 110, 99, 0.07);
+  --color-accent-selected: rgba(21, 110, 99, 0.38);
+  --color-accent-selected-ring: rgba(21, 110, 99, 0.1);
+  --color-slate-border: rgba(148, 163, 184, 0.14);
+  --color-slate-border-soft: rgba(148, 163, 184, 0.12);
+  --color-slate-border-strong: rgba(148, 163, 184, 0.24);
+  --color-slate-border-26: rgba(148, 163, 184, 0.26);
+  --color-slate-border-heavy: rgba(148, 163, 184, 0.3);
+  --color-slate-border-18: rgba(148, 163, 184, 0.18);
+  --color-quiet-surface: rgba(252, 253, 255, 0.72);
+  --color-tool-result: rgba(236, 241, 244, 0.96);
+  --color-pane-60: rgba(248, 250, 252, 0.6);
+  --color-pane-70: rgba(248, 250, 252, 0.7);
+  --color-pane-74: rgba(248, 250, 252, 0.74);
+  --color-pane-78: rgba(246, 249, 250, 0.78);
+  --color-pane-80: rgba(248, 250, 252, 0.8);
+  --color-pane-82: rgba(248, 250, 251, 0.82);
+  --color-pane-82-cool: rgba(246, 249, 250, 0.82);
+  --color-pane-90: rgba(247, 250, 251, 0.9);
+  --color-pane-95: rgba(248, 250, 252, 0.95);
+  --color-pane-98: rgba(248, 250, 251, 0.98);
+  --color-shell-soft: rgba(252, 253, 253, 0.9);
+  --color-success-solid: rgba(240, 253, 250, 1);
+  --color-indigo-soft: rgba(99, 102, 241, 0.06);
+  --color-indigo-medium: rgba(99, 102, 241, 0.6);
+  --color-icon-muted: #999;
+  --color-notice-error-border-strong: rgba(185, 28, 28, 0.14);
+  --color-notice-error-bg-strong: rgba(254, 242, 242, 0.92);
+
+  /* ── Color: Glass / Frost ── */
+  --color-glass-48: rgba(255, 255, 255, 0.48);
+  --color-glass-52: rgba(255, 255, 255, 0.52);
+  --color-glass-74: rgba(255, 255, 255, 0.74);
+  --color-glass-66: rgba(255, 255, 255, 0.66);
+  --color-glass-68: rgba(255, 255, 255, 0.68);
+  --color-glass-72: rgba(255, 255, 255, 0.72);
+  --color-glass-76: rgba(255, 255, 255, 0.76);
+  --color-glass-78: rgba(255, 255, 255, 0.78);
+  --color-glass-80: rgba(255, 255, 255, 0.8);
+  --color-glass-82: rgba(255, 255, 255, 0.82);
+  --color-glass-84: rgba(255, 255, 255, 0.84);
+  --color-glass-86: rgba(255, 255, 255, 0.86);
+  --color-glass-88: rgba(255, 255, 255, 0.88);
+  --color-glass-90: rgba(255, 255, 255, 0.9);
+  --color-glass-92: rgba(255, 255, 255, 0.92);
+  --color-frost-86: rgba(248, 250, 252, 0.86);
+  --color-frost-92: rgba(247, 250, 251, 0.92);
+  --color-slate-wash: rgba(148, 163, 184, 0.12);
+  --color-slate-wash-soft: rgba(148, 163, 184, 0.08);
+
+  /* ── Radius ── */
+  --radius-card: 10px;
+  --radius-xs: 3px;
+  --radius-panel: 12px;
+  --radius-control: 14px;
+  --radius-section: 18px;
+  --radius-dialog: 28px;
+  --radius-pill: 30px;
+
+  /* ── Shadow ── */
+  --shadow-btn: 0 1px 3px rgba(15, 23, 42, 0.2);
+  --shadow-btn-soft: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-card: 0 20px 40px -34px rgba(15, 23, 42, 0.16);
+  --shadow-card-hover: 0 22px 55px -42px rgba(15, 23, 42, 0.45);
+  --shadow-float: 0 8px 18px -10px rgba(15, 23, 42, 0.45);
+  --shadow-popover: 0 8px 30px -8px rgba(15, 23, 42, 0.18);
+  --shadow-modal: 0 40px 120px -56px rgba(15, 23, 42, 0.52);
+  --shadow-logo: 0 16px 34px -22px rgba(15, 23, 42, 0.45);
+  --shadow-menu: 0 24px 55px -32px rgba(15, 23, 42, 0.42);
+  --shadow-elevation: 0 22px 55px -42px rgba(15, 23, 42, 0.38);
+  --shadow-accent-xs: 0 1px 2px rgba(21, 110, 99, 0.06);
+  --shadow-popover-strong: 0 10px 24px -18px rgba(15, 23, 42, 0.45);
+  --shadow-overflow-btn: 0 8px 20px -16px rgba(15, 23, 42, 0.45);
+  --shadow-bubble: 0 16px 30px -28px rgba(15, 23, 42, 0.28);
+  --shadow-graph: 0 32px 72px -52px rgba(15, 23, 42, 0.36);
+  --shadow-legend: 0 24px 48px -36px rgba(15, 23, 42, 0.35);
+  --shadow-convo-active: 0 10px 24px -18px rgba(15, 23, 42, 0.34);
+  --shadow-inset-white: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --shadow-legend-dot: 0 0 0 3px rgba(255, 255, 255, 0.85);
+  --shadow-focus-accent: 0 0 0 3px rgba(21, 110, 99, 0.14);
+
+  /* ── Font Family ── */
   --font-sans:
     "Outfit", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", "Menlo", "Monaco", monospace;
-  --paper: #f4f7f8;
-  --surface: #edf2f4;
+
+  /* ── Font Size ── */
+  --text-2xs: 9px;
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 12px;
+  --text-md: 13px;
+  --text-lg: 14px;
+  --text-xl: 15px;
+  --text-2xl: 16px;
+  --text-3xl: 18px;
+  --text-4xl: 20px;
+  --text-5xl: 22px;
+  --text-6xl: 24px;
+
+  /* ── Easing ── */
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ── Tracking (Letter Spacing) ── */
+  --tracking-label: 0.2em;
+  --tracking-label-lg: 0.22em;
+  --tracking-label-xl: 0.24em;
+  --tracking-mono: 0.04em;
+  --tracking-tag: 0.08em;
+  --tracking-flag: 0.1em;
+  --tracking-badge: 0.12em;
+  --tracking-wide: 0.15em;
+  --tracking-caps: 0.16em;
+  --tracking-caps-lg: 0.18em;
+  --tracking-title: -0.03em;
+  --tracking-heading: -0.04em;
+  --tracking-body: -0.01em;
+
+  /* ── Animation ── */
+  --animate-select-in: selectIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-rise: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===== Runtime Variables & Compat Layer ===== */
+:root {
+  color-scheme: light;
+
+  /* ── RGBA values (runtime, referenced by @theme) ── */
   --panel: rgba(255, 255, 255, 0.78);
   --panel-strong: rgba(255, 255, 255, 0.92);
   --sidebar: rgba(247, 250, 251, 0.86);
-  --ink: #15202b;
-  --ink-soft: #233140;
-  --muted: #667383;
-  --muted-strong: #4b5969;
-  --accent: #156e63;
-  --accent-strong: #0f5b52;
   --accent-soft: rgba(21, 110, 99, 0.1);
   --line: rgba(21, 32, 43, 0.08);
   --line-strong: rgba(21, 32, 43, 0.16);
+
+  /* ── Compat: old var names → @theme token vars ── */
+  --ink: var(--color-ink);
+  --ink-soft: var(--color-ink-soft);
+  --muted: var(--color-muted);
+  --muted-strong: var(--color-muted-strong);
+  --accent: var(--color-accent);
+  --accent-strong: var(--color-accent-strong);
+  --paper: var(--color-paper);
+  --surface: var(--color-surface);
 }
 
 * {
@@ -181,7 +358,7 @@ pre {
 
 .reveal-up {
   opacity: 0;
-  animation: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: var(--animate-rise);
 }
 
 .status-dot {
@@ -194,4 +371,41 @@ pre {
     radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.05), transparent 40%),
     radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 38%),
     linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.9));
+}
+
+@utility bg-sidebar-shell {
+  background: linear-gradient(180deg, rgba(247, 250, 251, 0.94), rgba(241, 245, 247, 0.98));
+}
+
+@utility bg-main-shell {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 250, 251, 0.96));
+}
+
+@utility bg-qr-shell {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 250, 251, 0.94));
+}
+
+@utility bg-qr-shell-soft {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 250, 251, 0.94));
+}
+
+@utility bg-account-avatar {
+  background: linear-gradient(180deg, rgba(243, 247, 248, 0.92), rgba(233, 238, 241, 0.88));
+}
+
+@utility bg-tooltip-value {
+  background: linear-gradient(180deg, rgba(247, 249, 251, 0.96), rgba(255, 255, 255, 0.86));
+}
+
+@utility bg-metric-gradient {
+  background: linear-gradient(90deg, rgba(21, 110, 99, 0.82), rgba(15, 118, 110, 0.42));
+}
+
+@utility qr-ascii {
+  display: inline-block;
+  background: #fff;
+  color: var(--color-ink-deep);
+  font-size: 8px;
+  line-height: 9px;
+  letter-spacing: 0;
 }

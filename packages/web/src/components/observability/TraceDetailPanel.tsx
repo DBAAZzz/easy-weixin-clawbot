@@ -22,24 +22,23 @@ export function TraceDetailPanel(props: {
         </div>
       ) : props.trace ? (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--line)] bg-[rgba(248,250,252,0.7)] px-4 py-3">
-            <p className="font-[var(--font-mono)] text-[12px] text-[var(--ink)]">
-              {props.trace.trace_id}
-            </p>
+          <div className="bg-pane-70 flex flex-wrap items-center gap-3 rounded-2xl border border-line px-4 py-3">
+            {" "}
+            <p className="font-mono text-base text-ink">{props.trace.trace_id}</p>
             {traceStatus ? (
               <span
                 className={cn(
-                  "rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]",
+                  "rounded-full border px-2 py-1 text-xs font-semibold uppercase tracking-tag",
                   traceStatus.className,
                 )}
               >
                 {traceStatus.label}
               </span>
             ) : null}
-            <span className="text-[11px] text-[var(--muted)]">
+            <span className="text-sm text-muted">
               {props.trace.account_id} · {props.trace.conversation_id}
             </span>
-            <span className="text-[11px] text-[var(--muted)]">
+            <span className="text-sm text-muted">
               {formatMs(props.trace.total_ms)} · {formatCount(props.trace.llm_rounds)} rounds ·{" "}
               {formatCount(props.trace.tool_calls)} tools
             </span>
@@ -49,7 +48,7 @@ export function TraceDetailPanel(props: {
           <WaterfallTimeline trace={props.trace} />
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-[var(--line)] bg-white/52 px-4 py-8 text-[12px] leading-6 text-[var(--muted)]">
+        <div className="rounded-lg border border-dashed border-line bg-white/52 px-4 py-8 text-base leading-6 text-muted">
           这条 trace 可能已被清理，或者当前账号没有权限访问。
         </div>
       )}

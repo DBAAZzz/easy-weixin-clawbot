@@ -221,24 +221,20 @@ function TaskRunsModal({
         type="button"
         aria-label="关闭运行记录弹窗"
         onClick={onClose}
-        className="absolute inset-0 bg-[rgba(15,23,42,0.24)] backdrop-blur-[8px]"
+        className="absolute inset-0 bg-overlay backdrop-blur-[8px]"
       />
 
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[30px] border border-[rgba(21,32,43,0.1)] bg-[rgba(255,255,255,0.96)] shadow-[0_40px_120px_-56px_rgba(15,23,42,0.52)]"
+        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-pill border border-modal-border bg-card-hover shadow-modal"
       >
-        <div className="border-b border-[var(--line)] px-5 py-4 md:px-6">
+        <div className="border-b border-line px-5 py-4 md:px-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                Task Runs
-              </p>
-              <h3 className="mt-1.5 text-[22px] font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                运行记录
-              </h3>
-              <p className="mt-2 text-[13px] leading-6 text-[var(--muted)]">
+              <p className="text-xs uppercase tracking-label-xl text-muted">Task Runs</p>
+              <h3 className="mt-1.5 text-5xl font-semibold tracking-heading text-ink">运行记录</h3>
+              <p className="mt-2 text-md leading-6 text-muted">
                 {task.name} ·{" "}
                 {account?.alias || account?.display_name || task.accountId.slice(0, 12)}
               </p>
@@ -247,7 +243,7 @@ function TaskRunsModal({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-white/80 text-[var(--muted-strong)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-muted-strong transition hover:border-line-strong hover:text-ink"
             >
               <XIcon className="size-4" />
             </button>
@@ -267,20 +263,17 @@ function TaskRunsModal({
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-[18px] border border-[var(--line)] bg-[rgba(247,250,251,0.84)] p-4"
-                >
-                  <div className="ui-skeleton h-5 w-1/3 rounded-[8px]" />
-                  <div className="mt-2 ui-skeleton h-4 w-2/3 rounded-[8px]" />
+                <div key={i} className="rounded-section border border-line bg-detail-bg p-4">
+                  <div className="ui-skeleton h-5 w-1/3 rounded-lg" />
+                  <div className="mt-2 ui-skeleton h-4 w-2/3 rounded-lg" />
                 </div>
               ))}
             </div>
           ) : !runs || runs.length === 0 ? (
-            <div className="rounded-[28px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-10 text-center">
-              <HistoryIcon className="mx-auto size-8 text-[var(--muted)]" />
-              <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">暂无运行记录</p>
-              <p className="mt-2 text-[12px] leading-6 text-[var(--muted)]">
+            <div className="rounded-dialog border border-dashed border-line bg-glass-48 px-5 py-10 text-center">
+              <HistoryIcon className="mx-auto size-8 text-muted" />
+              <p className="mt-3 text-xl font-medium text-ink">暂无运行记录</p>
+              <p className="mt-2 text-base leading-6 text-muted">
                 该任务尚未执行过，或执行记录已被清理。
               </p>
             </div>
@@ -289,17 +282,15 @@ function TaskRunsModal({
               {runs!.map((run) => (
                 <div
                   key={run.id}
-                  className="rounded-[18px] border border-[rgba(21,32,43,0.08)] bg-[rgba(247,250,251,0.84)] px-4 py-4 transition hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)]"
+                  className="rounded-section border border-card-line bg-detail-bg px-4 py-4 transition hover:border-notice-success-border hover:bg-card-hover"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-2">
                       <RunStatusBadge status={run.status} />
-                      <span className="text-[11px] text-[var(--muted)]">
-                        {formatDateTime(run.createdAt)}
-                      </span>
+                      <span className="text-sm text-muted">{formatDateTime(run.createdAt)}</span>
                     </div>
                     {run.durationMs ? (
-                      <span className="text-[11px] text-[var(--muted-strong)]">
+                      <span className="text-sm text-muted-strong">
                         耗时 {formatDuration(run.durationMs)}
                       </span>
                     ) : null}
@@ -307,21 +298,15 @@ function TaskRunsModal({
 
                   {run.result ? (
                     <div className="mt-3">
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">
-                        执行结果
-                      </p>
-                      <p className="mt-1 line-clamp-3 text-[12px] leading-5 text-[var(--ink)]">
-                        {run.result}
-                      </p>
+                      <p className="text-xs uppercase tracking-label text-muted">执行结果</p>
+                      <p className="mt-1 line-clamp-3 text-base leading-5 text-ink">{run.result}</p>
                     </div>
                   ) : null}
 
                   {run.error ? (
-                    <div className="mt-3 rounded-[12px] border border-red-200 bg-red-50 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-red-600">
-                        错误信息
-                      </p>
-                      <p className="mt-1 text-[12px] leading-5 text-red-700">{run.error}</p>
+                    <div className="mt-3 rounded-panel border border-red-200 bg-red-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-label text-red-600">错误信息</p>
+                      <p className="mt-1 text-base leading-5 text-red-700">{run.error}</p>
                     </div>
                   ) : null}
                 </div>
@@ -330,7 +315,7 @@ function TaskRunsModal({
           )}
         </div>
 
-        <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-[var(--line)] bg-[rgba(255,255,255,0.92)] px-5 py-4 md:px-6">
+        <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-line bg-glass-92 px-5 py-4 md:px-6">
           <Button type="button" variant="outline" onClick={onClose}>
             关闭
           </Button>
@@ -374,8 +359,8 @@ function ScheduledTaskCard({
     <>
       <div
         className={cn(
-          "reveal-up group relative rounded-lg border border-[rgba(21,32,43,0.08)] bg-[rgba(255,255,255,0.88)] shadow-[0_22px_55px_-42px_rgba(15,23,42,0.38)] transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[rgba(21,110,99,0.14)] hover:bg-[rgba(255,255,255,0.96)]",
-          expanded && "border-[rgba(21,110,99,0.14)] bg-[rgba(255,255,255,0.96)]",
+          "reveal-up group relative rounded-lg border border-card-line bg-card-bg shadow-elevation transition duration-200 ease-expo hover:-translate-y-0.5 hover:border-notice-success-border hover:bg-card-hover",
+          expanded && "border-notice-success-border bg-card-hover",
         )}
       >
         <div className="flex items-start gap-3 px-5 pt-5">
@@ -384,7 +369,7 @@ function ScheduledTaskCard({
               "flex size-10 shrink-0 items-center justify-center rounded-lg border transition",
               task.enabled
                 ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                : "border-[var(--line)] bg-[rgba(148,163,184,0.08)] text-[var(--muted)]",
+                : "border-line bg-slate-wash-soft text-muted",
             )}
           >
             <ClockIcon className="size-5" />
@@ -392,12 +377,12 @@ function ScheduledTaskCard({
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="truncate text-[14px] font-semibold tracking-[-0.03em] text-[var(--ink)]">
+              <span className="truncate text-lg font-semibold tracking-title text-ink">
                 {task.name}
               </span>
-              <span className="text-[11px] text-[var(--muted)]">#{task.seq}</span>
+              <span className="text-sm text-muted">#{task.seq}</span>
             </div>
-            <p className="mt-0.5 truncate text-[12px] text-[var(--muted)]">
+            <p className="mt-0.5 truncate text-base text-muted">
               {accountLabel} · {task.conversationId}
             </p>
           </div>
@@ -487,18 +472,19 @@ function ScheduledTaskCard({
         </div>
 
         {expanded ? (
-          <div className="border-t border-[var(--line)]/40 px-5 py-3">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Prompt</p>
-            <div className="mt-1.5 max-h-[180px] overflow-y-auto rounded-[10px] border border-[var(--line)] bg-[rgba(247,250,251,0.9)] px-3 py-2.5">
-              <pre className="whitespace-pre-wrap font-mono text-[11px] leading-[1.6] text-[var(--ink)]">
+          <div className="border-t border-line/40 px-5 py-3">
+            <p className="text-xs uppercase tracking-caps-lg text-muted">Prompt</p>
+            <div className="bg-pane-90 mt-1.5 max-h-[180px] overflow-y-auto rounded-card border border-line px-3 py-2.5">
+              {" "}
+              <pre className="whitespace-pre-wrap font-mono text-sm leading-[1.6] text-ink">
                 {task.prompt}
               </pre>
             </div>
 
             {task.lastError ? (
-              <div className="mt-2.5 rounded-[10px] border border-red-200 bg-red-50/80 px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-red-600">最近错误</p>
-                <p className="mt-1 text-[11px] leading-[1.5] text-red-700">{task.lastError}</p>
+              <div className="mt-2.5 rounded-card border border-red-200 bg-red-50/80 px-3 py-2.5">
+                <p className="text-xs uppercase tracking-caps-lg text-red-600">最近错误</p>
+                <p className="mt-1 text-sm leading-[1.5] text-red-700">{task.lastError}</p>
               </div>
             ) : null}
           </div>
@@ -564,10 +550,8 @@ export function ScheduledTasksPage() {
       <section className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
-              Scheduled Tasks
-            </p>
-            <h2 className="mt-1.5 text-[24px] text-[var(--ink)]">定时任务</h2>
+            <p className="text-xs uppercase tracking-label-xl text-muted">Scheduled Tasks</p>
+            <h2 className="mt-1.5 text-6xl text-ink">定时任务</h2>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -579,7 +563,7 @@ export function ScheduledTasksPage() {
         </div>
 
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
             <Badge tone="muted">总数 {formatCount(stats.total)}</Badge>
             <Badge tone="online">启用 {formatCount(stats.enabled)}</Badge>
             <Badge tone="warning">运行中 {formatCount(stats.running)}</Badge>
@@ -600,7 +584,7 @@ export function ScheduledTasksPage() {
       </section>
 
       {error ? (
-        <div className="rounded-[18px] border border-[rgba(185,28,28,0.12)] bg-[rgba(254,242,242,0.9)] px-4 py-3 text-[12px] leading-6 text-red-700">
+        <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
           加载定时任务失败：{error}
         </div>
       ) : null}
@@ -610,13 +594,13 @@ export function ScheduledTasksPage() {
           {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
-              className="overflow-hidden rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.8)] px-4 py-4 md:px-5"
+              className="overflow-hidden rounded-lg border border-line bg-glass-80 px-4 py-4 md:px-5"
             >
               <div className="flex items-center gap-3">
                 <div className="ui-skeleton size-10 rounded-lg" />
                 <div className="min-w-0 flex-1 space-y-2">
-                  <div className="ui-skeleton h-5 rounded-[8px]" />
-                  <div className="ui-skeleton h-4 rounded-[8px]" />
+                  <div className="ui-skeleton h-5 rounded-lg" />
+                  <div className="ui-skeleton h-4 rounded-lg" />
                 </div>
               </div>
               <div className="mt-4 space-y-2">
@@ -629,16 +613,16 @@ export function ScheduledTasksPage() {
       ) : null}
 
       {!loading && filteredTasks.length === 0 ? (
-        <section className="rounded-[28px] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.48)] px-5 py-10 text-center">
-          <ClockIcon className="mx-auto size-8 text-[var(--muted)]" />
-          <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">暂无定时任务</p>
+        <section className="rounded-dialog border border-dashed border-line bg-glass-48 px-5 py-10 text-center">
+          <ClockIcon className="mx-auto size-8 text-muted" />
+          <p className="mt-3 text-xl font-medium text-ink">暂无定时任务</p>
         </section>
       ) : null}
 
       {!loading && filteredTasks.length > 0 ? (
         <section className="space-y-3">
-          <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
-            <ClockIcon className="size-4 text-[var(--muted-strong)]" />
+          <div className="flex items-center gap-2 text-sm text-muted">
+            <ClockIcon className="size-4 text-muted-strong" />
             <span>
               当前展示 {formatCount(filteredTasks.length)} 个定时任务
               {searchQuery && " (搜索结果)"}

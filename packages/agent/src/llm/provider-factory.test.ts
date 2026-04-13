@@ -35,6 +35,14 @@ test("kimi provider uses official provider package", () => {
   assert.match((model as { provider?: string }).provider ?? "", /^moonshotai/);
 });
 
+test("kimi-coding provider uses anthropic-compatible provider package", () => {
+  const { model } = createLanguageModel("kimi-coding", "kimi-for-coding", {
+    apiKey: "test-key",
+  });
+
+  assert.match((model as { provider?: string }).provider ?? "", /^anthropic/);
+});
+
 test("xai provider uses official provider package", () => {
   const { model } = createLanguageModel("xai", "grok-3", {
     apiKey: "test-key",

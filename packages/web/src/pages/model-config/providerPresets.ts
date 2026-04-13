@@ -44,7 +44,7 @@ export const MODEL_PROVIDER_PRESETS: ModelProviderPreset[] = [
     label: "Kimi",
     provider: "kimi",
     description: "Kimi 国际版端点",
-    baseUrlPlaceholder: "https://api.kimi.ai/v1",
+    baseUrlPlaceholder: "https://api.moonshot.cn/v1",
     suggestedModelIds: ["kimi-k2.5", "kimi-latest"],
   },
   {

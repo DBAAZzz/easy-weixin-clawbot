@@ -128,3 +128,49 @@ export function compileTool(source: ToolSource): CompiledTool {
     },
   };
 }
+
+/**
+ * Public alias of buildToolParameters for use by skill compiler (companion tool).
+ */
+export function buildToolParametersFromDefs(inputSchema: Record<string, ParameterDef>): ZodTypeAny {
+  return buildToolParameters(inputSchema);
+}
+
+/**
+ * Compile a companion tool from individual parts (used by skill compiler).
+ * Creates a ToolSource internally, looks up the handler, and returns a CompiledTool.
+ */
+export function compileToolFromParts(parts: {
+  name: string;
+  summary: string;
+  handler: string;
+  handlerConfig: Record<string, unknown>;
+  inputSchema: Record<string, ParameterDef>;
+  body: string;
+  filePath: string;
+}): CompiledTool {
+  const handler = getNativeHandler(parts.handler);
+  if (!handler) {
+    throw new Error(`Unknown tool handler "${parts.handler}" for companion tool "${parts.name}"`);
+  }
+
+  const source: ToolSource = {
+    name: parts.name,
+    version: "0.0.0",
+    type: "tool",
+    summary: parts.summary,
+    handler: parts.handler,
+    handlerConfig: parts.handlerConfig,
+    inputSchema: parts.inputSchema,
+    body: parts.body,
+    filePath: parts.filePath,
+  };
+
+  return {
+    source,
+    parameters: buildToolParameters(parts.inputSchema),
+    execute(args, ctx) {
+      return handler.execute(args, parts.handlerConfig, ctx);
+    },
+  };
+}

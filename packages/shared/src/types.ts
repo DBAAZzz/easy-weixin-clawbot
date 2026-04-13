@@ -92,6 +92,38 @@ export interface SkillInfo {
   activation: "always" | "on-demand";
   origin: "builtin" | "user";
   enabled: boolean;
+  installedAt?: string;
+  filePath?: string;
+  hasCompanionTool?: boolean;
+  hasRuntime?: boolean;
+  provisionStatus?: "pending" | "provisioning" | "ready" | "failed";
+  provisionError?: string;
+}
+
+export interface SkillLocalRunCheckItem {
+  status: "ok" | "fail" | "info";
+  message: string;
+}
+
+export interface SkillLocalRunCheck {
+  canRunNow: boolean;
+  checks: SkillLocalRunCheckItem[];
+}
+
+export interface SkillUploadResult extends SkillInfo {
+  localRunCheck?: SkillLocalRunCheck;
+}
+
+export interface SkillProvisionPlan {
+  runtime: "python" | "node";
+  steps: string[];
+  dependencies: string[];
+}
+
+export interface SkillProvisionLog {
+  level: "info" | "warn" | "error";
+  message: string;
+  timestamp: number;
 }
 
 export interface MarkdownSource {

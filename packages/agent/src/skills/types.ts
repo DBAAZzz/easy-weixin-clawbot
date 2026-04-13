@@ -1,4 +1,13 @@
+import type { CompiledTool, ParameterDef } from "../tools/types.js";
+
 export type SkillActivation = "always" | "on-demand";
+
+export interface SkillRuntimeDecl {
+  type: "python" | "node";
+  dependencies: string[];
+}
+
+export type ProvisionStatus = "pending" | "provisioning" | "ready" | "failed";
 
 export interface SkillSource {
   name: string;
@@ -9,10 +18,19 @@ export interface SkillSource {
   activation: SkillActivation;
   body: string;
   filePath: string;
+
+  // Optional: companion tool fields
+  handler?: string;
+  handlerConfig?: Record<string, unknown>;
+  inputSchema?: Record<string, ParameterDef>;
+
+  // Optional: runtime declaration
+  runtime?: SkillRuntimeDecl;
 }
 
 export interface CompiledSkill {
   source: SkillSource;
+  companionTool?: CompiledTool;
 }
 
 export interface InstalledSkill {
@@ -20,6 +38,8 @@ export interface InstalledSkill {
   origin: "builtin" | "user";
   enabled: boolean;
   installedAt: string;
+  provisionStatus?: ProvisionStatus;
+  provisionError?: string;
 }
 
 export interface SkillSnapshot {
@@ -39,6 +59,10 @@ export interface SkillCatalogItem {
   enabled: boolean;
   installedAt: string;
   filePath: string;
+  hasCompanionTool?: boolean;
+  hasRuntime?: boolean;
+  provisionStatus?: ProvisionStatus;
+  provisionError?: string;
 }
 
 export interface InstallerError {
@@ -64,8 +88,11 @@ export interface SkillInstaller {
   getSource(name: string): Promise<string | null>;
   validate(markdown: string): Promise<SkillCatalogItem>;
   install(markdown: string): Promise<SkillCatalogItem>;
+  installDirectory(sourceDir: string): Promise<SkillCatalogItem>;
   update(name: string, markdown: string): Promise<SkillCatalogItem>;
   remove(name: string): Promise<void>;
   enable(name: string): Promise<SkillCatalogItem>;
   disable(name: string): Promise<SkillCatalogItem>;
+  getInstalled(name: string): InstalledSkill | null;
+  setProvisionStatus(name: string, status: ProvisionStatus, error?: string): Promise<void>;
 }

@@ -30,6 +30,11 @@ export type {
   ModelProviderTemplatePingDto,
   PaginatedResponse,
   SkillInfo,
+  SkillLocalRunCheck,
+  SkillLocalRunCheckItem,
+  SkillUploadResult,
+  SkillProvisionPlan,
+  SkillProvisionLog,
   ToolInfo,
   ToolDef,
 } from "./types.js";

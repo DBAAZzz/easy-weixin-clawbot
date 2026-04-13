@@ -125,7 +125,8 @@ pnpm -F @clawbot/server prisma:push
 | `anthropic` | `@ai-sdk/anthropic` |
 | `google` | `@ai-sdk/google` |
 | `deepseek` | `@ai-sdk/deepseek` |
-| `moonshot` / `kimi` / `kimi-coding` | `@ai-sdk/moonshotai` |
+| `moonshot` / `kimi` | `@ai-sdk/moonshotai` |
+| `kimi-coding` | `@ai-sdk/anthropic`（Anthropic-compatible） |
 | `xai` | `@ai-sdk/xai` |
 | `groq` | `@ai-sdk/groq` |
 | `mistral` | `@ai-sdk/mistral` |
@@ -136,6 +137,7 @@ pnpm -F @clawbot/server prisma:push
 
 - 统一使用 `LLM_API_KEY`
 - 或使用 provider 对应标准变量名：`OPENAI_API_KEY`、`ANTHROPIC_API_KEY`、`GOOGLE_API_KEY`、`DEEPSEEK_API_KEY`、`MOONSHOT_API_KEY`、`XAI_API_KEY`、`GROQ_API_KEY`、`MISTRAL_API_KEY`
+- 可选使用 `LLM_BASE_URL` 覆盖 provider 默认端点（例如私有网关或第三方兼容地址）
 
 常见配置示例：
 
@@ -154,6 +156,12 @@ ANTHROPIC_API_KEY=your-api-key
 LLM_PROVIDER=moonshot
 LLM_MODEL=kimi-k2.5
 MOONSHOT_API_KEY=your-api-key
+
+# Kimi Coding（Anthropic-compatible 端点）
+LLM_PROVIDER=kimi-coding
+LLM_MODEL=kimi-for-coding
+KIMI_API_KEY=sk-kimi-xxxxxxxx
+LLM_BASE_URL=https://api.kimi.com/coding/v1
 ```
 
 ### 启动

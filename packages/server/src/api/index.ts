@@ -1,4 +1,4 @@
-import type { SkillInstaller, ToolInstaller } from "@clawbot/agent";
+import type { SkillInstaller, ToolInstaller, RuntimeProvisioner } from "@clawbot/agent";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -33,6 +33,7 @@ export interface ApiDependencies {
   toolInstaller: ToolInstaller;
   skillInstaller: SkillInstaller;
   mcpManager: McpManager;
+  provisioner?: RuntimeProvisioner;
   observability?: ObservabilityRouteService;
   startedAt: Date;
 }
@@ -77,7 +78,7 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerMessageRoutes(app);
   registerLoginRoutes(app, dependencies.loginManager);
   registerToolRoutes(app, dependencies.toolInstaller);
-  registerSkillRoutes(app, dependencies.skillInstaller, dependencies.toolInstaller);
+  registerSkillRoutes(app, dependencies.skillInstaller, dependencies.toolInstaller, dependencies.provisioner);
   registerMcpRoutes(app, dependencies.mcpManager);
   registerModelProviderTemplateRoutes(app);
   registerModelConfigRoutes(app);

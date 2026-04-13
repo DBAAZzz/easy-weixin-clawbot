@@ -1,9 +1,15 @@
-import { startTransition, useDeferredValue, useEffect, useState } from "react";
-import type { MarkdownSource, SkillInfo } from "@clawbot/shared";
+import { startTransition, useDeferredValue, useEffect, useRef, useState, type ChangeEvent } from "react";
+import type {
+  MarkdownSource,
+  SkillInfo,
+  SkillLocalRunCheck,
+  SkillProvisionLog,
+  SkillProvisionPlan,
+} from "@clawbot/shared";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
-import { ActivityIcon, PuzzleIcon, SearchIcon, XIcon } from "../components/ui/icons.js";
+import { ActivityIcon, PuzzleIcon, SearchIcon, UploadIcon, XIcon } from "../components/ui/icons.js";
 import { useQuery } from "@tanstack/react-query";
 import { useSkills } from "../hooks/useSkills.js";
 import { fetchSkillSource } from "@/api/skills.js";
@@ -17,6 +23,28 @@ function formatActivationLabel(activation: SkillInfo["activation"]) {
 
 function formatOriginLabel(origin: SkillInfo["origin"]) {
   return origin === "builtin" ? "内置" : "用户层";
+}
+
+function formatProvisionStatusLabel(status?: SkillInfo["provisionStatus"]) {
+  if (!status) return "未声明";
+  if (status === "pending") return "待安装";
+  if (status === "provisioning") return "安装中";
+  if (status === "ready") return "已就绪";
+  return "失败";
+}
+
+function provisionTone(status?: SkillInfo["provisionStatus"]): "muted" | "warning" | "online" | "error" {
+  if (!status) return "muted";
+  if (status === "pending") return "warning";
+  if (status === "provisioning") return "warning";
+  if (status === "ready") return "online";
+  return "error";
+}
+
+function runCheckTone(status: "ok" | "fail" | "info"): "online" | "error" | "muted" {
+  if (status === "ok") return "online";
+  if (status === "fail") return "error";
+  return "muted";
 }
 
 function SkillAvatar(props: { origin: SkillInfo["origin"] }) {
@@ -144,8 +172,15 @@ function SkillDetailModal(props: {
   skill: SkillInfo;
   source: { data: MarkdownSource | null; loading: boolean; error: string | null };
   toggleBusy: boolean;
+  provisionBusy: boolean;
+  preflight: SkillProvisionPlan | null;
+  preflightError: string | null;
+  logs: SkillProvisionLog[];
   onClose: () => void;
   onToggle: () => void | Promise<void>;
+  onPreflight: () => void | Promise<void>;
+  onProvision: () => void | Promise<void>;
+  onReprovision: () => void | Promise<void>;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
@@ -195,6 +230,11 @@ function SkillDetailModal(props: {
             </Badge>
             <Badge tone="muted">{formatActivationLabel(props.skill.activation)}</Badge>
             <Badge tone="muted">{formatOriginLabel(props.skill.origin)}</Badge>
+            {props.skill.hasRuntime ? (
+              <Badge tone={provisionTone(props.skill.provisionStatus)}>
+                运行时：{formatProvisionStatusLabel(props.skill.provisionStatus)}
+              </Badge>
+            ) : null}
           </div>
         </div>
 
@@ -239,6 +279,54 @@ function SkillDetailModal(props: {
               )}
             </div>
           </div>
+
+          {props.skill.hasRuntime ? (
+            <div className="rounded-xl border border-line bg-detail-bg px-4 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-label-lg text-muted">Runtime Provision</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button size="sm" variant="outline" disabled={props.provisionBusy} onClick={() => void props.onPreflight()}>
+                    预检
+                  </Button>
+                  <Button size="sm" disabled={props.provisionBusy} onClick={() => void props.onProvision()}>
+                    {props.provisionBusy ? "安装中…" : "流式安装"}
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={props.provisionBusy} onClick={() => void props.onReprovision()}>
+                    重装
+                  </Button>
+                </div>
+              </div>
+
+              {props.preflightError ? (
+                <div className="mt-3 rounded-section border border-notice-error-border bg-notice-error-bg px-3 py-2 text-sm text-red-700">
+                  预检失败：{props.preflightError}
+                </div>
+              ) : null}
+
+              {props.preflight ? (
+                <div className="mt-3 rounded-section border border-line bg-detail-bg-strong px-3 py-3 text-sm text-ink-soft">
+                  <p>运行时：{props.preflight.runtime}</p>
+                  <p className="mt-1">依赖：{props.preflight.dependencies.join(", ") || "(none)"}</p>
+                  <div className="mt-2 space-y-1">
+                    {props.preflight.steps.map((step) => (
+                      <p key={step}>- {step}</p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="mt-3 rounded-section border border-line bg-detail-bg-strong px-3 py-3">
+                <p className="text-xs uppercase tracking-label text-muted">Provision Logs (SSE)</p>
+                <pre className="mt-2 max-h-52 overflow-auto text-xs leading-5 text-ink-soft">
+                  {props.logs.length > 0
+                    ? props.logs.map((log) => `[${log.level}] ${log.message}`).join("\n")
+                    : "暂无日志"}
+                </pre>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -246,12 +334,30 @@ function SkillDetailModal(props: {
 }
 
 export function SkillsPage() {
-  const { skills, loading, error, refresh, enable, disable } = useSkills();
+  const {
+    skills,
+    loading,
+    error,
+    refresh,
+    enable,
+    disable,
+    uploadFile,
+    preflight,
+    reprovision,
+    streamProvision,
+  } = useSkills();
   const [query, setQuery] = useState("");
   const [activeSkillName, setActiveSkillName] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [pendingToggleName, setPendingToggleName] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadCheck, setUploadCheck] = useState<SkillLocalRunCheck | null>(null);
+  const [provisionBusy, setProvisionBusy] = useState(false);
+  const [preflightPlan, setPreflightPlan] = useState<SkillProvisionPlan | null>(null);
+  const [preflightError, setPreflightError] = useState<string | null>(null);
+  const [provisionLogs, setProvisionLogs] = useState<SkillProvisionLog[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const filteredSkills = skills.filter((skill) => {
@@ -299,6 +405,12 @@ export function SkillsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeSkillName]);
 
+  useEffect(() => {
+    setPreflightPlan(null);
+    setPreflightError(null);
+    setProvisionLogs([]);
+  }, [activeSkillName]);
+
   const enabledCount = skills.filter((skill) => skill.enabled).length;
   const alwaysOnCount = skills.filter((skill) => skill.activation === "always").length;
   const onDemandCount = skills.length - alwaysOnCount;
@@ -306,7 +418,81 @@ export function SkillsPage() {
   async function handleRefresh() {
     setNotice(null);
     setMutationError(null);
+    setUploadCheck(null);
     refresh();
+  }
+
+  async function handleFileUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    // Reset the input so the same file can be re-selected
+    event.target.value = "";
+
+    setNotice(null);
+    setMutationError(null);
+    setUploadCheck(null);
+    setUploading(true);
+
+    try {
+      const result = await uploadFile(file);
+      setNotice(`技能 "${result.name}" 安装成功`);
+      setUploadCheck(result.localRunCheck ?? null);
+    } catch (reason) {
+      setMutationError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handlePreflight(skill: SkillInfo) {
+    setPreflightError(null);
+    setPreflightPlan(null);
+    try {
+      const plan = await preflight(skill.name);
+      setPreflightPlan(plan);
+    } catch (reason) {
+      setPreflightError(reason instanceof Error ? reason.message : String(reason));
+    }
+  }
+
+  async function handleProvision(skill: SkillInfo) {
+    setProvisionBusy(true);
+    setPreflightError(null);
+    setProvisionLogs([]);
+    setMutationError(null);
+
+    try {
+      await streamProvision(skill.name, {
+        onLog: (log) => setProvisionLogs((prev) => [...prev, log]),
+        onError: (payload) => {
+          setMutationError(payload.error);
+        },
+      });
+      await handleRefresh();
+      setNotice(`技能 "${skill.name}" 运行时安装完成`);
+    } catch (reason) {
+      setMutationError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setProvisionBusy(false);
+    }
+  }
+
+  async function handleReprovision(skill: SkillInfo) {
+    setProvisionBusy(true);
+    setMutationError(null);
+    setPreflightError(null);
+    setProvisionLogs([]);
+
+    try {
+      const result = await reprovision(skill.name);
+      setProvisionLogs(result.logs);
+      setNotice(`技能 "${skill.name}" 已完成重装`);
+      await handleRefresh();
+    } catch (reason) {
+      setMutationError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setProvisionBusy(false);
+    }
   }
 
   async function handleToggle(skill: SkillInfo) {
@@ -334,10 +520,28 @@ export function SkillsPage() {
               <h2 className="mt-1.5 text-6xl text-ink">已安装技能</h2>
             </div>
 
-            <Button size="sm" onClick={() => void handleRefresh()}>
-              <ActivityIcon className="size-4" />
-              刷新列表
-            </Button>
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".zip,.md"
+                className="hidden"
+                onChange={(event) => void handleFileUpload(event)}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={uploading}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <UploadIcon className="size-4" />
+                {uploading ? "上传中…" : "上传技能"}
+              </Button>
+              <Button size="sm" onClick={() => void handleRefresh()}>
+                <ActivityIcon className="size-4" />
+                刷新列表
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -375,6 +579,23 @@ export function SkillsPage() {
         {notice ? (
           <div className="rounded-section border border-notice-success-border bg-notice-success-bg px-4 py-3 text-base leading-6 text-accent-strong">
             {notice}
+          </div>
+        ) : null}
+
+        {uploadCheck ? (
+          <div className="rounded-section border border-line bg-detail-bg px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Badge tone={uploadCheck.canRunNow ? "online" : "warning"}>
+                本地可运行检查：{uploadCheck.canRunNow ? "通过" : "未通过"}
+              </Badge>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {uploadCheck.checks.map((check, index) => (
+                <Badge key={`${check.message}-${index}`} tone={runCheckTone(check.status)}>
+                  {check.message}
+                </Badge>
+              ))}
+            </div>
           </div>
         ) : null}
 
@@ -433,8 +654,15 @@ export function SkillsPage() {
           skill={activeSkill}
           source={source}
           toggleBusy={pendingToggleName === activeSkill.name}
+          provisionBusy={provisionBusy}
+          preflight={preflightPlan}
+          preflightError={preflightError}
+          logs={provisionLogs}
           onClose={() => setActiveSkillName(null)}
           onToggle={() => handleToggle(activeSkill)}
+          onPreflight={() => handlePreflight(activeSkill)}
+          onProvision={() => handleProvision(activeSkill)}
+          onReprovision={() => handleReprovision(activeSkill)}
         />
       ) : null}
     </>

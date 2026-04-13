@@ -30,9 +30,21 @@ export type {
   SkillRegistry,
   SkillSnapshot,
   SkillSource,
+  SkillRuntimeDecl,
+  ProvisionStatus,
+  InstalledSkill,
 } from "./skills/types.js";
 export { createSkillRegistry } from "./skills/registry.js";
 export { createSkillInstaller } from "./skills/installer.js";
+export { normalizeFrontmatter } from "./skills/normalizer.js";
+export type { NormalizeResult } from "./skills/normalizer.js";
+export { createRuntimeProvisioner, readManagedMeta } from "./skills/runtime-provisioner.js";
+export type {
+  RuntimeProvisioner,
+  ProvisionPlan,
+  ProvisionLog,
+  ManagedMeta,
+} from "./skills/runtime-provisioner.js";
 export type {
   ToolCatalogItem,
   ToolInstaller,

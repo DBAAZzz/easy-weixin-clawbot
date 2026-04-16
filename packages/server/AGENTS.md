@@ -18,6 +18,7 @@ src/
 ├── index.ts          # 入口：bootstrap MCP → 运行时 → Hono listen :8028
 ├── ai.ts             # Agent 配置：validate env, LLM model, registries
 ├── runtime.ts        # 多账号运行时：Map<accountId, {abort, startPromise}>
+├── commands/         # 内置命令（/reset /echo /debug /help /schedule）
 ├── api/
 │   ├── index.ts      # Hono app 创建、CORS、auth 中间件
 │   └── routes/       # 16 个路由模块，register*Routes(app, deps) 模式
@@ -130,4 +131,5 @@ pnpm test:server
 - 新增 API 路由 → `src/api/routes/` 创建文件，在 `api/index.ts` 注册
 - 新增 DB 查询 → `src/db/` 对应 store 文件
 - 新增 Port 实现 → `src/db/` 新文件 + `index.ts` 注入
+- 新增内置命令 → `src/commands/`，并在 `src/agent.ts` 的 `commandRegistry` 注册
 - 修改 schema → `prisma/schema.prisma` + generate + push

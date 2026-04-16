@@ -1,7 +1,6 @@
-import type { Command } from "../commands/types.js";
-import { getSchedulerStore } from "../ports/scheduler-store.js";
-import { activate, deactivate } from "./manager.js";
-import { executeTask } from "./executor.js";
+import { schedulerManager, runScheduledTaskNow } from "@clawbot/agent";
+import { getSchedulerStore } from "@clawbot/agent/ports";
+import type { Command } from "./types.js";
 
 function formatDate(d: Date | null): string {
   if (!d) return "-";
@@ -16,7 +15,7 @@ export const scheduleCommand: Command = {
     const parts = ctx.args.trim().split(/\s+/);
     const sub = parts[0] ?? "list";
     const seqStr = parts[1];
-    const seq = seqStr ? Number.parseInt(seqStr, 10) : NaN;
+    const seq = seqStr ? Number.parseInt(seqStr, 10) : Number.NaN;
     const store = getSchedulerStore();
 
     switch (sub) {
@@ -24,14 +23,12 @@ export const scheduleCommand: Command = {
         const tasks = await store.listTasks(ctx.accountId);
         if (tasks.length === 0) return { text: "📋 暂无定时任务。" };
 
-        const lines = tasks.map((t) => {
-          const icon = t.enabled
-            ? t.status === "paused" ? "⏸️" : "▶️"
-            : "⏹️";
-          const typeLabel = t.type === "once" ? "[单次]" : "[重复]";
-          return `${icon} #${t.seq} ${typeLabel} ${t.name} — ${t.cron}`;
+        const lines = tasks.map((task) => {
+          const icon = task.enabled ? (task.status === "paused" ? "⏸️" : "▶️") : "⏹️";
+          const typeLabel = task.type === "once" ? "[单次]" : "[重复]";
+          return `${icon} #${task.seq} ${typeLabel} ${task.name} — ${task.cron}`;
         });
-        return { text: "📋 定时任务：\n" + lines.join("\n") };
+        return { text: `📋 定时任务：\n${lines.join("\n")}` };
       }
 
       case "info": {
@@ -50,7 +47,9 @@ export const scheduleCommand: Command = {
             `执行次数：${task.runCount} | 连续失败：${task.failStreak}`,
             `上次执行：${formatDate(task.lastRunAt)}`,
             task.lastError ? `最近错误：${task.lastError}` : null,
-          ].filter(Boolean).join("\n"),
+          ]
+            .filter(Boolean)
+            .join("\n"),
         };
       }
 
@@ -60,7 +59,7 @@ export const scheduleCommand: Command = {
         if (!task) return { text: `❌ 未找到任务 #${seq}` };
 
         await store.updateTask(ctx.accountId, seq, { enabled: false });
-        deactivate(task.id);
+        schedulerManager.deactivate(task.id);
         return { text: `⏸️ 任务 #${seq}「${task.name}」已暂停` };
       }
 
@@ -71,7 +70,7 @@ export const scheduleCommand: Command = {
 
         // Re-read and activate
         const task = await store.getTaskBySeq(ctx.accountId, seq);
-        if (task) activate(task);
+        if (task) schedulerManager.activate(task);
         return { text: `▶️ 任务 #${seq}「${updated.name}」已恢复` };
       }
 
@@ -80,7 +79,7 @@ export const scheduleCommand: Command = {
         const task = await store.getTaskBySeq(ctx.accountId, seq);
         if (!task) return { text: `❌ 未找到任务 #${seq}` };
 
-        deactivate(task.id);
+        schedulerManager.deactivate(task.id);
         await store.deleteTask(ctx.accountId, seq);
         return { text: `🗑️ 任务 #${seq}「${task.name}」已删除` };
       }
@@ -90,7 +89,7 @@ export const scheduleCommand: Command = {
         const task = await store.getTaskBySeq(ctx.accountId, seq);
         if (!task) return { text: `❌ 未找到任务 #${seq}` };
 
-        void executeTask(task).catch((err) =>
+        void runScheduledTaskNow(task).catch((err) =>
           console.error(`[scheduler] manual run failed for task #${seq}:`, err),
         );
         return { text: `⏳ 任务 #${seq} 已触发执行，结果将稍后推送。` };
@@ -104,13 +103,13 @@ export const scheduleCommand: Command = {
         const runs = await store.listRuns(task.id, 5);
         if (runs.length === 0) return { text: `📜 任务 #${seq} 暂无执行记录。` };
 
-        const lines = runs.map((r) => {
-          const icon = r.status === "success" ? "✅" : r.status === "timeout" ? "⏰" : "❌";
-          const pushed = r.pushed ? "已推送" : "未推送";
-          const duration = r.durationMs ? `${r.durationMs}ms` : "-";
-          return `${icon} ${formatDate(r.createdAt)} | ${r.status} | ${duration} | ${pushed}`;
+        const lines = runs.map((run) => {
+          const icon = run.status === "success" ? "✅" : run.status === "timeout" ? "⏰" : "❌";
+          const pushed = run.pushed ? "已推送" : "未推送";
+          const duration = run.durationMs ? `${run.durationMs}ms` : "-";
+          return `${icon} ${formatDate(run.createdAt)} | ${run.status} | ${duration} | ${pushed}`;
         });
-        return { text: `📜 任务 #${seq} 最近执行记录：\n` + lines.join("\n") };
+        return { text: `📜 任务 #${seq} 最近执行记录：\n${lines.join("\n")}` };
       }
 
       default:

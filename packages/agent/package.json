@@ -58,10 +58,6 @@
       "import": "./src/conversation/index.ts",
       "types": "./src/conversation/index.ts"
     },
-    "./commands": {
-      "import": "./src/commands/index.ts",
-      "types": "./src/commands/index.ts"
-    },
     "./scheduler": {
       "import": "./src/scheduler/index.ts",
       "types": "./src/scheduler/index.ts"

@@ -128,18 +128,12 @@ export {
   rollbackMessages,
 } from "./conversation/index.js";
 
-// ── Commands ────────────────────────────────────────────────────────
-export { CommandRegistry } from "./commands/registry.js";
-export { builtinCommands } from "./commands/builtins.js";
-export { isDebugEnabled } from "./commands/debug.js";
-export type { Command, CommandContext } from "./commands/types.js";
-
 // ── Scheduler ───────────────────────────────────────────────────────
 export {
   schedulerManager,
   schedulerToolRegistry,
   setSchedulerContext,
-  scheduleCommand,
+  runScheduledTaskNow,
 } from "./scheduler/index.js";
 
 // ── Heartbeat ───────────────────────────────────────────────────────

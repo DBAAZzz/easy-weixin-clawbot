@@ -28,7 +28,6 @@ src/
 ├── skills/               # 技能系统：Registry + Compiler + Loader + Installer
 ├── tape/                 # Tape 记忆：fold reducer + LLM 提取 + 压缩
 ├── conversation/         # 消息历史 + 上下文窗口裁剪
-├── commands/             # 内置命令 (/reset /echo /debug /help)
 ├── scheduler/            # Cron 任务管理
 ├── heartbeat/            # 异步目标检查（Phase1 评估 + Phase2 执行）
 ├── prompts/              # Prompt 模板 + Profile 组装
@@ -105,7 +104,7 @@ pnpm test:agent
 ## 修改指南
 
 - 新增工具处理器 → `src/tools/handlers/`，并在 handler index 注册
-- 新增内置命令 → `src/commands/`，在 `builtins.ts` 注册
+- 内置命令归属 `@clawbot/server`（`src/commands/`），`agent` 仅保留可复用能力（如 scheduler manager/executor）
 - 新增 Port → `src/ports/` 定义接口，`index.ts` 添加 getter/setter
 - 修改 Prompt → `prompts/*.md` 模板，`src/prompts/assembler.ts` 组装逻辑
 - 新增 LLM Provider → `src/llm/provider-factory.ts`

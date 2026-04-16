@@ -24,10 +24,8 @@ export class CommandRegistry {
     if (!trimmed.startsWith("/")) return null;
 
     const spaceIdx = trimmed.indexOf(" ");
-    const name =
-      spaceIdx === -1 ? trimmed.slice(1) : trimmed.slice(1, spaceIdx);
-    const args =
-      spaceIdx === -1 ? "" : trimmed.slice(spaceIdx + 1).trim();
+    const name = spaceIdx === -1 ? trimmed.slice(1) : trimmed.slice(1, spaceIdx);
+    const args = spaceIdx === -1 ? "" : trimmed.slice(spaceIdx + 1).trim();
 
     const cmd = this.commands.get(name);
     return cmd ? { command: cmd, args } : null;

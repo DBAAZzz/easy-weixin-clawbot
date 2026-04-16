@@ -17,7 +17,6 @@ import { readFileSync } from "node:fs";
 import type { AgentRunner } from "./runner.js";
 import { resolveConfiguredModel, resolveModel } from "./model-resolver.js";
 import type { ChatResponse, ChatMedia } from "./types.js";
-import { isDebugEnabled } from "./commands/debug.js";
 import { ensureHistoryLoaded, getHistory, nextSeq, rollbackMessages } from "./conversation/index.js";
 import { getMessageStore } from "./ports/message-store.js";
 import {
@@ -63,13 +62,13 @@ function extractToolResultText(message: ToolResultMessage): string {
 function finalizeReply(
   text: string,
   fallback: string,
-  debug?: { accountId: string; conversationId: string; startedAt: number; rounds: number },
+  debug?: { enabled: boolean; startedAt: number; rounds: number },
 ): ChatResponse {
   const raw = text || fallback;
   const { cleanText, media } = extractMediaFromText(raw);
 
   let finalText = cleanText || undefined;
-  if (finalText && debug && isDebugEnabled(debug.accountId, debug.conversationId)) {
+  if (finalText && debug?.enabled) {
     const elapsed = Date.now() - debug.startedAt;
     finalText += `\n\n---\n⏱ ${debug.rounds} round(s), ${elapsed}ms`;
   }
@@ -81,6 +80,7 @@ function finalizeReply(
 
 export interface ChatDeps {
   runner: AgentRunner;
+  isDebugEnabled?(accountId: string, conversationId: string): boolean;
   log: {
     llm(accountId: string, round: number): void;
     tool(name: string, args: Record<string, unknown>, result: string): void;
@@ -106,7 +106,7 @@ export async function chat(
   media?: ChatMedia,
   startedAt = Date.now(),
 ): Promise<ChatResponse> {
-  const { runner, log } = getDeps();
+  const { runner, log, isDebugEnabled } = getDeps();
   const messageStore = getMessageStore();
 
   // Resolve the chat model dynamically based on account/conversation context
@@ -230,6 +230,7 @@ export async function chat(
       if (result.status !== "aborted") {
         log.done(accountId, rounds, Date.now() - startedAt);
       }
+      const debugEnabled = isDebugEnabled?.(accountId, conversationId) ?? false;
 
       switch (result.status) {
         case "completed": {
@@ -270,8 +271,7 @@ export async function chat(
           }
 
           return finalizeReply(replyText, "抱歉，出了点问题，请稍后再试。", {
-            accountId,
-            conversationId,
+            enabled: debugEnabled,
             startedAt,
             rounds,
           });
@@ -280,7 +280,7 @@ export async function chat(
           return finalizeReply(
             extractAssistantText(result.lastMessage),
             "抱歉，这次问题我还没处理完。",
-            { accountId, conversationId, startedAt, rounds },
+            { enabled: debugEnabled, startedAt, rounds },
           );
         case "aborted":
           return { text: "请求已取消。" };

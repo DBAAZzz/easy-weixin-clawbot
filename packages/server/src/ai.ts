@@ -30,6 +30,7 @@ import {
 import { setChatDeps } from "@clawbot/agent/chat";
 import { setDefaultModel, buildModelFromConfig } from "@clawbot/agent/model-resolver";
 import { mkdirSync } from "node:fs";
+import { isDebugEnabled } from "./commands/index.js";
 import { ensurePrismaUrls } from "./db/prisma-env.js";
 import { PrismaMessageStore } from "./db/message-store.impl.js";
 import { PrismaTapeStore } from "./db/tape-store.impl.js";
@@ -190,6 +191,7 @@ setHeartbeatExecutor(createHeartbeatExecutor());
 
 setChatDeps({
   runner,
+  isDebugEnabled,
   log: {
     llm: log.llm,
     tool: log.tool,

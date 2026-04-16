@@ -9,9 +9,6 @@ import {
 import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk";
 import {
   chat,
-  CommandRegistry,
-  builtinCommands,
-  scheduleCommand,
   setSchedulerContext,
   clearConversation,
   evictConversation,
@@ -22,6 +19,7 @@ import {
   setHeartbeatToolContext,
 } from "@clawbot/agent";
 import { getSchedulerStore } from "@clawbot/agent/ports";
+import { CommandRegistry, builtinCommands, scheduleCommand } from "./commands/index.js";
 import { sendProactiveMessage } from "./proactive-push.js";
 import { updateContextToken } from "./db/conversations.js";
 import { deleteRoute, getRoute, upsertRoute } from "./db/session-routes.js";

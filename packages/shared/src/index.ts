@@ -15,6 +15,7 @@ export type {
   McpToolInfo,
   McpTransport,
   ObservabilityOverview,
+  ObservabilitySpanAttributeValue,
   ObservabilitySpanPayload,
   ObservabilityTraceDetail,
   ObservabilityTraceSpan,

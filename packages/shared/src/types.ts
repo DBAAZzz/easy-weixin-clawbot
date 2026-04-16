@@ -244,6 +244,8 @@ export interface ObservabilityTraceSummary {
   created_at: string;
 }
 
+export type ObservabilitySpanAttributeValue = string | number | boolean;
+
 export interface ObservabilitySpanPayload {
   prompt: string;
   completion: string;
@@ -264,6 +266,7 @@ export interface ObservabilityTraceSpan {
   output_tokens: number | null;
   stop_reason: string | null;
   error_message: string | null;
+  attributes: Record<string, ObservabilitySpanAttributeValue>;
   payload: ObservabilitySpanPayload | null;
 }
 

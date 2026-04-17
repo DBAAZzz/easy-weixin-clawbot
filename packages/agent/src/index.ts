@@ -25,17 +25,27 @@ export { createAgentRunner } from "./runner.js";
 export type {
   SkillActivation,
   SkillCatalogItem,
+  SkillDependency,
   SkillInstaller,
   SkillInstallerResult,
   SkillRegistry,
   SkillSnapshot,
   SkillSource,
-  SkillRuntimeDecl,
+  SkillPackageIndex,
+  SkillEntrypoint,
+  SkillRuntime,
+  DetectedSkillKind,
+  DetectedSkillRuntime,
+  SkillProvisionInstaller,
   ProvisionStatus,
   InstalledSkill,
 } from "./skills/types.js";
 export { createSkillRegistry } from "./skills/registry.js";
 export { createSkillInstaller } from "./skills/installer.js";
+export { scanSkillPackage } from "./skills/package-scanner.js";
+export { analyzeScript } from "./skills/script-analyzer.js";
+export { detectSkillRuntime } from "./skills/runtime-detector.js";
+export { createSkillRuntimeToolSnapshot } from "./skills/runtime-tools.js";
 export { normalizeFrontmatter } from "./skills/normalizer.js";
 export type { NormalizeResult } from "./skills/normalizer.js";
 export { createRuntimeProvisioner, readManagedMeta } from "./skills/runtime-provisioner.js";

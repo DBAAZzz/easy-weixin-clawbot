@@ -1,5 +1,11 @@
 # Skill 启发式自适应运行时方案（Heuristic Adaptation）
 
+> 状态：Deprecated
+>
+> 本文档描述的是已经废弃的方向：把 Skill 的可执行能力建立在 `handler/inputSchema/runtime`、启发式 AI 适配和 `companionTool` 上。
+> 当前实现已经改为“标准 Skill 包 + 精简确定性运行时检测 + 通用运行工具”模型。
+> 请以 [docs/standard-skill-runtime-design.md](/Users/mac/Documents/DBAA/easy-weixin-clawbot/docs/standard-skill-runtime-design.md) 为准。
+
 ## 1. 背景与问题
 
 当前系统支持通过 Markdown 安装 Skill，但远程 Skill 生态的格式非常分散，常见问题包括：

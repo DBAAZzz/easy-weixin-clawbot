@@ -17,12 +17,39 @@ export interface ConversationSkillRuntime {
 }
 
 export function wrapSkillEnvelope(skill: CompiledSkill): string {
+  const packageHints: string[] = [];
+  const runtime = skill.detectedRuntime;
+
+  if (skill.packageIndex?.scriptFiles.length) {
+    packageHints.push(`[技能脚本]\n${skill.packageIndex.scriptFiles.map((path) => `- ${path}`).join("\n")}`);
+  }
+
+  if (skill.packageIndex?.referenceFiles.length) {
+    packageHints.push(`[技能参考资料]\n${skill.packageIndex.referenceFiles.map((path) => `- ${path}`).join("\n")}`);
+  }
+
+  if (runtime && runtime.kind !== "knowledge-only") {
+    const runtimeLines = [
+      `[技能运行形态]`,
+      `- kind: ${runtime.kind}`,
+      ...(runtime.entrypoint ? [`- entrypoint: ${runtime.entrypoint.path}`] : []),
+      ...(runtime.dependencies.length > 0
+        ? [`- dependencies: ${runtime.dependencies.map((dependency) => dependency.name).join(", ")}`]
+        : []),
+      "- 如需读取 references 或 scripts 文件，使用 read_skill_file",
+      "- 如需准备本地运行环境，使用 prepare_skill_runtime",
+      "- 如需执行脚本，使用 run_skill_script",
+    ];
+    packageHints.push(runtimeLines.join("\n"));
+  }
+
   return [
     `<skill name="${skill.source.name}" version="${skill.source.version}">`,
     "以下是已加载的技能指令。你必须在本次对话的后续回复中严格遵循这些指令来完成用户的请求。",
     "如果你已加载了多个技能，请综合所有已加载技能的指令来完成任务。",
     "",
     skill.source.body,
+    ...(packageHints.length > 0 ? ["", ...packageHints] : []),
     "</skill>",
   ].join("\n");
 }

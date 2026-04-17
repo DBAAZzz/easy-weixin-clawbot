@@ -33,6 +33,17 @@ function formatProvisionStatusLabel(status?: SkillInfo["provisionStatus"]) {
   return "失败";
 }
 
+function formatRuntimeKindLabel(kind?: SkillInfo["runtimeKind"]) {
+  if (!kind || kind === "knowledge-only") return "知识型";
+  if (kind === "python-script") return "Python Script";
+  if (kind === "node-script") return "Node Script";
+  return "需要人工确认";
+}
+
+function isAutoProvisionableRuntime(kind?: SkillInfo["runtimeKind"]) {
+  return kind === "python-script" || kind === "node-script";
+}
+
 function provisionTone(status?: SkillInfo["provisionStatus"]): "muted" | "warning" | "online" | "error" {
   if (!status) return "muted";
   if (status === "pending") return "warning";
@@ -230,7 +241,10 @@ function SkillDetailModal(props: {
             </Badge>
             <Badge tone="muted">{formatActivationLabel(props.skill.activation)}</Badge>
             <Badge tone="muted">{formatOriginLabel(props.skill.origin)}</Badge>
-            {props.skill.hasRuntime ? (
+            {props.skill.runtimeKind && props.skill.runtimeKind !== "knowledge-only" ? (
+              <Badge tone="muted">运行形态：{formatRuntimeKindLabel(props.skill.runtimeKind)}</Badge>
+            ) : null}
+            {isAutoProvisionableRuntime(props.skill.runtimeKind) ? (
               <Badge tone={provisionTone(props.skill.provisionStatus)}>
                 运行时：{formatProvisionStatusLabel(props.skill.provisionStatus)}
               </Badge>
@@ -280,23 +294,27 @@ function SkillDetailModal(props: {
             </div>
           </div>
 
-          {props.skill.hasRuntime ? (
+          {props.skill.runtimeKind && props.skill.runtimeKind !== "knowledge-only" ? (
             <div className="rounded-xl border border-line bg-detail-bg px-4 py-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-xs uppercase tracking-label-lg text-muted">Runtime Provision</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button size="sm" variant="outline" disabled={props.provisionBusy} onClick={() => void props.onPreflight()}>
-                    预检
-                  </Button>
-                  <Button size="sm" disabled={props.provisionBusy} onClick={() => void props.onProvision()}>
-                    {props.provisionBusy ? "安装中…" : "流式安装"}
-                  </Button>
-                  <Button size="sm" variant="outline" disabled={props.provisionBusy} onClick={() => void props.onReprovision()}>
-                    重装
-                  </Button>
-                </div>
+                {isAutoProvisionableRuntime(props.skill.runtimeKind) ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button size="sm" variant="outline" disabled={props.provisionBusy} onClick={() => void props.onPreflight()}>
+                      预检
+                    </Button>
+                    <Button size="sm" disabled={props.provisionBusy} onClick={() => void props.onProvision()}>
+                      {props.provisionBusy ? "安装中…" : "流式安装"}
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={props.provisionBusy} onClick={() => void props.onReprovision()}>
+                      重装
+                    </Button>
+                  </div>
+                ) : (
+                  <Badge tone="warning">该 Skill 需要人工确认运行方式</Badge>
+                )}
               </div>
 
               {props.preflightError ? (
@@ -308,9 +326,16 @@ function SkillDetailModal(props: {
               {props.preflight ? (
                 <div className="mt-3 rounded-section border border-line bg-detail-bg-strong px-3 py-3 text-sm text-ink-soft">
                   <p>运行时：{props.preflight.runtime}</p>
-                  <p className="mt-1">依赖：{props.preflight.dependencies.join(", ") || "(none)"}</p>
+                  <p className="mt-1">安装器：{props.preflight.installer}</p>
+                  <p className="mt-1">需要创建环境：{props.preflight.createEnv ? "是" : "否"}</p>
+                  <p className="mt-1">
+                    依赖：
+                    {props.preflight.dependencies.length > 0
+                      ? props.preflight.dependencies.map((item) => item.name).join(", ")
+                      : "(none)"}
+                  </p>
                   <div className="mt-2 space-y-1">
-                    {props.preflight.steps.map((step) => (
+                    {props.preflight.commandPreview.map((step) => (
                       <p key={step}>- {step}</p>
                     ))}
                   </div>

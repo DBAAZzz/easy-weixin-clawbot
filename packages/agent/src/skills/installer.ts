@@ -3,7 +3,11 @@ import { dirname, join } from "node:path";
 import { parseMdContent } from "../shared/parser.js";
 import { compileSkill, createSkillSource } from "./compiler.js";
 import { loadSkillsFromDirectory } from "./loader.js";
+import { scanSkillPackage } from "./package-scanner.js";
+import { detectSkillRuntime } from "./runtime-detector.js";
 import type {
+  CompiledSkill,
+  DetectedSkillRuntime,
   InstalledSkill,
   ProvisionStatus,
   SkillCatalogItem,
@@ -12,7 +16,6 @@ import type {
   SkillRegistry,
   SkillSnapshot,
 } from "./types.js";
-import type { ToolRegistry, ToolSnapshot, ToolSnapshotItem } from "../tools/types.js";
 
 interface InstallerState {
   items: Record<
@@ -64,8 +67,14 @@ async function writeState(statePath: string, state: InstallerState): Promise<voi
   await writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8");
 }
 
+function shouldTrackProvisionStatus(runtime: DetectedSkillRuntime | undefined): boolean {
+  return runtime?.kind === "python-script" || runtime?.kind === "node-script";
+}
+
 function toCatalogItem(installed: InstalledSkill): SkillCatalogItem {
-  const item: SkillCatalogItem = {
+  const runtimeKind = installed.skill.detectedRuntime?.kind ?? "knowledge-only";
+
+  return {
     name: installed.skill.source.name,
     summary: installed.skill.source.summary,
     version: installed.skill.source.version,
@@ -76,20 +85,13 @@ function toCatalogItem(installed: InstalledSkill): SkillCatalogItem {
     enabled: installed.enabled,
     installedAt: installed.installedAt,
     filePath: installed.skill.source.filePath,
+    runtimeKind,
+    entrypointPath: installed.skill.detectedRuntime?.entrypoint?.path,
+    dependencyNames: installed.skill.detectedRuntime?.dependencies.map((dependency) => dependency.name) ?? [],
+    hasRuntime: runtimeKind !== "knowledge-only",
+    provisionStatus: installed.provisionStatus,
+    provisionError: installed.provisionError,
   };
-  if (installed.skill.companionTool) {
-    item.hasCompanionTool = true;
-  }
-  if (installed.skill.source.runtime) {
-    item.hasRuntime = true;
-  }
-  if (installed.provisionStatus) {
-    item.provisionStatus = installed.provisionStatus;
-  }
-  if (installed.provisionError) {
-    item.provisionError = installed.provisionError;
-  }
-  return item;
 }
 
 function buildSnapshot(installed: InstalledSkill[]): SkillSnapshot {
@@ -118,32 +120,49 @@ function buildSnapshot(installed: InstalledSkill[]): SkillSnapshot {
   };
 }
 
-function buildCompanionToolSnapshot(installed: InstalledSkill[]): ToolSnapshot {
-  const tools: ToolSnapshotItem[] = [];
-  for (const item of installed) {
-    if (!item.enabled || !item.skill.companionTool) continue;
-    // Only register companion tool if no runtime needed, or runtime is ready
-    if (item.skill.source.runtime && item.provisionStatus !== "ready") continue;
-    const ct = item.skill.companionTool;
-    tools.push({
-      name: ct.source.name,
-      description: ct.source.body,
-      parameters: ct.parameters,
-      execute: ct.execute,
-    });
-  }
-  return { tools };
-}
-
-export function createSkillInstaller(
-  registry: SkillRegistry,
-  companionToolRegistry?: ToolRegistry,
-): SkillInstaller {
+export function createSkillInstaller(registry: SkillRegistry): SkillInstaller {
   let builtinDir = "";
   let userDir = "";
   let statePath = "";
   let state: InstallerState = { items: {} };
   let installed = new Map<string, InstalledSkill>();
+
+  async function enrichCompiledSkill(compiled: CompiledSkill): Promise<CompiledSkill> {
+    const rootDir = dirname(compiled.source.filePath);
+    const packageIndex = await scanSkillPackage(rootDir);
+    const detectedRuntime = await detectSkillRuntime(compiled, packageIndex);
+    return {
+      ...compiled,
+      packageIndex,
+      detectedRuntime,
+    };
+  }
+
+  async function buildInstalledSkill(
+    compiled: CompiledSkill,
+    origin: "builtin" | "user",
+    now: string,
+  ): Promise<InstalledSkill> {
+    const enriched = await enrichCompiledSkill(compiled);
+    const previous = state.items[enriched.source.name] ?? {};
+    const shouldTrackProvision = shouldTrackProvisionStatus(enriched.detectedRuntime);
+
+    state.items[enriched.source.name] = {
+      enabled: previous.enabled ?? true,
+      installedAt: previous.installedAt ?? now,
+      provisionStatus: shouldTrackProvision ? (previous.provisionStatus ?? "pending") : undefined,
+      provisionError: shouldTrackProvision ? previous.provisionError : undefined,
+    };
+
+    return {
+      skill: enriched,
+      origin,
+      enabled: state.items[enriched.source.name].enabled ?? true,
+      installedAt: state.items[enriched.source.name].installedAt ?? now,
+      provisionStatus: state.items[enriched.source.name].provisionStatus,
+      provisionError: state.items[enriched.source.name].provisionError,
+    };
+  }
 
   async function rebuild(): Promise<SkillInstallerResult> {
     const builtin = await loadSkillsFromDirectory(builtinDir);
@@ -152,41 +171,13 @@ export function createSkillInstaller(
     const now = new Date().toISOString();
 
     for (const compiled of builtin.skills) {
-      const itemState = state.items[compiled.source.name] ?? {};
-      const hasRuntime = !!compiled.source.runtime;
-      state.items[compiled.source.name] = {
-        enabled: itemState.enabled ?? true,
-        installedAt: itemState.installedAt ?? now,
-        provisionStatus: hasRuntime ? (itemState.provisionStatus ?? "pending") : undefined,
-        provisionError: hasRuntime ? itemState.provisionError : undefined,
-      };
-      next.set(compiled.source.name, {
-        skill: compiled,
-        origin: "builtin",
-        enabled: state.items[compiled.source.name].enabled ?? true,
-        installedAt: state.items[compiled.source.name].installedAt ?? now,
-        provisionStatus: state.items[compiled.source.name].provisionStatus,
-        provisionError: state.items[compiled.source.name].provisionError,
-      });
+      const item = await buildInstalledSkill(compiled, "builtin", now);
+      next.set(item.skill.source.name, item);
     }
 
     for (const compiled of user.skills) {
-      const itemState = state.items[compiled.source.name] ?? {};
-      const hasRuntime = !!compiled.source.runtime;
-      state.items[compiled.source.name] = {
-        enabled: itemState.enabled ?? true,
-        installedAt: itemState.installedAt ?? now,
-        provisionStatus: hasRuntime ? (itemState.provisionStatus ?? "pending") : undefined,
-        provisionError: hasRuntime ? itemState.provisionError : undefined,
-      };
-      next.set(compiled.source.name, {
-        skill: compiled,
-        origin: "user",
-        enabled: state.items[compiled.source.name].enabled ?? true,
-        installedAt: state.items[compiled.source.name].installedAt ?? now,
-        provisionStatus: state.items[compiled.source.name].provisionStatus,
-        provisionError: state.items[compiled.source.name].provisionError,
-      });
+      const item = await buildInstalledSkill(compiled, "user", now);
+      next.set(item.skill.source.name, item);
     }
 
     for (const name of Object.keys(state.items)) {
@@ -197,9 +188,6 @@ export function createSkillInstaller(
 
     installed = next;
     registry.swap(buildSnapshot([...installed.values()]));
-    if (companionToolRegistry) {
-      companionToolRegistry.swap(buildCompanionToolSnapshot([...installed.values()]));
-    }
     await writeState(statePath, state);
 
     return {
@@ -241,6 +229,8 @@ export function createSkillInstaller(
     state.items[compiled.source.name] = {
       enabled: previousState?.enabled ?? true,
       installedAt: previousState?.installedAt ?? new Date().toISOString(),
+      provisionStatus: previousState?.provisionStatus,
+      provisionError: previousState?.provisionError,
     };
 
     await rebuild();
@@ -258,7 +248,6 @@ export function createSkillInstaller(
     const name = compiled.source.name;
 
     const targetDir = join(userDir, name);
-    // Remove existing directory if present, then copy entire source directory
     if (await fileExists(targetDir)) {
       await rm(targetDir, { recursive: true });
     }
@@ -268,6 +257,8 @@ export function createSkillInstaller(
     state.items[name] = {
       enabled: previousState?.enabled ?? true,
       installedAt: previousState?.installedAt ?? new Date().toISOString(),
+      provisionStatus: previousState?.provisionStatus,
+      provisionError: previousState?.provisionError,
     };
 
     await rebuild();
@@ -305,7 +296,7 @@ export function createSkillInstaller(
 
     async validate(markdown) {
       const compiled = await parseInline(markdown, "<inline-skill>");
-      const item: SkillCatalogItem = {
+      return {
         name: compiled.source.name,
         summary: compiled.source.summary,
         version: compiled.source.version,
@@ -316,10 +307,10 @@ export function createSkillInstaller(
         enabled: true,
         installedAt: new Date().toISOString(),
         filePath: compiled.source.filePath,
+        runtimeKind: "knowledge-only",
+        dependencyNames: [],
+        hasRuntime: false,
       };
-      if (compiled.companionTool) item.hasCompanionTool = true;
-      if (compiled.source.runtime) item.hasRuntime = true;
-      return item;
     },
 
     install(markdown) {
@@ -388,7 +379,6 @@ export function createSkillInstaller(
       existing.provisionStatus = status;
       existing.provisionError = error;
       await writeState(statePath, state);
-      // Rebuild to update companion tool registration
       await rebuild();
     },
   };

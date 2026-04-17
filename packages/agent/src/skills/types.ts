@@ -1,13 +1,18 @@
-import type { CompiledTool, ParameterDef } from "../tools/types.js";
-
 export type SkillActivation = "always" | "on-demand";
 
-export interface SkillRuntimeDecl {
-  type: "python" | "node";
-  dependencies: string[];
-}
-
 export type ProvisionStatus = "pending" | "provisioning" | "ready" | "failed";
+
+export type SkillRuntime = "python" | "node";
+
+export type DetectedSkillKind =
+  | "knowledge-only"
+  | "python-script"
+  | "node-script"
+  | "manual-needed";
+
+export type SkillDependencySource = "markdown-install" | "import-scan";
+
+export type SkillProvisionInstaller = "uv-pip" | "pip" | "npm" | "pnpm" | "yarn" | "manual";
 
 export interface SkillSource {
   name: string;
@@ -18,19 +23,49 @@ export interface SkillSource {
   activation: SkillActivation;
   body: string;
   filePath: string;
+}
 
-  // Optional: companion tool fields
-  handler?: string;
-  handlerConfig?: Record<string, unknown>;
-  inputSchema?: Record<string, ParameterDef>;
+export interface SkillPackageIndex {
+  rootDir: string;
+  skillMdPath: string;
+  metaJsonPath?: string;
+  referenceFiles: string[];
+  scriptFiles: string[];
+}
 
-  // Optional: runtime declaration
-  runtime?: SkillRuntimeDecl;
+export interface ScriptDescriptor {
+  path: string;
+  runtime: SkillRuntime;
+  imports: string[];
+  hasCliMain: boolean;
+}
+
+export interface SkillEntrypoint {
+  path: string;
+  runtime: SkillRuntime;
+  source: "single-script" | "naming-convention" | "manual";
+}
+
+export interface SkillDependency {
+  name: string;
+  installSpec?: string;
+  source: SkillDependencySource;
+  confidence: "high" | "medium" | "low";
+}
+
+export interface DetectedSkillRuntime {
+  kind: DetectedSkillKind;
+  preferredInstaller: SkillProvisionInstaller;
+  entrypoint?: SkillEntrypoint;
+  dependencies: SkillDependency[];
+  issues: string[];
+  evidence: string[];
 }
 
 export interface CompiledSkill {
   source: SkillSource;
-  companionTool?: CompiledTool;
+  packageIndex?: SkillPackageIndex;
+  detectedRuntime?: DetectedSkillRuntime;
 }
 
 export interface InstalledSkill {
@@ -59,7 +94,9 @@ export interface SkillCatalogItem {
   enabled: boolean;
   installedAt: string;
   filePath: string;
-  hasCompanionTool?: boolean;
+  runtimeKind: DetectedSkillKind;
+  entrypointPath?: string;
+  dependencyNames: string[];
   hasRuntime?: boolean;
   provisionStatus?: ProvisionStatus;
   provisionError?: string;

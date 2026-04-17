@@ -10,6 +10,7 @@ import {
   createAgentRunner,
   createSkillInstaller,
   createSkillRegistry,
+  createSkillRuntimeToolSnapshot,
   createToolInstaller,
   createToolRegistry,
   createRuntimeProvisioner,
@@ -156,13 +157,21 @@ setDefaultModel({ model, modelId: MODEL_ID, meta });
 
 export const localToolRegistry = createToolRegistry();
 export const mcpToolRegistry = createToolRegistry();
-export const companionToolRegistry = createToolRegistry();
-
-export const toolRegistry = createCompositeToolRegistry(localToolRegistry, mcpToolRegistry, schedulerToolRegistry, heartbeatToolRegistry, companionToolRegistry);
-export const toolInstaller = createToolInstaller(localToolRegistry);
+export const skillRuntimeToolRegistry = createToolRegistry();
 export const skillRegistry = createSkillRegistry();
-export const skillInstaller = createSkillInstaller(skillRegistry, companionToolRegistry);
+export const skillInstaller = createSkillInstaller(skillRegistry);
 export const runtimeProvisioner = createRuntimeProvisioner();
+
+skillRuntimeToolRegistry.swap(createSkillRuntimeToolSnapshot(skillInstaller, runtimeProvisioner));
+
+export const toolRegistry = createCompositeToolRegistry(
+  localToolRegistry,
+  mcpToolRegistry,
+  schedulerToolRegistry,
+  heartbeatToolRegistry,
+  skillRuntimeToolRegistry,
+);
+export const toolInstaller = createToolInstaller(localToolRegistry);
 
 const loadedTools = await toolInstaller.initialize(TOOLS_BUILTIN_DIR, TOOLS_USER_DIR);
 const loadedSkills = await skillInstaller.initialize(SKILLS_BUILTIN_DIR, SKILLS_USER_DIR);

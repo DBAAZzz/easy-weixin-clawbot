@@ -94,7 +94,9 @@ export interface SkillInfo {
   enabled: boolean;
   installedAt?: string;
   filePath?: string;
-  hasCompanionTool?: boolean;
+  runtimeKind?: "knowledge-only" | "python-script" | "node-script" | "manual-needed";
+  entrypointPath?: string;
+  dependencyNames?: string[];
   hasRuntime?: boolean;
   provisionStatus?: "pending" | "provisioning" | "ready" | "failed";
   provisionError?: string;
@@ -116,8 +118,15 @@ export interface SkillUploadResult extends SkillInfo {
 
 export interface SkillProvisionPlan {
   runtime: "python" | "node";
-  steps: string[];
-  dependencies: string[];
+  installer: "uv-pip" | "pip" | "npm" | "pnpm" | "yarn" | "manual";
+  createEnv: boolean;
+  commandPreview: string[];
+  dependencies: Array<{
+    name: string;
+    installSpec?: string;
+    source: "markdown-install" | "import-scan";
+    confidence: "high" | "medium" | "low";
+  }>;
 }
 
 export interface SkillProvisionLog {

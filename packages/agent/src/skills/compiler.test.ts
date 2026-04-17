@@ -25,17 +25,15 @@ test("createSkillSource normalizes common third-party frontmatter fields", () =>
   assert.equal(source.activation, "on-demand");
 });
 
-test("createSkillSource keeps missing type as skill even with handler and inputSchema", () => {
+test("createSkillSource ignores private runtime fields from third-party skills", () => {
   const markdown = [
     "---",
     "name: akshare-exec",
     "version: 1.0.0",
     "description: 可执行技能",
     "handler: python-venv",
-    "inputSchema:",
-    "  subcommand:",
-    "    type: string",
-    "    description: 子命令",
+    "runtime:",
+    "  type: python",
     "---",
     "# Skill body",
   ].join("\n");
@@ -44,8 +42,6 @@ test("createSkillSource keeps missing type as skill even with handler and inputS
   const source = createSkillSource(parsed);
 
   assert.equal(source.type, "skill");
-  assert.equal(source.handler, "python-venv");
-  assert.ok(source.inputSchema);
-  assert.equal(source.inputSchema?.subcommand?.type, "string");
+  assert.equal(source.summary, "可执行技能");
+  assert.equal(source.filePath, "/tmp/SKILL.md");
 });
-

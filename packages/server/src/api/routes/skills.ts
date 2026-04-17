@@ -31,51 +31,71 @@ async function buildLocalRunCheck(
   provisioner?: RuntimeProvisioner,
 ): Promise<{ canRunNow: boolean; checks: Array<{ status: "ok" | "fail" | "info"; message: string }> }> {
   const checks: Array<{ status: "ok" | "fail" | "info"; message: string }> = [];
-  const source = installed.skill.source;
-  const skillDir = dirname(source.filePath);
+  const detected = installed.skill.detectedRuntime;
+  const skillDir = dirname(installed.skill.source.filePath);
 
-  if (!installed.skill.companionTool) {
-    checks.push({ status: "info", message: "No companion tool declared; this is a knowledge-only skill." });
+  if (!detected || detected.kind === "knowledge-only") {
+    checks.push({ status: "info", message: "This is a knowledge-only skill package." });
     return { canRunNow: true, checks };
   }
 
-  if (source.handler === "python-script") {
-    const entrypoint = source.handlerConfig?.entrypoint;
-    if (typeof entrypoint !== "string" || entrypoint.trim() === "") {
-      checks.push({ status: "fail", message: "handlerConfig.entrypoint is missing for python-script." });
-    } else if (await fileExists(join(skillDir, entrypoint))) {
-      checks.push({ status: "ok", message: `Entrypoint exists: ${entrypoint}` });
-    } else {
-      checks.push({ status: "fail", message: `Entrypoint not found: ${entrypoint}` });
-    }
+  checks.push({ status: "info", message: `Detected runtime kind: ${detected.kind}` });
 
-    try {
-      await execFileAsync("python3", ["--version"]);
-      checks.push({ status: "ok", message: "python3 is available on host." });
-    } catch {
-      checks.push({ status: "fail", message: "python3 is not available on host." });
+  if (detected.kind === "manual-needed") {
+    for (const issue of detected.issues) {
+      checks.push({ status: "fail", message: issue });
     }
+    return { canRunNow: false, checks };
   }
 
-  if (source.runtime) {
-    if (installed.provisionStatus !== "ready") {
-      checks.push({
-        status: "fail",
-        message: `Runtime is not ready (status=${installed.provisionStatus ?? "pending"}), run /provision first.`,
-      });
-    } else if (provisioner) {
-      const healthy = await provisioner.healthCheck(skillDir, source.runtime);
-      checks.push({
-        status: healthy ? "ok" : "fail",
-        message: healthy
-          ? "Runtime health check passed."
-          : "Runtime health check failed (venv/interpreter not healthy).",
-      });
+  const entrypoint = detected.entrypoint?.path;
+  if (!entrypoint) {
+    checks.push({ status: "fail", message: `Detected ${detected.kind} skill is missing an entrypoint.` });
+  } else if (await fileExists(join(skillDir, entrypoint))) {
+    checks.push({ status: "ok", message: `Entrypoint exists: ${entrypoint}` });
+  } else {
+    checks.push({ status: "fail", message: `Entrypoint not found: ${entrypoint}` });
+  }
+
+  try {
+    if (detected.kind === "python-script") {
+      await execFileAsync("python3", ["--version"]);
+      checks.push({ status: "ok", message: "python3 is available on host." });
+    } else if (detected.kind === "node-script") {
+      await execFileAsync("node", ["--version"]);
+      checks.push({ status: "ok", message: "node is available on host." });
     }
+  } catch {
+    checks.push({
+      status: "fail",
+      message: detected.kind === "python-script" ? "python3 is not available on host." : "node is not available on host.",
+    });
+  }
+
+  if (installed.provisionStatus !== "ready") {
+    checks.push({
+      status: "fail",
+      message: `Runtime is not ready (status=${installed.provisionStatus ?? "pending"}), run /provision first.`,
+    });
+  } else if (provisioner) {
+    const healthy = await provisioner.healthCheck(installed);
+    checks.push({
+      status: healthy ? "ok" : "fail",
+      message: healthy
+        ? "Runtime health check passed."
+        : "Runtime health check failed (interpreter or entrypoint not healthy).",
+    });
   }
 
   const canRunNow = !checks.some((check) => check.status === "fail");
   return { canRunNow, checks };
+}
+
+function isAutoProvisionableSkill(
+  installed: NonNullable<ReturnType<SkillInstaller["getInstalled"]>>,
+): boolean {
+  const kind = installed.skill.detectedRuntime?.kind;
+  return kind === "python-script" || kind === "node-script";
 }
 
 /**
@@ -246,8 +266,8 @@ export function registerSkillRoutes(
     if (!installed) {
       return c.json({ error: "skill not found" }, 404);
     }
-    if (!installed.skill.source.runtime) {
-      return c.json({ error: "skill has no runtime declaration" }, 400);
+    if (!isAutoProvisionableSkill(installed)) {
+      return c.json({ error: `skill is not an auto-provisionable script skill (kind=${installed.skill.detectedRuntime?.kind ?? "knowledge-only"})` }, 400);
     }
 
     try {
@@ -271,8 +291,8 @@ export function registerSkillRoutes(
     if (!installed) {
       return c.json({ error: "skill not found" }, 404);
     }
-    if (!installed.skill.source.runtime) {
-      return c.json({ error: "skill has no runtime declaration" }, 400);
+    if (!isAutoProvisionableSkill(installed)) {
+      return c.json({ error: `skill is not an auto-provisionable script skill (kind=${installed.skill.detectedRuntime?.kind ?? "knowledge-only"})` }, 400);
     }
 
     try {
@@ -296,8 +316,8 @@ export function registerSkillRoutes(
     if (!installed) {
       return c.json({ error: "skill not found" }, 404);
     }
-    if (!installed.skill.source.runtime) {
-      return c.json({ error: "skill has no runtime declaration" }, 400);
+    if (!isAutoProvisionableSkill(installed)) {
+      return c.json({ error: `skill is not an auto-provisionable script skill (kind=${installed.skill.detectedRuntime?.kind ?? "knowledge-only"})` }, 400);
     }
 
     // SSE-based streaming provision
@@ -329,8 +349,8 @@ export function registerSkillRoutes(
     if (!installed) {
       return c.json({ error: "skill not found" }, 404);
     }
-    if (!installed.skill.source.runtime) {
-      return c.json({ error: "skill has no runtime declaration" }, 400);
+    if (!isAutoProvisionableSkill(installed)) {
+      return c.json({ error: `skill is not an auto-provisionable script skill (kind=${installed.skill.detectedRuntime?.kind ?? "knowledge-only"})` }, 400);
     }
 
     try {

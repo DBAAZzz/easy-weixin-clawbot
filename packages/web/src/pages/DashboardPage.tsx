@@ -3,13 +3,7 @@ import { Link } from "react-router-dom";
 import { AccountCard } from "../components/AccountCard.js";
 import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
-import {
-  ActivityIcon,
-  ArrowRightIcon,
-  ChatIcon,
-  ScanIcon,
-  SearchIcon,
-} from "../components/ui/icons.js";
+import { ActivityIcon, ChatIcon, ScanIcon, SearchIcon } from "../components/ui/icons.js";
 import { formatCount } from "../lib/format.js";
 import { useAccounts } from "../hooks/useAccounts.js";
 import { buttonClassName } from "../components/ui/button.js";
@@ -166,10 +160,14 @@ export function DashboardPage() {
 
               <Link
                 to="/login"
-                className={buttonClassName({ className: "justify-center", size: "sm" })}
+                className={buttonClassName({
+                  className: "w-full justify-center",
+                  variant: "outline",
+                  size: "sm",
+                })}
               >
+                <ScanIcon className="size-4" />
                 打开扫码连接
-                <ArrowRightIcon className="size-4" />
               </Link>
             </div>
           ) : null}

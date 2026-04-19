@@ -187,10 +187,14 @@ export function MemoryGraphPage() {
 
           <Link
             to="/login"
-            className={buttonClassName({ className: "justify-center", size: "sm" })}
+            className={buttonClassName({
+              className: "w-full justify-center",
+              variant: "outline",
+              size: "sm",
+            })}
           >
-            打开扫码连接
             <ScanIcon className="size-4" />
+            打开扫码连接
           </Link>
         </Card>
       </div>

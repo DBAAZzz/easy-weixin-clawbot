@@ -62,6 +62,11 @@ export function createApiApp(dependencies: ApiDependencies) {
   // Apply JWT middleware to all API routes except webhook delivery endpoint
   if (authConfig) {
     app.use("/api/*", async (c, next) => {
+      if (c.req.method === "GET" && c.req.path === "/api/health") {
+        await next();
+        return;
+      }
+
       // POST /api/webhooks is the webhook delivery endpoint, uses its own Bearer token auth
       if (c.req.method === "POST" && c.req.path === "/api/webhooks") {
         await next();

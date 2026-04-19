@@ -1,0 +1,80 @@
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────────
+  postgres:
+    image: ${REGISTRY:-}postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-clawbot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-clawbot}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clawbot} -d ${POSTGRES_DB:-clawbot}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # ── Server (Hono API + WeChat Runtime) ─────────────────────────────────
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: server
+      args:
+        REGISTRY: ${REGISTRY:-}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      API_PORT: "8028"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-clawbot}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-clawbot}
+      DIRECT_URL: postgresql://${POSTGRES_USER:-clawbot}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-clawbot}
+      CLAWBOT_CREDENTIAL_KEY: ${CLAWBOT_CREDENTIAL_KEY:?Set CLAWBOT_CREDENTIAL_KEY in .env}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_PROVIDER: ${LLM_PROVIDER:-moonshot}
+      LLM_MODEL: ${LLM_MODEL:-moonshot-v1-8k}
+      SYSTEM_PROMPT: ${SYSTEM_PROMPT:-你是一个微信智能助手，回答简洁、友好。}
+      TTS_PROVIDER: ${TTS_PROVIDER:-edge-tts}
+      TTS_DEFAULT_VOICE: ${TTS_DEFAULT_VOICE:-zh-CN-XiaoxiaoNeural}
+      # Pass through any additional provider-specific API keys
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      KIMI_API_KEY: ${KIMI_API_KEY:-}
+    volumes:
+      - appdata:/app/data
+      - ./packages/server/config.yaml:/app/packages/server/config.yaml:ro
+    ports:
+      - "${API_PORT:-8028}:8028"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8028/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ── Nginx (Web UI + Reverse Proxy) ─────────────────────────────────────
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+      args:
+        REGISTRY: ${REGISTRY:-}
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-80}:80"
+
+volumes:
+  pgdata:
+    driver: local
+  appdata:
+    driver: local

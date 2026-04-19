@@ -1,0 +1,56 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs (will be rebuilt in container)
+**/dist
+**/build
+**/*.tsbuildinfo
+
+# Development files
+.git
+.gitignore
+.vscode
+.cursor
+.idea
+*.swp
+*.swo
+
+# Docker files (avoid recursive context)
+docker-compose.yml
+docker-compose.yaml
+Dockerfile
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+packages/server/config.yaml
+
+# Documentation (not needed in image)
+docs/
+images/
+*.md
+!packages/agent/prompts/*.md
+!data/tools/**/*.md
+!data/skills/**/*.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+coverage/
+
+# User data (mounted as volumes, not baked into image)
+data/downloads/
+data/media-cache/
+data/tts-cache/
+data/skills/user/
+data/tools/user/
+
+# Python virtual environments (if any)
+**/.venv
+**/__pycache__

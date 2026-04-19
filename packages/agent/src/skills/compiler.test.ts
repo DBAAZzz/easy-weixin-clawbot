@@ -1,0 +1,47 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { parseMdContent } from "../shared/parser.js";
+import { createSkillSource } from "./compiler.js";
+
+test("createSkillSource normalizes common third-party frontmatter fields", () => {
+  const markdown = [
+    "---",
+    "name: akshare-stock-analysis",
+    'description: "专业股票分析技能"',
+    'license: "Copyright 2026"',
+    "---",
+    "# Skill body",
+    "",
+    "content",
+  ].join("\n");
+
+  const parsed = parseMdContent(markdown, "/tmp/SKILL.md");
+  const source = createSkillSource(parsed);
+
+  assert.equal(source.name, "akshare-stock-analysis");
+  assert.equal(source.type, "skill");
+  assert.equal(source.summary, "专业股票分析技能");
+  assert.equal(source.version, "0.0.0");
+  assert.equal(source.activation, "on-demand");
+});
+
+test("createSkillSource ignores private runtime fields from third-party skills", () => {
+  const markdown = [
+    "---",
+    "name: akshare-exec",
+    "version: 1.0.0",
+    "description: 可执行技能",
+    "handler: python-venv",
+    "runtime:",
+    "  type: python",
+    "---",
+    "# Skill body",
+  ].join("\n");
+
+  const parsed = parseMdContent(markdown, "/tmp/SKILL.md");
+  const source = createSkillSource(parsed);
+
+  assert.equal(source.type, "skill");
+  assert.equal(source.summary, "可执行技能");
+  assert.equal(source.filePath, "/tmp/SKILL.md");
+});

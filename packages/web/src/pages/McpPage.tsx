@@ -3,9 +3,18 @@ import type { McpServerInfo, McpToolInfo } from "@clawbot/shared";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
 import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "../components/ui/dialog.js";
+import {
   ActivityIcon,
   LinkIcon,
-  PencilIcon,
   PuzzleIcon,
   SearchIcon,
   TerminalIcon,
@@ -96,27 +105,97 @@ function ToggleButton(props: {
   );
 }
 
-function DetailItem(props: { label: string; value: string }) {
+type ServerDetailTab = "config" | "tools";
+
+function ExpandableSummary(props: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const summary = props.text.trim();
+  const canExpand = summary.length > 60;
+
+  if (!summary) {
+    return null;
+  }
+
   return (
-    <div className="rounded-section border border-line bg-detail-bg px-4 py-3">
-      <p className="text-xs uppercase tracking-label text-muted">{props.label}</p>
-      <p className="mt-1.5 text-md font-medium text-ink">{props.value}</p>
+    <div className="mt-4 max-w-3xl">
+      <p
+        className={cn(
+          "text-lg leading-7 text-muted-strong",
+          canExpand && !expanded && "line-clamp-2",
+        )}
+      >
+        {summary}
+      </p>
+      {canExpand ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((current) => !current)}
+          className="mt-2 text-sm font-medium text-accent-strong transition hover:text-accent"
+        >
+          {expanded ? "收起" : "...更多"}
+        </button>
+      ) : null}
     </div>
   );
 }
 
-function ConfigBlock(props: { label: string; value: string }) {
+function CompactMetaStrip(props: {
+  items: Array<{ label: string; value: string; mono?: boolean }>;
+}) {
   return (
-    <div className="rounded-xl border border-line bg-detail-bg px-4 py-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-label-lg text-muted">{props.label}</p>
-        </div>
-      </div>
-      <pre className="mt-3 overflow-auto rounded-section border border-line bg-detail-bg-strong px-4 py-3 text-sm leading-6 text-ink-soft">
-        {props.value || "暂无配置"}
-      </pre>
+    <div className="mt-5 overflow-hidden rounded-panel border border-line bg-white/72">
+      <dl className="grid gap-0 md:grid-cols-2 xl:grid-cols-4">
+        {props.items.map((item, index) => (
+          <div
+            key={item.label}
+            className={cn(
+              "px-4 py-3.5",
+              index > 0 && "border-t border-line",
+              index % 2 === 1 && "md:border-l",
+              index < 2 && "md:border-t-0",
+              index > 0 && "xl:border-l",
+              index > 1 && "xl:border-t-0",
+            )}
+          >
+            <dt className="text-xs tracking-label text-muted">{item.label}</dt>
+            <dd
+              className={cn(
+                "mt-1.5 text-md font-medium text-ink",
+                item.mono && "font-mono text-sm tracking-mono text-ink-soft",
+              )}
+            >
+              {item.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
     </div>
+  );
+}
+
+function DetailTabButton(props: {
+  tab: ServerDetailTab;
+  activeTab: ServerDetailTab;
+  label: string;
+  onSelect: (tab: ServerDetailTab) => void;
+}) {
+  const selected = props.activeTab === props.tab;
+
+  return (
+    <button
+      id={`mcp-server-tab-${props.tab}`}
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      aria-controls={`mcp-server-panel-${props.tab}`}
+      onClick={() => props.onSelect(props.tab)}
+      className={cn(
+        "inline-flex items-center border-b-2 px-0 pb-3 pt-1 text-base font-medium tracking-body transition duration-200 ease-expo",
+        selected ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink",
+      )}
+    >
+      <span>{props.label}</span>
+    </button>
   );
 }
 
@@ -230,7 +309,7 @@ function McpToolCard(props: {
   );
 }
 
-function ServerDetailModal(props: {
+export function ServerDetailModal(props: {
   server: McpServerInfo;
   tools: McpToolInfo[];
   serverBusy: boolean;
@@ -241,149 +320,191 @@ function ServerDetailModal(props: {
   onToggleServer: () => void | Promise<void>;
   onDelete: () => void | Promise<void>;
   onToggleTool: (tool: McpToolInfo) => void | Promise<void>;
+  initialTab?: ServerDetailTab;
 }) {
+  const [activeTab, setActiveTab] = useState<ServerDetailTab>(props.initialTab ?? "config");
+  const overviewItems = [
+    { label: "Server ID", value: props.server.slug, mono: true },
+    { label: "传输", value: props.server.transport },
+    { label: "工作目录", value: props.server.cwd ?? "跟随服务进程", mono: true },
+    { label: "Tool 数", value: formatCount(props.server.tool_count) },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
-      <button
-        type="button"
-        aria-label="关闭 MCP server 详情"
-        onClick={props.onClose}
-        className="absolute inset-0 bg-overlay backdrop-blur-[8px]"
-      />
+    <Dialog open onOpenChange={(open) => !open && props.onClose()}>
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogContent className="max-w-4xl rounded-section bg-glass-92">
+          <DialogClose
+            label="关闭 MCP server 详情"
+            className="absolute right-5 top-5 z-20 size-9 border-transparent bg-transparent text-muted hover:border-transparent hover:bg-transparent hover:text-ink"
+          />
 
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="mcp-server-detail-title"
-        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-pill border border-modal-border bg-card-hover shadow-modal"
-      >
-        <div className="border-b border-line px-5 py-4 md:px-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex min-w-0 items-start gap-4">
-              <ServerAvatar status={props.server.status} />
-              <div className="min-w-0">
-                <p className="text-xs uppercase tracking-label-xl text-muted">MCP Server Detail</p>
-                <h3
-                  id="mcp-server-detail-title"
-                  className="mt-1.5 truncate text-5xl font-semibold tracking-heading text-ink"
+          <DialogHeader className="py-5">
+            <div className="pr-10">
+              <DialogTitle className="truncate">{props.server.name}</DialogTitle>
+              <p className="mt-2 text-sm text-muted">
+                当前状态：
+                <span className="font-medium text-ink">
+                  {props.server.enabled ? " 已启用" : " 已停用"} ·{" "}
+                  {statusLabel(props.server.status)}
+                </span>
+                {props.server.last_error ? (
+                  <span className="text-red-700"> · 最近一次连接异常</span>
+                ) : null}
+              </p>
+              <ExpandableSummary text={props.server.command} />
+            </div>
+
+            <CompactMetaStrip items={overviewItems} />
+          </DialogHeader>
+
+          <DialogBody className="py-6">
+            <div
+              role="tablist"
+              aria-label="MCP Server 详情视图"
+              className="flex flex-wrap items-center gap-6 border-b border-line"
+            >
+              <DetailTabButton
+                tab="config"
+                activeTab={activeTab}
+                label="配置"
+                onSelect={setActiveTab}
+              />
+              <DetailTabButton
+                tab="tools"
+                activeTab={activeTab}
+                label="工具"
+                onSelect={setActiveTab}
+              />
+            </div>
+
+            <div className="pt-6">
+              {activeTab === "config" ? (
+                <div
+                  id="mcp-server-panel-config"
+                  role="tabpanel"
+                  aria-labelledby="mcp-server-tab-config"
                 >
-                  {props.server.name}
-                </h3>
-                <p className="mt-2 text-md leading-6 text-muted-strong">{props.server.command}</p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={props.onClose}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-muted-strong transition hover:border-line-strong hover:text-ink"
-            >
-              <XIcon className="size-4" />
-            </button>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Badge tone={statusTone(props.server.status)}>{statusLabel(props.server.status)}</Badge>
-            <Badge tone="muted">{props.server.slug}</Badge>
-            <Badge tone="muted">{props.server.transport}</Badge>
-            <Badge tone="muted">tools {formatCount(props.server.tool_count)}</Badge>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={props.serverBusy}
-              onClick={() => void props.onRefresh()}
-            >
-              <ActivityIcon className="size-4" />
-              刷新目录
-            </Button>
-            <Button size="sm" variant="outline" onClick={props.onEdit}>
-              <PencilIcon className="size-4" />
-              编辑配置
-            </Button>
-            <Button
-              size="sm"
-              variant={props.server.enabled ? "outline" : "primary"}
-              disabled={props.serverBusy}
-              onClick={() => void props.onToggleServer()}
-            >
-              {props.server.enabled ? "停用 Server" : "启用 Server"}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={props.serverBusy}
-              onClick={() => void props.onDelete()}
-            >
-              删除配置
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6">
-          <div className="grid gap-3 md:grid-cols-2">
-            <DetailItem label="Status" value={statusLabel(props.server.status)} />
-            <DetailItem label="Last Seen" value={formatDateTime(props.server.last_seen_at)} />
-            <DetailItem label="Working Dir" value={props.server.cwd ?? "跟随服务进程"} />
-            <DetailItem label="Tool Count" value={formatCount(props.server.tool_count)} />
-          </div>
-
-          {props.server.last_error ? (
-            <div className="rounded-xl border border-notice-error-border bg-notice-error-bg px-4 py-4">
-              <p className="text-xs uppercase tracking-label-lg text-red-600">Last Error</p>
-              <p className="mt-2 text-base leading-6 text-red-700">{props.server.last_error}</p>
-            </div>
-          ) : null}
-
-          <ConfigBlock label="Standard JSON" value={stringifyMcpServerJsonDocument(props.server)} />
-
-          <div className="rounded-xl border border-line bg-detail-bg px-4 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-label-lg text-muted">Discovered Tools</p>
-              </div>
-              <Badge tone="muted">{formatCount(props.tools.length)} items</Badge>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              {props.tools.length > 0 ? (
-                props.tools.map((tool) => (
-                  <div
-                    key={tool.id}
-                    className="flex items-center gap-3 rounded-section border border-line bg-white/86 px-3.5 py-3"
-                  >
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-line bg-frost-92 text-ink">
-                      <TerminalIcon className="size-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-mono text-sm text-ink">{tool.local_name}</p>
-                      <p className="mt-1 truncate text-base text-muted-strong">
-                        {tool.remote_name}
-                      </p>
+                  <div className="space-y-6">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={props.serverBusy}
+                        onClick={() => void props.onRefresh()}
+                      >
+                        刷新目录
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={props.onEdit}>
+                        编辑配置
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={props.server.enabled ? "outline" : "primary"}
+                        disabled={props.serverBusy}
+                        onClick={() => void props.onToggleServer()}
+                      >
+                        {props.server.enabled ? "停用 Server" : "启用 Server"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={props.serverBusy}
+                        onClick={() => void props.onDelete()}
+                      >
+                        删除配置
+                      </Button>
                     </div>
-                    <ToggleButton
-                      enabled={tool.enabled}
-                      busy={props.busyToolId === tool.id}
-                      onToggle={() => props.onToggleTool(tool)}
-                    />
+
+                    <div className="rounded-panel bg-detail-bg px-6 py-6 md:px-7 md:py-7">
+                      <div className="space-y-6">
+                        {props.server.last_error ? (
+                          <p className="text-sm leading-6 text-red-700">
+                            最近一次异常：{props.server.last_error}
+                          </p>
+                        ) : null}
+
+                        <div>
+                          <p className="text-xs tracking-label text-muted">标准 JSON</p>
+                          <pre className="mt-3 overflow-x-auto rounded-panel border border-line bg-white/78 px-4 py-4 text-sm leading-6 text-ink-soft">
+                            {stringifyMcpServerJsonDocument(props.server)}
+                          </pre>
+                        </div>
+
+                        <div className="border-t border-line pt-6">
+                          <p className="text-xs tracking-label text-muted">最近活跃</p>
+                          <p className="mt-3 text-base leading-7 text-muted-strong">
+                            {formatDateTime(props.server.last_seen_at)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ))
+                </div>
               ) : (
-                <div className="rounded-section border border-dashed border-line bg-white/60 px-4 py-6 text-center text-base text-muted">
-                  暂无 MCP tool
+                <div
+                  id="mcp-server-panel-tools"
+                  role="tabpanel"
+                  aria-labelledby="mcp-server-tab-tools"
+                >
+                  <div className="rounded-panel bg-detail-bg px-6 py-6 md:px-7 md:py-7">
+                    <div className="space-y-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-xs tracking-label text-muted">已发现工具</p>
+                        <p className="text-sm text-muted">{formatCount(props.tools.length)} 项</p>
+                      </div>
+
+                      <div className="space-y-3">
+                        {props.tools.length > 0 ? (
+                          props.tools.map((tool) => (
+                            <div
+                              key={tool.id}
+                              className="flex items-start gap-4 rounded-panel border border-line bg-white/78 px-4 py-4"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate font-mono text-sm text-ink">
+                                  {tool.local_name}
+                                </p>
+                                <p className="mt-1 text-base text-muted-strong">
+                                  {tool.remote_name}
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-muted">
+                                  {tool.summary ?? "该 MCP tool 未提供描述。"}
+                                </p>
+                              </div>
+
+                              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                                <ToggleButton
+                                  enabled={tool.enabled}
+                                  busy={props.busyToolId === tool.id}
+                                  onToggle={() => props.onToggleTool(tool)}
+                                />
+                                <span className="text-xs font-medium text-muted">
+                                  {tool.enabled ? "已启用" : "已停用"}
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="rounded-panel border border-dashed border-line bg-white/60 px-4 py-8 text-center text-base text-muted">
+                            暂无 MCP tool
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          </DialogBody>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   );
 }
 
-function ServerEditorModal(props: {
+export function ServerEditorModal(props: {
   mode: "create" | "edit";
   jsonText: string;
   error: string | null;
@@ -394,89 +515,92 @@ function ServerEditorModal(props: {
   onSubmit: () => void | Promise<void>;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
-      <button
-        type="button"
-        aria-label="关闭 MCP server 编辑器"
-        onClick={props.onClose}
-        className="absolute inset-0 bg-overlay backdrop-blur-[8px]"
-      />
+    <Dialog open onOpenChange={(open) => !open && props.onClose()}>
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogContent className="max-w-4xl rounded-section bg-glass-92">
+          <DialogClose
+            label="关闭 MCP server 编辑器"
+            className="absolute right-5 top-5 z-20 size-9 border-transparent bg-transparent text-muted hover:border-transparent hover:bg-transparent hover:text-ink"
+          />
 
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="mcp-server-editor-title"
-        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-pill border border-modal-border bg-card-hover shadow-modal"
-      >
-        <div className="border-b border-line px-5 py-4 md:px-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-label-xl text-muted">
-                {props.mode === "create" ? "Create Server" : "Edit Server"}
-              </p>
-              <h3
-                id="mcp-server-editor-title"
-                className="mt-1.5 text-5xl font-semibold tracking-heading text-ink"
-              >
+          <DialogHeader className="py-5">
+            <div className="pr-10">
+              <DialogTitle>
                 {props.mode === "create" ? "粘贴标准 MCP JSON" : "编辑 MCP JSON 配置"}
-              </h3>
+              </DialogTitle>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                {props.mode === "create"
+                  ? "创建后会立即连接并刷新目录。"
+                  : "保存后会重新连接并同步最新的 MCP tools。"}
+              </p>
             </div>
 
-            <button
-              type="button"
-              onClick={props.onClose}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-muted-strong transition hover:border-line-strong hover:text-ink"
-            >
-              <XIcon className="size-4" />
-            </button>
-          </div>
-        </div>
+            <CompactMetaStrip
+              items={[
+                { label: "模式", value: props.mode === "create" ? "新建" : "编辑" },
+                { label: "格式", value: "MCP JSON" },
+                {
+                  label: "提交",
+                  value: props.mode === "create" ? "创建并连接" : "保存并刷新",
+                },
+              ]}
+            />
+          </DialogHeader>
 
-        <form
-          className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void props.onSubmit();
-          }}
-        >
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm uppercase tracking-label text-muted">MCP JSON</p>
-              <div className="flex flex-wrap gap-2">
+          <DialogBody className="py-6">
+            <form
+              className="space-y-6"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void props.onSubmit();
+              }}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs tracking-label text-muted">配置内容</p>
                 <Button type="button" size="sm" variant="outline" onClick={props.onFillExample}>
                   填入 TAPD 示例
                 </Button>
               </div>
-            </div>
 
-            <textarea
-              value={props.jsonText}
-              onChange={(event) => props.onChange(event.target.value)}
-              spellCheck={false}
-              placeholder={TAPD_MCP_JSON_EXAMPLE}
-              className="min-h-[320px] w-full rounded-section border border-line-strong bg-glass-82 px-4 py-3 font-mono text-base leading-6 text-ink outline-none transition duration-300 ease-expo placeholder:text-muted focus:border-accent focus:shadow-focus-accent"
-            />
+              <div className="rounded-panel bg-detail-bg px-6 py-6 md:px-7 md:py-7">
+                <div className="space-y-6">
+                  <textarea
+                    value={props.jsonText}
+                    onChange={(event) => props.onChange(event.target.value)}
+                    spellCheck={false}
+                    placeholder={TAPD_MCP_JSON_EXAMPLE}
+                    className="min-h-[320px] w-full rounded-panel border border-line-strong bg-white/78 px-4 py-4 font-mono text-base leading-6 text-ink outline-none transition duration-300 ease-expo placeholder:text-muted focus:border-accent focus:shadow-focus-accent"
+                  />
 
-            {props.error ? (
-              <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-                {props.error}
+                  {props.error ? (
+                    <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
+                      {props.error}
+                    </div>
+                  ) : null}
+
+                  <div className="border-t border-line pt-6">
+                    <p className="text-xs tracking-label text-muted">输入示例</p>
+                    <pre className="mt-3 max-h-60 overflow-auto rounded-panel border border-line bg-white/78 px-4 py-4 text-sm leading-6 text-ink-soft">
+                      {TAPD_MCP_JSON_EXAMPLE}
+                    </pre>
+                  </div>
+                </div>
               </div>
-            ) : null}
 
-            <ConfigBlock label="输入案例" value={TAPD_MCP_JSON_EXAMPLE} />
-          </div>
-
-          <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-line bg-glass-92 px-1 pt-4">
-            <Button type="button" variant="outline" onClick={props.onClose}>
-              取消
-            </Button>
-            <Button disabled={props.busy} type="submit">
-              {props.mode === "create" ? "创建并连接" : "保存并刷新"}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+              <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-line bg-glass-92 px-1 pt-4">
+                <Button type="button" variant="outline" onClick={props.onClose}>
+                  取消
+                </Button>
+                <Button disabled={props.busy} type="submit">
+                  {props.mode === "create" ? "创建并连接" : "保存并刷新"}
+                </Button>
+              </div>
+            </form>
+          </DialogBody>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   );
 }
 

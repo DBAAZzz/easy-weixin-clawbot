@@ -92,6 +92,48 @@ export interface SkillInfo {
   activation: "always" | "on-demand";
   origin: "builtin" | "user";
   enabled: boolean;
+  installedAt?: string;
+  filePath?: string;
+  runtimeKind?: "knowledge-only" | "python-script" | "python-script-set" | "node-script" | "node-script-set" | "manual-needed";
+  entrypointPath?: string;
+  dependencyNames?: string[];
+  scriptSet?: string[];
+  hasRuntime?: boolean;
+  provisionStatus?: "pending" | "provisioning" | "ready" | "failed";
+  provisionError?: string;
+}
+
+export interface SkillLocalRunCheckItem {
+  status: "ok" | "fail" | "info";
+  message: string;
+}
+
+export interface SkillLocalRunCheck {
+  canRunNow: boolean;
+  checks: SkillLocalRunCheckItem[];
+}
+
+export interface SkillUploadResult extends SkillInfo {
+  localRunCheck?: SkillLocalRunCheck;
+}
+
+export interface SkillProvisionPlan {
+  runtime: "python" | "node";
+  installer: "uv-pip" | "pip" | "npm" | "pnpm" | "yarn" | "manual";
+  createEnv: boolean;
+  commandPreview: string[];
+  dependencies: Array<{
+    name: string;
+    installSpec?: string;
+    source: "markdown-install" | "import-scan";
+    confidence: "high" | "medium" | "low";
+  }>;
+}
+
+export interface SkillProvisionLog {
+  level: "info" | "warn" | "error";
+  message: string;
+  timestamp: number;
 }
 
 export interface MarkdownSource {
@@ -212,6 +254,8 @@ export interface ObservabilityTraceSummary {
   created_at: string;
 }
 
+export type ObservabilitySpanAttributeValue = string | number | boolean;
+
 export interface ObservabilitySpanPayload {
   prompt: string;
   completion: string;
@@ -232,6 +276,7 @@ export interface ObservabilityTraceSpan {
   output_tokens: number | null;
   stop_reason: string | null;
   error_message: string | null;
+  attributes: Record<string, ObservabilitySpanAttributeValue>;
   payload: ObservabilitySpanPayload | null;
 }
 

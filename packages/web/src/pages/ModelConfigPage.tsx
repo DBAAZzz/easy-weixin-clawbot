@@ -26,6 +26,7 @@ import {
   CpuIcon,
 } from "../components/ui/icons.js";
 import { Input } from "../components/ui/input.js";
+import { toast } from "../components/ui/sonner.js";
 import { Select, type SelectOption } from "../components/ui/select.js";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAccounts } from "../hooks/useAccounts.js";
@@ -1011,8 +1012,9 @@ export function ModelConfigPage() {
     try {
       await deleteModelProviderTemplate(template.id);
       await refresh();
+      toast.success(`供应商配置 ${template.name} 已删除`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "删除失败");
+      toast.error(err instanceof Error ? err.message : "删除失败");
     }
   }
 
@@ -1060,8 +1062,9 @@ export function ModelConfigPage() {
         enabled: !template.enabled,
       });
       await refresh();
+      toast.success(`${template.name} 已${template.enabled ? "停用" : "启用"}`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "更新失败");
+      toast.error(err instanceof Error ? err.message : "更新失败");
     } finally {
       setPendingTemplateToggleId(null);
     }
@@ -1080,8 +1083,11 @@ export function ModelConfigPage() {
         priority: config.priority,
       });
       await refresh();
+      toast.success(
+        `${config.template_name}/${config.model_id} 已${config.enabled ? "停用" : "启用"}`,
+      );
     } catch (err) {
-      alert(err instanceof Error ? err.message : "更新失败");
+      toast.error(err instanceof Error ? err.message : "更新失败");
     } finally {
       setPendingConfigToggleId(null);
     }
@@ -1094,8 +1100,9 @@ export function ModelConfigPage() {
     try {
       await deleteModelConfig(config.id);
       await refresh();
+      toast.success(`使用配置 ${config.template_name}/${config.model_id} 已删除`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "删除失败");
+      toast.error(err instanceof Error ? err.message : "删除失败");
     }
   }
 

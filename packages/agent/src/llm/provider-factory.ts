@@ -62,8 +62,9 @@ function resolveProviderApiKey(
   switch (provider) {
     case "moonshot":
     case "kimi":
-    case "kimi-coding":
       return firstNonEmptyEnv(["MOONSHOT_API_KEY", "KIMI_API_KEY"]);
+    case "kimi-coding":
+      return firstNonEmptyEnv(["KIMI_API_KEY", "ANTHROPIC_API_KEY", "MOONSHOT_API_KEY"]);
     default:
       return undefined;
   }
@@ -97,7 +98,10 @@ function buildProviderModel(
 
   switch (provider) {
     case "anthropic":
-      return createAnthropic({ ...(apiKey ? { apiKey } : {}) })(modelId);
+      return createAnthropic({
+        ...(options?.baseUrl ? { baseURL: options.baseUrl } : {}),
+        ...(apiKey ? { apiKey } : {}),
+      })(modelId);
 
     case "openai":
       return createOpenAI({ ...(apiKey ? { apiKey } : {}) })(modelId);
@@ -110,14 +114,14 @@ function buildProviderModel(
       const baseURL =
         options?.baseUrl ??
         (provider === "kimi"
-          ? "https://api.kimi.ai/v1"
+          ? "https://api.moonshot.cn/v1"
           : "https://api.moonshot.cn/v1");
       return createMoonshotAI({ baseURL, ...(apiKey ? { apiKey } : {}) })(modelId);
     }
 
     case "kimi-coding":
-      return createMoonshotAI({
-        baseURL: options?.baseUrl ?? "https://api.kimi.ai/v1",
+      return createAnthropic({
+        baseURL: options?.baseUrl ?? "https://api.kimi.com/coding/v1",
         ...(apiKey ? { apiKey } : {}),
       })(modelId);
 

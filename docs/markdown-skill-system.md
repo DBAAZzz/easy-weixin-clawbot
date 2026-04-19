@@ -1,6 +1,12 @@
 # Markdown 驱动的 Tool & Skill 系统
 
 > 取代内存硬编码的 JS 注册，改为 Markdown 文件驱动。Tool 和 Skill 是两个正交系统：Tool 是可调用的函数（返回数据），Skill 是可注入的知识（影响模型行为）。统一使用 .md 文件格式，共享分层存储和安装服务基础设施。
+>
+> 更新说明（2026-04-17）：
+> - Tool 仍然使用 `handler + inputSchema` 的声明式格式。
+> - Skill 已切换为“标准 Skill 包”模型：`SKILL.md + scripts/ + references/`。
+> - Skill 不再支持通过 `handler/inputSchema/runtime` 生成 `companionTool`。
+> - 可执行 Skill 的兼容与运行细节，以 [docs/standard-skill-runtime-design.md](/Users/mac/Documents/DBAA/easy-weixin-clawbot/docs/standard-skill-runtime-design.md) 为准。
 
 ## 问题
 

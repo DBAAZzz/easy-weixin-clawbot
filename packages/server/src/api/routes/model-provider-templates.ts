@@ -31,8 +31,7 @@ const OPENAI_COMPATIBLE_BASE_URLS: Record<string, string> = {
   openai: "https://api.openai.com/v1",
   deepseek: "https://api.deepseek.com/v1",
   moonshot: "https://api.moonshot.cn/v1",
-  kimi: "https://api.kimi.ai/v1",
-  "kimi-coding": "https://api.kimi.ai/v1",
+  kimi: "https://api.moonshot.cn/v1",
   openrouter: "https://openrouter.ai/api/v1",
   xai: "https://api.x.ai/v1",
   groq: "https://api.groq.com/openai/v1",
@@ -61,6 +60,16 @@ function resolvePingTarget(
   if (provider === "anthropic") {
     const baseUrl = row.baseUrl?.trim() || "https://api.anthropic.com";
     endpoint = joinEndpoint(baseUrl, "v1/models");
+    init = {
+      method: "GET",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+    };
+  } else if (provider === "kimi-coding") {
+    const baseUrl = row.baseUrl?.trim() || "https://api.kimi.com/coding/v1";
+    endpoint = joinEndpoint(baseUrl, "models");
     init = {
       method: "GET",
       headers: {

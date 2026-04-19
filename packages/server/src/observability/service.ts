@@ -19,6 +19,7 @@ import {
 } from "@clawbot/observability";
 import type {
   ObservabilityOverview,
+  ObservabilitySpanAttributeValue,
   ObservabilityTraceDetail,
   ObservabilityTraceSpan,
   ObservabilityTraceSummary,
@@ -26,6 +27,23 @@ import type {
   PaginatedResponse,
 } from "@clawbot/shared";
 import { getPrisma } from "../db/prisma.js";
+
+const RESERVED_SPAN_ATTRIBUTE_KEYS = new Set([
+  "toolName",
+  "model",
+  "inputTokens",
+  "outputTokens",
+  "stopReason",
+  "error",
+  "promptSnapshot",
+  "completionSnapshot",
+]);
+
+interface PersistedSpanPayload {
+  prompt?: string;
+  completion?: string;
+  attributes?: Record<string, ObservabilitySpanAttributeValue>;
+}
 
 export interface ListTraceQuery {
   window: ObservabilityWindow;
@@ -142,13 +160,29 @@ function toTraceSpan(row: {
   payload: string | null;
 }): ObservabilityTraceSpan {
   let payload: ObservabilityTraceSpan["payload"] = null;
+  let attributes: ObservabilityTraceSpan["attributes"] = {};
   if (row.payload) {
     try {
-      const parsed = JSON.parse(row.payload) as { prompt?: unknown; completion?: unknown };
+      const parsed = JSON.parse(row.payload) as PersistedSpanPayload;
       payload = {
         prompt: typeof parsed.prompt === "string" ? parsed.prompt : "",
         completion: typeof parsed.completion === "string" ? parsed.completion : "",
       };
+      attributes =
+        parsed.attributes && typeof parsed.attributes === "object"
+          ? Object.fromEntries(
+              Object.entries(parsed.attributes).filter(
+                ([, value]) =>
+                  typeof value === "string" ||
+                  typeof value === "number" ||
+                  typeof value === "boolean",
+              ),
+            )
+          : {};
+
+      if (!payload.prompt && !payload.completion) {
+        payload = null;
+      }
     } catch {
       payload = {
         prompt: "",
@@ -172,8 +206,42 @@ function toTraceSpan(row: {
     output_tokens: row.outputTokens,
     stop_reason: row.stopReason,
     error_message: row.errorMessage,
+    attributes,
     payload,
   };
+}
+
+function extractCustomAttributes(
+  attributes: SpanData["attributes"],
+): Record<string, ObservabilitySpanAttributeValue> {
+  return Object.fromEntries(
+    Object.entries(attributes).filter(
+      ([key, value]) =>
+        !RESERVED_SPAN_ATTRIBUTE_KEYS.has(key) &&
+        (typeof value === "string" ||
+          typeof value === "number" ||
+          typeof value === "boolean"),
+    ),
+  );
+}
+
+function serializeSpanPayload(attributes: SpanData["attributes"]): string | null {
+  const payload: PersistedSpanPayload = {};
+
+  if (typeof attributes.promptSnapshot === "string") {
+    payload.prompt = attributes.promptSnapshot;
+  }
+
+  if (typeof attributes.completionSnapshot === "string") {
+    payload.completion = attributes.completionSnapshot;
+  }
+
+  const customAttributes = extractCustomAttributes(attributes);
+  if (Object.keys(customAttributes).length > 0) {
+    payload.attributes = customAttributes;
+  }
+
+  return Object.keys(payload).length > 0 ? JSON.stringify(payload) : null;
 }
 
 function buildTraceWhere(query: ListTraceQuery): Prisma.TraceWhereInput {
@@ -252,20 +320,7 @@ class PrismaTraceWriter implements TraceWriter {
           typeof span.attributes.stopReason === "string" ? span.attributes.stopReason : null,
         errorMessage:
           typeof span.attributes.error === "string" ? span.attributes.error : null,
-        payload:
-          typeof span.attributes.promptSnapshot === "string" ||
-          typeof span.attributes.completionSnapshot === "string"
-            ? JSON.stringify({
-                prompt:
-                  typeof span.attributes.promptSnapshot === "string"
-                    ? span.attributes.promptSnapshot
-                    : "",
-                completion:
-                  typeof span.attributes.completionSnapshot === "string"
-                    ? span.attributes.completionSnapshot
-                    : "",
-              })
-            : null,
+        payload: serializeSpanPayload(span.attributes),
       })),
     );
 

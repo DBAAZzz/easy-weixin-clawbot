@@ -3,9 +3,14 @@ import {
   disableSkill,
   enableSkill,
   fetchSkills,
+  fetchSkillPreflight,
   installSkill,
+  provisionSkill,
+  reprovisionSkill,
   removeSkill,
+  streamProvisionLogs,
   updateSkill,
+  uploadSkillFile,
 } from "@/api/skills.js";
 import { queryKeys } from "../lib/query-keys.js";
 
@@ -28,6 +33,28 @@ export function useSkills() {
       const result = await installSkill(markdown);
       invalidate();
       return result;
+    },
+    async uploadFile(file: File) {
+      const result = await uploadSkillFile(file);
+      invalidate();
+      return result;
+    },
+    async preflight(name: string) {
+      return fetchSkillPreflight(name);
+    },
+    async provision(name: string) {
+      const result = await provisionSkill(name);
+      invalidate();
+      return result;
+    },
+    async reprovision(name: string) {
+      const result = await reprovisionSkill(name);
+      invalidate();
+      return result;
+    },
+    async streamProvision(name: string, handlers: Parameters<typeof streamProvisionLogs>[1]) {
+      await streamProvisionLogs(name, handlers);
+      invalidate();
     },
     async update(name: string, markdown: string) {
       const result = await updateSkill(name, markdown);

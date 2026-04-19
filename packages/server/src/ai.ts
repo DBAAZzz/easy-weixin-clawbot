@@ -10,8 +10,10 @@ import {
   createAgentRunner,
   createSkillInstaller,
   createSkillRegistry,
+  createSkillRuntimeToolSnapshot,
   createToolInstaller,
   createToolRegistry,
+  createRuntimeProvisioner,
   setMessageStore,
   setTapeStore,
   setSchedulerStore,
@@ -56,6 +58,10 @@ const MODEL_ID = process.env.LLM_MODEL ?? "claude-sonnet-4-20250514";
 const BASE_SYSTEM_PROMPT = process.env.SYSTEM_PROMPT ?? "你是一个微信智能助手，回答简洁、友好。";
 
 const EXPLICIT_API_KEY = process.env.LLM_API_KEY ?? process.env.KEY;
+const EXPLICIT_BASE_URL =
+  process.env.LLM_BASE_URL && process.env.LLM_BASE_URL.trim()
+    ? process.env.LLM_BASE_URL.trim()
+    : null;
 
 // ── Prompt assets ──────────────────────────────────────────────────
 
@@ -83,6 +89,7 @@ export function validateConfig() {
     `  provider : ${PROVIDER}`,
     `  model    : ${MODEL_ID}`,
     `  api key  : ${EXPLICIT_API_KEY ? `${EXPLICIT_API_KEY.slice(0, 6)}…` : "(none — using provider env var)"}`,
+    `  base url : ${EXPLICIT_BASE_URL ?? "(provider default)"}`,
     `  api port : ${process.env.API_PORT ?? "3001"}`,
   ];
   console.log("[config]\n" + lines.join("\n"));
@@ -95,7 +102,7 @@ export function validateConfig() {
       deepseek: ["DEEPSEEK_API_KEY"],
       moonshot: ["MOONSHOT_API_KEY", "KIMI_API_KEY"],
       kimi: ["MOONSHOT_API_KEY", "KIMI_API_KEY"],
-      "kimi-coding": ["MOONSHOT_API_KEY", "KIMI_API_KEY"],
+      "kimi-coding": ["KIMI_API_KEY", "ANTHROPIC_API_KEY", "MOONSHOT_API_KEY"],
       xai: ["XAI_API_KEY"],
       groq: ["GROQ_API_KEY"],
       mistral: ["MISTRAL_API_KEY"],
@@ -131,7 +138,10 @@ export function validateConfig() {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const { model, meta } = (() => {
   try {
-    return buildModelFromConfig(PROVIDER, MODEL_ID, { apiKey: EXPLICIT_API_KEY });
+    return buildModelFromConfig(PROVIDER, MODEL_ID, {
+      apiKey: EXPLICIT_API_KEY,
+      baseUrl: EXPLICIT_BASE_URL,
+    });
   } catch {
     throw new Error(
       `[ai] Unknown provider/model: LLM_PROVIDER="${PROVIDER}" LLM_MODEL="${MODEL_ID}". ` +
@@ -147,11 +157,21 @@ setDefaultModel({ model, modelId: MODEL_ID, meta });
 
 export const localToolRegistry = createToolRegistry();
 export const mcpToolRegistry = createToolRegistry();
-
-export const toolRegistry = createCompositeToolRegistry(localToolRegistry, mcpToolRegistry, schedulerToolRegistry, heartbeatToolRegistry);
-export const toolInstaller = createToolInstaller(localToolRegistry);
+export const skillRuntimeToolRegistry = createToolRegistry();
 export const skillRegistry = createSkillRegistry();
 export const skillInstaller = createSkillInstaller(skillRegistry);
+export const runtimeProvisioner = createRuntimeProvisioner();
+
+skillRuntimeToolRegistry.swap(createSkillRuntimeToolSnapshot(skillInstaller, runtimeProvisioner));
+
+export const toolRegistry = createCompositeToolRegistry(
+  localToolRegistry,
+  mcpToolRegistry,
+  schedulerToolRegistry,
+  heartbeatToolRegistry,
+  skillRuntimeToolRegistry,
+);
+export const toolInstaller = createToolInstaller(localToolRegistry);
 
 const loadedTools = await toolInstaller.initialize(TOOLS_BUILTIN_DIR, TOOLS_USER_DIR);
 const loadedSkills = await skillInstaller.initialize(SKILLS_BUILTIN_DIR, SKILLS_USER_DIR);

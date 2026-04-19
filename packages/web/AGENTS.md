@@ -22,21 +22,22 @@ src/
 
 ## 路由
 
-| 路径 | 页面 | 说明 |
-|------|------|------|
-| `/auth/login` | LoginPage | JWT 登录（公开） |
-| `/` | DashboardPage | 总览仪表盘 |
-| `/accounts/:id` | ConversationPage | 账号对话详情 |
-| `/tools` | ToolsPage | 工具管理 |
-| `/skills` | SkillsPage | 技能管理 |
-| `/mcp` | McpPage | MCP Server 管理 |
-| `/webhooks` | WebhooksPage | Webhook 管理 |
-| `/scheduled-tasks` | ScheduledTasksPage | 定时任务 |
-| `/model-config` | ModelConfigPage | 模型配置 |
-| `/observability` | ObservabilityPage | 运行监控 Trace |
-| `/memory-graph` | MemoryGraphPage | 记忆图谱可视化 |
+| 路径               | 页面               | 说明             |
+| ------------------ | ------------------ | ---------------- |
+| `/auth/login`      | LoginPage          | JWT 登录（公开） |
+| `/`                | DashboardPage      | 总览仪表盘       |
+| `/accounts/:id`    | ConversationPage   | 账号对话详情     |
+| `/tools`           | ToolsPage          | 工具管理         |
+| `/skills`          | SkillsPage         | 技能管理         |
+| `/mcp`             | McpPage            | MCP Server 管理  |
+| `/webhooks`        | WebhooksPage       | Webhook 管理     |
+| `/scheduled-tasks` | ScheduledTasksPage | 定时任务         |
+| `/model-config`    | ModelConfigPage    | 模型配置         |
+| `/observability`   | ObservabilityPage  | 运行监控 Trace   |
+| `/memory-graph`    | MemoryGraphPage    | 记忆图谱可视化   |
 
 新增页面步骤：
+
 1. `pages/` 创建页面组件
 2. `router/AppRoutes.tsx` 添加路由
 3. `layout/AppShell.tsx` 添加侧边栏菜单项（如需要）
@@ -69,12 +70,12 @@ Page → useXxx() hook → React Query → api/xxx.ts → fetch('/api/xxx')
 
 ```css
 @theme {
-  --color-paper: ...;      /* 页面背景 */
-  --color-surface: ...;    /* 卡片/模块背景 */
-  --color-ink: ...;        /* 主文字 */
-  --color-ink-secondary: ...;  /* 辅助文字 */
-  --color-accent: ...;     /* 强调色 */
-  --color-line: ...;       /* 分隔线 */
+  --color-paper: ...; /* 页面背景 */
+  --color-surface: ...; /* 卡片/模块背景 */
+  --color-ink: ...; /* 主文字 */
+  --color-ink-secondary: ...; /* 辅助文字 */
+  --color-accent: ...; /* 强调色 */
+  --color-line: ...; /* 分隔线 */
 }
 ```
 

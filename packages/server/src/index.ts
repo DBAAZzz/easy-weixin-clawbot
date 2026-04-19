@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { createApiApp } from "./api/index.js";
-import { mcpToolRegistry, skillInstaller, toolInstaller, validateConfig } from "./ai.js";
+import { mcpToolRegistry, skillInstaller, toolInstaller, runtimeProvisioner, validateConfig } from "./ai.js";
 import { upsertAccount } from "./db/accounts.js";
 import { createLoginManager } from "./login/login-manager.js";
 import { createMcpManager } from "./mcp/manager.js";
@@ -51,6 +51,7 @@ const app = createApiApp({
   toolInstaller,
   skillInstaller,
   mcpManager,
+  provisioner: runtimeProvisioner,
   startedAt,
 });
 

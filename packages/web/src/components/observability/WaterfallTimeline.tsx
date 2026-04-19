@@ -190,16 +190,16 @@ function TreeLines({ row }: { row: FlatRow }) {
 
 function SpanDetail({ span }: { span: ObservabilityTraceSpan }) {
   const [tab, setTab] = useState<"attributes" | "prompt" | "completion">("attributes");
-  const hasPayload = Boolean(span.payload);
+  const hasPrompt = Boolean(span.payload?.prompt);
+  const hasCompletion = Boolean(span.payload?.completion);
+  const customAttributeEntries = Object.entries(span.attributes).sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
 
   const tabs = [
     { key: "attributes" as const, label: "属性" },
-    ...(hasPayload
-      ? [
-          { key: "prompt" as const, label: "Prompt" },
-          { key: "completion" as const, label: "Completion" },
-        ]
-      : []),
+    ...(hasPrompt ? [{ key: "prompt" as const, label: "Prompt" }] : []),
+    ...(hasCompletion ? [{ key: "completion" as const, label: "Completion" }] : []),
   ];
 
   return (
@@ -240,6 +240,9 @@ function SpanDetail({ span }: { span: ObservabilityTraceSpan }) {
                 <Attr label="错误" value={span.error_message} error />
               </div>
             )}
+            {customAttributeEntries.map(([key, value]) => (
+              <Attr key={key} label={key} value={String(value)} />
+            ))}
           </div>
         )}
 

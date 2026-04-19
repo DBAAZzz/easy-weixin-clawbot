@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
+import { toast } from "../components/ui/sonner.js";
 import { CardOverflowMenu, CardToggle, IconTag, MetricGrid } from "../components/ui/admin-card.js";
 import {
   WebhookIcon,
@@ -670,6 +671,9 @@ export function WebhooksPage() {
     try {
       await toggleWebhookToken(source, !enabled);
       refresh();
+      toast.success(`${source} 已${enabled ? "停用" : "启用"}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "更新失败");
     } finally {
       setPendingToggle(null);
     }
@@ -681,8 +685,9 @@ export function WebhooksPage() {
       const result = await rotateWebhookToken(source);
       setCreatedToken(result.token);
       refresh();
+      toast.success(`${source} 的 Token 已轮换`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "轮换失败");
+      toast.error(err instanceof Error ? err.message : "轮换失败");
     }
   };
 
@@ -691,8 +696,9 @@ export function WebhooksPage() {
     try {
       await deleteWebhookToken(source);
       refresh();
+      toast.success(`${source} 已删除`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "删除失败");
+      toast.error(err instanceof Error ? err.message : "删除失败");
     }
   };
 

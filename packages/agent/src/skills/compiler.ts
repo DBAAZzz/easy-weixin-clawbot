@@ -1,4 +1,5 @@
 import type { ParsedFile } from "../shared/parser.js";
+import { normalizeFrontmatter } from "./normalizer.js";
 import type { CompiledSkill, SkillActivation, SkillSource } from "./types.js";
 
 function requireString(value: unknown, field: string, filePath: string): string {
@@ -10,29 +11,47 @@ function requireString(value: unknown, field: string, filePath: string): string 
 
 export function createSkillSource(parsed: ParsedFile): SkillSource {
   const { frontmatter, filePath, body } = parsed;
+  const { normalized } = normalizeFrontmatter(frontmatter, { defaultType: "skill" });
   const activation =
-    frontmatter.activation === undefined
+    normalized.activation === undefined
       ? "on-demand"
-      : requireString(frontmatter.activation, "activation", filePath);
+      : requireString(normalized.activation, "activation", filePath);
 
   if (activation !== "always" && activation !== "on-demand") {
     throw new Error(`Unsupported activation "${activation}" in ${filePath}`);
   }
 
-  if (frontmatter.type !== "skill") {
+  if (normalized.type !== "skill") {
     throw new Error(`Expected type "skill" in ${filePath}`);
   }
 
   return {
-    name: requireString(frontmatter.name, "name", filePath),
-    version: requireString(frontmatter.version, "version", filePath),
+    name: requireString(normalized.name, "name", filePath),
+    version: requireString(normalized.version, "version", filePath),
     type: "skill",
-    author: typeof frontmatter.author === "string" ? frontmatter.author.trim() : undefined,
-    summary: requireString(frontmatter.summary, "summary", filePath),
+    author: typeof normalized.author === "string" ? normalized.author.trim() : undefined,
+    summary: requireString(normalized.summary, "summary", filePath),
     activation: activation as SkillActivation,
     body,
     filePath,
+    frontmatterDependency: extractFrontmatterDependency(normalized),
   };
+}
+
+function extractFrontmatterDependency(
+  frontmatter: Record<string, unknown>,
+): Record<string, string[]> | undefined {
+  const dep = frontmatter.dependency;
+  if (!dep || typeof dep !== "object" || Array.isArray(dep)) return undefined;
+
+  const result: Record<string, string[]> = {};
+  for (const [key, value] of Object.entries(dep as Record<string, unknown>)) {
+    if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
+      result[key] = value as string[];
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 export function compileSkill(source: SkillSource): CompiledSkill {

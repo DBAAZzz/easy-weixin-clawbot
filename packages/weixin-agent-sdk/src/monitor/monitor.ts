@@ -21,6 +21,10 @@ export type MonitorWeixinOpts = {
   abortSignal?: AbortSignal;
   longPollTimeoutMs?: number;
   log?: (msg: string) => void;
+  /** Pre-loaded sync buf value (from DB). When provided, file-based loading is skipped. */
+  syncBufInitial?: string;
+  /** Callback to persist sync buf externally (e.g. to DB). When provided, file-based saving is skipped. */
+  onSyncBufUpdate?: (buf: string) => void;
 };
 
 /**
@@ -47,14 +51,26 @@ export async function monitorWeixinProvider(opts: MonitorWeixinOpts): Promise<vo
   log(`[weixin] monitor started (${baseUrl}, account=${accountId})`);
   aLog.info(`Monitor started: baseUrl=${baseUrl}`);
 
-  const syncFilePath = getSyncBufFilePath(accountId);
-  const previousGetUpdatesBuf = loadGetUpdatesBuf(syncFilePath);
-  let getUpdatesBuf = previousGetUpdatesBuf ?? "";
+  // Sync buf: prefer external (DB-based) initial value; fall back to file-based
+  const useExternalSyncBuf = opts.syncBufInitial !== undefined || opts.onSyncBufUpdate !== undefined;
+  let getUpdatesBuf: string;
 
-  if (previousGetUpdatesBuf) {
-    log(`[weixin] resuming from previous sync buf (${getUpdatesBuf.length} bytes)`);
+  if (useExternalSyncBuf) {
+    getUpdatesBuf = opts.syncBufInitial ?? "";
+    if (getUpdatesBuf) {
+      log(`[weixin] resuming from external sync buf (${getUpdatesBuf.length} bytes)`);
+    } else {
+      log(`[weixin] no external sync buf, starting fresh`);
+    }
   } else {
-    log(`[weixin] no previous sync buf, starting fresh`);
+    const syncFilePath = getSyncBufFilePath(accountId);
+    const previousGetUpdatesBuf = loadGetUpdatesBuf(syncFilePath);
+    getUpdatesBuf = previousGetUpdatesBuf ?? "";
+    if (previousGetUpdatesBuf) {
+      log(`[weixin] resuming from file sync buf (${getUpdatesBuf.length} bytes)`);
+    } else {
+      log(`[weixin] no previous sync buf, starting fresh`);
+    }
   }
 
   const configManager = new WeixinConfigManager({ baseUrl, token }, log);
@@ -112,7 +128,11 @@ export async function monitorWeixinProvider(opts: MonitorWeixinOpts): Promise<vo
       consecutiveFailures = 0;
 
       if (resp.get_updates_buf != null && resp.get_updates_buf !== "") {
-        saveGetUpdatesBuf(syncFilePath, resp.get_updates_buf);
+        if (opts.onSyncBufUpdate) {
+          opts.onSyncBufUpdate(resp.get_updates_buf);
+        } else {
+          saveGetUpdatesBuf(getSyncBufFilePath(accountId), resp.get_updates_buf);
+        }
         getUpdatesBuf = resp.get_updates_buf;
       }
 

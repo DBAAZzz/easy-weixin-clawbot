@@ -1,6 +1,7 @@
-import { start } from "@clawbot/weixin-agent-sdk";
+import { monitorWeixinProvider, getDefaultCdnBaseUrl } from "@clawbot/weixin-agent-sdk";
 import { createAgent } from "./agent.js";
-import { deprecateAccount, getActiveAccountIds, upsertAccount } from "./db/accounts.js";
+import { credentialStore, syncStateStore } from "./credentials/index.js";
+import { getActiveAccountIds as getNonDeprecatedAccountIds, upsertAccount } from "./db/accounts.js";
 import { drainMessageQueue } from "./db/messages.js";
 import { log } from "./logger.js";
 
@@ -30,10 +31,31 @@ export function createBotRuntime(): BotRuntime {
       console.log(`Starting bot for account: ${accountId}`);
 
       try {
+        // Read credentials from DB (decrypted)
+        const credential = await credentialStore.getDecrypted(accountId);
+        if (!credential || credential.status !== "active") {
+          console.warn(`Account ${accountId} has no valid credential (status=${credential?.status ?? "missing"}), skipping`);
+          return;
+        }
+
         await upsertAccount(accountId);
-        await start(createAgent(accountId), {
+
+        // Load sync buf from DB
+        const syncBuf = await syncStateStore.load(accountId);
+
+        await monitorWeixinProvider({
+          baseUrl: credential.baseUrl,
+          cdnBaseUrl: getDefaultCdnBaseUrl(),
+          token: credential.token,
           accountId,
+          agent: createAgent(accountId),
           abortSignal: abortController.signal,
+          syncBufInitial: syncBuf,
+          onSyncBufUpdate: (buf) => {
+            void syncStateStore.save(accountId, buf).catch((err) => {
+              log.error(`syncStateStore.save(${accountId})`, err);
+            });
+          },
         });
       } catch (error) {
         if (!abortController.signal.aborted) {
@@ -42,11 +64,11 @@ export function createBotRuntime(): BotRuntime {
       } finally {
         running.delete(accountId);
 
-        // 非主动中止 → 连接被新扫码顶替，标记为废弃
+        // Non-abort disconnect → credential may need re-login
         if (!abortController.signal.aborted) {
-          console.log(`Account ${accountId} disconnected, marking as deprecated`);
-          await deprecateAccount(accountId).catch((err) => {
-            log.error(`deprecateAccount(${accountId})`, err);
+          console.log(`Account ${accountId} disconnected, marking credential as relogin_required`);
+          await credentialStore.updateStatus(accountId, "relogin_required", "connection lost").catch((err) => {
+            log.error(`credentialStore.updateStatus(${accountId})`, err);
           });
         }
       }
@@ -69,16 +91,23 @@ export function createBotRuntime(): BotRuntime {
   }
 
   async function bootstrap(): Promise<void> {
-    const accountIds = await getActiveAccountIds();
+    const accountIds = await getNonDeprecatedAccountIds();
+    const activeAccountIds: string[] = [];
 
-    if (accountIds.length === 0) {
-      console.log("No active accounts found — web login is available at /login.");
+    for (const accountId of accountIds) {
+      if (await credentialStore.isActive(accountId)) {
+        activeAccountIds.push(accountId);
+      }
+    }
+
+    if (activeAccountIds.length === 0) {
+      console.log("No active credentials found — web login is available at /login.");
       return;
     }
 
-    console.log(`Found ${accountIds.length} active account(s): ${accountIds.join(", ")}`);
+    console.log(`Found ${activeAccountIds.length} active credential(s): ${activeAccountIds.join(", ")}`);
 
-    for (const accountId of accountIds) {
+    for (const accountId of activeAccountIds) {
       ensureAccountStarted(accountId);
     }
   }

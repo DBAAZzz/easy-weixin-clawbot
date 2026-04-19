@@ -172,6 +172,12 @@ export async function waitForWeixinLogin(opts: {
   sessionKey: string;
   apiBaseUrl: string;
   botType?: string;
+  /** Structured callback: fires when a new QR code becomes available. */
+  onQrReady?: (data: { qrcodeUrl: string }) => void;
+  /** Structured callback: fires once when user scans the QR code. */
+  onScanned?: () => void;
+  /** Structured callback: fires when QR code expires. */
+  onExpired?: () => void;
 }): Promise<WeixinQrWaitResult> {
   let activeLogin = activeLogins.get(opts.sessionKey);
 
@@ -219,9 +225,11 @@ export async function waitForWeixinLogin(opts: {
           if (!scannedPrinted) {
             process.stdout.write("\n👀 已扫码，在微信继续操作...\n");
             scannedPrinted = true;
+            opts.onScanned?.();
           }
           break;
         case "expired": {
+          opts.onExpired?.();
           qrRefreshCount++;
           if (qrRefreshCount > MAX_QR_REFRESH_COUNT) {
             logger.warn(
@@ -246,6 +254,7 @@ export async function waitForWeixinLogin(opts: {
             activeLogin.qrcodeUrl = qrResponse.qrcode_img_content;
             activeLogin.startedAt = Date.now();
             scannedPrinted = false;
+            opts.onQrReady?.({ qrcodeUrl: qrResponse.qrcode_img_content });
             logger.info(`waitForWeixinLogin: new QR code obtained qrcode=${redactToken(qrResponse.qrcode)}`);
             process.stdout.write(`🔄 新二维码已生成，请重新扫描\n\n`);
             try {

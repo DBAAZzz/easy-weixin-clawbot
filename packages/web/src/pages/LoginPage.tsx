@@ -51,6 +51,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [state, setState] = useState<LoginState>({ status: "idle" });
   const [error, setError] = useState<string | null>(null);
+  const [hasActiveFlow, setHasActiveFlow] = useState(false);
   const meta = statusMeta(state);
   const qrVisible = state.status === "qr_ready" || state.status === "scanning";
   const statusToneClassName =
@@ -67,10 +68,10 @@ export function LoginPage() {
     void fetchLoginStatus()
       .then((nextState) => {
         if (cancelled) return;
-        // 如果上次登录流程还在进行中，继续显示
-        if (nextState.status !== "idle") {
-          setState(nextState);
-        }
+        if (nextState.status === "done") return;
+
+        setState(nextState);
+        setHasActiveFlow(nextState.status === "qr_ready" || nextState.status === "scanning");
       })
       .catch(() => {
         // 忽略初始状态查询失败
@@ -82,7 +83,7 @@ export function LoginPage() {
   }, []);
 
   useEffect(() => {
-    if (state.status === "done") {
+    if (state.status === "done" && hasActiveFlow) {
       navigate("/", { replace: true });
       return;
     }
@@ -96,6 +97,11 @@ export function LoginPage() {
       void fetchLoginStatus()
         .then((nextState) => {
           setState(nextState);
+          if (nextState.status === "done") {
+            setHasActiveFlow(true);
+            return;
+          }
+          setHasActiveFlow(nextState.status === "qr_ready" || nextState.status === "scanning");
         })
         .catch((reason) => {
           setError(reason instanceof Error ? reason.message : String(reason));
@@ -105,16 +111,20 @@ export function LoginPage() {
     return () => {
       window.clearInterval(timer);
     };
-  }, [navigate, state.status]);
+  }, [hasActiveFlow, navigate, state.status]);
 
   async function handleRestart() {
     setError(null);
-    setState(await startLogin());
+    const nextState = await startLogin();
+    setHasActiveFlow(nextState.status === "qr_ready" || nextState.status === "scanning");
+    setState(nextState);
   }
 
   async function handleCancel() {
     setError(null);
-    setState(await cancelLogin());
+    const nextState = await cancelLogin();
+    setHasActiveFlow(false);
+    setState(nextState);
   }
 
   const emptyTitle =

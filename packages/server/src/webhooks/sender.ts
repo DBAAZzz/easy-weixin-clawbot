@@ -3,10 +3,11 @@ import { unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
 import {
-  resolveWeixinAccount,
   sendMessageWeixin,
   sendWeixinMediaFile,
+  getDefaultCdnBaseUrl,
 } from "@clawbot/weixin-agent-sdk";
+import { credentialStore } from "../credentials/index.js";
 import { log } from "../logger.js";
 import type { NormalizedWebhookMessage } from "./payload.js";
 
@@ -62,14 +63,14 @@ export async function sendWebhookMessage(params: {
   contextToken: string;
   message: NormalizedWebhookMessage;
 }): Promise<{ messageId: string }> {
-  const account = resolveWeixinAccount(params.accountId);
-  if (!account.configured || !account.token) {
-    throw new Error(`Account ${params.accountId} not configured`);
+  const credential = await credentialStore.getDecrypted(params.accountId);
+  if (!credential) {
+    throw new Error(`Account ${params.accountId} has no active credential`);
   }
 
   const opts = {
-    baseUrl: account.baseUrl,
-    token: account.token,
+    baseUrl: credential.baseUrl,
+    token: credential.token,
     contextToken: params.contextToken,
   };
 
@@ -91,7 +92,7 @@ export async function sendWebhookMessage(params: {
       to: params.conversationId,
       text: params.message.text,
       opts,
-      cdnBaseUrl: account.cdnBaseUrl,
+      cdnBaseUrl: getDefaultCdnBaseUrl(),
     });
     log.send(
       params.accountId,

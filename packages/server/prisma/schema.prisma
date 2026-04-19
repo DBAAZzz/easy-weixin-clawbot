@@ -20,6 +20,9 @@ model Account {
   webhookPermissions WebhookAccountPermission[]
   tapeEntries    TapeEntry[]
   tapeAnchors    TapeAnchor[]
+  credential     WeixinAccountCredential?
+  allowFromList  WeixinAccountAllowFrom[]
+  syncState      WeixinSyncState?
 
   @@map("accounts")
 }
@@ -388,4 +391,49 @@ model PendingGoal {
   @@index([accountId, status], map: "idx_pending_goals_account_status")
   @@index([accountId, sourceConversationId, status], map: "idx_pending_goals_account_conv_status")
   @@map("pending_goals")
+}
+
+// ─── Weixin Credential Management ─────────────────────────────────────
+
+model WeixinAccountCredential {
+  id              BigInt    @id @default(autoincrement())
+  accountId       String    @unique @map("account_id") @db.Text
+  tokenEncrypted  Bytes     @map("token_encrypted")
+  tokenIv         Bytes     @map("token_iv")
+  tokenAuthTag    Bytes     @map("token_auth_tag")
+  baseUrl         String    @map("base_url") @db.Text
+  userId          String?   @map("user_id") @db.Text
+  status          String    @default("active") @db.Text        // active | invalid | expired | revoked | relogin_required
+  keyVersion      Int       @default(1) @map("key_version")
+  lastLoginAt     DateTime? @map("last_login_at") @db.Timestamptz(6)
+  lastValidatedAt DateTime? @map("last_validated_at") @db.Timestamptz(6)
+  lastError       String?   @map("last_error") @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([status], map: "idx_weixin_credentials_status")
+  @@map("weixin_account_credentials")
+}
+
+model WeixinAccountAllowFrom {
+  id              BigInt   @id @default(autoincrement())
+  accountId       String   @map("account_id") @db.Text
+  wechatUserId    String   @map("wechat_user_id") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  account         Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, wechatUserId], map: "weixin_allow_from_account_user_key")
+  @@index([accountId], map: "idx_weixin_allow_from_account")
+  @@map("weixin_account_allow_from")
+}
+
+model WeixinSyncState {
+  id              BigInt   @id @default(autoincrement())
+  accountId       String   @unique @map("account_id") @db.Text
+  syncBuf         String   @map("sync_buf") @db.Text
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account         Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("weixin_sync_state")
 }

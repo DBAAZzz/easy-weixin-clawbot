@@ -1,5 +1,6 @@
-import { sendMessageWeixin, resolveWeixinAccount } from "@clawbot/weixin-agent-sdk";
+import { sendMessageWeixin } from "@clawbot/weixin-agent-sdk";
 import { getContextToken } from "./db/conversations.js";
+import { credentialStore } from "./credentials/index.js";
 import { log } from "./logger.js";
 
 export async function sendProactiveMessage(
@@ -12,17 +13,17 @@ export async function sendProactiveMessage(
     throw new Error(`No cached contextToken for ${accountId}/${conversationId}`);
   }
 
-  const account = resolveWeixinAccount(accountId);
-  if (!account.configured) {
-    throw new Error(`Account ${accountId} not configured`);
+  const credential = await credentialStore.getDecrypted(accountId);
+  if (!credential) {
+    throw new Error(`Account ${accountId} has no active credential`);
   }
 
   await sendMessageWeixin({
     to: conversationId,
     text,
     opts: {
-      baseUrl: account.baseUrl,
-      token: account.token,
+      baseUrl: credential.baseUrl,
+      token: credential.token,
       contextToken,
     },
   });

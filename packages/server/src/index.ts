@@ -1,14 +1,13 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
+import { schedulerManager, startHeartbeat, stopHeartbeat } from "@clawbot/agent";
+import { purgeCompacted } from "@clawbot/agent/tape";
 import { createApiApp } from "./api/index.js";
 import { mcpToolRegistry, skillInstaller, toolInstaller, runtimeProvisioner, validateConfig } from "./ai.js";
-import { upsertAccount } from "./db/accounts.js";
 import { createLoginManager } from "./login/login-manager.js";
 import { createMcpManager } from "./mcp/manager.js";
 import { observabilityService } from "./observability/service.js";
 import { createBotRuntime } from "./runtime.js";
-import { schedulerManager, startHeartbeat, stopHeartbeat } from "@clawbot/agent";
-import { purgeCompacted } from "@clawbot/agent/tape";
 
 validateConfig();
 
@@ -39,7 +38,6 @@ observabilityCleanupTimer.unref?.();
 
 const loginManager = createLoginManager({
   onSuccess: async (accountId) => {
-    await upsertAccount(accountId);
     runtime.ensureAccountStarted(accountId);
   },
 });

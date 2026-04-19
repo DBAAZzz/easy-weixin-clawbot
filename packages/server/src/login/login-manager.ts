@@ -1,7 +1,8 @@
-import { login } from "@clawbot/weixin-agent-sdk";
+import { loginWithEvents } from "@clawbot/weixin-agent-sdk";
 import type { LoginState } from "@clawbot/shared";
+import { credentialStore, allowFromStore } from "../credentials/index.js";
+import { upsertAccount } from "../db/accounts.js";
 import { log } from "../logger.js";
-import { captureStdout, isTerminalQrText } from "./qr-capture.js";
 
 export interface LoginManager {
   start(): Promise<LoginState>;
@@ -26,50 +27,50 @@ export function createLoginManager(options: {
     }
 
     cancelled = false;
-    state = { status: "idle" };
-
-    let qrText = "";
-    let stdoutReleased = false;
-    const releaseStdout = captureStdout((qrBlock) => {
-      if (cancelled || stdoutReleased) return;
-      if (!isTerminalQrText(qrBlock)) return;
-
-      qrText = qrBlock;
-      state = { status: "qr_ready", qr_text: qrBlock };
-      stopCapture();
-    });
-
-    function stopCapture() {
-      if (!stdoutReleased) {
-        stdoutReleased = true;
-        releaseStdout();
-      }
-    }
-
-    // 立即切到 scanning 以便前端开始轮询
     state = { status: "scanning", message: "正在获取二维码…" };
 
     activePromise = (async () => {
       try {
-        const accountId = await login({
-          log: (message) => {
+        const result = await loginWithEvents({
+          onQrReady: ({ qrcodeUrl }) => {
             if (cancelled) return;
-
-            const qr = qrText.length > 0
-              ? qrText
-              : ("qr_text" in state ? state.qr_text : undefined);
-
-            if (qr) {
-              state = { status: "qr_ready", qr_text: qr };
-            } else {
-              state = { status: "scanning", message };
+            state = { status: "qr_ready", qr_text: qrcodeUrl };
+          },
+          onScanned: () => {
+            if (cancelled) return;
+            // Keep showing the QR text so the frontend knows it's still active
+            if ("qr_text" in state) {
+              state = { status: "scanning", qr_text: state.qr_text, message: "已扫码，等待确认…" };
             }
+          },
+          onExpired: () => {
+            if (cancelled) return;
+            state = { status: "scanning", message: "二维码已过期，正在刷新…" };
+          },
+          onError: () => {
+            // Error will be caught in the try/catch below
           },
         });
 
         if (cancelled) return;
-        state = { status: "done", account_id: accountId };
-        await options.onSuccess(accountId);
+
+        await upsertAccount(result.accountId);
+
+        // Persist credentials to database (encrypted)
+        await credentialStore.save({
+          accountId: result.accountId,
+          token: result.botToken,
+          baseUrl: result.baseUrl,
+          userId: result.userId,
+        });
+
+        // Save the scanning user to the allow-from list
+        if (result.userId) {
+          await allowFromStore.addUser(result.accountId, result.userId);
+        }
+
+        state = { status: "done", account_id: result.accountId };
+        await options.onSuccess(result.accountId);
       } catch (error) {
         if (cancelled) {
           state = { status: "expired" };
@@ -80,9 +81,8 @@ export function createLoginManager(options: {
           status: "error",
           message: error instanceof Error ? error.message : String(error),
         };
-        log.error("login()", error);
+        log.error("loginWithEvents()", error);
       } finally {
-        stopCapture();
         activePromise = null;
       }
     })();

@@ -8,9 +8,11 @@ export type DetectedSkillKind =
   | "knowledge-only"
   | "python-script"
   | "node-script"
+  | "python-script-set"
+  | "node-script-set"
   | "manual-needed";
 
-export type SkillDependencySource = "markdown-install" | "import-scan";
+export type SkillDependencySource = "markdown-install" | "import-scan" | "requirements-txt" | "frontmatter";
 
 export type SkillProvisionInstaller = "uv-pip" | "pip" | "npm" | "pnpm" | "yarn" | "manual";
 
@@ -23,6 +25,7 @@ export interface SkillSource {
   activation: SkillActivation;
   body: string;
   filePath: string;
+  frontmatterDependency?: Record<string, string[]>;
 }
 
 export interface SkillPackageIndex {
@@ -31,6 +34,8 @@ export interface SkillPackageIndex {
   metaJsonPath?: string;
   referenceFiles: string[];
   scriptFiles: string[];
+  rootScriptFiles: string[];
+  requirementsTxtPath?: string;
 }
 
 export interface ScriptDescriptor {
@@ -57,6 +62,7 @@ export interface DetectedSkillRuntime {
   kind: DetectedSkillKind;
   preferredInstaller: SkillProvisionInstaller;
   entrypoint?: SkillEntrypoint;
+  scriptSet?: string[];
   dependencies: SkillDependency[];
   issues: string[];
   evidence: string[];
@@ -98,6 +104,7 @@ export interface SkillCatalogItem {
   entrypointPath?: string;
   dependencyNames: string[];
   hasRuntime?: boolean;
+  scriptSet?: string[];
   provisionStatus?: ProvisionStatus;
   provisionError?: string;
 }

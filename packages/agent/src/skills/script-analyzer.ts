@@ -49,6 +49,7 @@ const PYTHON_STD_LIBS = new Set([
   "statistics",
   "string",
   "subprocess",
+  "shutil",
   "sys",
   "tempfile",
   "textwrap",

@@ -67,7 +67,7 @@ test("detectSkillRuntime recognizes a python script skill from scripts directory
   );
 });
 
-test("detectSkillRuntime marks ambiguous multi-script packages as manual-needed", async () => {
+test("detectSkillRuntime classifies multi-script packages as python-script-set", async () => {
   await withTempSkill(
     {
       "SKILL.md": [
@@ -89,8 +89,9 @@ test("detectSkillRuntime marks ambiguous multi-script packages as manual-needed"
       const packageIndex = await scanSkillPackage(rootDir);
       const detected = await detectSkillRuntime(compiled, packageIndex);
 
-      assert.equal(detected.kind, "manual-needed");
-      assert.ok(detected.issues[0]?.includes("entrypoint"));
+      assert.equal(detected.kind, "python-script-set");
+      assert.ok(!detected.entrypoint, "script-set should have no entrypoint");
+      assert.deepEqual(detected.scriptSet?.sort(), ["scripts/first.py", "scripts/second.py"]);
     },
   );
 });
@@ -174,6 +175,163 @@ test("detectSkillRuntime ignores python stdlib imports while keeping third-party
         detected.dependencies.map((dependency) => dependency.name),
         ["akshare", "numpy", "pandas", "requests"],
       );
+    },
+  );
+});
+
+test("detectSkillRuntime handles root-level scripts (stock-manager compat pattern)", async () => {
+  await withTempSkill(
+    {
+      "SKILL.md": [
+        "---",
+        "name: stock-manager",
+        'description: "股票管理"',
+        "---",
+        "# Stock Manager",
+      ].join("\n"),
+      "main.py": "import akshare\nprint('main')\n",
+      "utils.py": "import json\ndef helper(): pass\n",
+    },
+    async (rootDir) => {
+      const parsed = parseMdContent(
+        await readFile(join(rootDir, "SKILL.md"), "utf8"),
+        join(rootDir, "SKILL.md"),
+      );
+      const compiled = compileSkill(createSkillSource(parsed));
+      const packageIndex = await scanSkillPackage(rootDir);
+      const detected = await detectSkillRuntime(compiled, packageIndex);
+
+      assert.equal(detected.kind, "python-script");
+      assert.equal(detected.entrypoint?.path, "main.py");
+      assert.ok(detected.dependencies.some((d) => d.name === "akshare"));
+    },
+  );
+});
+
+test("detectSkillRuntime ignores local modules and stdlib for root-level compat skills", async () => {
+  await withTempSkill(
+    {
+      "SKILL.md": [
+        "---",
+        "name: stock-manager",
+        'description: "股票管理"',
+        "---",
+        "# Stock Manager",
+      ].join("\n"),
+      "openclaw_entry.py": [
+        "import json",
+        "from stock_order import StockOrderManager",
+        "from stock_info import StockInfoFetcher",
+        "",
+        "if __name__ == '__main__':",
+        "    print('ok')",
+      ].join("\n"),
+      "stock_order.py": [
+        "import os",
+        "import shutil",
+        "from config import DATA_DIR",
+        "",
+        "class StockOrderManager:",
+        "    pass",
+      ].join("\n"),
+      "stock_info.py": [
+        "import requests",
+        "import akshare as ak",
+        "import pandas as pd",
+        "import yfinance as yf",
+        "import shutil",
+        "from config import DATA_DIR",
+        "",
+        "class StockInfoFetcher:",
+        "    pass",
+      ].join("\n"),
+      "config.py": "DATA_DIR = './data'\n",
+      "requirements.txt": [
+        "requests>=2.31.0",
+        "akshare>=1.12.0",
+        "pandas>=2.0.0",
+        "yfinance>=0.2.28",
+      ].join("\n"),
+    },
+    async (rootDir) => {
+      const parsed = parseMdContent(
+        await readFile(join(rootDir, "SKILL.md"), "utf8"),
+        join(rootDir, "SKILL.md"),
+      );
+      const compiled = compileSkill(createSkillSource(parsed));
+      const packageIndex = await scanSkillPackage(rootDir);
+      const detected = await detectSkillRuntime(compiled, packageIndex);
+
+      assert.equal(detected.kind, "python-script");
+      assert.equal(detected.entrypoint?.path, "openclaw_entry.py");
+      assert.deepEqual(
+        detected.dependencies.map((dependency) => dependency.name),
+        ["akshare", "pandas", "requests", "yfinance"],
+      );
+      assert.ok(!detected.dependencies.some((dependency) => dependency.name === "shutil"));
+      assert.ok(!detected.dependencies.some((dependency) => dependency.name === "config"));
+      assert.ok(!detected.dependencies.some((dependency) => dependency.name === "stock_info"));
+      assert.ok(!detected.dependencies.some((dependency) => dependency.name === "stock_order"));
+    },
+  );
+});
+
+test("detectSkillRuntime detects dependencies from requirements.txt", async () => {
+  await withTempSkill(
+    {
+      "SKILL.md": [
+        "---",
+        "name: req-txt-skill",
+        'description: "requirements.txt based"',
+        "---",
+        "# Skill with requirements.txt",
+      ].join("\n"),
+      "scripts/main.py": "import pandas\nprint('hello')\n",
+      "requirements.txt": "pandas>=2.0\nnumpy==1.25.0\nrequests\n",
+    },
+    async (rootDir) => {
+      const parsed = parseMdContent(
+        await readFile(join(rootDir, "SKILL.md"), "utf8"),
+        join(rootDir, "SKILL.md"),
+      );
+      const compiled = compileSkill(createSkillSource(parsed));
+      const packageIndex = await scanSkillPackage(rootDir);
+      const detected = await detectSkillRuntime(compiled, packageIndex);
+
+      assert.equal(detected.kind, "python-script");
+      assert.equal(detected.entrypoint?.path, "scripts/main.py");
+      const depNames = detected.dependencies.map((d) => d.name).sort();
+      assert.ok(depNames.includes("pandas"));
+      assert.ok(depNames.includes("numpy"));
+      assert.ok(depNames.includes("requests"));
+    },
+  );
+});
+
+test("detectSkillRuntime returns manual-needed for mixed runtimes", async () => {
+  await withTempSkill(
+    {
+      "SKILL.md": [
+        "---",
+        "name: mixed-runtime",
+        'description: "mixed"',
+        "---",
+        "# Mixed",
+      ].join("\n"),
+      "scripts/a.py": "print('python')\n",
+      "scripts/b.js": "console.log('node')\n",
+    },
+    async (rootDir) => {
+      const parsed = parseMdContent(
+        await readFile(join(rootDir, "SKILL.md"), "utf8"),
+        join(rootDir, "SKILL.md"),
+      );
+      const compiled = compileSkill(createSkillSource(parsed));
+      const packageIndex = await scanSkillPackage(rootDir);
+      const detected = await detectSkillRuntime(compiled, packageIndex);
+
+      assert.equal(detected.kind, "manual-needed");
+      assert.ok(detected.issues[0]?.includes("multiple"));
     },
   );
 });

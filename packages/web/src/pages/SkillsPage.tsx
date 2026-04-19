@@ -16,6 +16,7 @@ import { fetchSkillSource } from "@/api/skills.js";
 import { queryKeys } from "../lib/query-keys.js";
 import { cn } from "../lib/cn.js";
 import { formatCount } from "../lib/format.js";
+import { formatRuntimeKindLabel, isAutoProvisionableRuntime } from "./skills-runtime-labels.js";
 
 function formatActivationLabel(activation: SkillInfo["activation"]) {
   return activation === "always" ? "Always-On" : "On-Demand";
@@ -31,17 +32,6 @@ function formatProvisionStatusLabel(status?: SkillInfo["provisionStatus"]) {
   if (status === "provisioning") return "安装中";
   if (status === "ready") return "已就绪";
   return "失败";
-}
-
-function formatRuntimeKindLabel(kind?: SkillInfo["runtimeKind"]) {
-  if (!kind || kind === "knowledge-only") return "知识型";
-  if (kind === "python-script") return "Python Script";
-  if (kind === "node-script") return "Node Script";
-  return "需要人工确认";
-}
-
-function isAutoProvisionableRuntime(kind?: SkillInfo["runtimeKind"]) {
-  return kind === "python-script" || kind === "node-script";
 }
 
 function provisionTone(status?: SkillInfo["provisionStatus"]): "muted" | "warning" | "online" | "error" {

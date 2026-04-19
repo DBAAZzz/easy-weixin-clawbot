@@ -4,3 +4,4 @@ dist
 /data/downloads/*
 .worktrees/
 *.tsbuildinfo
+/data

@@ -34,7 +34,24 @@ export function createSkillSource(parsed: ParsedFile): SkillSource {
     activation: activation as SkillActivation,
     body,
     filePath,
+    frontmatterDependency: extractFrontmatterDependency(normalized),
   };
+}
+
+function extractFrontmatterDependency(
+  frontmatter: Record<string, unknown>,
+): Record<string, string[]> | undefined {
+  const dep = frontmatter.dependency;
+  if (!dep || typeof dep !== "object" || Array.isArray(dep)) return undefined;
+
+  const result: Record<string, string[]> = {};
+  for (const [key, value] of Object.entries(dep as Record<string, unknown>)) {
+    if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
+      result[key] = value as string[];
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 export function compileSkill(source: SkillSource): CompiledSkill {

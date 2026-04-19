@@ -94,9 +94,10 @@ export interface SkillInfo {
   enabled: boolean;
   installedAt?: string;
   filePath?: string;
-  runtimeKind?: "knowledge-only" | "python-script" | "node-script" | "manual-needed";
+  runtimeKind?: "knowledge-only" | "python-script" | "python-script-set" | "node-script" | "node-script-set" | "manual-needed";
   entrypointPath?: string;
   dependencyNames?: string[];
+  scriptSet?: string[];
   hasRuntime?: boolean;
   provisionStatus?: "pending" | "provisioning" | "ready" | "failed";
   provisionError?: string;

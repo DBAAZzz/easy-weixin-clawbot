@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { readFile, writeFile, stat, rm } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type {
   DetectedSkillRuntime,
   InstalledSkill,
@@ -83,30 +83,24 @@ export async function readManagedMeta(skillDir: string): Promise<ManagedMeta | n
   }
 }
 
-function requirePythonSkill(skill: InstalledSkill): DetectedSkillRuntime & { kind: "python-script"; entrypoint: NonNullable<DetectedSkillRuntime["entrypoint"]> } {
+function requirePythonSkill(skill: InstalledSkill): DetectedSkillRuntime & { kind: "python-script" | "python-script-set" } {
   const detected = skill.skill.detectedRuntime;
-  if (!detected || detected.kind !== "python-script" || !detected.entrypoint) {
+  if (!detected || (detected.kind !== "python-script" && detected.kind !== "python-script-set")) {
     throw new Error(`Skill "${skill.skill.source.name}" is not an auto-provisionable Python skill`);
   }
-  return detected as DetectedSkillRuntime & {
-    kind: "python-script";
-    entrypoint: NonNullable<DetectedSkillRuntime["entrypoint"]>;
-  };
+  return detected as DetectedSkillRuntime & { kind: "python-script" | "python-script-set" };
 }
 
-function requireNodeSkill(skill: InstalledSkill): DetectedSkillRuntime & { kind: "node-script"; entrypoint: NonNullable<DetectedSkillRuntime["entrypoint"]> } {
+function requireNodeSkill(skill: InstalledSkill): DetectedSkillRuntime & { kind: "node-script" | "node-script-set" } {
   const detected = skill.skill.detectedRuntime;
-  if (!detected || detected.kind !== "node-script" || !detected.entrypoint) {
+  if (!detected || (detected.kind !== "node-script" && detected.kind !== "node-script-set")) {
     throw new Error(`Skill "${skill.skill.source.name}" is not an auto-provisionable Node skill`);
   }
-  return detected as DetectedSkillRuntime & {
-    kind: "node-script";
-    entrypoint: NonNullable<DetectedSkillRuntime["entrypoint"]>;
-  };
+  return detected as DetectedSkillRuntime & { kind: "node-script" | "node-script-set" };
 }
 
 function getSkillDir(skill: InstalledSkill): string {
-  return dirname(skill.skill.source.filePath);
+  return resolve(dirname(skill.skill.source.filePath));
 }
 
 function getDependencySpecs(dependencies: SkillDependency[]): string[] {
@@ -141,6 +135,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
 
   async function validatePythonEntrypoint(skill: InstalledSkill): Promise<void> {
     const detected = requirePythonSkill(skill);
+    if (!detected.entrypoint) return; // script-set: no entrypoint to validate
     const skillDir = getSkillDir(skill);
     const entrypointPath = join(skillDir, detected.entrypoint.path);
     if (!(await fileExists(entrypointPath))) {
@@ -150,6 +145,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
 
   async function validateNodeEntrypoint(skill: InstalledSkill): Promise<void> {
     const detected = requireNodeSkill(skill);
+    if (!detected.entrypoint) return; // script-set: no entrypoint to validate
     const skillDir = getSkillDir(skill);
     const entrypointPath = join(skillDir, detected.entrypoint.path);
     if (!(await fileExists(entrypointPath))) {
@@ -165,6 +161,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
     const detected = requirePythonSkill(skill);
     const dependencies = getDependencySpecs(detected.dependencies);
     const prefersUv = detected.preferredInstaller === "uv-pip" && await ensureUvAvailable();
+    const entrypointPath = detected.entrypoint?.path;
 
     if (prefersUv) {
       return {
@@ -176,7 +173,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
               ? [`uv pip install --python .venv/bin/python ${dependencies.join(" ")}`]
               : []
           ),
-          `.venv/bin/python -m py_compile ${detected.entrypoint.path}`,
+          ...(entrypointPath ? [`.venv/bin/python -m py_compile ${entrypointPath}`] : []),
         ],
         async runInstall(venvPath, skillDir, deps) {
           if (deps.length > 0) {
@@ -195,7 +192,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
         "python3 -m venv .venv",
         ".venv/bin/python -m pip install --upgrade pip",
         ...(dependencies.length > 0 ? [`.venv/bin/python -m pip install ${dependencies.join(" ")}`] : []),
-        `.venv/bin/python -m py_compile ${detected.entrypoint.path}`,
+        ...(entrypointPath ? [`.venv/bin/python -m py_compile ${entrypointPath}`] : []),
       ],
       async runInstall(venvPath, skillDir, deps) {
         const pythonBin = join(venvPath, "bin", "python");
@@ -230,6 +227,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
     const detected = requireNodeSkill(skill);
     const dependencies = getDependencySpecs(detected.dependencies);
     const preferred = detected.preferredInstaller;
+    const entrypointPath = detected.entrypoint?.path;
     let installer: SkillProvisionInstaller = "npm";
     if ((preferred === "pnpm" || preferred === "yarn") && await ensureBinaryAvailable(preferred)) {
       installer = preferred;
@@ -243,7 +241,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
         installer,
         commands: [
           ...(dependencies.length > 0 ? [`pnpm add --dir . ${dependencies.join(" ")}`] : []),
-          `node --check ${detected.entrypoint.path}`,
+          ...(entrypointPath ? [`node --check ${entrypointPath}`] : []),
         ],
         async runInstall(skillDir, deps) {
           if (deps.length > 0) {
@@ -261,7 +259,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
         installer,
         commands: [
           ...(dependencies.length > 0 ? [`yarn add ${dependencies.join(" ")}`] : []),
-          `node --check ${detected.entrypoint.path}`,
+          ...(entrypointPath ? [`node --check ${entrypointPath}`] : []),
         ],
         async runInstall(skillDir, deps) {
           if (deps.length > 0) {
@@ -278,7 +276,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
       installer: "npm",
       commands: [
         ...(dependencies.length > 0 ? [`npm install --no-save --no-package-lock ${dependencies.join(" ")}`] : []),
-        `node --check ${detected.entrypoint.path}`,
+        ...(entrypointPath ? [`node --check ${entrypointPath}`] : []),
       ],
       async runInstall(skillDir, deps) {
         if (deps.length > 0) {
@@ -293,6 +291,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
 
   async function verifyPythonEntrypoint(skill: InstalledSkill): Promise<void> {
     const detected = requirePythonSkill(skill);
+    if (!detected.entrypoint) return; // script-set: nothing to verify
     const skillDir = getSkillDir(skill);
     const pythonBin = join(skillDir, ".venv", "bin", "python");
     await execPromise(pythonBin, ["-m", "py_compile", detected.entrypoint.path], {
@@ -303,6 +302,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
 
   async function verifyNodeEntrypoint(skill: InstalledSkill): Promise<void> {
     const detected = requireNodeSkill(skill);
+    if (!detected.entrypoint) return; // script-set: nothing to verify
     const skillDir = getSkillDir(skill);
     await execPromise("node", ["--check", detected.entrypoint.path], {
       cwd: skillDir,
@@ -349,15 +349,19 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
         yield emit("info", "pip upgraded");
       }
 
-      yield emit("info", `Verifying entrypoint: ${detected.entrypoint.path}`);
-      await verifyPythonEntrypoint(skill);
-      yield emit("info", "Entrypoint verification passed");
+      if (detected.entrypoint) {
+        yield emit("info", `Verifying entrypoint: ${detected.entrypoint.path}`);
+        await verifyPythonEntrypoint(skill);
+        yield emit("info", "Entrypoint verification passed");
+      } else {
+        yield emit("info", "Script-set skill: skipping entrypoint verification");
+      }
 
       await writeManagedMeta(skillDir, {
         schemaVersion: 1,
         runtime: "python",
         dependencies,
-        entrypoint: detected.entrypoint.path,
+        entrypoint: detected.entrypoint?.path,
         installer: installCommands.installer,
         status: "ready",
         updatedAt: new Date().toISOString(),
@@ -371,7 +375,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
         schemaVersion: 1,
         runtime: "python",
         dependencies,
-        entrypoint: detected.entrypoint.path,
+        entrypoint: detected.entrypoint?.path,
         installer: detected.preferredInstaller,
         status: "failed",
         error: errorMessage,
@@ -420,15 +424,19 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
         yield emit("info", "No Node dependencies detected; skipping install step");
       }
 
-      yield emit("info", `Verifying entrypoint: ${detected.entrypoint.path}`);
-      await verifyNodeEntrypoint(skill);
-      yield emit("info", "Entrypoint verification passed");
+      if (detected.entrypoint) {
+        yield emit("info", `Verifying entrypoint: ${detected.entrypoint.path}`);
+        await verifyNodeEntrypoint(skill);
+        yield emit("info", "Entrypoint verification passed");
+      } else {
+        yield emit("info", "Script-set skill: skipping entrypoint verification");
+      }
 
       await writeManagedMeta(skillDir, {
         schemaVersion: 1,
         runtime: "node",
         dependencies,
-        entrypoint: detected.entrypoint.path,
+        entrypoint: detected.entrypoint?.path,
         installer: installCommands.installer,
         status: "ready",
         updatedAt: new Date().toISOString(),
@@ -442,7 +450,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
         schemaVersion: 1,
         runtime: "node",
         dependencies,
-        entrypoint: detected.entrypoint.path,
+        entrypoint: detected.entrypoint?.path,
         installer: detected.preferredInstaller,
         status: "failed",
         error: errorMessage,
@@ -469,11 +477,11 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
   return {
     async preflight(skill) {
       const detected = skill.skill.detectedRuntime;
-      if (!detected?.entrypoint) {
+      if (!detected || (detected.kind !== "python-script" && detected.kind !== "python-script-set" && detected.kind !== "node-script" && detected.kind !== "node-script-set")) {
         throw new Error(`Skill "${skill.skill.source.name}" does not have a provisionable runtime`);
       }
 
-      if (detected.kind === "python-script") {
+      if (detected.kind === "python-script" || detected.kind === "python-script-set") {
         const skillDir = getSkillDir(skill);
         await ensurePythonAvailable(skill.skill.source.name);
         await validatePythonEntrypoint(skill);
@@ -490,7 +498,7 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
         };
       }
 
-      if (detected.kind === "node-script") {
+      if (detected.kind === "node-script" || detected.kind === "node-script-set") {
         await ensureNodeAvailable(skill.skill.source.name);
         await validateNodeEntrypoint(skill);
         const installCommands = await buildNodeInstallCommands(skill);
@@ -511,9 +519,9 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
       const logs: ProvisionLog[] = [];
       const detected = skill.skill.detectedRuntime;
       const stream =
-        detected?.kind === "python-script"
+        detected?.kind === "python-script" || detected?.kind === "python-script-set"
           ? provisionPython(skill)
-          : detected?.kind === "node-script"
+          : detected?.kind === "node-script" || detected?.kind === "node-script-set"
             ? provisionNode(skill)
             : null;
       if (!stream) {
@@ -527,10 +535,10 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
 
     provisionStream(skill) {
       const detected = skill.skill.detectedRuntime;
-      if (detected?.kind === "python-script") {
+      if (detected?.kind === "python-script" || detected?.kind === "python-script-set") {
         return provisionPython(skill);
       }
-      if (detected?.kind === "node-script") {
+      if (detected?.kind === "node-script" || detected?.kind === "node-script-set") {
         return provisionNode(skill);
       }
       throw new Error(`Skill "${skill.skill.source.name}" does not have a provisionable runtime`);
@@ -540,9 +548,9 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
       const logs: ProvisionLog[] = [];
       const detected = skill.skill.detectedRuntime;
       const stream =
-        detected?.kind === "python-script"
+        detected?.kind === "python-script" || detected?.kind === "python-script-set"
           ? reprovisionPython(skill)
-          : detected?.kind === "node-script"
+          : detected?.kind === "node-script" || detected?.kind === "node-script-set"
             ? reprovisionNode(skill)
             : null;
       if (!stream) {
@@ -556,38 +564,48 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
 
     async healthCheck(skill) {
       const detected = skill.skill.detectedRuntime;
-      if (!detected || !detected.entrypoint) {
+      if (!detected) {
         return false;
       }
 
       const skillDir = getSkillDir(skill);
-      if (!(await fileExists(join(skillDir, detected.entrypoint.path)))) return false;
 
-      if (detected.kind === "python-script") {
+      if (detected.kind === "python-script" || detected.kind === "python-script-set") {
         const pythonBin = join(skillDir, ".venv", "bin", "python");
         if (!(await fileExists(pythonBin))) return false;
 
-        try {
-          await execPromise(pythonBin, ["-m", "py_compile", detected.entrypoint.path], {
-            cwd: skillDir,
-            timeout: 10_000,
-          });
-          return true;
-        } catch {
-          return false;
+        if (detected.entrypoint) {
+          if (!(await fileExists(join(skillDir, detected.entrypoint.path)))) return false;
+          try {
+            await execPromise(pythonBin, ["-m", "py_compile", detected.entrypoint.path], {
+              cwd: skillDir,
+              timeout: 10_000,
+            });
+            return true;
+          } catch {
+            return false;
+          }
         }
+        // script-set: venv exists is sufficient
+        return true;
       }
 
-      if (detected.kind === "node-script") {
-        try {
-          await execPromise("node", ["--check", detected.entrypoint.path], {
-            cwd: skillDir,
-            timeout: 10_000,
-          });
-          return true;
-        } catch {
-          return false;
+      if (detected.kind === "node-script" || detected.kind === "node-script-set") {
+        if (detected.entrypoint) {
+          if (!(await fileExists(join(skillDir, detected.entrypoint.path)))) return false;
+          try {
+            await execPromise("node", ["--check", detected.entrypoint.path], {
+              cwd: skillDir,
+              timeout: 10_000,
+            });
+            return true;
+          } catch {
+            return false;
+          }
         }
+        // script-set: check managed meta existence
+        const meta = await readManagedMeta(skillDir);
+        return meta?.status === "ready";
       }
 
       return false;

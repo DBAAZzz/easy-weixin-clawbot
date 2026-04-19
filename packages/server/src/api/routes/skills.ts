@@ -49,26 +49,31 @@ async function buildLocalRunCheck(
   }
 
   const entrypoint = detected.entrypoint?.path;
-  if (!entrypoint) {
+  if (!entrypoint && detected.kind !== "python-script-set" && detected.kind !== "node-script-set") {
     checks.push({ status: "fail", message: `Detected ${detected.kind} skill is missing an entrypoint.` });
-  } else if (await fileExists(join(skillDir, entrypoint))) {
+  } else if (entrypoint && await fileExists(join(skillDir, entrypoint))) {
     checks.push({ status: "ok", message: `Entrypoint exists: ${entrypoint}` });
-  } else {
+  } else if (entrypoint) {
     checks.push({ status: "fail", message: `Entrypoint not found: ${entrypoint}` });
+  } else {
+    // script-set without entrypoint
+    const scriptCount = detected.scriptSet?.length ?? 0;
+    checks.push({ status: "info", message: `Script-set skill with ${scriptCount} script(s), no default entrypoint.` });
   }
 
   try {
-    if (detected.kind === "python-script") {
+    if (detected.kind === "python-script" || detected.kind === "python-script-set") {
       await execFileAsync("python3", ["--version"]);
       checks.push({ status: "ok", message: "python3 is available on host." });
-    } else if (detected.kind === "node-script") {
+    } else if (detected.kind === "node-script" || detected.kind === "node-script-set") {
       await execFileAsync("node", ["--version"]);
       checks.push({ status: "ok", message: "node is available on host." });
     }
   } catch {
+    const isPython = detected.kind === "python-script" || detected.kind === "python-script-set";
     checks.push({
       status: "fail",
-      message: detected.kind === "python-script" ? "python3 is not available on host." : "node is not available on host.",
+      message: isPython ? "python3 is not available on host." : "node is not available on host.",
     });
   }
 
@@ -95,7 +100,7 @@ function isAutoProvisionableSkill(
   installed: NonNullable<ReturnType<SkillInstaller["getInstalled"]>>,
 ): boolean {
   const kind = installed.skill.detectedRuntime?.kind;
-  return kind === "python-script" || kind === "node-script";
+  return kind === "python-script" || kind === "python-script-set" || kind === "node-script" || kind === "node-script-set";
 }
 
 /**

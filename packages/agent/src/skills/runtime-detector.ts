@@ -1,4 +1,5 @@
-import { basename } from "node:path";
+import { readFile } from "node:fs/promises";
+import { basename, dirname, extname } from "node:path";
 import { analyzeScript } from "./script-analyzer.js";
 import type {
   CompiledSkill,
@@ -6,6 +7,7 @@ import type {
   DetectedSkillRuntime,
   ScriptDescriptor,
   SkillDependency,
+  SkillDependencySource,
   SkillPackageIndex,
   SkillProvisionInstaller,
   SkillRuntime,
@@ -18,9 +20,6 @@ interface ParsedInstallCommand {
   evidence: string;
 }
 
-// 把安装语句里的依赖声明拆成：
-// - name: 依赖名，用于去重和展示
-// - installSpec: 原始安装规格，用于真正执行安装
 function normalizePackageSpec(spec: string): { name: string; installSpec: string } {
   const trimmed = spec.trim();
   const separator = trimmed.match(/(?:==|>=|<=|~=|!=|>|<)/);
@@ -36,9 +35,6 @@ function isNamedScript(path: string, names: string[]): boolean {
   return names.includes(fileName);
 }
 
-// 入口脚本选择策略：
-// 1. 只有一个脚本时，直接把它当入口
-// 2. 多脚本时，优先选 *_cli，再选 main/cli/run 这类约定名
 function selectEntrypoint(
   descriptors: ScriptDescriptor[],
 ): { descriptor: ScriptDescriptor; source: "single-script" | "naming-convention" } | null {
@@ -64,8 +60,36 @@ function selectEntrypoint(
   return null;
 }
 
-// 从 SKILL.md 的代码块里解析安装命令。
-// 这里只做“确定性规则解析”，不依赖 AI 推断。
+function selectCompatEntrypoint(
+  descriptors: ScriptDescriptor[],
+): { descriptor: ScriptDescriptor; source: "naming-convention" } | null {
+  if (descriptors.length === 0) return null;
+
+  if (descriptors.length === 1) {
+    return { descriptor: descriptors[0], source: "naming-convention" };
+  }
+
+  const openclawEntry = descriptors.find((d) => basename(d.path).toLowerCase() === "openclaw_entry.py");
+  if (openclawEntry) return { descriptor: openclawEntry, source: "naming-convention" };
+
+  const entryCandidate = descriptors.find((d) => basename(d.path).toLowerCase().includes("_entry."));
+  if (entryCandidate) return { descriptor: entryCandidate, source: "naming-convention" };
+
+  const cliCandidate = descriptors.find((d) => basename(d.path).toLowerCase().includes("_cli."));
+  if (cliCandidate) return { descriptor: cliCandidate, source: "naming-convention" };
+
+  const runtime = descriptors[0].runtime;
+  const namingPriority =
+    runtime === "python"
+      ? ["main.py", "cli.py", "run.py"]
+      : ["main.js", "cli.js", "run.js", "main.mjs", "cli.mjs", "run.mjs"];
+
+  const namedCandidate = descriptors.find((d) => isNamedScript(d.path, namingPriority));
+  if (namedCandidate) return { descriptor: namedCandidate, source: "naming-convention" };
+
+  return null;
+}
+
 function parseInstallCommandLine(rawLine: string): ParsedInstallCommand | null {
   const line = rawLine.trim();
   if (!line) return null;
@@ -103,7 +127,6 @@ function parseInstallCommandLine(rawLine: string): ParsedInstallCommand | null {
   return null;
 }
 
-// 遍历 markdown fenced code block，抽取其中可识别的安装命令。
 function parseMarkdownInstallCommands(markdown: string): ParsedInstallCommand[] {
   const commands: ParsedInstallCommand[] = [];
   const fencePattern = /```(?:bash|sh|shell)?\n([\s\S]*?)```/g;
@@ -121,64 +144,77 @@ function parseMarkdownInstallCommands(markdown: string): ParsedInstallCommand[] 
   return commands;
 }
 
-// 合并两类依赖来源：
-// 1. markdown 安装命令
-// 2. 入口脚本 import
-//
-// 同名依赖会做聚合，并根据“命中来源多少”来提升 confidence。
 function mergeDependencies(
   installCommands: ParsedInstallCommand[],
   runtime: SkillRuntime,
   scriptImports: string[],
+  requirementsDeps: Array<{ name: string; installSpec: string }>,
+  frontmatterDeps: string[],
 ): { dependencies: SkillDependency[]; evidence: string[]; preferredInstaller: SkillProvisionInstaller } {
-  const byName = new Map<string, { fromMarkdown: boolean; fromImport: boolean; installSpec?: string }>();
+  const byName = new Map<string, { sources: Set<SkillDependencySource>; installSpec?: string }>();
   const evidence: string[] = [];
   let preferredInstaller: SkillProvisionInstaller = "manual";
 
-  for (const command of installCommands) {
-    if (command.runtime !== runtime) {
-      continue;
+  function touch(name: string, source: SkillDependencySource, installSpec?: string) {
+    const entry = byName.get(name) ?? { sources: new Set() };
+    entry.sources.add(source);
+    if (installSpec && !entry.installSpec) {
+      entry.installSpec = installSpec;
     }
+    byName.set(name, entry);
+  }
+
+  for (const command of installCommands) {
+    if (command.runtime !== runtime) continue;
     if (preferredInstaller === "manual") {
       preferredInstaller = command.installer;
     }
     evidence.push(`SKILL.md:${command.evidence}`);
     for (const packageInfo of command.packages) {
-      const entry = byName.get(packageInfo.name) ?? { fromMarkdown: false, fromImport: false };
-      entry.fromMarkdown = true;
-      entry.installSpec = packageInfo.installSpec;
-      byName.set(packageInfo.name, entry);
+      touch(packageInfo.name, "markdown-install", packageInfo.installSpec);
     }
   }
 
   for (const importName of scriptImports) {
-    const entry = byName.get(importName) ?? { fromMarkdown: false, fromImport: false };
-    entry.fromImport = true;
-    byName.set(importName, entry);
+    touch(importName, "import-scan");
+  }
+
+  for (const req of requirementsDeps) {
+    touch(req.name, "requirements-txt", req.installSpec);
+    if (preferredInstaller === "manual" && runtime === "python") {
+      preferredInstaller = "pip";
+    }
+  }
+
+  for (const depSpec of frontmatterDeps) {
+    const parsed = normalizePackageSpec(depSpec);
+    touch(parsed.name, "frontmatter", parsed.installSpec);
+  }
+
+  if (requirementsDeps.length > 0) {
+    evidence.push("requirements.txt");
+  }
+  if (frontmatterDeps.length > 0) {
+    evidence.push("frontmatter:dependency");
   }
 
   const dependencies: SkillDependency[] = [...byName.entries()]
     .map(([name, flags]) => {
-      if (flags.fromMarkdown && flags.fromImport) {
-        return {
-          name,
-          installSpec: flags.installSpec,
-          source: "markdown-install" as const,
-          confidence: "high" as const,
-        };
-      }
-      if (flags.fromMarkdown) {
-        return {
-          name,
-          installSpec: flags.installSpec,
-          source: "markdown-install" as const,
-          confidence: "medium" as const,
-        };
-      }
+      const sourceCount = flags.sources.size;
+      const confidence = sourceCount >= 2 ? "high" : "medium";
+      const source: SkillDependencySource = flags.sources.has("markdown-install")
+        ? "markdown-install"
+        : flags.sources.has("requirements-txt")
+          ? "requirements-txt"
+          : flags.sources.has("frontmatter")
+            ? "frontmatter"
+            : "import-scan";
+
       return {
         name,
-        source: "import-scan" as const,
-        confidence: "medium" as const,
+        installSpec: flags.installSpec,
+        source,
+        confidence: confidence as "high" | "medium" | "low",
       };
     })
     .sort((left, right) => left.name.localeCompare(right.name));
@@ -186,7 +222,27 @@ function mergeDependencies(
   return { dependencies, evidence, preferredInstaller };
 }
 
-// 没有任何可执行脚本时，默认视为纯知识型 skill。
+function parseRequirementsTxt(content: string): Array<{ name: string; installSpec: string }> {
+  const result: Array<{ name: string; installSpec: string }> = [];
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("-")) continue;
+    const parsed = normalizePackageSpec(trimmed);
+    if (parsed.name) {
+      result.push(parsed);
+    }
+  }
+  return result;
+}
+
+function extractFrontmatterDeps(
+  frontmatterDependency: Record<string, string[]> | undefined,
+  runtime: SkillRuntime,
+): string[] {
+  if (!frontmatterDependency) return [];
+  return frontmatterDependency[runtime] ?? [];
+}
+
 function emptyDetectedRuntime(): DetectedSkillRuntime {
   return {
     kind: "knowledge-only",
@@ -197,99 +253,158 @@ function emptyDetectedRuntime(): DetectedSkillRuntime {
   };
 }
 
+function collectAllImports(descriptors: ScriptDescriptor[]): string[] {
+  const imports = new Set<string>();
+  for (const d of descriptors) {
+    for (const imp of d.imports) {
+      imports.add(imp);
+    }
+  }
+  return [...imports].sort();
+}
+
+function collectLocalPythonModuleNames(packageIndex: SkillPackageIndex): Set<string> {
+  const names = new Set<string>();
+  const files = [...packageIndex.scriptFiles, ...packageIndex.rootScriptFiles];
+
+  for (const relativePath of files) {
+    if (extname(relativePath).toLowerCase() !== ".py") {
+      continue;
+    }
+
+    const fileName = basename(relativePath, ".py");
+    if (fileName !== "__init__") {
+      names.add(fileName);
+      continue;
+    }
+
+    const parentDir = basename(dirname(relativePath));
+    if (parentDir && parentDir !== "." && parentDir !== ".." && parentDir !== "scripts") {
+      names.add(parentDir);
+    }
+  }
+
+  return names;
+}
+
 export async function detectSkillRuntime(
   skill: Pick<CompiledSkill, "source">,
   packageIndex: SkillPackageIndex,
 ): Promise<DetectedSkillRuntime> {
-  // 没有 scripts/ 时，直接判定为 knowledge-only。
-  if (packageIndex.scriptFiles.length === 0) {
+  const hasScriptsDir = packageIndex.scriptFiles.length > 0;
+  const hasRootScripts = packageIndex.rootScriptFiles.length > 0;
+
+  if (!hasScriptsDir && !hasRootScripts) {
     return emptyDetectedRuntime();
   }
 
-  // 先把 scripts/ 里的候选脚本都做静态分析，拿到 runtime/imports 等信息。
-  const descriptors = (
-    await Promise.all(packageIndex.scriptFiles.map((filePath) => analyzeScript(packageIndex.rootDir, filePath)))
-  ).filter((descriptor): descriptor is ScriptDescriptor => descriptor !== null);
+  const scriptDirDescriptors = hasScriptsDir
+    ? (
+        await Promise.all(packageIndex.scriptFiles.map((f) => analyzeScript(packageIndex.rootDir, f)))
+      ).filter((d): d is ScriptDescriptor => d !== null)
+    : [];
 
-  // 有脚本文件，但没有任何一个能识别成当前支持的运行时。
-  if (descriptors.length === 0) {
+  const rootDescriptors = hasRootScripts
+    ? (
+        await Promise.all(packageIndex.rootScriptFiles.map((f) => analyzeScript(packageIndex.rootDir, f)))
+      ).filter((d): d is ScriptDescriptor => d !== null)
+    : [];
+
+  const allDescriptors = [...scriptDirDescriptors, ...rootDescriptors];
+
+  if (allDescriptors.length === 0) {
     return {
       kind: "manual-needed",
       preferredInstaller: "manual",
       dependencies: [],
       issues: ["Detected script files but none match the supported runtime conventions."],
-      evidence: [...packageIndex.scriptFiles],
+      evidence: [...packageIndex.scriptFiles, ...packageIndex.rootScriptFiles],
     };
   }
 
-  // 一个 skill 包里同时混用多种脚本运行时，第一版不自动推断，交给人工处理。
-  const runtimes = new Set(descriptors.map((descriptor) => descriptor.runtime));
+  const runtimes = new Set(allDescriptors.map((d) => d.runtime));
   if (runtimes.size > 1) {
     return {
       kind: "manual-needed",
       preferredInstaller: "manual",
       dependencies: [],
       issues: ["Detected multiple script runtimes in one skill package."],
-      evidence: descriptors.map((descriptor) => descriptor.path),
+      evidence: allDescriptors.map((d) => d.path),
     };
   }
 
-  const runtime = descriptors[0].runtime;
+  const runtime = allDescriptors[0].runtime;
 
-  // 运行时确定后，再选唯一入口脚本。
-  const entrypoint = selectEntrypoint(descriptors);
-  if (!entrypoint) {
-    return {
-      kind: "manual-needed",
-      preferredInstaller: "manual",
-      dependencies: [],
-      issues: ["Could not determine a unique entrypoint from the scripts directory."],
-      evidence: descriptors.map((descriptor) => descriptor.path),
-    };
+  let entrypoint = scriptDirDescriptors.length > 0 ? selectEntrypoint(scriptDirDescriptors) : null;
+  if (!entrypoint && rootDescriptors.length > 0) {
+    entrypoint = selectCompatEntrypoint(rootDescriptors);
   }
 
-  // 依赖信息来自两部分：
-  // - SKILL.md 中显式写出的安装命令
-  // - 入口脚本真实 import 的包
   const markdownCommands = parseMarkdownInstallCommands(skill.source.body);
+  const localPythonModuleNames = runtime === "python" ? collectLocalPythonModuleNames(packageIndex) : new Set<string>();
+  const allImports = collectAllImports(allDescriptors).filter((importName) => !localPythonModuleNames.has(importName));
+
+  let requirementsDeps: Array<{ name: string; installSpec: string }> = [];
+  if (packageIndex.requirementsTxtPath) {
+    try {
+      const content = await readFile(packageIndex.requirementsTxtPath, "utf8");
+      requirementsDeps = parseRequirementsTxt(content);
+    } catch {
+      // Ignore read errors
+    }
+  }
+
+  const frontmatterDeps = extractFrontmatterDeps(skill.source.frontmatterDependency, runtime);
+
   const { dependencies, evidence, preferredInstaller } = mergeDependencies(
     markdownCommands,
     runtime,
-    entrypoint.descriptor.imports,
+    allImports,
+    requirementsDeps,
+    frontmatterDeps,
   );
 
-  const detectedKind: DetectedSkillKind =
-    runtime === "python"
-      ? "python-script"
-      : runtime === "node"
-        ? "node-script"
-        : "manual-needed";
-
-  // Python skill 如果完全探测不到依赖，先保留一个 issue，便于 UI 和运维排查。
   const issues: string[] = [];
   if (dependencies.length === 0 && runtime === "python") {
-    issues.push("No Python dependencies were detected from installation blocks or script imports.");
+    issues.push("No Python dependencies were detected from installation blocks, script imports, requirements.txt, or frontmatter.");
   }
 
+  const resolvedInstaller: SkillProvisionInstaller =
+    preferredInstaller === "manual"
+      ? runtime === "python"
+        ? "pip"
+        : runtime === "node"
+          ? "npm"
+          : "manual"
+      : preferredInstaller;
+
+  if (entrypoint) {
+    const detectedKind: DetectedSkillKind =
+      runtime === "python" ? "python-script" : runtime === "node" ? "node-script" : "manual-needed";
+
+    return {
+      kind: detectedKind,
+      preferredInstaller: resolvedInstaller,
+      entrypoint: {
+        path: entrypoint.descriptor.path,
+        runtime: runtime as SkillRuntime,
+        source: entrypoint.source,
+      },
+      dependencies,
+      issues,
+      evidence: [entrypoint.descriptor.path, ...evidence],
+    };
+  }
+
+  const scriptSetKind: DetectedSkillKind =
+    runtime === "python" ? "python-script-set" : runtime === "node" ? "node-script-set" : "manual-needed";
+
   return {
-    kind: detectedKind,
-    // 没写安装命令时，给一个按 runtime 推导的默认安装器，
-    // 这样 provision 层仍然可以继续工作。
-    preferredInstaller:
-      preferredInstaller === "manual"
-        ? runtime === "python"
-          ? "pip"
-          : runtime === "node"
-            ? "npm"
-            : "manual"
-        : preferredInstaller,
-    entrypoint: {
-      path: entrypoint.descriptor.path,
-      runtime: runtime as SkillRuntime,
-      source: entrypoint.source,
-    },
+    kind: scriptSetKind,
+    preferredInstaller: resolvedInstaller,
+    scriptSet: allDescriptors.map((d) => d.path).sort(),
     dependencies,
     issues,
-    evidence: [entrypoint.descriptor.path, ...evidence],
+    evidence: [...allDescriptors.map((d) => d.path), ...evidence],
   };
 }

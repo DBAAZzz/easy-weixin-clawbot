@@ -68,7 +68,7 @@ async function writeState(statePath: string, state: InstallerState): Promise<voi
 }
 
 function shouldTrackProvisionStatus(runtime: DetectedSkillRuntime | undefined): boolean {
-  return runtime?.kind === "python-script" || runtime?.kind === "node-script";
+  return runtime?.kind === "python-script" || runtime?.kind === "python-script-set" || runtime?.kind === "node-script" || runtime?.kind === "node-script-set";
 }
 
 function toCatalogItem(installed: InstalledSkill): SkillCatalogItem {
@@ -88,6 +88,7 @@ function toCatalogItem(installed: InstalledSkill): SkillCatalogItem {
     runtimeKind,
     entrypointPath: installed.skill.detectedRuntime?.entrypoint?.path,
     dependencyNames: installed.skill.detectedRuntime?.dependencies.map((dependency) => dependency.name) ?? [],
+    scriptSet: installed.skill.detectedRuntime?.scriptSet,
     hasRuntime: runtimeKind !== "knowledge-only",
     provisionStatus: installed.provisionStatus,
     provisionError: installed.provisionError,

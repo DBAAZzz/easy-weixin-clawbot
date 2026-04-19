@@ -36,6 +36,14 @@ async function collectFiles(dirPath: string): Promise<string[]> {
   return files;
 }
 
+const SCRIPT_EXTENSIONS = new Set([".py", ".js", ".mjs", ".cjs"]);
+
+function isScriptFile(fileName: string): boolean {
+  const dotIndex = fileName.lastIndexOf(".");
+  if (dotIndex === -1) return false;
+  return SCRIPT_EXTENSIONS.has(fileName.slice(dotIndex).toLowerCase());
+}
+
 export async function scanSkillPackage(rootDir: string): Promise<SkillPackageIndex> {
   const skillMdPath = join(rootDir, "SKILL.md");
   const metaJsonPath = (await fileExists(join(rootDir, "_meta.json"))) ? join(rootDir, "_meta.json") : undefined;
@@ -50,11 +58,30 @@ export async function scanSkillPackage(rootDir: string): Promise<SkillPackageInd
     ? (await collectFiles(scriptsDir)).map((filePath) => toPosixPath(relative(rootDir, filePath)))
     : [];
 
+  // Compat layer: scan root-level script files
+  const rootScriptFiles: string[] = [];
+  try {
+    const rootEntries = await readdir(rootDir, { withFileTypes: true });
+    for (const entry of rootEntries) {
+      if (entry.isFile() && isScriptFile(entry.name)) {
+        rootScriptFiles.push(entry.name);
+      }
+    }
+  } catch {
+    // Ignore read errors
+  }
+
+  const requirementsTxtPath = (await fileExists(join(rootDir, "requirements.txt")))
+    ? join(rootDir, "requirements.txt")
+    : undefined;
+
   return {
     rootDir,
     skillMdPath,
     metaJsonPath,
     referenceFiles: referenceFiles.sort((left, right) => left.localeCompare(right)),
     scriptFiles: scriptFiles.sort((left, right) => left.localeCompare(right)),
+    rootScriptFiles: rootScriptFiles.sort((left, right) => left.localeCompare(right)),
+    requirementsTxtPath,
   };
 }

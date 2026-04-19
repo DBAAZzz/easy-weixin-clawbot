@@ -161,7 +161,7 @@ function resolveSkillRoot(skillName: string, installer: SkillInstaller) {
   }
   return {
     installed,
-    rootDir: dirname(installed.skill.source.filePath),
+    rootDir: resolve(dirname(installed.skill.source.filePath)),
   };
 }
 
@@ -175,19 +175,27 @@ function resolveRelativeSkillPath(rootDir: string, inputPath: string): string {
   return rel || "SKILL.md";
 }
 
-function isReadableSkillFile(relativePath: string): boolean {
-  return (
+function isReadableSkillFile(relativePath: string, rootScriptFiles?: string[]): boolean {
+  if (
     relativePath === "SKILL.md" ||
     relativePath === "_meta.json" ||
+    relativePath === "requirements.txt" ||
     relativePath.startsWith("references/") ||
     relativePath.startsWith("scripts/")
-  );
+  ) {
+    return true;
+  }
+  // Allow root-level script files detected by package scanner
+  if (rootScriptFiles && rootScriptFiles.includes(relativePath)) {
+    return true;
+  }
+  return false;
 }
 
 async function ensureReadyRuntime(skillName: string, installer: SkillInstaller, provisioner: RuntimeProvisioner): Promise<string> {
   const { installed } = resolveSkillRoot(skillName, installer);
   const kind = installed.skill.detectedRuntime?.kind;
-  if (kind !== "python-script" && kind !== "node-script") {
+  if (kind !== "python-script" && kind !== "python-script-set" && kind !== "node-script" && kind !== "node-script-set") {
     throw new Error(`Skill "${skillName}" does not have an auto-provisionable runtime.`);
   }
 
@@ -233,9 +241,10 @@ export function createSkillRuntimeToolSnapshot(
             throw new Error("skill_name and path are required");
           }
 
-          const { rootDir } = resolveSkillRoot(skillName, installer);
+          const { rootDir, installed: readInstalled } = resolveSkillRoot(skillName, installer);
           const relativePath = resolveRelativeSkillPath(rootDir, requestedPath);
-          if (!isReadableSkillFile(relativePath)) {
+          const rootScriptFiles = readInstalled.skill.packageIndex?.rootScriptFiles;
+          if (!isReadableSkillFile(relativePath, rootScriptFiles)) {
             throw new Error(`Path is not readable via read_skill_file: ${relativePath}`);
           }
 
@@ -283,8 +292,12 @@ export function createSkillRuntimeToolSnapshot(
 
           const { installed, rootDir } = resolveSkillRoot(skillName, installer);
           const detected = installed.skill.detectedRuntime;
-          if (!detected || !detected.entrypoint || (detected.kind !== "python-script" && detected.kind !== "node-script")) {
+          if (!detected || (detected.kind !== "python-script" && detected.kind !== "python-script-set" && detected.kind !== "node-script" && detected.kind !== "node-script-set")) {
             throw new Error(`Skill "${skillName}" is not a runnable script skill.`);
+          }
+          // script-set skills require explicit script_path since there's no default entrypoint
+          if (!detected.entrypoint && !(typeof args.script_path === "string" && args.script_path.trim())) {
+            throw new Error(`Skill "${skillName}" is a script-set skill. You must provide script_path.`);
           }
           if (installed.provisionStatus !== "ready" || !(await provisioner.healthCheck(installed))) {
             throw new Error(`Skill "${skillName}" runtime is not ready. Call prepare_skill_runtime first.`);
@@ -293,9 +306,13 @@ export function createSkillRuntimeToolSnapshot(
           const requestedScript =
             typeof args.script_path === "string" && args.script_path.trim()
               ? resolveRelativeSkillPath(rootDir, args.script_path.trim())
-              : detected.entrypoint.path;
+              : detected.entrypoint!.path;
 
-          if (!installed.skill.packageIndex?.scriptFiles.includes(requestedScript)) {
+          const allScriptFiles = [
+            ...(installed.skill.packageIndex?.scriptFiles ?? []),
+            ...(installed.skill.packageIndex?.rootScriptFiles ?? []),
+          ];
+          if (!allScriptFiles.includes(requestedScript)) {
             throw new Error(`Script is not part of the installed skill package: ${requestedScript}`);
           }
 
@@ -310,14 +327,15 @@ export function createSkillRuntimeToolSnapshot(
           );
 
           const scriptArgs = typeof args.args === "string" && args.args.trim() ? splitArgs(args.args.trim()) : [];
-          const executable = detected.kind === "python-script" ? join(rootDir, ".venv", "bin", "python") : process.execPath;
-          if (!(await fileExists(executable)) && detected.kind === "python-script") {
+          const isPython = detected.kind === "python-script" || detected.kind === "python-script-set";
+          const executable = isPython ? join(rootDir, ".venv", "bin", "python") : process.execPath;
+          if (!(await fileExists(executable)) && isPython) {
             throw new Error(`Python runtime missing for skill "${skillName}". Call prepare_skill_runtime first.`);
           }
           const targetScriptPath = join(rootDir, requestedScript);
-          const shim = detected.kind === "python-script" ? await createPythonJsonShim() : null;
+          const shim = isPython ? await createPythonJsonShim() : null;
           const commandArgs =
-            detected.kind === "python-script" && shim
+            isPython && shim
               ? [shim.shimPath, targetScriptPath, ...scriptArgs]
               : [targetScriptPath, ...scriptArgs];
 

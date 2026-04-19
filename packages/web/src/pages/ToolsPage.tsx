@@ -2,8 +2,18 @@ import { startTransition, useDeferredValue, useEffect, useState } from "react";
 import type { MarkdownSource, ToolInfo } from "@clawbot/shared";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "../components/ui/dialog.js";
 import { Input } from "../components/ui/input.js";
-import { ActivityIcon, SearchIcon, TerminalIcon, XIcon } from "../components/ui/icons.js";
+import { ActivityIcon, SearchIcon, TerminalIcon } from "../components/ui/icons.js";
 import { useQuery } from "@tanstack/react-query";
 import { useTools } from "../hooks/useTools.js";
 import { fetchToolSource } from "@/api/tools.js";
@@ -149,128 +159,509 @@ function ToolCard(props: {
   );
 }
 
-function DetailItem(props: { label: string; value: string }) {
+type ToolDetailTab = "markdown" | "config";
+type MarkdownBlock =
+  | { type: "heading"; level: 1 | 2 | 3; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "list"; ordered: boolean; items: string[] }
+  | { type: "blockquote"; text: string }
+  | { type: "code"; language: string | null; code: string };
+
+function stripMarkdownFrontmatter(markdown: string) {
+  return markdown.replace(/^---\n[\s\S]*?\n---\n*/u, "").trim();
+}
+
+function isMarkdownBlockBoundary(line: string) {
+  const trimmed = line.trim();
   return (
-    <div className="rounded-section border border-line bg-detail-bg px-4 py-3">
-      <p className="text-xs uppercase tracking-label text-muted">{props.label}</p>
-      <p className="mt-1.5 text-md font-medium text-ink">{props.value}</p>
+    trimmed.length === 0 ||
+    trimmed.startsWith("```") ||
+    /^(#{1,6})\s+/.test(trimmed) ||
+    /^[-*]\s+/.test(trimmed) ||
+    /^\d+\.\s+/.test(trimmed) ||
+    trimmed.startsWith(">")
+  );
+}
+
+function parseMarkdownBlocks(markdown: string): MarkdownBlock[] {
+  const normalized = stripMarkdownFrontmatter(markdown).replace(/\r\n/g, "\n").trim();
+  if (!normalized) return [];
+
+  const lines = normalized.split("\n");
+  const blocks: MarkdownBlock[] = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const currentLine = lines[index]!;
+    const trimmed = currentLine.trim();
+
+    if (!trimmed) {
+      index += 1;
+      continue;
+    }
+
+    const codeMatch = /^```([a-zA-Z0-9_-]+)?$/.exec(trimmed);
+    if (codeMatch) {
+      index += 1;
+      const codeLines: string[] = [];
+      while (index < lines.length && !/^```$/.test(lines[index]!.trim())) {
+        codeLines.push(lines[index]!);
+        index += 1;
+      }
+      if (index < lines.length) index += 1;
+      blocks.push({
+        type: "code",
+        language: codeMatch[1] ?? null,
+        code: codeLines.join("\n").trimEnd(),
+      });
+      continue;
+    }
+
+    const headingMatch = /^(#{1,3})\s+(.*)$/.exec(trimmed);
+    if (headingMatch) {
+      blocks.push({
+        type: "heading",
+        level: headingMatch[1].length as 1 | 2 | 3,
+        text: headingMatch[2].trim(),
+      });
+      index += 1;
+      continue;
+    }
+
+    const orderedList = /^\d+\.\s+/.test(trimmed);
+    const unorderedList = /^[-*]\s+/.test(trimmed);
+    if (orderedList || unorderedList) {
+      const items: string[] = [];
+      while (index < lines.length) {
+        const listLine = lines[index]!.trim();
+        if (!listLine) break;
+        if (orderedList && /^\d+\.\s+/.test(listLine)) {
+          items.push(listLine.replace(/^\d+\.\s+/u, ""));
+          index += 1;
+          continue;
+        }
+        if (unorderedList && /^[-*]\s+/.test(listLine)) {
+          items.push(listLine.replace(/^[-*]\s+/u, ""));
+          index += 1;
+          continue;
+        }
+        break;
+      }
+      blocks.push({ type: "list", ordered: orderedList, items });
+      continue;
+    }
+
+    if (trimmed.startsWith(">")) {
+      const quoteLines: string[] = [];
+      while (index < lines.length && lines[index]!.trim().startsWith(">")) {
+        quoteLines.push(lines[index]!.trim().replace(/^>\s?/u, ""));
+        index += 1;
+      }
+      blocks.push({ type: "blockquote", text: quoteLines.join(" ") });
+      continue;
+    }
+
+    const paragraphLines = [trimmed];
+    index += 1;
+    while (index < lines.length && !isMarkdownBlockBoundary(lines[index]!)) {
+      paragraphLines.push(lines[index]!.trim());
+      index += 1;
+    }
+    blocks.push({ type: "paragraph", text: paragraphLines.join(" ") });
+  }
+
+  return blocks;
+}
+
+function renderInlineMarkdown(text: string, keyPrefix: string) {
+  const tokens = text
+    .split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\)|\*[^*]+\*)/u)
+    .filter(Boolean);
+
+  return tokens.map((token, index) => {
+    const key = `${keyPrefix}-${index}`;
+
+    if (token.startsWith("**") && token.endsWith("**")) {
+      return (
+        <strong key={key} className="font-semibold text-ink">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    }
+
+    if (token.startsWith("*") && token.endsWith("*")) {
+      return (
+        <em key={key} className="italic text-ink-soft">
+          {token.slice(1, -1)}
+        </em>
+      );
+    }
+
+    if (token.startsWith("`") && token.endsWith("`")) {
+      return (
+        <code
+          key={key}
+          className="rounded-xs bg-accent-mist px-1.5 py-0.5 font-mono text-sm text-accent-strong"
+        >
+          {token.slice(1, -1)}
+        </code>
+      );
+    }
+
+    const linkMatch = /^\[([^\]]+)\]\(([^)]+)\)$/u.exec(token);
+    if (linkMatch) {
+      return (
+        <a
+          key={key}
+          href={linkMatch[2]}
+          target="_blank"
+          rel="noreferrer"
+          className="underline decoration-line underline-offset-4 transition hover:text-accent-strong"
+        >
+          {linkMatch[1]}
+        </a>
+      );
+    }
+
+    return <span key={key}>{token}</span>;
+  });
+}
+
+function ToolMarkdownDocument(props: { markdown: string }) {
+  const blocks = parseMarkdownBlocks(props.markdown);
+
+  if (blocks.length === 0) {
+    return <p className="text-base leading-7 text-muted">暂无文档正文</p>;
+  }
+
+  return (
+    <article className="space-y-4">
+      {blocks.map((block, index) => {
+        if (block.type === "heading") {
+          if (block.level === 1) {
+            return (
+              <h4
+                key={`heading-${index}`}
+                className="text-4xl font-semibold tracking-title text-ink"
+              >
+                {renderInlineMarkdown(block.text, `heading-${index}`)}
+              </h4>
+            );
+          }
+
+          if (block.level === 2) {
+            return (
+              <h5
+                key={`heading-${index}`}
+                className="pt-2 text-2xl font-semibold tracking-title text-ink"
+              >
+                {renderInlineMarkdown(block.text, `heading-${index}`)}
+              </h5>
+            );
+          }
+
+          return (
+            <h6
+              key={`heading-${index}`}
+              className="pt-1 text-xl font-semibold tracking-title text-ink-soft"
+            >
+              {renderInlineMarkdown(block.text, `heading-${index}`)}
+            </h6>
+          );
+        }
+
+        if (block.type === "paragraph") {
+          return (
+            <p key={`paragraph-${index}`} className="text-lg leading-7 text-ink-soft">
+              {renderInlineMarkdown(block.text, `paragraph-${index}`)}
+            </p>
+          );
+        }
+
+        if (block.type === "blockquote") {
+          return (
+            <blockquote
+              key={`blockquote-${index}`}
+              className="border-l-2 border-accent pl-4 text-base leading-7 text-muted-strong"
+            >
+              {renderInlineMarkdown(block.text, `blockquote-${index}`)}
+            </blockquote>
+          );
+        }
+
+        if (block.type === "list") {
+          const ListTag = block.ordered ? "ol" : "ul";
+          return (
+            <ListTag
+              key={`list-${index}`}
+              className={cn(
+                "space-y-2 pl-5 text-base leading-7 text-ink-soft marker:text-accent-strong",
+                block.ordered ? "list-decimal" : "list-disc",
+              )}
+            >
+              {block.items.map((item, itemIndex) => (
+                <li key={`list-${index}-${itemIndex}`}>
+                  {renderInlineMarkdown(item, `list-${index}-${itemIndex}`)}
+                </li>
+              ))}
+            </ListTag>
+          );
+        }
+
+        return (
+          <div
+            key={`code-${index}`}
+            className="overflow-hidden rounded-section border border-line bg-detail-bg"
+          >
+            {block.language ? (
+              <div className="border-b border-line px-4 py-2 text-sm uppercase tracking-label text-muted">
+                {block.language}
+              </div>
+            ) : null}
+            <pre className="overflow-x-auto px-4 py-4 text-sm leading-6 text-ink-soft">
+              <code>{block.code}</code>
+            </pre>
+          </div>
+        );
+      })}
+    </article>
+  );
+}
+
+function ExpandableSummary(props: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const summary = props.text.trim();
+  const canExpand = summary.length > 60;
+
+  if (!summary) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 max-w-3xl">
+      <p
+        className={cn(
+          "text-lg leading-7 text-muted-strong",
+          canExpand && !expanded && "line-clamp-2",
+        )}
+      >
+        {summary}
+      </p>
+      {canExpand ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((current) => !current)}
+          className="mt-2 text-sm font-medium text-accent-strong transition hover:text-accent"
+        >
+          {expanded ? "收起" : "...更多"}
+        </button>
+      ) : null}
     </div>
   );
 }
 
-function ToolDetailModal(props: {
+function CompactMetaStrip(props: {
+  items: Array<{ label: string; value: string; mono?: boolean }>;
+}) {
+  return (
+    <div className="mt-5 overflow-hidden rounded-panel border border-line bg-white/72">
+      <dl className="grid gap-0 md:grid-cols-2 xl:grid-cols-4">
+        {props.items.map((item, index) => (
+          <div
+            key={item.label}
+            className={cn(
+              "px-4 py-3.5",
+              index > 0 && "border-t border-line",
+              index % 2 === 1 && "md:border-l",
+              index < 2 && "md:border-t-0",
+              index > 0 && "xl:border-l",
+              index > 1 && "xl:border-t-0",
+            )}
+          >
+            <dt className="text-xs tracking-label text-muted">{item.label}</dt>
+            <dd
+              className={cn(
+                "mt-1.5 text-md font-medium text-ink",
+                item.mono && "font-mono text-sm tracking-mono text-ink-soft",
+              )}
+            >
+              {item.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function DetailTabButton(props: {
+  tab: ToolDetailTab;
+  activeTab: ToolDetailTab;
+  label: string;
+  onSelect: (tab: ToolDetailTab) => void;
+}) {
+  const selected = props.activeTab === props.tab;
+
+  return (
+    <button
+      id={`tool-tab-${props.tab}`}
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      aria-controls={`tool-panel-${props.tab}`}
+      onClick={() => props.onSelect(props.tab)}
+      className={cn(
+        "inline-flex items-center border-b-2 px-0 pb-3 pt-1 text-base font-medium tracking-body transition duration-200 ease-expo",
+        selected ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink",
+      )}
+    >
+      <span>{props.label}</span>
+    </button>
+  );
+}
+
+function buildToolSnapshot(tool: ToolInfo) {
+  return JSON.stringify(
+    {
+      handler: tool.handler,
+      parameters: tool.parameterNames,
+    },
+    null,
+    2,
+  );
+}
+
+export function ToolDetailModal(props: {
   tool: ToolInfo;
   source: { data: MarkdownSource | null; loading: boolean; error: string | null };
   toggleBusy: boolean;
   onClose: () => void;
   onToggle: () => void | Promise<void>;
+  initialTab?: ToolDetailTab;
 }) {
+  const [activeTab, setActiveTab] = useState<ToolDetailTab>(props.initialTab ?? "markdown");
+  const overviewItems = [
+    { label: "版本", value: props.tool.version },
+    { label: "Handler", value: props.tool.handler },
+    { label: "来源", value: formatOriginLabel(props.tool.origin) },
+    { label: "状态", value: props.tool.enabled ? "已启用" : "已停用" },
+  ];
+  const markdownBody = props.source.data?.markdown ?? "";
+  const parameterSnapshot = buildToolSnapshot(props.tool);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
-      <button
-        type="button"
-        aria-label="关闭 tool 详情"
-        onClick={props.onClose}
-        className="absolute inset-0 bg-overlay backdrop-blur-[8px]"
-      />
+    <Dialog open onOpenChange={(open) => !open && props.onClose()}>
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogContent className="max-w-4xl rounded-section bg-glass-92">
+          <DialogClose
+            label="关闭 tool 详情"
+            className="absolute right-5 top-5 z-20 size-9 border-transparent bg-transparent text-muted hover:border-transparent hover:bg-transparent hover:text-ink"
+          />
 
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="tool-detail-title"
-        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-pill border border-modal-border bg-card-hover shadow-modal"
-      >
-        <div className="border-b border-line px-5 py-4 md:px-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex min-w-0 items-start gap-4">
-              <ToolAvatar origin={props.tool.origin} />
-              <div className="min-w-0">
-                <p className="text-xs uppercase tracking-label-xl text-muted">Tool Detail</p>
-                <h3
-                  id="tool-detail-title"
-                  className="mt-1.5 truncate text-5xl font-semibold tracking-heading text-ink"
-                >
-                  {props.tool.name}
-                </h3>
-                <p className="mt-2 max-w-2xl text-md leading-6 text-muted-strong">
-                  {props.tool.summary}
-                </p>
-              </div>
+          <DialogHeader className="py-5">
+            <div className="pr-10">
+              <DialogTitle className="truncate">{props.tool.name}</DialogTitle>
+              <p className="mt-2 text-sm text-muted">
+                当前状态：
+                <span className="font-medium text-ink">
+                  {props.tool.enabled ? " 已启用" : " 已停用"}
+                </span>
+              </p>
+              <ExpandableSummary text={props.tool.summary} />
             </div>
 
-            <button
-              type="button"
-              onClick={props.onClose}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-muted-strong transition hover:border-line-strong hover:text-ink"
+            <CompactMetaStrip items={overviewItems} />
+          </DialogHeader>
+
+          <DialogBody className="py-6">
+            <div
+              role="tablist"
+              aria-label="Tool 详情视图"
+              className="flex flex-wrap items-center gap-6 border-b border-line"
             >
-              <XIcon className="size-4" />
-            </button>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Badge tone={props.tool.enabled ? "online" : "offline"}>
-              {props.tool.enabled ? "已启用" : "已停用"}
-            </Badge>
-            <Badge tone="muted">{formatOriginLabel(props.tool.origin)}</Badge>
-            <Badge tone="muted">{props.tool.handler}</Badge>
-          </div>
-        </div>
-
-        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6">
-          <div className="grid gap-3 md:grid-cols-2">
-            <DetailItem label="Version" value={props.tool.version} />
-            <DetailItem label="Handler" value={props.tool.handler} />
-            <DetailItem label="Source" value={formatOriginLabel(props.tool.origin)} />
-            <DetailItem label="Status" value={props.tool.enabled ? "已启用" : "已停用"} />
-          </div>
-
-          <div className="rounded-xl border border-line bg-detail-bg px-4 py-4">
-            <p className="text-xs uppercase tracking-label-lg text-muted">Parameters</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {props.tool.parameterNames.length > 0 ? (
-                props.tool.parameterNames.map((name) => <ParameterChip key={name} name={name} />)
-              ) : (
-                <span className="text-base text-muted">当前 tool 无参数</span>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-line bg-detail-bg px-4 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-label-lg text-muted">Markdown Source</p>
-              </div>
-
-              <Button
-                size="sm"
-                variant={props.tool.enabled ? "outline" : "primary"}
-                disabled={props.toggleBusy}
-                onClick={() => void props.onToggle()}
-              >
-                {props.tool.enabled ? "停用 Tool" : "启用 Tool"}
-              </Button>
+              <DetailTabButton
+                tab="markdown"
+                activeTab={activeTab}
+                label="文档"
+                onSelect={setActiveTab}
+              />
+              <DetailTabButton
+                tab="config"
+                activeTab={activeTab}
+                label="参数配置"
+                onSelect={setActiveTab}
+              />
             </div>
 
-            <div className="mt-4">
-              {props.source.loading ? (
-                <div className="space-y-2">
-                  <div className="ui-skeleton h-4 rounded-lg" />
-                  <div className="ui-skeleton h-4 rounded-lg" />
-                  <div className="ui-skeleton h-4 rounded-lg" />
-                  <div className="ui-skeleton h-28 rounded-lg" />
+            <div className="pt-6">
+              {activeTab === "markdown" ? (
+                <div id="tool-panel-markdown" role="tabpanel" aria-labelledby="tool-tab-markdown">
+                  {props.source.loading ? (
+                    <div className="space-y-3">
+                      <div className="ui-skeleton h-5 rounded-lg" />
+                      <div className="ui-skeleton h-4 rounded-lg" />
+                      <div className="ui-skeleton h-4 rounded-lg" />
+                      <div className="ui-skeleton h-4 rounded-lg" />
+                      <div className="ui-skeleton h-28 rounded-section" />
+                    </div>
+                  ) : props.source.error ? (
+                    <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
+                      加载源码失败：{props.source.error}
+                    </div>
+                  ) : (
+                    <div className="rounded-panel bg-detail-bg px-6 py-7 md:px-7 md:py-8">
+                      <ToolMarkdownDocument markdown={markdownBody} />
+                    </div>
+                  )}
                 </div>
               ) : (
-                <pre className="max-h-[320px] overflow-auto rounded-section border border-line bg-detail-bg-strong px-4 py-3 text-sm leading-6 text-ink-soft">
-                  {props.source.error
-                    ? `加载源码失败：${props.source.error}`
-                    : (props.source.data?.markdown ?? "暂无源码")}
-                </pre>
+                <div id="tool-panel-config" role="tabpanel" aria-labelledby="tool-tab-config">
+                  <div className="space-y-6">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant={props.tool.enabled ? "outline" : "primary"}
+                        disabled={props.toggleBusy}
+                        onClick={() => void props.onToggle()}
+                      >
+                        {props.tool.enabled ? "停用 Tool" : "启用 Tool"}
+                      </Button>
+                    </div>
+
+                    <div className="rounded-panel bg-detail-bg px-6 py-6 md:px-7 md:py-7">
+                      <div className="space-y-6">
+                        <div>
+                          <p className="text-xs tracking-label text-muted">参数快照</p>
+                          <pre className="mt-3 overflow-x-auto rounded-panel border border-line bg-white/78 px-4 py-4 text-sm leading-6 text-ink-soft">
+                            {parameterSnapshot}
+                          </pre>
+                        </div>
+
+                        <div className="border-t border-line pt-6">
+                          <p className="text-xs tracking-label text-muted">输入参数</p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {props.tool.parameterNames.length > 0 ? (
+                              props.tool.parameterNames.map((name) => (
+                                <ParameterChip key={name} name={name} />
+                              ))
+                            ) : (
+                              <p className="text-base leading-7 text-muted-strong">
+                                该 Tool 当前无输入参数。
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          </DialogBody>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   );
 }
 

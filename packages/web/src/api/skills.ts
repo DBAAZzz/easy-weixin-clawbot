@@ -45,7 +45,9 @@ export async function uploadSkillFile(file: File): Promise<SkillUploadResult> {
     clearAuthAndRedirect();
   }
 
-  const payload = (await response.json().catch(() => ({ error: "invalid response" }))) as ApiResponse<SkillUploadResult>;
+  const payload = (await response
+    .json()
+    .catch(() => ({ error: "invalid response" }))) as ApiResponse<SkillUploadResult>;
   if (!response.ok || payload.error) {
     throw new Error(payload.error ?? `upload failed with status ${response.status}`);
   }
@@ -56,7 +58,9 @@ export function fetchSkillPreflight(name: string): Promise<SkillProvisionPlan> {
   return request<SkillProvisionPlan>(`/api/skills/${encodeURIComponent(name)}/preflight`);
 }
 
-export function provisionSkill(name: string): Promise<{ status: string; logs: SkillProvisionLog[] }> {
+export function provisionSkill(
+  name: string,
+): Promise<{ status: string; logs: SkillProvisionLog[] }> {
   return request<{ status: string; logs: SkillProvisionLog[] }>(
     `/api/skills/${encodeURIComponent(name)}/provision`,
     {
@@ -66,7 +70,9 @@ export function provisionSkill(name: string): Promise<{ status: string; logs: Sk
   );
 }
 
-export function reprovisionSkill(name: string): Promise<{ status: string; logs: SkillProvisionLog[] }> {
+export function reprovisionSkill(
+  name: string,
+): Promise<{ status: string; logs: SkillProvisionLog[] }> {
   return request<{ status: string; logs: SkillProvisionLog[] }>(
     `/api/skills/${encodeURIComponent(name)}/reprovision`,
     {

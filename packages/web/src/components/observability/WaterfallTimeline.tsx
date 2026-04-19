@@ -192,8 +192,8 @@ function SpanDetail({ span }: { span: ObservabilityTraceSpan }) {
   const [tab, setTab] = useState<"attributes" | "prompt" | "completion">("attributes");
   const hasPrompt = Boolean(span.payload?.prompt);
   const hasCompletion = Boolean(span.payload?.completion);
-  const customAttributeEntries = Object.entries(span.attributes).sort(
-    ([left], [right]) => left.localeCompare(right),
+  const customAttributeEntries = Object.entries(span.attributes).sort(([left], [right]) =>
+    left.localeCompare(right),
   );
 
   const tabs = [

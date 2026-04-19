@@ -13,6 +13,11 @@
       "enabled": true,
       "installedAt": "2026-04-18T16:46:43.740Z",
       "provisionStatus": "ready"
+    },
+    "akshare-stock-analysis": {
+      "enabled": true,
+      "installedAt": "2026-04-19T02:37:25.209Z",
+      "provisionStatus": "pending"
     }
   }
 }

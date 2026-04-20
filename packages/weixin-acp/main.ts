@@ -13,9 +13,14 @@
  *   npx weixin-acp start -- node ./my-agent.js
  */
 
-import { isLoggedIn, login, logout, start } from "@clawbot/weixin-agent-sdk";
+import {
+  getDefaultCdnBaseUrl,
+  loginWithEvents,
+  monitorWeixinProvider,
+} from "@clawbot/weixin-agent-sdk";
 
 import { AcpAgent } from "./src/acp-agent.js";
+import { clearSession, loadSession, saveSession, saveSessionSyncBuf } from "./src/session-store.js";
 
 /** Built-in agent shortcuts */
 const BUILTIN_AGENTS: Record<string, { command: string }> = {
@@ -25,15 +30,42 @@ const BUILTIN_AGENTS: Record<string, { command: string }> = {
 
 const command = process.argv[2];
 
+async function loginAndSaveSession() {
+  console.log("正在启动微信扫码登录...");
+  const result = await loginWithEvents({
+    onQrReady: ({ qrcodeUrl }) => {
+      console.log(`二维码链接: ${qrcodeUrl}`);
+    },
+    onScanned: () => {
+      console.log("已扫码，等待确认...");
+    },
+    onExpired: () => {
+      console.log("二维码已过期，正在刷新...");
+    },
+  });
+
+  console.log("\n✅ 与微信连接成功！");
+  return saveSession({
+    accountId: result.accountId,
+    token: result.botToken,
+    baseUrl: result.baseUrl,
+    ...(result.userId ? { userId: result.userId } : {}),
+    syncBuf: "",
+  });
+}
+
 async function ensureLoggedIn() {
-  if (!isLoggedIn()) {
-    console.log("未检测到登录信息，请先扫码登录微信\n");
-    await login();
+  const existing = loadSession();
+  if (existing) {
+    return existing;
   }
+
+  console.log("未检测到登录信息，请先扫码登录微信\n");
+  return loginAndSaveSession();
 }
 
 async function startAgent(acpCommand: string, acpArgs: string[] = []) {
-  await ensureLoggedIn();
+  const session = await ensureLoggedIn();
 
   const agent = new AcpAgent({ command: acpCommand, args: acpArgs });
 
@@ -48,17 +80,29 @@ async function startAgent(acpCommand: string, acpArgs: string[] = []) {
     ac.abort();
   });
 
-  return start(agent, { abortSignal: ac.signal });
+  return monitorWeixinProvider({
+    baseUrl: session.baseUrl,
+    cdnBaseUrl: getDefaultCdnBaseUrl(),
+    token: session.token,
+    accountId: session.accountId,
+    agent,
+    abortSignal: ac.signal,
+    syncBufInitial: session.syncBuf,
+    onSyncBufUpdate: (buf) => {
+      saveSessionSyncBuf(buf);
+    },
+  });
 }
 
 async function main() {
   if (command === "login") {
-    await login();
+    await loginAndSaveSession();
     return;
   }
 
   if (command === "logout") {
-    logout();
+    clearSession();
+    console.log("✅ 已退出登录");
     return;
   }
 

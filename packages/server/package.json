@@ -5,9 +5,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --conditions development src/index.ts",
     "build": "tsc",
-    "test": "tsx --test 'src/**/*.test.ts'",
+    "test": "tsx --conditions development --test 'src/**/*.test.ts'",
     "start": "node dist/index.js",
     "prisma:generate": "tsx src/prisma-cli.ts generate --schema prisma/schema.prisma",
     "prisma:push": "tsx src/prisma-cli.ts db push --schema prisma/schema.prisma",

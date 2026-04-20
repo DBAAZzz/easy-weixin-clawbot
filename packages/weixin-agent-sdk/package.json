@@ -4,12 +4,13 @@
   "description": "WeChat ↔ AI Agent bridge SDK — connect any AI backend to WeChat via a simple Agent interface",
   "license": "MIT",
   "type": "module",
-  "main": "index.ts",
-  "types": "index.ts",
+  "main": "./dist/index.mjs",
+  "types": "./index.ts",
   "exports": {
     ".": {
       "types": "./index.ts",
-      "default": "./index.ts"
+      "development": "./index.ts",
+      "default": "./dist/index.mjs"
     }
   },
   "files": [

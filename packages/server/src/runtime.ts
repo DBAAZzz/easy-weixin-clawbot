@@ -109,7 +109,7 @@ export function createBotRuntime(): BotRuntime {
     }
 
     if (activeAccountIds.length === 0) {
-      runtimeLogger.info("当前运行中的账号，请在网页上绑定登录");
+      runtimeLogger.info("当前没有运行中的账号，请在网页上绑定登录");
       return;
     }
 

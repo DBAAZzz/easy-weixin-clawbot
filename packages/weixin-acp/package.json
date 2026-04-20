@@ -34,8 +34,8 @@
   "scripts": {
     "build": "tsdown",
     "prepublishOnly": "pnpm run build",
-    "login": "tsx main.ts login",
-    "start": "tsx main.ts start",
+    "login": "tsx --conditions development main.ts login",
+    "start": "tsx --conditions development main.ts start",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

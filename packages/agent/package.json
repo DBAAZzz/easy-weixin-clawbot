@@ -3,94 +3,114 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
   "types": "./src/index.ts",
   "exports": {
     ".": {
-      "import": "./src/index.ts",
-      "types": "./src/index.ts"
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.js"
     },
     "./skills/registry": {
-      "import": "./src/skills/registry.ts",
-      "types": "./src/skills/registry.ts"
+      "types": "./src/skills/registry.ts",
+      "development": "./src/skills/registry.ts",
+      "default": "./dist/skills/registry.js"
     },
     "./skills/types": {
-      "import": "./src/skills/types.ts",
-      "types": "./src/skills/types.ts"
+      "types": "./src/skills/types.ts",
+      "development": "./src/skills/types.ts",
+      "default": "./dist/skills/types.js"
     },
     "./skills/installer": {
-      "import": "./src/skills/installer.ts",
-      "types": "./src/skills/installer.ts"
+      "types": "./src/skills/installer.ts",
+      "development": "./src/skills/installer.ts",
+      "default": "./dist/skills/installer.js"
     },
     "./tools/registry": {
-      "import": "./src/tools/registry.ts",
-      "types": "./src/tools/registry.ts"
+      "types": "./src/tools/registry.ts",
+      "development": "./src/tools/registry.ts",
+      "default": "./dist/tools/registry.js"
     },
     "./tools/types": {
-      "import": "./src/tools/types.ts",
-      "types": "./src/tools/types.ts"
+      "types": "./src/tools/types.ts",
+      "development": "./src/tools/types.ts",
+      "default": "./dist/tools/types.js"
     },
     "./tools/installer": {
-      "import": "./src/tools/installer.ts",
-      "types": "./src/tools/installer.ts"
+      "types": "./src/tools/installer.ts",
+      "development": "./src/tools/installer.ts",
+      "default": "./dist/tools/installer.js"
     },
     "./mcp/types": {
-      "import": "./src/mcp/types.ts",
-      "types": "./src/mcp/types.ts"
+      "types": "./src/mcp/types.ts",
+      "development": "./src/mcp/types.ts",
+      "default": "./dist/mcp/types.js"
     },
     "./mcp/stdio-client": {
-      "import": "./src/mcp/stdio-client.ts",
-      "types": "./src/mcp/stdio-client.ts"
+      "types": "./src/mcp/stdio-client.ts",
+      "development": "./src/mcp/stdio-client.ts",
+      "default": "./dist/mcp/stdio-client.js"
     },
     "./mcp/tool-adapter": {
-      "import": "./src/mcp/tool-adapter.ts",
-      "types": "./src/mcp/tool-adapter.ts"
+      "types": "./src/mcp/tool-adapter.ts",
+      "development": "./src/mcp/tool-adapter.ts",
+      "default": "./dist/mcp/tool-adapter.js"
     },
     "./ports": {
-      "import": "./src/ports/index.ts",
-      "types": "./src/ports/index.ts"
+      "types": "./src/ports/index.ts",
+      "development": "./src/ports/index.ts",
+      "default": "./dist/ports/index.js"
     },
     "./tape": {
-      "import": "./src/tape/index.ts",
-      "types": "./src/tape/index.ts"
+      "types": "./src/tape/index.ts",
+      "development": "./src/tape/index.ts",
+      "default": "./dist/tape/index.js"
     },
     "./conversation": {
-      "import": "./src/conversation/index.ts",
-      "types": "./src/conversation/index.ts"
+      "types": "./src/conversation/index.ts",
+      "development": "./src/conversation/index.ts",
+      "default": "./dist/conversation/index.js"
     },
     "./commands": {
-      "import": "./src/commands/index.ts",
-      "types": "./src/commands/index.ts"
+      "types": "./src/commands/index.ts",
+      "development": "./src/commands/index.ts",
+      "default": "./dist/commands/index.js"
     },
     "./scheduler": {
-      "import": "./src/scheduler/index.ts",
-      "types": "./src/scheduler/index.ts"
+      "types": "./src/scheduler/index.ts",
+      "development": "./src/scheduler/index.ts",
+      "default": "./dist/scheduler/index.js"
     },
     "./model-resolver": {
-      "import": "./src/model-resolver.ts",
-      "types": "./src/model-resolver.ts"
+      "types": "./src/model-resolver.ts",
+      "development": "./src/model-resolver.ts",
+      "default": "./dist/model-resolver.js"
     },
     "./chat": {
-      "import": "./src/chat.ts",
-      "types": "./src/chat.ts"
+      "types": "./src/chat.ts",
+      "development": "./src/chat.ts",
+      "default": "./dist/chat.js"
     },
     "./media": {
-      "import": "./src/media.ts",
-      "types": "./src/media.ts"
+      "types": "./src/media.ts",
+      "development": "./src/media.ts",
+      "default": "./dist/media.js"
     },
     "./prompts": {
-      "import": "./src/prompts/index.ts",
-      "types": "./src/prompts/index.ts"
+      "types": "./src/prompts/index.ts",
+      "development": "./src/prompts/index.ts",
+      "default": "./dist/prompts/index.js"
     },
     "./llm": {
-      "import": "./src/llm/index.ts",
-      "types": "./src/llm/index.ts"
+      "types": "./src/llm/index.ts",
+      "development": "./src/llm/index.ts",
+      "default": "./dist/llm/index.js"
     }
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "test": "tsx --test 'src/**/*.test.ts'"
+    "test": "tsx --conditions development --test 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.68",

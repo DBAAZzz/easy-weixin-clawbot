@@ -3,18 +3,19 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
   "types": "./src/index.ts",
   "exports": {
     ".": {
-      "import": "./src/index.ts",
-      "types": "./src/index.ts"
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.js"
     }
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "test": "tsx --test 'src/**/*.test.ts'"
+    "test": "tsx --conditions development --test 'src/**/*.test.ts'"
   },
   "devDependencies": {
     "@types/node": "^22.19.15",

@@ -2,6 +2,7 @@ import type { Hono } from "hono";
 import { getSchedulerStore } from "@clawbot/agent/ports";
 import type { ScheduledTaskRow, ScheduledTaskRunRow } from "@clawbot/agent/ports";
 import { schedulerManager } from "@clawbot/agent";
+import { createModuleLogger, getErrorFields } from "../../logger.js";
 
 export interface ScheduledTaskDto {
   id: string;
@@ -32,6 +33,8 @@ export interface ScheduledTaskRunDto {
   pushed: boolean;
   createdAt: string;
 }
+
+const scheduledTaskLogger = createModuleLogger("scheduled-tasks");
 
 function toTaskDto(task: ScheduledTaskRow): ScheduledTaskDto {
   return {
@@ -89,7 +92,10 @@ export function registerScheduledTaskRoutes(app: Hono) {
 
       return c.json({ data: tasks.map(toTaskDto) });
     } catch (error) {
-      console.error("[scheduled-tasks] failed to list tasks:", error);
+      scheduledTaskLogger.error(
+        { ...getErrorFields(error), accountId: accountId ?? null },
+        "获取定时任务列表失败",
+      );
       return c.json({ error: "Failed to list scheduled tasks" }, 500);
     }
   });
@@ -112,7 +118,10 @@ export function registerScheduledTaskRoutes(app: Hono) {
 
       return c.json({ data: toTaskDto(task) });
     } catch (error) {
-      console.error("[scheduled-tasks] failed to get task:", error);
+      scheduledTaskLogger.error(
+        { ...getErrorFields(error), accountId, seq },
+        "获取定时任务详情失败",
+      );
       return c.json({ error: "Failed to get scheduled task" }, 500);
     }
   });
@@ -151,7 +160,10 @@ export function registerScheduledTaskRoutes(app: Hono) {
 
       return c.json({ data: toTaskDto(updated) });
     } catch (error) {
-      console.error("[scheduled-tasks] failed to update task:", error);
+      scheduledTaskLogger.error(
+        { ...getErrorFields(error), accountId, seq },
+        "更新定时任务失败",
+      );
       return c.json({ error: "Failed to update scheduled task" }, 500);
     }
   });
@@ -176,7 +188,10 @@ export function registerScheduledTaskRoutes(app: Hono) {
       const runs = await store.listRuns(task.id, limit);
       return c.json({ data: runs.map(toRunDto) });
     } catch (error) {
-      console.error("[scheduled-tasks] failed to list runs:", error);
+      scheduledTaskLogger.error(
+        { ...getErrorFields(error), accountId, seq, limit },
+        "获取定时任务运行记录失败",
+      );
       return c.json({ error: "Failed to list task runs" }, 500);
     }
   });

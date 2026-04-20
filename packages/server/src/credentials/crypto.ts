@@ -1,8 +1,11 @@
 import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "node:crypto";
+import { createModuleLogger } from "../logger.js";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
+
+const credentialLogger = createModuleLogger("credentials");
 
 /**
  * Resolve the master credential encryption key from environment.
@@ -34,12 +37,12 @@ export function getMasterKey(): Buffer {
   if (process.env.NODE_ENV === "production") {
     throw new Error(
       "CLAWBOT_CREDENTIAL_KEY is required in production. " +
-        "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+        "Generate one with: node -p \"require('crypto').randomBytes(32).toString('hex')\"",
     );
   }
 
   // Dev-only fallback: deterministic key so restarts don't lose access
-  console.warn("[credentials] CLAWBOT_CREDENTIAL_KEY not set, using dev-only key");
+  credentialLogger.warn("未设置 CLAWBOT_CREDENTIAL_KEY，使用仅限开发环境的回退密钥");
   return Buffer.from("0".repeat(64), "hex");
 }
 

@@ -25,11 +25,14 @@ import {
   type McpServerRuntimeConfig,
   type McpServerWriteInput,
 } from "../db/mcp.js";
+import { createModuleLogger, getErrorFields } from "../logger.js";
 
 type RuntimeEntry = {
   client: StdioMcpClient;
   config: McpServerRuntimeConfig;
 };
+
+const mcpLogger = createModuleLogger("mcp");
 
 export interface McpManager {
   bootstrap(): Promise<void>;
@@ -128,14 +131,28 @@ export function createMcpManager(registry: ToolRegistry): McpManager {
           });
           await rebuildRegistry();
         }).catch((closeError) => {
-          console.error("[mcp] unexpected close handler failed", closeError);
+          mcpLogger.error(
+            {
+              ...getErrorFields(closeError),
+              serverId: server.id,
+              serverSlug: server.slug,
+            },
+            "MCP 连接关闭后的收尾处理失败",
+          );
         });
       },
       onToolsListChanged: () => {
         void runServerExclusive(server.id, async () => {
           await refreshServerInternal(server.id);
         }).catch((error) => {
-          console.error("[mcp] tool list refresh failed", error);
+          mcpLogger.error(
+            {
+              ...getErrorFields(error),
+              serverId: server.id,
+              serverSlug: server.slug,
+            },
+            "MCP 工具列表刷新失败",
+          );
         });
       },
     });
@@ -212,7 +229,14 @@ export function createMcpManager(registry: ToolRegistry): McpManager {
       await Promise.all(
         servers.map((server) =>
           runServerExclusive(server.id, () => connectServer(server)).catch((error) => {
-            console.warn(`[mcp] bootstrap failed for ${server.slug}: ${toErrorText(error)}`);
+            mcpLogger.warn(
+              {
+                ...getErrorFields(error),
+                serverId: server.id,
+                serverSlug: server.slug,
+              },
+              "MCP 服务启动时连接失败",
+            );
           }),
         ),
       );

@@ -25,7 +25,7 @@ import { getSchedulerStore } from "@clawbot/agent/ports";
 import { sendProactiveMessage } from "./proactive-push.js";
 import { updateContextToken } from "./db/conversations.js";
 import { deleteRoute, getRoute, upsertRoute } from "./db/session-routes.js";
-import { log } from "./logger.js";
+import { createModuleLogger, getErrorFields, log } from "./logger.js";
 import { observabilityService } from "./observability/service.js";
 import { TTS_CACHE_DIR } from "./paths.js";
 import { getTTSProvider } from "./services/tts/index.js";
@@ -33,6 +33,8 @@ import { getTTSProvider } from "./services/tts/index.js";
 const commandRegistry = new CommandRegistry();
 commandRegistry.registerAll(builtinCommands);
 commandRegistry.register(scheduleCommand);
+
+const agentLogger = createModuleLogger("agent");
 
 /**
  * In-memory cache of wechatConvId → effectiveConvId per account.
@@ -59,7 +61,15 @@ async function rotateSession(accountId: string, wechatConvId: string): Promise<s
   try {
     await createHandoffAnchors(accountId, oldEffective, newEffective);
   } catch (err) {
-    console.warn("[tape] handoff anchor creation failed:", err);
+    agentLogger.warn(
+      {
+        ...getErrorFields(err),
+        accountId,
+        oldConversationId: oldEffective,
+        newConversationId: newEffective,
+      },
+      "创建会话交接锚点失败",
+    );
   }
 
   evictConversation(accountId, oldEffective);
@@ -81,13 +91,20 @@ async function synthesizeReply(text: string): Promise<string | undefined> {
     const filePath = join(TTS_CACHE_DIR, fileName);
     const { writeFileSync } = await import("node:fs");
     writeFileSync(filePath, result.audio);
-    console.log(
-      `[tts] synthesized ${result.audio.length} bytes, ` +
-        `${result.duration?.toFixed(1) ?? "?"}s → ${filePath}`,
+    agentLogger.info(
+      {
+        bytes: result.audio.length,
+        durationSeconds: result.duration ?? null,
+        filePath,
+      },
+      "已生成 TTS 回复音频",
     );
     return filePath;
   } catch (err) {
-    console.error("[tts] synthesis failed (text reply will still be sent):", err);
+    agentLogger.error(
+      { ...getErrorFields(err) },
+      "TTS 合成失败，将回退为纯文本回复",
+    );
     return undefined;
   }
 }
@@ -107,7 +124,15 @@ async function deliverUnpushedRuns(accountId: string, conversationId: string): P
       await sendProactiveMessage(accountId, conversationId, header + run.result);
       await store.markRunPushed(run.id);
     } catch (err) {
-      console.warn(`[scheduler] failed to deliver unpushed run ${run.id}:`, (err as Error).message);
+      agentLogger.warn(
+        {
+          ...getErrorFields(err),
+          accountId,
+          conversationId,
+          runId: run.id,
+        },
+        "补发未推送的定时任务结果失败",
+      );
       break;
     }
   }
@@ -198,7 +223,15 @@ export function createAgent(accountId: string): Agent {
           // Post-chat hook: notify heartbeat engine of new user/assistant messages
           const latestSeq = currentSeq(accountId, effectiveConvId);
           checkWaitingGoalsAsync(accountId, effectiveConvId, latestSeq).catch((err) => {
-            console.warn(`[heartbeat] post-chat hook error:`, (err as Error).message);
+            agentLogger.warn(
+              {
+                ...getErrorFields(err),
+                accountId,
+                conversationId: effectiveConvId,
+                seq: latestSeq,
+              },
+              "心跳后置检查失败",
+            );
           });
 
           return withSpanSync(

@@ -1,5 +1,6 @@
 import type { TTSProvider } from "./types.js";
 import { createEdgeTTSProvider } from "./provider-edge.js";
+import { createModuleLogger } from "../../logger.js";
 
 export type { TTSProvider, TTSOptions, TTSResult, TTSVoice } from "./types.js";
 
@@ -11,6 +12,8 @@ const providers: Record<string, () => TTSProvider> = {
 
 let instance: TTSProvider | undefined;
 
+const ttsLogger = createModuleLogger("tts");
+
 /** Get the singleton TTS provider (lazily created). */
 export function getTTSProvider(): TTSProvider {
   if (!instance) {
@@ -21,7 +24,7 @@ export function getTTSProvider(): TTSProvider {
       );
     }
     instance = factory();
-    console.log(`[tts] provider: ${TTS_PROVIDER}`);
+    ttsLogger.info({ provider: TTS_PROVIDER }, "TTS 提供器已初始化");
   }
   return instance;
 }

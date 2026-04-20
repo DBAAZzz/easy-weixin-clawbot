@@ -9,7 +9,10 @@ import {
   queuePersistMessage,
   restoreHistory as restoreHistoryImpl,
 } from "./messages.js";
+import { createModuleLogger, getErrorFields } from "../logger.js";
 import { getPrisma } from "./prisma.js";
+
+const messageStoreLogger = createModuleLogger("message-store");
 
 export class PrismaMessageStore implements MessageStore {
   async restoreHistory(accountId: string, conversationId: string): Promise<RestoredHistory> {
@@ -34,7 +37,15 @@ export class PrismaMessageStore implements MessageStore {
         });
       }
     } catch (err) {
-      console.error(`[message-store] rollbackMessages(${accountId}/${conversationId}, ${count}):`, err);
+      messageStoreLogger.error(
+        {
+          ...getErrorFields(err),
+          accountId,
+          conversationId,
+          count,
+        },
+        "回滚消息失败",
+      );
     }
   }
 
@@ -42,7 +53,10 @@ export class PrismaMessageStore implements MessageStore {
     const result = await getPrisma().message.deleteMany({
       where: { accountId, conversationId },
     });
-    console.log(`[message-store] cleared ${accountId}/${conversationId} (deleted ${result.count} DB rows)`);
+    messageStoreLogger.info(
+      { accountId, conversationId, deletedCount: result.count },
+      "已清空会话消息",
+    );
   }
 
   async getMessagesSince(

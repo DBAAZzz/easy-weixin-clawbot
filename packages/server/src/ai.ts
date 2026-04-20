@@ -39,7 +39,7 @@ import { PrismaSchedulerStore } from "./db/scheduler-store.impl.js";
 import { PrismaModelConfigStore } from "./db/model-config-store.impl.js";
 import { PrismaHeartbeatStore } from "./db/heartbeat-store.impl.js";
 import { createHeartbeatExecutor } from "./db/heartbeat-executor.impl.js";
-import { log } from "./logger.js";
+import { createModuleLogger, getErrorFields, log } from "./logger.js";
 import {
   DOWNLOADS_DIR,
   SKILLS_BUILTIN_DIR,
@@ -50,6 +50,8 @@ import {
 import { sendProactiveMessage } from "./proactive-push.js";
 
 mkdirSync(DOWNLOADS_DIR, { recursive: true });
+
+const aiLogger = createModuleLogger("ai");
 
 // ── Env config ─────────────────────────────────────────────────────
 
@@ -85,14 +87,17 @@ const SYSTEM_PROMPT = promptAssets.get(PROMPT_PROFILES.chat.systemPromptKey);
 // ── Config validation ──────────────────────────────────────────────
 
 export function validateConfig() {
-  const lines = [
-    `  provider : ${PROVIDER}`,
-    `  model    : ${MODEL_ID}`,
-    `  api key  : ${EXPLICIT_API_KEY ? `${EXPLICIT_API_KEY.slice(0, 6)}…` : "(none — using provider env var)"}`,
-    `  base url : ${EXPLICIT_BASE_URL ?? "(provider default)"}`,
-    `  api port : ${process.env.API_PORT ?? "3001"}`,
-  ];
-  console.log("[config]\n" + lines.join("\n"));
+  aiLogger.info(
+    {
+      provider: PROVIDER,
+      modelId: MODEL_ID,
+      apiKeyConfigured: Boolean(EXPLICIT_API_KEY),
+      apiKeyPreview: EXPLICIT_API_KEY ? `${EXPLICIT_API_KEY.slice(0, 6)}…` : null,
+      baseUrl: EXPLICIT_BASE_URL ?? null,
+      apiPort: process.env.API_PORT ?? "3001",
+    },
+    "已加载运行时配置",
+  );
 
   if (!EXPLICIT_API_KEY) {
     const envMap: Record<string, string[]> = {
@@ -110,26 +115,30 @@ export function validateConfig() {
     const expected = envMap[PROVIDER];
     const hasExpected = expected?.some((key) => Boolean(process.env[key]));
     if (expected && !hasExpected) {
-      console.warn(
-        `[config] WARNING: LLM_API_KEY not set and none of ${expected.join(" / ")} is set — API calls will fail`
+      aiLogger.warn(
+        { provider: PROVIDER, expectedEnvKeys: expected },
+        "缺少 LLM API Key 配置，后续调用将失败",
       );
     }
   }
 
   if (!process.env.DATABASE_URL && !process.env.SUPABASE_PASSWORD) {
-    console.warn(
-      "[config] WARNING: Prisma database env vars missing — persistence/API queries will fail"
+    aiLogger.warn(
+      "缺少 Prisma 数据库环境变量，持久化与 API 查询将失败",
     );
   }
 
   if (!process.env.API_SECRET) {
-    console.warn("[config] WARNING: API_SECRET missing — web API auth will reject all requests");
+    aiLogger.warn("缺少 API_SECRET，Web API 鉴权将全部失败");
   }
 
   try {
     ensurePrismaUrls();
   } catch (error) {
-    console.warn(`[config] WARNING: ${(error as Error).message}`);
+    aiLogger.warn(
+      { ...getErrorFields(error) },
+      "Prisma URL 配置校验失败",
+    );
   }
 }
 
@@ -175,16 +184,6 @@ export const toolInstaller = createToolInstaller(localToolRegistry);
 
 const loadedTools = await toolInstaller.initialize(TOOLS_BUILTIN_DIR, TOOLS_USER_DIR);
 const loadedSkills = await skillInstaller.initialize(SKILLS_BUILTIN_DIR, SKILLS_USER_DIR);
-
-console.log(`[tools] loaded: ${loadedTools.loaded.join(", ") || "(none)"}`);
-for (const failure of loadedTools.failed) {
-  console.warn(`[tools] compile-error ${failure.filePath}: ${failure.error}`);
-}
-
-console.log(`[skills] loaded: ${loadedSkills.loaded.join(", ") || "(none)"}`);
-for (const failure of loadedSkills.failed) {
-  console.warn(`[skills] compile-error ${failure.filePath}: ${failure.error}`);
-}
 
 // ── Agent runner ───────────────────────────────────────────────────
 

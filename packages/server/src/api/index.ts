@@ -1,9 +1,10 @@
 import type { SkillInstaller, ToolInstaller, RuntimeProvisioner } from "@clawbot/agent";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logger } from "hono/logger";
+import { pinoLogger } from "hono-pino";
 import { loadAuthConfig } from "../config/auth.js";
 import type { LoginManager } from "../login/login-manager.js";
+import { createModuleLogger, getErrorFields, logger } from "../logger.js";
 import type { McpManager } from "../mcp/manager.js";
 import {
   observabilityService,
@@ -38,6 +39,8 @@ export interface ApiDependencies {
   startedAt: Date;
 }
 
+const apiLogger = createModuleLogger("api");
+
 export function createApiApp(dependencies: ApiDependencies) {
   const app = new Hono();
   const authConfig = loadAuthConfig();
@@ -49,7 +52,29 @@ export function createApiApp(dependencies: ApiDependencies) {
       origin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
     })
   );
-  app.use("*", logger());
+  app.use(
+    "*",
+    pinoLogger({
+      pino: logger,
+      http: {
+        onReqMessage: () => "收到 HTTP 请求",
+        onResMessage: (c) => {
+          if (c.error || c.res.status >= 500) {
+            return "HTTP 请求处理失败";
+          }
+          if (c.res.status >= 400) {
+            return "HTTP 请求返回客户端错误";
+          }
+          return "HTTP 请求处理完成";
+        },
+        onResLevel: (c) => {
+          if (c.error || c.res.status >= 500) return "error";
+          if (c.res.status >= 400) return "warn";
+          return "info";
+        },
+      },
+    }),
+  );
 
   // Register auth routes (no JWT required)
   if (authConfig) {
@@ -92,7 +117,14 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerTapeRoutes(app);
 
   app.onError((error, c) => {
-    console.error("[api] unhandled error", error);
+    apiLogger.error(
+      {
+        ...getErrorFields(error),
+        method: c.req.method,
+        path: c.req.path,
+      },
+      "API 请求处理异常",
+    );
     return c.json({ error: error instanceof Error ? error.message : "internal error" }, 500);
   });
 

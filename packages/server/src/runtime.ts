@@ -3,7 +3,7 @@ import { createAgent } from "./agent.js";
 import { credentialStore, syncStateStore } from "./credentials/index.js";
 import { getActiveAccountIds as getNonDeprecatedAccountIds, upsertAccount } from "./db/accounts.js";
 import { drainMessageQueue } from "./db/messages.js";
-import { log } from "./logger.js";
+import { createModuleLogger, log } from "./logger.js";
 
 type RunningAccount = {
   abortController: AbortController;
@@ -18,6 +18,8 @@ export interface BotRuntime {
   shutdown(): Promise<void>;
 }
 
+const runtimeLogger = createModuleLogger("runtime");
+
 export function createBotRuntime(): BotRuntime {
   const startedAt = Date.now();
   const running = new Map<string, RunningAccount>();
@@ -28,13 +30,16 @@ export function createBotRuntime(): BotRuntime {
 
   function launchAccount(accountId: string, abortController: AbortController): Promise<void> {
     return (async () => {
-      console.log(`Starting bot for account: ${accountId}`);
+      runtimeLogger.info({ accountId }, "开始启动账号运行时");
 
       try {
         // Read credentials from DB (decrypted)
         const credential = await credentialStore.getDecrypted(accountId);
         if (!credential || credential.status !== "active") {
-          console.warn(`Account ${accountId} has no valid credential (status=${credential?.status ?? "missing"}), skipping`);
+          runtimeLogger.warn(
+            { accountId, credentialStatus: credential?.status ?? "missing" },
+            "账号缺少可用凭据，跳过启动",
+          );
           return;
         }
 
@@ -66,7 +71,10 @@ export function createBotRuntime(): BotRuntime {
 
         // Non-abort disconnect → credential may need re-login
         if (!abortController.signal.aborted) {
-          console.log(`Account ${accountId} disconnected, marking credential as relogin_required`);
+          runtimeLogger.info(
+            { accountId },
+            "账号连接已断开，凭据标记为需要重新登录",
+          );
           await credentialStore.updateStatus(accountId, "relogin_required", "connection lost").catch((err) => {
             log.error(`credentialStore.updateStatus(${accountId})`, err);
           });
@@ -101,11 +109,9 @@ export function createBotRuntime(): BotRuntime {
     }
 
     if (activeAccountIds.length === 0) {
-      console.log("No active credentials found — web login is available at /login.");
+      runtimeLogger.info("当前运行中的账号，请在网页上绑定登录");
       return;
     }
-
-    console.log(`Found ${activeAccountIds.length} active credential(s): ${activeAccountIds.join(", ")}`);
 
     for (const accountId of activeAccountIds) {
       ensureAccountStarted(accountId);

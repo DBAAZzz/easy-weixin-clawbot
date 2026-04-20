@@ -394,7 +394,7 @@ Authorization: Bearer <api_secret>
    - 防止消息轰炸
 
 4. **认证隔离**
-   - 管理接口使用 `API_SECRET` 认证（与现有 API 一致）
+   - 管理接口当前使用 JWT 登录认证（由仓库根 `.env` 中的 `AUTH_*` 环境变量驱动）
    - Webhook 投递接口使用独立的 `webhook_token` 认证
    - 两套认证通过不同中间件处理，路由注册时明确区分
 

@@ -1,5 +1,7 @@
 # Web 端架构方案（v3 — 可实施版）
 
+> 说明：当前实现的后台管理鉴权已经使用 JWT 登录和仓库根 `.env` 中的 `AUTH_*` 环境变量，不再使用 `API_SECRET` / `VITE_API_SECRET` 静态 Bearer token。本文中相关段落属于早期架构设计记录。
+
 ## Context
 
 当前项目是一个微信 bot monorepo（server + shared），所有会话存储在内存中，无 HTTP 层。需要新增 web 端来展示聊天记录、登录二维码和后续 skill 配置。技术栈：React + Vite + shadcn/ui + Hono + Supabase。

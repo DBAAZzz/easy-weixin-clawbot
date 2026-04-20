@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./config/load-env.js";
 import { serve } from "@hono/node-server";
 import { schedulerManager, startHeartbeat, stopHeartbeat } from "@clawbot/agent";
 import { purgeCompacted } from "@clawbot/agent/tape";
@@ -75,7 +75,7 @@ const app = createApiApp({
   startedAt,
 });
 
-const port = Number.parseInt(process.env.API_PORT ?? "3001", 10);
+const port = Number.parseInt(process.env.API_PORT ?? "8028", 10);
 const server = serve({
   fetch: app.fetch,
   port,

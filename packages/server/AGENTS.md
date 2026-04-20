@@ -53,7 +53,7 @@ prisma/
 
 ```
 启动顺序：
-  1. dotenv + yaml 配置加载
+  1. 根目录 `.env` 配置加载
   2. Prisma Client 初始化
   3. MCP Manager bootstrap（连接已配置的 stdio MCP Servers）
   4. Bot Runtime bootstrap（从 DB 恢复 active 账号）
@@ -116,7 +116,11 @@ bootstrap() → 从 DB 查询 active 账号 → ensureAccountStarted(id)
 - `DIRECT_URL` — Prisma direct connection
 - `WEB_ORIGIN` — CORS 白名单
 
-配置文件：`config.yaml`（auth 认证配置）
+后台登录鉴权环境变量：
+- `AUTH_USERNAME`
+- `AUTH_PASSWORD`
+- `AUTH_JWT_SECRET`
+- `AUTH_TOKEN_EXPIRY`（默认 `24h`）
 
 ## 测试
 

@@ -1,6 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import yaml from "js-yaml";
+import "./load-env.js";
 import { createModuleLogger } from "../logger.js";
 
 export interface AuthConfig {
@@ -11,25 +9,41 @@ export interface AuthConfig {
 }
 
 const authLogger = createModuleLogger("auth");
+let authConfigLoaded = false;
+let cachedAuthConfig: AuthConfig | undefined;
 
 export function loadAuthConfig(): AuthConfig | undefined {
-  const configPath = resolve(process.cwd(), "config.yaml");
+  if (authConfigLoaded) {
+    return cachedAuthConfig;
+  }
 
-  if (!existsSync(configPath)) {
-    authLogger.error(
-      { configPath },
-      "未找到 config.yaml，已关闭鉴权",
+  authConfigLoaded = true;
+
+  const username = process.env.AUTH_USERNAME?.trim();
+  const password = process.env.AUTH_PASSWORD;
+  const jwtSecret = process.env.AUTH_JWT_SECRET?.trim();
+  const tokenExpiry = process.env.AUTH_TOKEN_EXPIRY?.trim() || "24h";
+
+  if (!username && !password && !jwtSecret) {
+    authLogger.warn(
+      "未配置 AUTH_USERNAME / AUTH_PASSWORD / AUTH_JWT_SECRET，已关闭鉴权",
     );
     return undefined;
   }
 
-  const content = readFileSync(configPath, "utf-8");
-  const config = yaml.load(content) as { auth?: AuthConfig };
-
-  if (!config.auth) {
-    authLogger.warn("config.yaml 缺少 auth 配置，已关闭鉴权");
+  if (!username || !password || !jwtSecret) {
+    authLogger.warn(
+      "AUTH_USERNAME / AUTH_PASSWORD / AUTH_JWT_SECRET 未完整配置，已关闭鉴权",
+    );
     return undefined;
   }
 
-  return config.auth;
+  cachedAuthConfig = {
+    username,
+    password,
+    jwtSecret,
+    tokenExpiry,
+  };
+
+  return cachedAuthConfig;
 }

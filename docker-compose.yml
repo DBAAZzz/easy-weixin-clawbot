@@ -39,7 +39,10 @@ services:
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_PROVIDER: ${LLM_PROVIDER:-moonshot}
       LLM_MODEL: ${LLM_MODEL:-moonshot-v1-8k}
-      SYSTEM_PROMPT: ${SYSTEM_PROMPT:-你是一个微信智能助手，回答简洁、友好。}
+      AUTH_USERNAME: ${AUTH_USERNAME:-admin}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-admin}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-change-me-to-a-random-secret-key}
+      AUTH_TOKEN_EXPIRY: ${AUTH_TOKEN_EXPIRY:-24h}
       TTS_PROVIDER: ${TTS_PROVIDER:-edge-tts}
       TTS_DEFAULT_VOICE: ${TTS_DEFAULT_VOICE:-zh-CN-XiaoxiaoNeural}
       # Pass through any additional provider-specific API keys
@@ -48,7 +51,6 @@ services:
       KIMI_API_KEY: ${KIMI_API_KEY:-}
     volumes:
       - appdata:/app/data
-      - ./packages/server/config.yaml:/app/packages/server/config.yaml:ro
     ports:
       - "${API_PORT:-8028}:8028"
     healthcheck:

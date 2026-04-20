@@ -13,9 +13,8 @@
 ## 快速启动
 
 ```bash
-cp .env.docker.example .env
-cp packages/server/config-example.yaml packages/server/config.yaml
-# 编辑 .env 和 packages/server/config.yaml
+cp .env.example .env
+# 编辑根目录 .env
 docker compose up --build -d
 ```
 
@@ -26,18 +25,15 @@ docker compose up --build -d
 - `POSTGRES_PASSWORD`
 - `CLAWBOT_CREDENTIAL_KEY`
 - 一组可用的 LLM Key
+- `AUTH_USERNAME`
+- `AUTH_PASSWORD`
+- `AUTH_JWT_SECRET`
 
 生成 `CLAWBOT_CREDENTIAL_KEY`：
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
-
-`packages/server/config.yaml` 至少补这些：
-
-- `auth.username`
-- `auth.password`
-- `auth.jwtSecret`
 
 ## 默认地址
 

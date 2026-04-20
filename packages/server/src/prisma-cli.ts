@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./config/load-env.js";
 import { spawn } from "node:child_process";
 import { ensurePrismaUrls } from "./db/prisma-env.js";
 

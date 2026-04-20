@@ -5,6 +5,7 @@
  * Those live in @clawbot/agent.
  */
 
+import "./config/load-env.js";
 import {
   createCompositeToolRegistry,
   createAgentRunner,
@@ -27,7 +28,6 @@ import {
   setPromptAssets,
   validateTemplateVars,
   PROMPT_ASSET_SPECS,
-  PROMPT_PROFILES,
 } from "@clawbot/agent";
 import { setChatDeps } from "@clawbot/agent/chat";
 import { setDefaultModel, buildModelFromConfig } from "@clawbot/agent/model-resolver";
@@ -57,7 +57,6 @@ const aiLogger = createModuleLogger("ai");
 
 const PROVIDER = process.env.LLM_PROVIDER ?? "anthropic";
 const MODEL_ID = process.env.LLM_MODEL ?? "claude-sonnet-4-20250514";
-const BASE_SYSTEM_PROMPT = process.env.SYSTEM_PROMPT ?? "你是一个微信智能助手，回答简洁、友好。";
 
 const EXPLICIT_API_KEY = process.env.LLM_API_KEY ?? process.env.KEY;
 const EXPLICIT_BASE_URL =
@@ -69,7 +68,6 @@ const EXPLICIT_BASE_URL =
 
 const promptAssets = loadPromptAssets({
   vars: {
-    BASE_SYSTEM_PROMPT,
     DOWNLOADS_DIR,
   },
 });
@@ -79,10 +77,6 @@ for (const spec of PROMPT_ASSET_SPECS) {
 }
 
 setPromptAssets(promptAssets);
-
-// The chat system prompt is loaded from the bundled agent prompt assets
-// with startup variables resolved eagerly during bootstrap.
-const SYSTEM_PROMPT = promptAssets.get(PROMPT_PROFILES.chat.systemPromptKey);
 
 // ── Config validation ──────────────────────────────────────────────
 
@@ -94,7 +88,7 @@ export function validateConfig() {
       apiKeyConfigured: Boolean(EXPLICIT_API_KEY),
       apiKeyPreview: EXPLICIT_API_KEY ? `${EXPLICIT_API_KEY.slice(0, 6)}…` : null,
       baseUrl: EXPLICIT_BASE_URL ?? null,
-      apiPort: process.env.API_PORT ?? "3001",
+      apiPort: process.env.API_PORT ?? "8028",
     },
     "已加载运行时配置",
   );
@@ -126,10 +120,6 @@ export function validateConfig() {
     aiLogger.warn(
       "缺少 Prisma 数据库环境变量，持久化与 API 查询将失败",
     );
-  }
-
-  if (!process.env.API_SECRET) {
-    aiLogger.warn("缺少 API_SECRET，Web API 鉴权将全部失败");
   }
 
   try {
@@ -191,7 +181,6 @@ const runner = createAgentRunner(
   {
     model,
     meta,
-    systemPrompt: SYSTEM_PROMPT,
   },
   toolRegistry,
   skillRegistry,

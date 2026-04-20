@@ -1,5 +1,7 @@
 # JWT 认证系统设计
 
+> 说明：当前实现已经进一步收敛为“只从仓库根 `.env` 读取认证配置”，使用 `AUTH_USERNAME`、`AUTH_PASSWORD`、`AUTH_JWT_SECRET`、`AUTH_TOKEN_EXPIRY`。本文中关于 `config.yaml`、`API_SECRET`、`VITE_API_SECRET` 的描述属于历史设计背景。
+
 ## 概述
 
 将现有的固定 `API_SECRET` 认证方案升级为基于 JWT Token + config.yaml 配置的认证系统。

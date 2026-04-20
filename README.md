@@ -61,10 +61,8 @@
 git clone https://github.com/DBAAZzz/easy-weixin-clawbot.git
 cd easy-weixin-clawbot
 
-cp .env.docker.example .env
-cp packages/server/config-example.yaml packages/server/config.yaml
-
-# 编辑 .env 和 packages/server/config.yaml
+cp .env.example .env
+# 编辑根目录 .env
 docker compose up --build -d
 ```
 
@@ -73,7 +71,7 @@ docker compose up --build -d
 - `.env`：`POSTGRES_PASSWORD`
 - `.env`：`CLAWBOT_CREDENTIAL_KEY`
 - `.env`：一组可用的 LLM Key，例如 `LLM_API_KEY` 或对应 provider 的 API Key
-- `packages/server/config.yaml`：后台登录账号、密码和 JWT secret
+- `.env`：`AUTH_USERNAME`、`AUTH_PASSWORD`、`AUTH_JWT_SECRET`
 
 生成 `CLAWBOT_CREDENTIAL_KEY`：
 
@@ -95,6 +93,26 @@ docker compose down
 ```
 
 更完整的部署说明见 [docs/readme/docker-deployment.md](./docs/readme/docker-deployment.md)。
+
+## 配置约定
+
+项目现在只保留一个配置入口：仓库根目录 `.env`。
+
+- 只保留一个示例文件：`.env.example`
+- `packages/server` 不再使用 `packages/server/.env`
+- 后台登录鉴权不再使用 `packages/server/config.yaml`
+- Agent 默认 system prompt 直接内置在 `packages/agent/prompts/`
+- `packages/web` 开发服务器也会从根目录 `.env` 读取环境变量，并自动根据 `API_PORT` 代理 `/api`
+- Docker Compose 和源码开发都使用同一个 `.env`，只是在数据库区块填写不同变量
+
+本地开发时：
+
+```bash
+cp .env.example .env
+# 编辑根目录 .env
+pnpm install
+pnpm dev
+```
 
 ## 文档
 

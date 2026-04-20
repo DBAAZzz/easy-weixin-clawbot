@@ -32,12 +32,13 @@ import {
   createConversationSkillRuntime,
 } from "./runtime/skill-runtime.js";
 import { assembleSystemPrompt } from "./prompts/assembler.js";
+import { getPromptAssets } from "./prompts/port.js";
 import { PROMPT_PROFILES } from "./prompts/profiles.js";
 
 export interface AgentConfig {
   model: LanguageModel;
   meta: ModelMeta;
-  systemPrompt: string;
+  systemPrompt?: string;
   apiKey?: string;
   maxRounds?: number;
   toolTimeoutMs?: number;
@@ -197,6 +198,9 @@ export function createAgentRunner(
   tools: ToolRegistry,
   skills: SkillRegistry,
 ): AgentRunner {
+  const baseSystemPrompt =
+    config.systemPrompt ?? getPromptAssets().get(PROMPT_PROFILES.chat.systemPromptKey);
+
   async function run(
     messages: AgentMessage[],
     callbacks: RunCallbacks,
@@ -223,7 +227,7 @@ export function createAgentRunner(
       callbacks.onRoundStart?.(round);
 
       // ── Context window trimming ──
-      const fullSystemPrompt = assembleSystemPrompt(PROMPT_PROFILES.chat, config.systemPrompt, skills);
+      const fullSystemPrompt = assembleSystemPrompt(PROMPT_PROFILES.chat, baseSystemPrompt, skills);
       const currentTools = [...tools.current().tools, USE_SKILL_TOOL];
       const toolsSchemaText = JSON.stringify(currentTools.map((t) => ({ name: t.name, description: t.description, parameters: t.parameters })));
       const fixedOverheadTokens = estimateTextTokens(fullSystemPrompt) + estimateTextTokens(toolsSchemaText);

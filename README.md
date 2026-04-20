@@ -103,6 +103,7 @@ docker compose down
 - 后台登录鉴权不再使用 `packages/server/config.yaml`
 - Agent 默认 system prompt 直接内置在 `packages/agent/prompts/`
 - `packages/web` 开发服务器也会从根目录 `.env` 读取环境变量，并自动根据 `API_PORT` 代理 `/api`
+- 外部数据库只支持 `DATABASE_URL` 和 `DIRECT_URL`，不再支持 `SUPABASE_*` 简化变量
 - Docker Compose 和源码开发都使用同一个 `.env`，只是在数据库区块填写不同变量
 
 本地开发时：

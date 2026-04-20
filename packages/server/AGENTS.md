@@ -109,11 +109,11 @@ bootstrap() → 从 DB 查询 active 账号 → ensureAccountStarted(id)
 
 必需：
 - `DATABASE_URL` — PostgreSQL 连接字符串
+- `DIRECT_URL` — Prisma direct connection
 - `LLM_PROVIDER` + `LLM_MODEL` + `LLM_API_KEY`（或 Provider 专用 key）
 - `API_PORT`（默认 8028）
 
 可选：
-- `DIRECT_URL` — Prisma direct connection
 - `WEB_ORIGIN` — CORS 白名单
 
 后台登录鉴权环境变量：

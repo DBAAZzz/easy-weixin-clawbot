@@ -116,9 +116,9 @@ export function validateConfig() {
     }
   }
 
-  if (!process.env.DATABASE_URL && !process.env.SUPABASE_PASSWORD) {
+  if (!process.env.DATABASE_URL || !process.env.DIRECT_URL) {
     aiLogger.warn(
-      "缺少 Prisma 数据库环境变量，持久化与 API 查询将失败",
+      "缺少 DATABASE_URL 或 DIRECT_URL，持久化与 API 查询将失败",
     );
   }
 

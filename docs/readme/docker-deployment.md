@@ -29,6 +29,11 @@ docker compose up --build -d
 - `AUTH_PASSWORD`
 - `AUTH_JWT_SECRET`
 
+说明：
+
+- Docker Compose 启动时，会自动把容器内的 `DATABASE_URL` 和 `DIRECT_URL` 组装好
+- 如果你不是用 Compose 自带 PostgreSQL，而是改接外部数据库，那么请直接在根 `.env` 里填写完整的 `DATABASE_URL` 和 `DIRECT_URL`
+
 生成 `CLAWBOT_CREDENTIAL_KEY`：
 
 ```bash

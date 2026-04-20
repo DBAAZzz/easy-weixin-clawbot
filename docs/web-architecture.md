@@ -475,7 +475,7 @@ export default defineConfig({
 
 ### 环境变量
 
-- `packages/server/.env`: `SUPABASE_PASSWORD` 或 `DATABASE_URL`/`DIRECT_URL`，以及 `API_PORT=3001`, `API_SECRET`
+- `仓库根 .env`: `DATABASE_URL`、`DIRECT_URL`、`API_PORT=8028`，以及后台登录用的 `AUTH_*`
 - `packages/web/.env`: `VITE_API_SECRET`（自托管场景，前端注入 Bearer token）
 
 ---

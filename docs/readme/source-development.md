@@ -19,6 +19,7 @@ pnpm install
 然后补齐：
 
 - `.env` 里的数据库和模型配置
+  本地源码开发时，数据库只支持 `DATABASE_URL` 和 `DIRECT_URL`
 - `.env` 里的后台登录配置：`AUTH_USERNAME`、`AUTH_PASSWORD`、`AUTH_JWT_SECRET`
 
 同步数据库 schema：

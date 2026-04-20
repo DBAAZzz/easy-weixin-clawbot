@@ -1,39 +1,23 @@
-const DEFAULT_SUPABASE_DB_USER = "postgres.zdemjznsulfzelnzeudy";
-const DEFAULT_SUPABASE_DIRECT_HOST = "aws-1-ap-southeast-1.pooler.supabase.com";
-const DEFAULT_SUPABASE_DB_NAME = "postgres";
-
-function requirePassword(): string {
-  const password = process.env.SUPABASE_PASSWORD;
-  if (!password) {
+function requireEnv(name: "DATABASE_URL" | "DIRECT_URL"): string {
+  const value = process.env[name]?.trim();
+  if (!value) {
     throw new Error(
-      "DATABASE_URL/DIRECT_URL or SUPABASE_PASSWORD must be configured for Prisma"
+      `Missing required Prisma environment variable: ${name}. ` +
+        "Set both DATABASE_URL and DIRECT_URL in the repo-root .env.",
     );
   }
-  return password;
-}
-
-function buildDatabaseUrl() {
-  const user = process.env.SUPABASE_DB_USER ?? DEFAULT_SUPABASE_DB_USER;
-  const host = process.env.SUPABASE_DIRECT_HOST ?? DEFAULT_SUPABASE_DIRECT_HOST;
-  const dbName = process.env.SUPABASE_DB_NAME ?? DEFAULT_SUPABASE_DB_NAME;
-  const password = encodeURIComponent(requirePassword());
-  return `postgresql://${user}:${password}@${host}:5432/${dbName}`;
-}
-
-function buildDirectUrl() {
-  const user = process.env.SUPABASE_DB_USER ?? DEFAULT_SUPABASE_DB_USER;
-  const host = process.env.SUPABASE_DIRECT_HOST ?? DEFAULT_SUPABASE_DIRECT_HOST;
-  const dbName = process.env.SUPABASE_DB_NAME ?? DEFAULT_SUPABASE_DB_NAME;
-  const password = encodeURIComponent(requirePassword());
-  return `postgresql://${user}:${password}@${host}:5432/${dbName}`;
+  return value;
 }
 
 export function ensurePrismaUrls() {
-  process.env.DATABASE_URL ||= buildDatabaseUrl();
-  process.env.DIRECT_URL ||= buildDirectUrl();
+  const databaseUrl = requireEnv("DATABASE_URL");
+  const directUrl = requireEnv("DIRECT_URL");
+
+  process.env.DATABASE_URL = databaseUrl;
+  process.env.DIRECT_URL = directUrl;
 
   return {
-    databaseUrl: process.env.DATABASE_URL,
-    directUrl: process.env.DIRECT_URL,
+    databaseUrl,
+    directUrl,
   };
 }

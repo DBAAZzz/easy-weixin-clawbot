@@ -23,6 +23,21 @@ interface InstallerState {
 }
 
 const EMPTY_STATE: InstallerState = { items: {} };
+const SYSTEM_TOOL_NAMES = new Set(["web_fetch", "web_search"]);
+
+function isSystemManagedTool(name: string): boolean {
+  return SYSTEM_TOOL_NAMES.has(name);
+}
+
+function resolveToolEnabled(name: string, enabled: boolean | undefined): boolean {
+  return isSystemManagedTool(name) ? true : enabled ?? true;
+}
+
+function assertUserToolNameAllowed(name: string): void {
+  if (isSystemManagedTool(name)) {
+    throw new Error(`Tool name is reserved for system builtin: ${name}`);
+  }
+}
 
 function getStatePath(userDir: string): string {
   return join(dirname(userDir), "state.json");
@@ -72,6 +87,7 @@ function toCatalogItem(installed: InstalledTool): ToolCatalogItem {
     handler: installed.tool.source.handler,
     origin: installed.origin,
     enabled: installed.enabled,
+    managedBySystem: installed.managedBySystem,
     parameterNames: Object.keys(installed.tool.source.inputSchema).sort(),
     installedAt: installed.installedAt,
     filePath: installed.tool.source.filePath,
@@ -104,31 +120,42 @@ export function createToolInstaller(registry: ToolRegistry): ToolInstaller {
     const user = await loadToolsFromDirectory(userDir);
     const next = new Map<string, InstalledTool>();
     const now = new Date().toISOString();
+    const failed = [...builtin.failed, ...user.failed];
 
     for (const compiled of builtin.tools) {
       const itemState = state.items[compiled.source.name] ?? {};
       state.items[compiled.source.name] = {
-        enabled: itemState.enabled ?? true,
+        enabled: resolveToolEnabled(compiled.source.name, itemState.enabled),
         installedAt: itemState.installedAt ?? now,
       };
       next.set(compiled.source.name, {
         tool: compiled,
         origin: "builtin",
-        enabled: state.items[compiled.source.name].enabled ?? true,
+        enabled: resolveToolEnabled(compiled.source.name, state.items[compiled.source.name].enabled),
+        managedBySystem: isSystemManagedTool(compiled.source.name),
         installedAt: state.items[compiled.source.name].installedAt ?? now,
       });
     }
 
     for (const compiled of user.tools) {
+      if (isSystemManagedTool(compiled.source.name)) {
+        failed.push({
+          filePath: compiled.source.filePath,
+          error: `User tool cannot override system builtin: ${compiled.source.name}`,
+        });
+        continue;
+      }
+
       const itemState = state.items[compiled.source.name] ?? {};
       state.items[compiled.source.name] = {
-        enabled: itemState.enabled ?? true,
+        enabled: resolveToolEnabled(compiled.source.name, itemState.enabled),
         installedAt: itemState.installedAt ?? now,
       };
       next.set(compiled.source.name, {
         tool: compiled,
         origin: "user",
-        enabled: state.items[compiled.source.name].enabled ?? true,
+        enabled: resolveToolEnabled(compiled.source.name, state.items[compiled.source.name].enabled),
+        managedBySystem: false,
         installedAt: state.items[compiled.source.name].installedAt ?? now,
       });
     }
@@ -145,7 +172,7 @@ export function createToolInstaller(registry: ToolRegistry): ToolInstaller {
 
     return {
       loaded: [...installed.keys()].sort((left, right) => left.localeCompare(right)),
-      failed: [...builtin.failed, ...user.failed],
+      failed,
     };
   }
 
@@ -165,6 +192,7 @@ export function createToolInstaller(registry: ToolRegistry): ToolInstaller {
   async function writeUserTool(markdown: string, expectedName?: string): Promise<ToolCatalogItem> {
     await ensureDir(userDir);
     const compiled = await parseInline(markdown, join(userDir, "inline-tool.md"));
+    assertUserToolNameAllowed(compiled.source.name);
     if (expectedName && compiled.source.name !== expectedName) {
       throw new Error(`Tool name mismatch: expected "${expectedName}" but got "${compiled.source.name}"`);
     }
@@ -174,7 +202,7 @@ export function createToolInstaller(registry: ToolRegistry): ToolInstaller {
 
     const previousState = state.items[compiled.source.name];
     state.items[compiled.source.name] = {
-      enabled: previousState?.enabled ?? true,
+      enabled: resolveToolEnabled(compiled.source.name, previousState?.enabled),
       installedAt: previousState?.installedAt ?? new Date().toISOString(),
     };
 
@@ -217,6 +245,7 @@ export function createToolInstaller(registry: ToolRegistry): ToolInstaller {
 
     async validate(markdown) {
       const compiled = await parseInline(markdown, "<inline-tool>");
+      assertUserToolNameAllowed(compiled.source.name);
       return {
         name: compiled.source.name,
         summary: compiled.source.summary,
@@ -226,6 +255,7 @@ export function createToolInstaller(registry: ToolRegistry): ToolInstaller {
         handler: compiled.source.handler,
         origin: "user",
         enabled: true,
+        managedBySystem: false,
         parameterNames: Object.keys(compiled.source.inputSchema).sort(),
         installedAt: new Date().toISOString(),
         filePath: compiled.source.filePath,
@@ -256,7 +286,7 @@ export function createToolInstaller(registry: ToolRegistry): ToolInstaller {
     async enable(name) {
       const existing = requireInstalled(name);
       state.items[name] = {
-        enabled: true,
+        enabled: resolveToolEnabled(name, true),
         installedAt: existing.installedAt,
       };
       await writeState(statePath, state);
@@ -265,6 +295,10 @@ export function createToolInstaller(registry: ToolRegistry): ToolInstaller {
     },
 
     async disable(name) {
+      if (isSystemManagedTool(name)) {
+        throw new Error(`System tool cannot be disabled: ${name}`);
+      }
+
       const existing = requireInstalled(name);
       state.items[name] = {
         enabled: false,

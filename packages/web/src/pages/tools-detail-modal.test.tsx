@@ -14,6 +14,7 @@ const tool: ToolInfo = {
   handler: "cli",
   origin: "user",
   enabled: true,
+  managedBySystem: false,
   parameterNames: ["command", "timeout"],
 };
 
@@ -66,4 +67,21 @@ test("ToolDetailModal consolidates parameter data into one panel", () => {
   assert.match(html, /&quot;timeout&quot;/);
   assert.match(html, /停用 Tool/);
   assert.doesNotMatch(html, /Markdown Source/);
+});
+
+test("ToolDetailModal shows system-managed tools as non-toggleable", () => {
+  const html = renderToStaticMarkup(
+    <ToolDetailModal
+      tool={{ ...tool, name: "web_search", origin: "builtin", managedBySystem: true }}
+      source={{ data: source, loading: false, error: null }}
+      toggleBusy={false}
+      onClose={() => {}}
+      onToggle={() => {}}
+      initialTab="config"
+    />,
+  );
+
+  assert.match(html, /系统内置功能，不受 `data\/tools\/state\.json` 控制，也不可停用。/);
+  assert.match(html, /系统内置，不可停用/);
+  assert.doesNotMatch(html, /停用 Tool/);
 });

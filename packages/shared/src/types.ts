@@ -80,6 +80,7 @@ export interface ToolInfo {
   handler: string;
   origin: "builtin" | "user";
   enabled: boolean;
+  managedBySystem: boolean;
   parameterNames: string[];
 }
 

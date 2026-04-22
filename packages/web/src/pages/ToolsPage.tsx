@@ -25,6 +25,10 @@ function formatOriginLabel(origin: ToolInfo["origin"]) {
   return origin === "builtin" ? "内置" : "用户层";
 }
 
+function isSystemManagedTool(tool: ToolInfo) {
+  return tool.managedBySystem;
+}
+
 function ToolAvatar(props: { origin: ToolInfo["origin"] }) {
   return (
     <span
@@ -43,17 +47,29 @@ function ToolAvatar(props: { origin: ToolInfo["origin"] }) {
 function ToolToggle(props: {
   enabled: boolean;
   busy: boolean;
+  managedBySystem: boolean;
   onToggle: () => void | Promise<void>;
 }) {
+  const disabled = props.busy || props.managedBySystem;
+  const label = props.managedBySystem
+    ? "系统内置 tool，不可停用"
+    : props.enabled
+      ? "停用 tool"
+      : "启用 tool";
+
   return (
     <button
       type="button"
-      disabled={props.busy}
-      aria-label={props.enabled ? "停用 tool" : "启用 tool"}
+      disabled={disabled}
+      aria-label={label}
       aria-pressed={props.enabled}
+      title={label}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         event.stopPropagation();
+        if (disabled) {
+          return;
+        }
         void props.onToggle();
       }}
       className={cn(
@@ -150,9 +166,14 @@ function ToolCard(props: {
       </div>
 
       <div className="flex shrink-0 flex-col items-end gap-1.5">
-        <ToolToggle enabled={props.tool.enabled} busy={props.busy} onToggle={props.onToggle} />
+        <ToolToggle
+          enabled={props.tool.enabled}
+          busy={props.busy}
+          managedBySystem={props.tool.managedBySystem}
+          onToggle={props.onToggle}
+        />
         <span className="text-xs font-medium text-muted">
-          {props.tool.enabled ? "已启用" : "已停用"}
+          {props.tool.managedBySystem ? "系统内置" : props.tool.enabled ? "已启用" : "已停用"}
         </span>
       </div>
     </div>
@@ -568,6 +589,11 @@ export function ToolDetailModal(props: {
                   {props.tool.enabled ? " 已启用" : " 已停用"}
                 </span>
               </p>
+              {isSystemManagedTool(props.tool) ? (
+                <p className="mt-2 text-sm text-muted">
+                  系统内置功能，不受 `data/tools/state.json` 控制，也不可停用。
+                </p>
+              ) : null}
               <ExpandableSummary text={props.tool.summary} />
             </div>
 
@@ -619,14 +645,20 @@ export function ToolDetailModal(props: {
                 <div id="tool-panel-config" role="tabpanel" aria-labelledby="tool-tab-config">
                   <div className="space-y-6">
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant={props.tool.enabled ? "outline" : "primary"}
-                        disabled={props.toggleBusy}
-                        onClick={() => void props.onToggle()}
-                      >
-                        {props.tool.enabled ? "停用 Tool" : "启用 Tool"}
-                      </Button>
+                      {isSystemManagedTool(props.tool) ? (
+                        <span className="text-sm font-medium text-muted-strong">
+                          系统内置，不可停用
+                        </span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant={props.tool.enabled ? "outline" : "primary"}
+                          disabled={props.toggleBusy}
+                          onClick={() => void props.onToggle()}
+                        >
+                          {props.tool.enabled ? "停用 Tool" : "启用 Tool"}
+                        </Button>
+                      )}
                     </div>
 
                     <div className="rounded-panel bg-detail-bg px-6 py-6 md:px-7 md:py-7">
@@ -735,6 +767,10 @@ export function ToolsPage() {
   }
 
   async function handleToggle(tool: ToolInfo) {
+    if (isSystemManagedTool(tool)) {
+      return;
+    }
+
     setNotice(null);
     setMutationError(null);
     setPendingToggleName(tool.name);

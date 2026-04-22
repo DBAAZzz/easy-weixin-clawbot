@@ -38,6 +38,7 @@ export interface InstalledTool {
   tool: CompiledTool;
   origin: "builtin" | "user";
   enabled: boolean;
+  managedBySystem: boolean;
   installedAt: string;
 }
 
@@ -75,6 +76,7 @@ export interface ToolCatalogItem {
   handler: string;
   origin: "builtin" | "user";
   enabled: boolean;
+  managedBySystem: boolean;
   parameterNames: string[];
   installedAt: string;
   filePath: string;

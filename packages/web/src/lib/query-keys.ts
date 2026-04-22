@@ -30,6 +30,7 @@ export const queryKeys = {
 
   modelProviderTemplates: ["modelProviderTemplates"] as const,
   modelConfigs: ["modelConfigs"] as const,
+  appSettings: ["appSettings"] as const,
   webSearchProviders: ["webSearchProviders"] as const,
 
   observabilityOverview: (window: ObservabilityWindow) =>

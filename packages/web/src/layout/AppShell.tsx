@@ -12,7 +12,7 @@ export function AppShell() {
 
   return (
     <div className="relative h-dvh overflow-hidden">
-      <div className="grid h-dvh gap-0 overflow-hidden lg:grid-cols-[248px_minmax(0,1fr)] xl:grid-cols-[292px_minmax(0,1fr)]">
+      <div className="grid h-dvh gap-0 overflow-hidden lg:grid-cols-[232px_minmax(0,1fr)] xl:grid-cols-[268px_minmax(0,1fr)]">
         <Sidebar
           accounts={accounts}
           health={health.health ?? undefined}

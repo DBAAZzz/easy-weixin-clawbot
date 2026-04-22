@@ -25,6 +25,7 @@ export type {
   TapeGraphGroup,
   TapeGraphNode,
   TapeGraphResponse,
+  AppSettingsDto,
   MessageRow,
   ModelConfigDto,
   ModelProviderTemplateDto,

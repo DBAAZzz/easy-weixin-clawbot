@@ -345,6 +345,15 @@ model WebSearchProvider {
   @@map("web_search_providers")
 }
 
+model AppSettings {
+  id         Int      @id @default(1)
+  normalRate Float    @default(0.1) @map("normal_rate")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("app_settings")
+}
+
 model ModelConfig {
   id         BigInt                @id @default(autoincrement())
   scope      String                @db.Text              // "global" | "account" | "conversation"

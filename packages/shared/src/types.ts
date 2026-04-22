@@ -362,6 +362,11 @@ export interface WebSearchProviderDto {
   updated_at: string;
 }
 
+export interface AppSettingsDto {
+  normal_rate: number;
+  updated_at: string;
+}
+
 export interface ModelConfigDto {
   id: string; // BigInt serialized as string
   scope: "global" | "account" | "conversation";

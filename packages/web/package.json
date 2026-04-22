@@ -16,12 +16,14 @@
   "dependencies": {
     "@clawbot/shared": "workspace:*",
     "@tanstack/react-query": "^5.97.0",
+    "clsx": "^2.1.1",
     "qrcode": "^1.5.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-force-graph-2d": "^1.29.1",
     "react-router-dom": "^7.13.2",
-    "sonner": "^2.0.7"
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",

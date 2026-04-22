@@ -63,11 +63,17 @@ export interface ObservabilityRouteService {
   getMetricsText(): string;
 }
 
+export interface SamplingSettingsConsumer {
+  setSamplingNormalRate(normalRate: number): void;
+}
+
 export interface ObservabilityService extends ObservabilityRouteService {
   queuePersistTrace(summary: TraceSummary, spans: SpanData[]): void;
   flush(): Promise<void>;
   getPendingWriteCount(): number;
   cleanupExpired(now?: Date): Promise<void>;
+  getSamplingNormalRate(): number;
+  setSamplingNormalRate(normalRate: number): void;
 }
 
 const WINDOW_MS: Record<ObservabilityWindow, number> = {
@@ -335,12 +341,11 @@ class PrismaTraceWriter implements TraceWriter {
 
 export function createObservabilityService(): ObservabilityService {
   const queue = new TraceQueue(new PrismaTraceWriter());
+  const samplingConfig = { ...defaultSamplingConfig };
 
   return {
     queuePersistTrace(summary, spans) {
-      // TODO: 生产环境改回 defaultSamplingConfig（10% 采样）
-      const devSamplingConfig = { ...defaultSamplingConfig, normalRate: 1.0 };
-      const sampled = shouldPersistTrace(summary, devSamplingConfig);
+      const sampled = shouldPersistTrace(summary, samplingConfig);
 
       requestTotal.inc(
         { account: summary.accountId, status: summary.hasError ? "error" : "ok" },
@@ -360,6 +365,14 @@ export function createObservabilityService(): ObservabilityService {
 
     getPendingWriteCount() {
       return queue.depth;
+    },
+
+    getSamplingNormalRate() {
+      return samplingConfig.normalRate;
+    },
+
+    setSamplingNormalRate(normalRate) {
+      samplingConfig.normalRate = normalRate;
     },
 
     getMetricsText() {

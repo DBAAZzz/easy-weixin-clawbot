@@ -75,22 +75,35 @@ function MenuSection({ label, children }: MenuSectionProps) {
   );
 }
 
-interface SidebarActionButtonProps {
+interface SidebarActionIconButtonProps {
   label: string;
   icon: ReactNode;
+  align: "left" | "right";
   onClick: () => void;
 }
 
-function SidebarActionButton({ label, icon, onClick }: SidebarActionButtonProps) {
+function SidebarActionIconButton({ label, icon, align, onClick }: SidebarActionIconButtonProps) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-lg border border-line bg-white/55 px-3 py-2.5 text-md text-muted-strong transition duration-200 ease-expo hover:bg-white/72 hover:text-ink"
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
+    <div className="group relative">
+      <button
+        type="button"
+        aria-label={label}
+        title={label}
+        onClick={onClick}
+        className="flex size-10 items-center justify-center rounded-card bg-transparent text-muted-strong transition duration-200 ease-expo hover:bg-white/72 hover:text-ink focus-visible:outline-none focus-visible:shadow-focus-accent active:translate-y-px"
+      >
+        {icon}
+      </button>
+
+      <span
+        className={cn(
+          "pointer-events-none absolute bottom-full mb-2 inline-flex rounded-pill border border-line bg-tooltip-value px-2.5 py-1 text-sm font-medium whitespace-nowrap text-ink opacity-0 shadow-popover transition duration-200 ease-expo group-hover:opacity-100 group-focus-within:opacity-100",
+          align === "left" ? "left-0" : "right-0",
+        )}
+      >
+        {label}
+      </span>
+    </div>
   );
 }
 
@@ -106,7 +119,7 @@ export function Sidebar(props: {
 
   return (
     <aside className="bg-sidebar-shell h-dvh overflow-hidden border-r border-line">
-      <div className="flex h-full flex-col overflow-y-auto px-3 py-4 md:px-4 md:py-5">
+      <div className="flex h-full flex-col overflow-y-auto px-3 py-2 md:px-4 md:py-5">
         {/* Logo */}
         <div className="flex items-center gap-3 rounded-section px-3 py-2.5">
           <img
@@ -154,16 +167,17 @@ export function Sidebar(props: {
           />
         </MenuSection>
 
-        {/* 退出登录 */}
-        <div className="mt-auto flex flex-col gap-2 px-1 pt-4">
-          <SidebarActionButton
+        <div className="mt-auto flex items-center justify-between px-1 pt-4">
+          <SidebarActionIconButton
             label="设置"
             icon={<SettingsIcon className="size-4" />}
+            align="left"
             onClick={props.onOpenSettings}
           />
-          <SidebarActionButton
+          <SidebarActionIconButton
             label="退出登录"
             icon={<LogOutIcon className="size-4" />}
+            align="right"
             onClick={() => {
               localStorage.removeItem("auth_token");
               navigate("/auth/login", { replace: true });

@@ -9,10 +9,13 @@ import { createModuleLogger, getErrorFields } from "./logger.js";
 import { createMcpManager } from "./mcp/manager.js";
 import { observabilityService } from "./observability/service.js";
 import { createBotRuntime } from "./runtime.js";
+import { appSettingsService } from "./settings/service.js";
 
 validateConfig();
 
 const bootstrapLogger = createModuleLogger("bootstrap");
+
+await appSettingsService.bootstrap();
 
 const mcpManager = createMcpManager(mcpToolRegistry);
 await mcpManager.bootstrap();

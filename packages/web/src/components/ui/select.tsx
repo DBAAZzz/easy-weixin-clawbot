@@ -3,6 +3,10 @@ import { createPortal } from "react-dom";
 import { cn } from "../../lib/cn.js";
 import { ChevronDownIcon, CheckIcon } from "./icons.js";
 
+const VIEWPORT_PADDING = 12;
+const DROPDOWN_GAP = 6;
+const MAX_DROPDOWN_HEIGHT = 240;
+
 export interface SelectOption {
   value: string;
   label: string;
@@ -37,18 +41,44 @@ export function Select({
 
   const selected = options.find((o) => o.value === value);
 
-  // Position the dropdown relative to the trigger
-  useLayoutEffect(() => {
-    if (!open || !triggerRef.current) return;
-
+  const updateDropdownPosition = useCallback(() => {
+    if (!triggerRef.current) {
+      return;
+    }
     const rect = triggerRef.current.getBoundingClientRect();
+    const availableBelow = window.innerHeight - rect.bottom - VIEWPORT_PADDING;
+    const availableAbove = rect.top - VIEWPORT_PADDING;
+    const openUpward = availableBelow < 160 && availableAbove > availableBelow;
+    const availableHeight = openUpward
+      ? availableAbove - DROPDOWN_GAP
+      : availableBelow - DROPDOWN_GAP;
+    const width = Math.min(rect.width, window.innerWidth - VIEWPORT_PADDING * 2);
+    const left = Math.min(
+      Math.max(VIEWPORT_PADDING, rect.left),
+      window.innerWidth - VIEWPORT_PADDING - width,
+    );
+
     setDropdownStyle({
       position: "fixed",
-      top: rect.bottom + 6,
-      left: rect.left,
-      width: rect.width,
+      left,
+      width,
+      maxHeight: Math.max(96, Math.min(MAX_DROPDOWN_HEIGHT, availableHeight)),
+      ...(openUpward
+        ? {
+            bottom: window.innerHeight - rect.top + DROPDOWN_GAP,
+          }
+        : {
+            top: rect.bottom + DROPDOWN_GAP,
+          }),
     });
-  }, [open]);
+  }, []);
+
+  // Position the dropdown relative to the trigger
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    updateDropdownPosition();
+  }, [open, updateDropdownPosition]);
 
   // Close on outside click
   useEffect(() => {
@@ -68,15 +98,19 @@ export function Select({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  // Close on scroll (parent containers)
+  // Keep the dropdown anchored while the page or parent containers move.
   useEffect(() => {
     if (!open) return;
-    function handleScroll() {
-      setOpen(false);
+    function handleViewportChange() {
+      updateDropdownPosition();
     }
-    window.addEventListener("scroll", handleScroll, true);
-    return () => window.removeEventListener("scroll", handleScroll, true);
-  }, [open]);
+    window.addEventListener("scroll", handleViewportChange, true);
+    window.addEventListener("resize", handleViewportChange);
+    return () => {
+      window.removeEventListener("scroll", handleViewportChange, true);
+      window.removeEventListener("resize", handleViewportChange);
+    };
+  }, [open, updateDropdownPosition]);
 
   // Reset highlight when opening
   useEffect(() => {
@@ -140,7 +174,7 @@ export function Select({
           role="listbox"
           style={dropdownStyle}
           className={cn(
-            "z-[9999] max-h-[240px] overflow-auto rounded-panel border border-line-strong bg-white p-1 shadow-popover",
+            "z-[9999] overflow-y-auto overscroll-contain rounded-panel border border-line-strong bg-white p-1 shadow-popover",
             "animate-[selectIn_0.15s_ease-out]",
           )}
         >

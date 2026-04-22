@@ -114,7 +114,7 @@ export function DialogContent({
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          "relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-pill border border-modal-border bg-card-hover shadow-modal",
+          "relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-dialog border border-modal-border bg-card-hover shadow-modal",
           className,
         )}
         {...props}

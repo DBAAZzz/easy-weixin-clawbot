@@ -715,7 +715,7 @@ function ModelConfigEditorModal(props: {
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-pill border border-modal-border bg-card-hover shadow-modal"
+        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-dialog border border-modal-border bg-card-hover shadow-modal"
       >
         <div className="border-b border-line px-5 py-4 md:px-6">
           <div className="flex items-start justify-between gap-4">

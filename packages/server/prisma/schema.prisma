@@ -334,6 +334,17 @@ model ModelProviderTemplate {
   @@map("model_provider_templates")
 }
 
+model WebSearchProvider {
+  id               BigInt   @id @default(autoincrement())
+  providerType     String   @unique @map("provider_type") @db.Text
+  apiKeyCiphertext String   @map("api_key_ciphertext") @db.Text
+  enabled          Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("web_search_providers")
+}
+
 model ModelConfig {
   id         BigInt                @id @default(autoincrement())
   scope      String                @db.Text              // "global" | "account" | "conversation"

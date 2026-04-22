@@ -92,6 +92,8 @@ export {
   getHeartbeatStore,
   setHeartbeatExecutor,
   getHeartbeatExecutor,
+  setWebToolService,
+  getWebToolService,
 } from "./ports/index.js";
 export type {
   MessageStore,
@@ -117,6 +119,12 @@ export type {
   HeartbeatExecutorPort,
   HeartbeatExecutionRequest,
   HeartbeatExecutionResult,
+  WebSearchResult,
+  WebSearchRequest,
+  WebSearchResponse,
+  WebFetchRequest,
+  WebFetchResponse,
+  WebToolService,
 } from "./ports/index.js";
 
 // ── Tape (memory system) ────────────────────────────────────────────

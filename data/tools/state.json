@@ -3,6 +3,14 @@
     "opencli": {
       "enabled": true,
       "installedAt": "2026-03-27T06:17:30.604Z"
+    },
+    "web_fetch": {
+      "enabled": true,
+      "installedAt": "2026-04-21T16:11:42.772Z"
+    },
+    "web_search": {
+      "enabled": true,
+      "installedAt": "2026-04-21T16:11:42.772Z"
     }
   }
 }

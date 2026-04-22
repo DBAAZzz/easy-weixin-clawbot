@@ -2,9 +2,7 @@ import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import type { AccountSummary, HealthStatus } from "@clawbot/shared";
 import { cn } from "../lib/cn.js";
-import { formatCount, formatDuration } from "../lib/format.js";
 import {
-  ActivityIcon,
   ClockIcon,
   CpuIcon,
   GaugeIcon,
@@ -15,7 +13,6 @@ import {
   PuzzleIcon,
   ScanIcon,
   SettingsIcon,
-  SlidersIcon,
   TerminalIcon,
   WebhookIcon,
 } from "../components/ui/icons.js";
@@ -78,32 +75,33 @@ function MenuSection({ label, children }: MenuSectionProps) {
   );
 }
 
+interface SidebarActionButtonProps {
+  label: string;
+  icon: ReactNode;
+  onClick: () => void;
+}
+
+function SidebarActionButton({ label, icon, onClick }: SidebarActionButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-lg border border-line bg-white/55 px-3 py-2.5 text-md text-muted-strong transition duration-200 ease-expo hover:bg-white/72 hover:text-ink"
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
 export function Sidebar(props: {
   accounts: AccountSummary[];
   health?: HealthStatus;
   healthLoading: boolean;
+  onOpenSettings: () => void;
 }) {
   const navigate = useNavigate();
   const activeCount = props.accounts.filter((account) => !account.deprecated).length;
-
-  const runtimeLabel = props.healthLoading
-    ? "读取中"
-    : props.health
-      ? formatDuration(props.health.uptime_ms)
-      : "--";
-
-  const queueLabel = props.healthLoading
-    ? "读取中"
-    : props.health
-      ? formatCount(props.health.pending_message_writes)
-      : "--";
-
-  const traceQueueLabel = props.healthLoading
-    ? "读取中"
-    : props.health
-      ? formatCount(props.health.pending_trace_writes)
-      : "--";
-
   const isOnline = props.health && !props.healthLoading;
 
   return (
@@ -156,44 +154,21 @@ export function Sidebar(props: {
           />
         </MenuSection>
 
-        {/* 系统状态卡片 */}
-        <div className="mt-5 border-t border-line pt-4">
-          <p className="px-3 text-xs font-medium uppercase tracking-label text-muted">系统状态</p>
-          <div className="mt-3 rounded-lg border border-line bg-white/60 p-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-panel bg-white/80 px-3 py-2">
-                <p className="text-xs text-muted">运行时长</p>
-                <p className="mt-0.5 text-base font-medium text-ink">{runtimeLabel}</p>
-              </div>
-              <div className="rounded-panel bg-white/80 px-3 py-2">
-                <p className="text-xs text-muted">待写入队列</p>
-                <p className="mt-0.5 text-base font-medium text-ink">{queueLabel}</p>
-              </div>
-              <div className="col-span-2 rounded-panel bg-white/80 px-3 py-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ActivityIcon className="size-3.5 text-muted" />
-                    <span className="text-xs text-muted">Trace 队列</span>
-                  </div>
-                  <span className="text-base font-medium text-ink">{traceQueueLabel}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* 退出登录 */}
-        <div className="mt-auto px-1 pt-4">
-          <button
+        <div className="mt-auto flex flex-col gap-2 px-1 pt-4">
+          <SidebarActionButton
+            label="设置"
+            icon={<SettingsIcon className="size-4" />}
+            onClick={props.onOpenSettings}
+          />
+          <SidebarActionButton
+            label="退出登录"
+            icon={<LogOutIcon className="size-4" />}
             onClick={() => {
               localStorage.removeItem("auth_token");
               navigate("/auth/login", { replace: true });
             }}
-            className="flex w-full items-center gap-3 rounded-lg border border-line bg-white/55 px-3 py-2.5 text-md text-muted-strong transition duration-200 ease-expo hover:bg-white/72 hover:text-ink"
-          >
-            <LogOutIcon className="size-4" />
-            <span>退出登录</span>
-          </button>
+          />
         </div>
       </div>
     </aside>

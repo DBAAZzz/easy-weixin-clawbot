@@ -377,7 +377,7 @@ export function WaterfallTimeline({ trace }: { trace: ObservabilityTraceDetail }
                 <div className="relative flex items-center py-2.5 pr-3">
                   <div
                     className={cn(
-                      "absolute h-5 rounded-[4px] transition-opacity",
+                      "absolute h-5 rounded-sm transition-opacity",
                       isError ? "bg-red-400/80" : color.bar,
                       "opacity-80 hover:opacity-100",
                     )}

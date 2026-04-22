@@ -26,6 +26,7 @@ import { registerScheduledTaskRoutes } from "./routes/scheduled-tasks.js";
 import { registerSkillRoutes } from "./routes/skills.js";
 import { registerTapeRoutes } from "./routes/tape.js";
 import { registerToolRoutes } from "./routes/tools.js";
+import { registerWebSearchProviderRoutes } from "./routes/web-search-providers.js";
 import { registerWebhookRoutes } from "./routes/webhooks.js";
 
 export interface ApiDependencies {
@@ -112,6 +113,7 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerMcpRoutes(app, dependencies.mcpManager);
   registerModelProviderTemplateRoutes(app);
   registerModelConfigRoutes(app);
+  registerWebSearchProviderRoutes(app);
   registerObservabilityRoutes(app, observability);
   registerScheduledTaskRoutes(app);
   registerTapeRoutes(app);

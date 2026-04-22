@@ -109,8 +109,8 @@
   --radius-panel: 12px;
   --radius-control: 14px;
   --radius-section: 18px;
-  --radius-dialog: 28px;
-  --radius-pill: 30px;
+  --radius-dialog: 24px;
+  --radius-pill: 28px;
 
   /* ── Shadow ── */
   --shadow-btn: 0 1px 3px rgba(15, 23, 42, 0.2);

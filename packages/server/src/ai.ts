@@ -22,6 +22,7 @@ import {
   setModelConfigStore,
   setHeartbeatStore,
   setHeartbeatExecutor,
+  setWebToolService,
   schedulerToolRegistry,
   heartbeatToolRegistry,
   loadPromptAssets,
@@ -48,6 +49,7 @@ import {
   TOOLS_USER_DIR,
 } from "./paths.js";
 import { sendProactiveMessage } from "./proactive-push.js";
+import { createWebToolService } from "./web-tools/service.js";
 
 mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
@@ -195,6 +197,7 @@ setModelConfigStore(new PrismaModelConfigStore());
 setPushService({ sendProactiveMessage });
 setHeartbeatStore(new PrismaHeartbeatStore());
 setHeartbeatExecutor(createHeartbeatExecutor());
+setWebToolService(createWebToolService());
 
 setChatDeps({
   runner,

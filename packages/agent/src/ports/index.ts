@@ -45,3 +45,13 @@ export type {
   HeartbeatExecutionResult,
 } from "./heartbeat-executor.js";
 export { setHeartbeatExecutor, getHeartbeatExecutor } from "./heartbeat-executor.js";
+
+export type {
+  WebSearchResult,
+  WebSearchRequest,
+  WebSearchResponse,
+  WebFetchRequest,
+  WebFetchResponse,
+  WebToolService,
+} from "./web-tool-service.js";
+export { setWebToolService, getWebToolService } from "./web-tool-service.js";

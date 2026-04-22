@@ -353,6 +353,15 @@ export interface ModelProviderTemplatePingDto {
   model_count: number | null;
 }
 
+export interface WebSearchProviderDto {
+  id: string;
+  provider_type: "brave" | "tavily";
+  api_key_set: boolean;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ModelConfigDto {
   id: string; // BigInt serialized as string
   scope: "global" | "account" | "conversation";

@@ -29,6 +29,7 @@ export type {
   ModelConfigDto,
   ModelProviderTemplateDto,
   ModelProviderTemplatePingDto,
+  WebSearchProviderDto,
   PaginatedResponse,
   SkillInfo,
   SkillLocalRunCheck,

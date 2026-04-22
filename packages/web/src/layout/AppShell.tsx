@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Outlet } from "react-router-dom";
+import { SettingsDialog } from "../components/settings/SettingsDialog.js";
 import { Sidebar } from "./Sidebar.js";
 import { useAccounts } from "../hooks/useAccounts.js";
 import { useHealth } from "../hooks/useHealth.js";
@@ -6,6 +8,7 @@ import { useHealth } from "../hooks/useHealth.js";
 export function AppShell() {
   const { accounts } = useAccounts();
   const health = useHealth();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <div className="relative h-dvh overflow-hidden">
@@ -14,6 +17,7 @@ export function AppShell() {
           accounts={accounts}
           health={health.health ?? undefined}
           healthLoading={health.loading}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
         <main className="bg-main-shell min-w-0 overflow-hidden border-l border-line backdrop-blur-xl">
           <div className="h-full overflow-y-auto p-4 md:p-6 xl:p-8">
@@ -21,6 +25,8 @@ export function AppShell() {
           </div>
         </main>
       </div>
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }

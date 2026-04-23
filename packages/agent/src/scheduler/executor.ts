@@ -1,6 +1,11 @@
 import { chat } from "../chat.js";
 import { getPushService } from "../ports/push-service.js";
-import { getSchedulerStore, type ScheduledTaskRow } from "../ports/scheduler-store.js";
+import { getScheduledTaskHandler } from "../ports/scheduled-task-handler.js";
+import {
+  getSchedulerStore,
+  type RunStatus,
+  type ScheduledTaskRow,
+} from "../ports/scheduler-store.js";
 
 const EXECUTION_TIMEOUT_MS = 60_000;
 const MAX_FAIL_STREAK = 3;
@@ -23,30 +28,49 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
 
   let result: string | undefined;
   let error: string | undefined;
-  let status: "success" | "error" | "timeout" = "success";
+  let status: RunStatus = "success";
   let pushed = false;
 
   try {
-    // Execute AI chat with timeout
-    const chatResult = await Promise.race([
-      chat(task.accountId, executionConvId, task.prompt),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Execution timeout")), EXECUTION_TIMEOUT_MS),
-      ),
-    ]);
+    // 走RRS订阅定时任务
+    if (task.taskKind !== "prompt") {
+      const handlerResult = await Promise.race([
+        getScheduledTaskHandler().execute(task),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Execution timeout")), EXECUTION_TIMEOUT_MS),
+        ),
+      ]);
 
-    result = chatResult.text ?? undefined;
+      if (!handlerResult) {
+        throw new Error(`No scheduled task handler for kind ${task.taskKind}`);
+      }
 
-    // Try to push the result
-    if (result) {
-      try {
-        const pushService = getPushService();
-        await pushService.sendProactiveMessage(task.accountId, task.conversationId, result);
-        pushed = true;
-      } catch (pushErr) {
-        console.warn(
-          `[scheduler] push failed for task #${task.seq} (${task.accountId}): ${(pushErr as Error).message}`,
-        );
+      result = handlerResult.result;
+      error = handlerResult.error;
+      status = handlerResult.status;
+      pushed = handlerResult.pushed;
+    } else {
+      // Execute AI chat with timeout
+      const chatResult = await Promise.race([
+        chat(task.accountId, executionConvId, task.prompt),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Execution timeout")), EXECUTION_TIMEOUT_MS),
+        ),
+      ]);
+
+      result = chatResult.text ?? undefined;
+
+      // Try to push the result
+      if (result) {
+        try {
+          const pushService = getPushService();
+          await pushService.sendProactiveMessage(task.accountId, task.conversationId, result);
+          pushed = true;
+        } catch (pushErr) {
+          console.warn(
+            `[scheduler] push failed for task #${task.seq} (${task.accountId}): ${(pushErr as Error).message}`,
+          );
+        }
       }
     }
   } catch (err) {

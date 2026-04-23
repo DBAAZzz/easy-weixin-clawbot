@@ -21,6 +21,15 @@ export type {
 } from "./scheduler-store.js";
 export { setSchedulerStore, getSchedulerStore } from "./scheduler-store.js";
 
+export type {
+  ScheduledTaskHandlerPort,
+  ScheduledTaskHandlerResult,
+} from "./scheduled-task-handler.js";
+export {
+  setScheduledTaskHandler,
+  getScheduledTaskHandler,
+} from "./scheduled-task-handler.js";
+
 export type { PushService } from "./push-service.js";
 export { setPushService, getPushService } from "./push-service.js";
 

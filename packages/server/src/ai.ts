@@ -18,6 +18,7 @@ import {
   setMessageStore,
   setTapeStore,
   setSchedulerStore,
+  setScheduledTaskHandler,
   setPushService,
   setModelConfigStore,
   setHeartbeatStore,
@@ -50,6 +51,7 @@ import {
 } from "./paths.js";
 import { sendProactiveMessage } from "./proactive-push.js";
 import { createWebToolService } from "./web-tools/service.js";
+import { rssTaskHandler } from "./api/routes/rss.js";
 
 mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
@@ -193,6 +195,7 @@ const runner = createAgentRunner(
 setMessageStore(new PrismaMessageStore());
 setTapeStore(new PrismaTapeStore());
 setSchedulerStore(new PrismaSchedulerStore());
+setScheduledTaskHandler(rssTaskHandler);
 setModelConfigStore(new PrismaModelConfigStore());
 setPushService({ sendProactiveMessage });
 setHeartbeatStore(new PrismaHeartbeatStore());

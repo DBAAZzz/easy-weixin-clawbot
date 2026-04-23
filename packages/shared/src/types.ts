@@ -363,8 +363,16 @@ export interface WebSearchProviderDto {
   updated_at: string;
 }
 
+export type RsshubAuthType = "none" | "basic" | "bearer";
+
 export interface AppSettingsDto {
   normal_rate: number;
+  rsshub_base_url: string | null;
+  rsshub_auth_type: RsshubAuthType;
+  rsshub_username: string | null;
+  rsshub_password_set: boolean;
+  rsshub_bearer_token_set: boolean;
+  rss_request_timeout_ms: number;
   updated_at: string;
 }
 

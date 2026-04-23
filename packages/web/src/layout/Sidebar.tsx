@@ -13,6 +13,8 @@ import {
   PuzzleIcon,
   ScanIcon,
   SettingsIcon,
+  RssIcon,
+  StackIcon,
   TerminalIcon,
   WebhookIcon,
 } from "../components/ui/icons.js";
@@ -151,7 +153,13 @@ export function Sidebar(props: {
         {/* 控制策略 */}
         <MenuSection label="控制策略">
           <NavItem to="/model-config" label="模型配置" icon={<CpuIcon className="size-4" />} />
-          <NavItem to="/scheduled-tasks" label="定时任务" icon={<ClockIcon className="size-4" />} />
+          <NavItem to="/rss-subscriptions" label="RSS订阅" icon={<RssIcon className="size-4" />} />
+          <NavItem to="/task-center" label="任务中心" icon={<StackIcon className="size-4" />} />
+          <NavItem
+            to="/scheduled-tasks"
+            label="Prompt任务"
+            icon={<ClockIcon className="size-4" />}
+          />
           <NavItem to="/webhooks" label="回调配置" icon={<WebhookIcon className="size-4" />} />
         </MenuSection>
 

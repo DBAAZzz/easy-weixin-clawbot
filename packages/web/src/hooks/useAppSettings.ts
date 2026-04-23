@@ -19,7 +19,17 @@ export function useAppSettings(enabled = true) {
     settings: data ?? (null as AppSettingsDto | null),
     loading: isPending,
     error: error instanceof Error ? error.message : error ? String(error) : null,
-    async update(payload: { normal_rate: number }) {
+    async update(
+      payload: Partial<{
+        normal_rate: number;
+        rsshub_base_url: string | null;
+        rsshub_auth_type: "none" | "basic" | "bearer";
+        rsshub_username: string | null;
+        rsshub_password: string | null;
+        rsshub_bearer_token: string | null;
+        rss_request_timeout_ms: number;
+      }>,
+    ) {
       const result = await updateAppSettings(payload);
       await queryClient.setQueryData(queryKeys.appSettings, result);
       return result;

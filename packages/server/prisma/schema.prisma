@@ -220,6 +220,8 @@ model ScheduledTask {
   seq            Int                                         // per-account auto-increment short ID
   name           String    @db.Text
   prompt         String    @db.Text
+  taskKind       String    @default("prompt") @map("task_kind") @db.Text
+  configJson     Json      @default("{}") @map("config_json")
   type           String    @default("recurring") @db.Text    // once | recurring
   cron           String    @db.Text
   timezone       String    @default("Asia/Shanghai") @db.Text
@@ -233,6 +235,8 @@ model ScheduledTask {
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   runs           ScheduledTaskRun[]
+  rssSources     RssTaskSource[]
+  rssDeliveries  RssDelivery[]
 
   @@unique([accountId, seq], map: "scheduled_tasks_account_id_seq_key")
   @@index([accountId, enabled], map: "idx_scheduled_tasks_account_enabled")
@@ -253,6 +257,84 @@ model ScheduledTaskRun {
 
   @@index([taskId, createdAt(sort: Desc)], map: "idx_scheduled_task_runs_task")
   @@map("scheduled_task_runs")
+}
+
+model RssSource {
+  id            BigInt    @id @default(autoincrement())
+  name          String    @db.Text
+  sourceType    String    @map("source_type") @db.Text      // rsshub_route | rss_url
+  routePath     String?   @map("route_path") @db.Text
+  feedUrl       String?   @map("feed_url") @db.Text
+  description   String?   @db.Text
+  enabled       Boolean   @default(true)
+  status        String    @default("normal") @db.Text       // normal | backoff | error | disabled
+  lastFetchedAt DateTime? @map("last_fetched_at") @db.Timestamptz(6)
+  lastSuccessAt DateTime? @map("last_success_at") @db.Timestamptz(6)
+  lastError     String?   @map("last_error") @db.Text
+  failureStreak Int       @default(0) @map("failure_streak")
+  backoffUntil  DateTime? @map("backoff_until") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  entries       RssEntry[]
+  taskLinks     RssTaskSource[]
+
+  @@index([enabled, status], map: "idx_rss_sources_enabled_status")
+  @@index([lastFetchedAt], map: "idx_rss_sources_last_fetched_at")
+  @@map("rss_sources")
+}
+
+model RssEntry {
+  id             BigInt    @id @default(autoincrement())
+  sourceId       BigInt    @map("source_id")
+  fingerprint    String    @db.Text
+  guid           String?   @db.Text
+  rawLink        String?   @map("raw_link") @db.Text
+  normalizedLink String?   @map("normalized_link") @db.Text
+  title          String    @db.Text
+  author         String?   @db.Text
+  publishedAt    DateTime? @map("published_at") @db.Timestamptz(6)
+  summaryText    String?   @map("summary_text") @db.Text
+  contentText    String?   @map("content_text") @db.Text
+  mediaJson      Json      @default("[]") @map("media_json")
+  metaJson       Json      @default("{}") @map("meta_json")
+  collectedAt    DateTime  @default(now()) @map("collected_at") @db.Timestamptz(6)
+  expiresAt      DateTime? @map("expires_at") @db.Timestamptz(6)
+  source         RssSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  deliveries     RssDelivery[]
+
+  @@unique([sourceId, fingerprint], map: "rss_entries_source_id_fingerprint_key")
+  @@index([sourceId, collectedAt(sort: Desc)], map: "idx_rss_entries_source_collected")
+  @@index([fingerprint], map: "idx_rss_entries_fingerprint")
+  @@index([expiresAt], map: "idx_rss_entries_expires_at")
+  @@map("rss_entries")
+}
+
+model RssTaskSource {
+  taskId    BigInt   @map("task_id")
+  sourceId  BigInt   @map("source_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  task      ScheduledTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  source    RssSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, sourceId])
+  @@index([sourceId], map: "idx_rss_task_sources_source")
+  @@map("rss_task_sources")
+}
+
+model RssDelivery {
+  id          BigInt    @id @default(autoincrement())
+  accountId   String    @map("account_id") @db.Text
+  fingerprint String    @db.Text
+  taskId      BigInt?   @map("task_id")
+  entryId     BigInt?   @map("entry_id")
+  deliveredAt DateTime  @default(now()) @map("delivered_at") @db.Timestamptz(6)
+  task        ScheduledTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  entry       RssEntry? @relation(fields: [entryId], references: [id], onDelete: SetNull)
+
+  @@unique([accountId, fingerprint], map: "rss_deliveries_account_id_fingerprint_key")
+  @@index([accountId, deliveredAt(sort: Desc)], map: "idx_rss_deliveries_account_delivered")
+  @@index([taskId], map: "idx_rss_deliveries_task")
+  @@map("rss_deliveries")
 }
 
 // ─── Tape Memory System ───────────────────────────────────────────────
@@ -346,10 +428,16 @@ model WebSearchProvider {
 }
 
 model AppSettings {
-  id         Int      @id @default(1)
-  normalRate Float    @default(0.1) @map("normal_rate")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                 Int      @id @default(1)
+  normalRate         Float    @default(0.1) @map("normal_rate")
+  rsshubBaseUrl      String?  @map("rsshub_base_url") @db.Text
+  rsshubAuthType     String   @default("none") @map("rsshub_auth_type") @db.Text
+  rsshubUsername     String?  @map("rsshub_username") @db.Text
+  rsshubPassword     String?  @map("rsshub_password") @db.Text
+  rsshubBearerToken  String?  @map("rsshub_bearer_token") @db.Text
+  rssRequestTimeoutMs Int     @default(15000) @map("rss_request_timeout_ms")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("app_settings")
 }

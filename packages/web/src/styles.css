@@ -373,6 +373,71 @@ pre {
     linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.9));
 }
 
+.rss-preview-richtext {
+  color: var(--color-ink-soft);
+  font-size: var(--text-2xl);
+  line-height: 2;
+}
+
+.rss-preview-richtext p {
+  margin: 0 0 1.1rem;
+}
+
+.rss-preview-richtext p:last-child {
+  margin-bottom: 0;
+}
+
+.rss-preview-richtext a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(21, 110, 99, 0.24);
+  text-underline-offset: 0.18em;
+}
+
+.rss-preview-richtext strong,
+.rss-preview-richtext b {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.rss-preview-richtext em,
+.rss-preview-richtext i {
+  font-style: italic;
+}
+
+.rss-preview-richtext ul,
+.rss-preview-richtext ol {
+  margin: 0 0 1.1rem;
+  padding-left: 1.4rem;
+}
+
+.rss-preview-richtext li + li {
+  margin-top: 0.35rem;
+}
+
+.rss-preview-richtext blockquote {
+  margin: 0 0 1.1rem;
+  border-left: 2px solid var(--color-accent-border-strong);
+  padding-left: 1rem;
+  color: var(--color-muted-strong);
+}
+
+.rss-preview-richtext code,
+.rss-preview-richtext pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+}
+
+.rss-preview-richtext pre {
+  margin: 0 0 1.1rem;
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-pane-90);
+  padding: 0.85rem 1rem;
+  line-height: 1.8;
+}
+
 @utility bg-sidebar-shell {
   background: linear-gradient(180deg, rgba(247, 250, 251, 0.94), rgba(241, 245, 247, 0.98));
 }

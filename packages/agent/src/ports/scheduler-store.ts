@@ -11,6 +11,8 @@ export interface ScheduledTaskRow {
   seq: number;
   name: string;
   prompt: string;
+  taskKind: "prompt" | "rss_digest" | "rss_brief";
+  configJson: Record<string, unknown>;
   type: string;
   cron: string;
   timezone: string;
@@ -21,6 +23,8 @@ export interface ScheduledTaskRow {
   lastRunAt: Date | null;
   nextRunAt: Date | null;
   lastError: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface ScheduledTaskRunRow {
@@ -40,6 +44,8 @@ export interface CreateTaskInput {
   conversationId: string;
   name: string;
   prompt: string;
+  taskKind?: ScheduledTaskRow["taskKind"];
+  configJson?: Record<string, unknown>;
   type?: string;
   cron: string;
   timezone?: string;
@@ -48,6 +54,8 @@ export interface CreateTaskInput {
 export interface UpdateTaskInput {
   name?: string;
   prompt?: string;
+  taskKind?: ScheduledTaskRow["taskKind"];
+  configJson?: Record<string, unknown>;
   type?: string;
   cron?: string;
   timezone?: string;

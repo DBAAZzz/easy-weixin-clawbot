@@ -11,6 +11,8 @@ export interface ScheduledTaskDto {
   conversationId: string;
   name: string;
   prompt: string;
+  taskKind: ScheduledTaskRow["taskKind"];
+  configJson: Record<string, unknown>;
   type: string;
   cron: string;
   timezone: string;
@@ -21,6 +23,8 @@ export interface ScheduledTaskDto {
   lastError: string | null;
   runCount: number;
   failStreak: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ScheduledTaskRunDto {
@@ -35,6 +39,7 @@ export interface ScheduledTaskRunDto {
 }
 
 const scheduledTaskLogger = createModuleLogger("scheduled-tasks");
+const VALID_TASK_KINDS = new Set(["prompt", "rss_digest", "rss_brief"]);
 
 function toTaskDto(task: ScheduledTaskRow): ScheduledTaskDto {
   return {
@@ -44,6 +49,8 @@ function toTaskDto(task: ScheduledTaskRow): ScheduledTaskDto {
     conversationId: task.conversationId,
     name: task.name,
     prompt: task.prompt,
+    taskKind: task.taskKind,
+    configJson: task.configJson,
     type: task.type,
     cron: task.cron,
     timezone: task.timezone,
@@ -54,6 +61,8 @@ function toTaskDto(task: ScheduledTaskRow): ScheduledTaskDto {
     lastError: task.lastError,
     runCount: task.runCount,
     failStreak: task.failStreak,
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
   };
 }
 
@@ -71,20 +80,29 @@ function toRunDto(run: ScheduledTaskRunRow): ScheduledTaskRunDto {
 }
 
 export function registerScheduledTaskRoutes(app: Hono) {
-  // List all scheduled tasks (with optional account filter)
+  // List scheduled tasks (with optional account/task kind filters)
   app.get("/api/scheduled-tasks", async (c) => {
     const accountId = c.req.query("accountId");
+    const taskKind = c.req.query("taskKind");
     const store = getSchedulerStore();
+
+    if (taskKind && !VALID_TASK_KINDS.has(taskKind)) {
+      return c.json({ error: "Invalid taskKind parameter" }, 400);
+    }
 
     try {
       let tasks: ScheduledTaskRow[];
 
       if (accountId) {
         tasks = await store.listTasks(accountId);
+        if (taskKind) {
+          tasks = tasks.filter((task) => task.taskKind === taskKind);
+        }
       } else {
-        // Get all tasks via Prisma directly (no port method for listing all)
+        // Get all tasks via Prisma directly (no port method for listing all accounts)
         const { getPrisma } = await import("../../db/prisma.js");
         const rows = await getPrisma().scheduledTask.findMany({
+          where: taskKind ? { taskKind } : undefined,
           orderBy: { createdAt: "desc" },
         });
         tasks = rows as unknown as ScheduledTaskRow[];
@@ -93,7 +111,7 @@ export function registerScheduledTaskRoutes(app: Hono) {
       return c.json({ data: tasks.map(toTaskDto) });
     } catch (error) {
       scheduledTaskLogger.error(
-        { ...getErrorFields(error), accountId: accountId ?? null },
+        { ...getErrorFields(error), accountId: accountId ?? null, taskKind: taskKind ?? null },
         "获取定时任务列表失败",
       );
       return c.json({ error: "Failed to list scheduled tasks" }, 500);

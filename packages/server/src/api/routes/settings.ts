@@ -10,6 +10,12 @@ import type { AppSettingsRow } from "../../db/app-settings-store.js";
 function toDto(row: AppSettingsRow): AppSettingsDto {
   return {
     normal_rate: row.normalRate,
+    rsshub_base_url: row.rsshubBaseUrl,
+    rsshub_auth_type: row.rsshubAuthType,
+    rsshub_username: row.rsshubUsername,
+    rsshub_password_set: Boolean(row.rsshubPassword),
+    rsshub_bearer_token_set: Boolean(row.rsshubBearerToken),
+    rss_request_timeout_ms: row.rssRequestTimeoutMs,
     updated_at: row.updatedAt.toISOString(),
   };
 }

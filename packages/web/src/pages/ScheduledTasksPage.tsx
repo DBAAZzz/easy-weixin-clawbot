@@ -13,7 +13,6 @@ import {
   AlertCircleIcon,
   CheckCircleIcon,
   LayersIcon,
-  LinkIcon,
   StackIcon,
   XIcon,
 } from "../components/ui/icons.js";
@@ -29,6 +28,8 @@ import type { ScheduledTaskDto, ScheduledTaskRunDto } from "@/api/scheduled-task
 import type { AccountSummary } from "@clawbot/shared";
 import { cn } from "../lib/cn.js";
 import { formatCount, formatDateTime, formatDuration } from "../lib/format.js";
+
+const PROMPT_TASK_KIND = "prompt" as const;
 
 /**
  * Translate a 5-part cron expression into readable Chinese.
@@ -508,8 +509,8 @@ export function ScheduledTasksPage() {
     isPending: loading,
     error: tasksRawError,
   } = useQuery({
-    queryKey: queryKeys.scheduledTasks(),
-    queryFn: () => fetchScheduledTasks(),
+    queryKey: queryKeys.scheduledTasks(undefined, PROMPT_TASK_KIND),
+    queryFn: () => fetchScheduledTasks(undefined, PROMPT_TASK_KIND),
     staleTime: 15_000,
   });
   const { accounts } = useAccounts();
@@ -534,7 +535,9 @@ export function ScheduledTasksPage() {
   }, [tasks, searchQuery]);
 
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: queryKeys.scheduledTasks() });
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.scheduledTasks(undefined, PROMPT_TASK_KIND),
+    });
   };
 
   const stats = useMemo(() => {

@@ -1,6 +1,7 @@
 # Web 端架构方案（v3 — 可实施版）
 
 > 说明：当前实现的后台管理鉴权已经使用 JWT 登录和仓库根 `.env` 中的 `AUTH_*` 环境变量，不再使用 `API_SECRET` / `VITE_API_SECRET` 静态 Bearer token。本文中相关段落属于早期架构设计记录。
+> 实现更新（2026-04）：Web 后台已经新增 `RSS订阅`、`任务中心` 和 `设置 -> RSS` 面板，并在账号详情页增加 RSS 任务视图。下面的 API 与页面列表已补充这些入口。
 
 ## Context
 
@@ -333,6 +334,24 @@ const auth = (c, next) => {
 | GET | `/api/login/status` | 轮询登录状态（含 QR 字符画） |
 | POST | `/api/login/cancel` | 取消登录 |
 
+#### RSS 相关路由（实现新增）
+
+| Method | Path | 说明 |
+| ------ | ---- | ---- |
+| GET | `/api/rss/sources` | 订阅源列表 |
+| POST | `/api/rss/sources` | 创建订阅源 |
+| PATCH | `/api/rss/sources/:id` | 更新订阅源 |
+| DELETE | `/api/rss/sources/:id` | 删除订阅源 |
+| GET | `/api/rss/sources/:id/preview` | 预览采集池中的最近内容 |
+| POST | `/api/rss/sources/:id/test` | 强制抓取并返回最新预览 |
+| POST | `/api/rss/settings/test` | 测试 RSSHub 连接 |
+| GET | `/api/rss/tasks` | RSS 任务列表，支持按账号过滤 |
+| POST | `/api/rss/tasks` | 创建 RSS 任务 |
+| PATCH | `/api/rss/tasks/:accountId/:seq` | 更新 RSS 任务 |
+| DELETE | `/api/rss/tasks/:accountId/:seq` | 删除 RSS 任务 |
+| GET | `/api/rss/tasks/:accountId/:seq/preview` | 预览本次执行将发送的内容 |
+| POST | `/api/rss/tasks/:accountId/:seq/run` | 立即执行一次 RSS 任务 |
+
 ### 分页
 
 - cursor 基于 `messages.id`（`BIGINT GENERATED ALWAYS AS IDENTITY`，单调递增）
@@ -363,6 +382,9 @@ Hono 中间件：`cors({ origin })` + `logger()` + auth + 统一错误处理。
 | `/` | DashboardPage | 账号卡片列表，显示在线状态、会话数量，点击进入会话 |
 | `/accounts/:accountId` | ConversationPage | 左侧会话列表 + 右侧消息流（分栏布局） |
 | `/login` | LoginPage | 触发登录 → 轮询展示 QR 字符画 → 扫码成功后跳转 `/` |
+| `/rss-subscriptions` | RssSubscriptionsPage | 订阅源管理，支持新增、编辑、启停、测试抓取和内容预览 |
+| `/task-center` | TaskCenterPage | RSS 任务中心，支持快讯/摘要任务、预览、立即执行和历史查看 |
+| `/scheduled-tasks` | ScheduledTasksPage | Prompt 任务页，仅展示通用 AI Prompt 调度任务 |
 
 ### 组件树
 
@@ -393,6 +415,9 @@ Hono 中间件：`cors({ origin })` + `logger()` + auth + 统一错误处理。
 - 进入 DashboardPage → `GET /api/accounts`
 - 进入 ConversationPage → `GET /api/accounts/:id/conversations` + `GET .../messages`
 - 进入 LoginPage → `POST /api/login/start` + 轮询 `GET /api/login/status`（每 2s）
+- 进入 RssSubscriptionsPage → `GET /api/rss/sources`，测试抓取/预览时调用 `/api/rss/sources/:id/test` 与 `/preview`
+- 进入 TaskCenterPage → `GET /api/rss/tasks` + `GET /api/rss/sources`，需要时调用 `/preview`、`/run` 和执行历史接口
+- 打开 `设置 -> RSS` → `GET/PATCH /api/settings` + `POST /api/rss/settings/test`
 - 刷新页面即可获取最新数据
 
 ---

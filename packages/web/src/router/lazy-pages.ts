@@ -32,8 +32,14 @@ export const ObservabilityTracePage = lazy(() =>
 export const ProviderConfigPage = lazy(() =>
   import("../pages/ProviderConfigPage.js").then((m) => ({ default: m.ProviderConfigPage })),
 );
+export const RssSubscriptionsPage = lazy(() =>
+  import("../pages/RssSubscriptionsPage.js").then((m) => ({ default: m.RssSubscriptionsPage })),
+);
 export const ScheduledTasksPage = lazy(() =>
   import("../pages/ScheduledTasksPage.js").then((m) => ({ default: m.ScheduledTasksPage })),
+);
+export const TaskCenterPage = lazy(() =>
+  import("../pages/TaskCenterPage.js").then((m) => ({ default: m.TaskCenterPage })),
 );
 export const SkillsPage = lazy(() =>
   import("../pages/SkillsPage.js").then((m) => ({ default: m.SkillsPage })),

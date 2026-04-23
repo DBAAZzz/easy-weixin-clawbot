@@ -12,6 +12,12 @@ function createRow(overrides: Partial<AppSettingsRow> = {}): AppSettingsRow {
   return {
     id: 1,
     normalRate: 0.1,
+    rsshubBaseUrl: null,
+    rsshubAuthType: "none",
+    rsshubUsername: null,
+    rsshubPassword: null,
+    rsshubBearerToken: null,
+    rssRequestTimeoutMs: 15000,
     createdAt: new Date("2026-04-22T00:00:00.000Z"),
     updatedAt: new Date("2026-04-22T00:00:00.000Z"),
     ...overrides,
@@ -36,11 +42,40 @@ function createService(initialRow: AppSettingsRow = createRow()): AppSettingsSer
         throw new AppSettingsValidationError("at least one supported field is required");
       }
 
-      const data = payload as { normal_rate?: unknown };
+      const data = payload as {
+        normal_rate?: unknown;
+        rsshub_base_url?: unknown;
+        rsshub_auth_type?: unknown;
+        rss_request_timeout_ms?: unknown;
+      };
       if (typeof data.normal_rate === "number") {
         row = createRow({
           ...row,
           normalRate: data.normal_rate,
+          updatedAt: new Date("2026-04-23T00:00:00.000Z"),
+        });
+        return row;
+      }
+
+      if (
+        typeof data.rsshub_base_url === "string" ||
+        typeof data.rsshub_auth_type === "string" ||
+        typeof data.rss_request_timeout_ms === "number"
+      ) {
+        row = createRow({
+          ...row,
+          rsshubBaseUrl:
+            typeof data.rsshub_base_url === "string" ? data.rsshub_base_url : row.rsshubBaseUrl,
+          rsshubAuthType:
+            data.rsshub_auth_type === "basic" ||
+            data.rsshub_auth_type === "bearer" ||
+            data.rsshub_auth_type === "none"
+              ? data.rsshub_auth_type
+              : row.rsshubAuthType,
+          rssRequestTimeoutMs:
+            typeof data.rss_request_timeout_ms === "number"
+              ? data.rss_request_timeout_ms
+              : row.rssRequestTimeoutMs,
           updatedAt: new Date("2026-04-23T00:00:00.000Z"),
         });
         return row;
@@ -67,11 +102,20 @@ test("gets app settings", async () => {
 
   const response = await app.request("/api/settings");
   const payload = (await response.json()) as {
-    data: { normal_rate: number; updated_at: string };
+    data: {
+      normal_rate: number;
+      rsshub_base_url: string | null;
+      rsshub_auth_type: string;
+      rss_request_timeout_ms: number;
+      updated_at: string;
+    };
   };
 
   assert.equal(response.status, 200);
   assert.equal(payload.data.normal_rate, 0.25);
+  assert.equal(payload.data.rsshub_base_url, null);
+  assert.equal(payload.data.rsshub_auth_type, "none");
+  assert.equal(payload.data.rss_request_timeout_ms, 15000);
   assert.equal(payload.data.updated_at, "2026-04-22T00:00:00.000Z");
 });
 
@@ -90,6 +134,32 @@ test("patches app settings", async () => {
   assert.equal(response.status, 200);
   assert.equal(payload.data.normal_rate, 0.45);
   assert.equal(payload.data.updated_at, "2026-04-23T00:00:00.000Z");
+});
+
+test("patches rss settings", async () => {
+  const app = createApp(createService());
+
+  const response = await app.request("/api/settings", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      rsshub_base_url: "https://rsshub.example.com",
+      rsshub_auth_type: "basic",
+      rss_request_timeout_ms: 20000,
+    }),
+  });
+  const payload = (await response.json()) as {
+    data: {
+      rsshub_base_url: string | null;
+      rsshub_auth_type: string;
+      rss_request_timeout_ms: number;
+    };
+  };
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.data.rsshub_base_url, "https://rsshub.example.com");
+  assert.equal(payload.data.rsshub_auth_type, "basic");
+  assert.equal(payload.data.rss_request_timeout_ms, 20000);
 });
 
 test("returns 400 for invalid settings payload", async () => {

@@ -9,12 +9,13 @@ import {
   DialogPortal,
   DialogTitle,
 } from "../ui/dialog.js";
-import { SearchIcon, SlidersIcon } from "../ui/icons.js";
+import { LinkIcon, SearchIcon, SlidersIcon } from "../ui/icons.js";
 import { cn } from "../../lib/cn.js";
 import { GeneralSettingsPanel } from "./GeneralSettingsPanel.js";
 import { NetworkSearchSettingsPanel } from "./NetworkSearchSettingsPanel.js";
+import { RssSettingsPanel } from "./RssSettingsPanel.js";
 
-type SettingsSectionId = "general" | "network-search";
+type SettingsSectionId = "general" | "rss" | "network-search";
 
 const SETTINGS_SECTIONS: Array<{
   id: SettingsSectionId;
@@ -25,6 +26,11 @@ const SETTINGS_SECTIONS: Array<{
     id: "general",
     label: "通用",
     icon: SlidersIcon,
+  },
+  {
+    id: "rss",
+    label: "RSS",
+    icon: LinkIcon,
   },
   {
     id: "network-search",
@@ -97,6 +103,7 @@ export function SettingsDialog(props: { open: boolean; onOpenChange: (open: bool
 
               <div className="min-h-0 min-w-0 flex-1">
                 <GeneralSettingsPanel active={activeSection === "general"} />
+                <RssSettingsPanel active={activeSection === "rss"} />
                 <NetworkSearchSettingsPanel active={activeSection === "network-search"} />
               </div>
             </div>

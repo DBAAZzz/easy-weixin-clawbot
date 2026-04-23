@@ -7,6 +7,8 @@ export interface ScheduledTaskDto {
   conversationId: string;
   name: string;
   prompt: string;
+  taskKind: "prompt" | "rss_digest" | "rss_brief";
+  configJson: Record<string, unknown>;
   type: "once" | "recurring";
   cron: string;
   timezone: string;
@@ -32,9 +34,19 @@ export interface ScheduledTaskRunDto {
   createdAt: string;
 }
 
-export function fetchScheduledTasks(accountId?: string): Promise<ScheduledTaskDto[]> {
-  const query = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
-  return request<ScheduledTaskDto[]>(`/api/scheduled-tasks${query}`);
+export function fetchScheduledTasks(
+  accountId?: string,
+  taskKind?: ScheduledTaskDto["taskKind"],
+): Promise<ScheduledTaskDto[]> {
+  const params = new URLSearchParams();
+  if (accountId) {
+    params.set("accountId", accountId);
+  }
+  if (taskKind) {
+    params.set("taskKind", taskKind);
+  }
+  const query = params.toString();
+  return request<ScheduledTaskDto[]>(`/api/scheduled-tasks${query ? `?${query}` : ""}`);
 }
 
 export function fetchScheduledTask(

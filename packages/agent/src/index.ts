@@ -84,6 +84,8 @@ export {
   getTapeStore,
   setSchedulerStore,
   getSchedulerStore,
+  setScheduledTaskHandler,
+  getScheduledTaskHandler,
   setPushService,
   getPushService,
   setModelConfigStore,
@@ -106,6 +108,8 @@ export type {
   SchedulerStore,
   ScheduledTaskRow,
   ScheduledTaskRunRow,
+  ScheduledTaskHandlerPort,
+  ScheduledTaskHandlerResult,
   PushService,
   ModelConfigStore,
   ModelProviderTemplateRow,
@@ -170,6 +174,7 @@ export {
   schedulerToolRegistry,
   setSchedulerContext,
   scheduleCommand,
+  executeTask,
 } from "./scheduler/index.js";
 
 // ── Heartbeat ───────────────────────────────────────────────────────

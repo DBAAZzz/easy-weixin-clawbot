@@ -10,7 +10,12 @@ import type {
   UpdateTaskInput,
   CreateRunInput,
 } from "@clawbot/agent/ports";
+import type { Prisma } from "@prisma/client";
 import { getPrisma } from "./prisma.js";
+
+function toPrismaJsonValue(value: Record<string, unknown>): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue;
+}
 
 function toTaskRow(task: any): ScheduledTaskRow {
   return {
@@ -20,6 +25,11 @@ function toTaskRow(task: any): ScheduledTaskRow {
     seq: task.seq,
     name: task.name,
     prompt: task.prompt,
+    taskKind: task.taskKind ?? "prompt",
+    configJson:
+      task.configJson && typeof task.configJson === "object" && !Array.isArray(task.configJson)
+        ? task.configJson
+        : {},
     type: task.type,
     cron: task.cron,
     timezone: task.timezone,
@@ -30,6 +40,8 @@ function toTaskRow(task: any): ScheduledTaskRow {
     lastRunAt: task.lastRunAt,
     nextRunAt: task.nextRunAt,
     lastError: task.lastError,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
   };
 }
 
@@ -64,6 +76,8 @@ export class PrismaSchedulerStore implements SchedulerStore {
         seq,
         name: input.name,
         prompt: input.prompt,
+        taskKind: input.taskKind ?? "prompt",
+        configJson: toPrismaJsonValue(input.configJson ?? {}),
         type: input.type ?? "recurring",
         cron: input.cron,
         timezone: input.timezone ?? "Asia/Shanghai",
@@ -77,7 +91,18 @@ export class PrismaSchedulerStore implements SchedulerStore {
     if (!task) return null;
     const updated = await getPrisma().scheduledTask.update({
       where: { id: task.id },
-      data: input,
+      data: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.prompt !== undefined ? { prompt: input.prompt } : {}),
+        ...(input.taskKind !== undefined ? { taskKind: input.taskKind } : {}),
+        ...(input.configJson !== undefined
+          ? { configJson: toPrismaJsonValue(input.configJson) }
+          : {}),
+        ...(input.type !== undefined ? { type: input.type } : {}),
+        ...(input.cron !== undefined ? { cron: input.cron } : {}),
+        ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
+        ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+      },
     });
     return toTaskRow(updated);
   }

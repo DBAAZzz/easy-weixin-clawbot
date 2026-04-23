@@ -24,9 +24,12 @@ export const queryKeys = {
   webhookTokens: ["webhookTokens"] as const,
   webhookLogs: (source: string, limit: number) => ["webhookLogs", source, limit] as const,
 
-  scheduledTasks: (accountId?: string) => ["scheduledTasks", accountId] as const,
+  scheduledTasks: (accountId?: string, taskKind?: string) =>
+    ["scheduledTasks", accountId, taskKind] as const,
   scheduledTaskRuns: (accountId: string, seq: number) =>
     ["scheduledTaskRuns", accountId, seq] as const,
+  rssSources: ["rssSources"] as const,
+  rssTasks: (accountId?: string) => ["rssTasks", accountId] as const,
 
   modelProviderTemplates: ["modelProviderTemplates"] as const,
   modelConfigs: ["modelConfigs"] as const,

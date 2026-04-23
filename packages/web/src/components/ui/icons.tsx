@@ -101,6 +101,16 @@ export function LinkIcon(props: IconProps) {
   );
 }
 
+export function RssIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="6.5" cy="17.5" r="1.5" fill="currentColor" stroke="none" />
+      <path d="M5 11a8 8 0 0 1 8 8" />
+      <path d="M5 6a13 13 0 0 1 13 13" />
+    </BaseIcon>
+  );
+}
+
 export function QueueIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

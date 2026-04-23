@@ -14,7 +14,7 @@
 ## 为什么用它
 
 - 多账号统一管理：一个后台查看、接入和运营多个微信 AI 账号
-- 管理能力完整：账号、记忆、工具、技能、定时任务、Webhook、MCP 都有可视化入口
+- 管理能力完整：账号、记忆、工具、技能、RSS 订阅、任务中心、Prompt 任务、Webhook、MCP 都有可视化入口
 - 部署路径直接：基于 Docker Compose 启动，适合作为开源项目快速体验和落地
 - 扩展方式清晰：支持工具、技能、Webhook 和 MCP Server 组合扩展
 
@@ -115,13 +115,30 @@ pnpm install
 pnpm dev
 ```
 
+如果要启用 RSSHub 路由源，启动后直接在后台 `设置 -> RSS` 中配置 `rsshub_base_url`、认证方式和请求超时即可，不需要额外增加环境变量。普通 RSS URL 源可以直接在 `RSS订阅` 页面录入。
+
+## RSS 订阅与任务中心
+
+当前版本新增了一套完整的 RSS 运营能力，入口分成三层：
+
+- `RSS订阅`：维护普通 RSS URL 源和 RSSHub 路由源，支持新增、编辑、删除、启停、测试抓取、内容预览和健康状态查看
+- `任务中心`：基于订阅源创建 `快讯任务` 和 `摘要任务`，支持绑定账号、多源选择、静默时段、预览、立即执行和执行历史
+- `设置 -> RSS`：统一维护 RSSHub Base URL、认证方式和请求超时，并支持测试连接
+
+当前实现的行为边界：
+
+- RSS 内容会先进入统一采集池，再由任务消费，避免多个任务重复请求同一订阅源
+- 同一条内容只要成功推送给某个账号一次，就会按账号级规则去重，不会重复发送
+- `Prompt任务` 页面继续保留给通用 AI Prompt 定时任务，RSS 任务与其分开管理
+
 ## 文档
 
 - [Docker 部署](./docs/readme/docker-deployment.md)
 - [多账号与微信登录](./docs/readme/multi-account-and-login.md)
-- [记忆、工具、技能、定时任务](./docs/readme/memory-tools-and-automation.md)
+- [记忆、工具、技能、RSS 与任务](./docs/readme/memory-tools-and-automation.md)
 - [Webhook、MCP、可观测性](./docs/readme/integrations-and-observability.md)
 - [本地源码开发](./docs/readme/source-development.md)
+- [RSS 订阅与任务中心设计](./docs/superpowers/specs/2026-04-22-rss-subscriptions-and-task-center-design.md)
 - [更多架构文档](./docs/)
 
 ## License

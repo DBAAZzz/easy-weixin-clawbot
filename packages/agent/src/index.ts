@@ -156,6 +156,7 @@ export {
   getHistory,
   nextSeq,
   currentSeq,
+  appendAssistantTextMessage,
   evictConversation,
   clearConversation,
   withConversationLock,

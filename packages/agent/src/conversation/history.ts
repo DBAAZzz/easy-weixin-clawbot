@@ -169,3 +169,27 @@ export async function rollbackMessages(
   const messageStore = getMessageStore();
   await messageStore.rollbackMessages(accountId, conversationId, removedCount);
 }
+
+export async function appendAssistantTextMessage(
+  accountId: string,
+  conversationId: string,
+  text: string,
+): Promise<void> {
+  await withConversationLock(accountId, conversationId, async () => {
+    await ensureHistoryLoaded(accountId, conversationId);
+
+    const message: AgentMessage = {
+      role: "assistant",
+      content: [{ type: "text", text }],
+      timestamp: Date.now(),
+    };
+
+    getHistory(accountId, conversationId).push(message);
+    getMessageStore().queuePersistMessage({
+      accountId,
+      conversationId,
+      message,
+      seq: nextSeq(accountId, conversationId),
+    });
+  });
+}

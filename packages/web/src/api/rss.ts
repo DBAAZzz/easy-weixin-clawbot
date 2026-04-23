@@ -33,8 +33,13 @@ export interface RssPreviewItemDto {
   media: Array<Record<string, string | null>>;
 }
 
+export interface RssSourcePreviewSummaryDto {
+  id: string;
+  name: string;
+}
+
 export interface RssSourcePreviewDto {
-  source: RssSourceDto;
+  source: RssSourcePreviewSummaryDto;
   items: RssPreviewItemDto[];
 }
 

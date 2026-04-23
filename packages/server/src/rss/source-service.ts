@@ -5,7 +5,11 @@ import { SOURCE_PREVIEW_LIMIT, ENTRY_RETENTION_DAYS } from "./constants.js";
 import { RssNotFoundError, RssValidationError } from "./errors.js";
 import { fetchFeedBody, parseFeedItems, resolveRssSourceUrl } from "./feed.js";
 import { parseSourcePayload } from "./payload.js";
-import { serializePreviewItem, serializeSource } from "./serialization.js";
+import {
+  serializePreviewItem,
+  serializePreviewSource,
+  serializeSource,
+} from "./serialization.js";
 import type {
   EntryRecord,
   ParsedFeedItem,
@@ -25,6 +29,8 @@ import {
 
 const rssLogger = createModuleLogger("rss");
 
+type PreviewSourceRecord = Pick<SourceRecord, "id" | "name">;
+
 async function getSourceRecordOrThrow(id: bigint): Promise<SourceRecord> {
   const source = await getPrisma().rssSource.findUnique({ where: { id } });
   if (!source) {
@@ -32,6 +38,21 @@ async function getSourceRecordOrThrow(id: bigint): Promise<SourceRecord> {
   }
 
   return sourceToRecord(source as SourceRecord);
+}
+
+async function getPreviewSourceRecordOrThrow(id: bigint): Promise<PreviewSourceRecord> {
+  const source = await getPrisma().rssSource.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+  if (!source) {
+    throw new RssNotFoundError("RSS source not found");
+  }
+
+  return source;
 }
 
 async function sourceCounts(
@@ -179,14 +200,13 @@ async function latestSourceEntries(
   return rows as EntryRecord[];
 }
 
-async function buildSourcePreview(sourceId: bigint): Promise<RssSourcePreviewDto> {
-  const [serializedSource, items] = await Promise.all([
-    serializeSourceById(sourceId),
-    latestSourceEntries(sourceId),
-  ]);
+async function buildSourcePreview(
+  source: PreviewSourceRecord,
+): Promise<RssSourcePreviewDto> {
+  const items = await latestSourceEntries(source.id);
 
   return {
-    source: serializedSource,
+    source: serializePreviewSource(source),
     items: items.map(serializePreviewItem),
   };
 }
@@ -273,19 +293,17 @@ export async function deleteSource(id: string): Promise<void> {
 }
 
 export async function previewSource(id: string): Promise<RssSourcePreviewDto> {
-  const sourceId = BigInt(id);
+  const source = await getPreviewSourceRecordOrThrow(BigInt(id));
   // 预览只读取采集池中的现有内容，不触发新的抓取，避免混淆“看库里已有结果”和“测试拉取”的语义。
-  await getSourceRecordOrThrow(sourceId);
-  return buildSourcePreview(sourceId);
+  return buildSourcePreview(source);
 }
 
 export async function testSource(id: string): Promise<RssSourcePreviewDto> {
-  const sourceId = BigInt(id);
-  const source = await getSourceRecordOrThrow(sourceId);
+  const source = await getSourceRecordOrThrow(BigInt(id));
 
   // 测试抓取会强制刷新一次源，然后再把最新入库结果返回给前端。
   await collectSource(source, true);
-  return buildSourcePreview(sourceId);
+  return buildSourcePreview(source);
 }
 
 export async function testSettingsConnection(): Promise<RssConnectionTestDto> {

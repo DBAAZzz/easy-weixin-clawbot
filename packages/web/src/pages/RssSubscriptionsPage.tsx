@@ -322,7 +322,7 @@ function SourcePreviewDialog(props: {
             <DialogClose className="mt-0.5" />
           </DialogHeader>
 
-          <DialogBody className="min-h-0 overflow-hidden p-0 md:p-0">
+          <DialogBody className="min-h-0 overflow-hidden px-0 md:p-0">
             {!props.preview ? (
               <div className="m-5 rounded-panel border border-line bg-pane-74 px-4 py-3 text-base text-muted-strong">
                 请选择一个订阅源进行预览。

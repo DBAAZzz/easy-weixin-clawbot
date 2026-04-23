@@ -4,6 +4,7 @@ import type {
   RssPreviewItemDto,
   RssEntryMeta,
   RssSourceDto,
+  RssSourcePreviewSummaryDto,
   RssTaskDto,
   RssTaskKind,
   SourceRecord,
@@ -61,6 +62,15 @@ export function serializeSource(
     recent_item_count: recentItemCount,
     created_at: source.createdAt.toISOString(),
     updated_at: source.updatedAt.toISOString(),
+  };
+}
+
+export function serializePreviewSource(
+  source: Pick<SourceRecord, "id" | "name">,
+): RssSourcePreviewSummaryDto {
+  return {
+    id: source.id.toString(),
+    name: source.name,
   };
 }
 

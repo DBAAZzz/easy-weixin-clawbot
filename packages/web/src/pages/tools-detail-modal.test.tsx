@@ -1,87 +1,39 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { MarkdownSource, ToolInfo } from "@clawbot/shared";
+import type { ToolInfo } from "@clawbot/shared";
 import { ToolDetailModal } from "./ToolsPage.js";
 
 const tool: ToolInfo = {
   name: "opencli",
-  summary:
+  description:
     "这是一个用于命令行桥接的长描述，用来验证 tool 详情弹窗会像 skill 一样在头部做摘要折叠，而不是继续使用原来分散的 badge 和块状信息。",
-  version: "1.2.3",
-  author: "clawbot",
   type: "tool",
   handler: "cli",
-  origin: "user",
+  origin: "builtin",
   enabled: true,
-  managedBySystem: false,
+  managedBySystem: true,
   parameterNames: ["command", "timeout"],
 };
 
-const source: MarkdownSource = {
-  markdown: `---
-name: opencli
----
-# OpenCLI
-
-Use this tool to run a CLI command safely.`,
-};
-
-function renderToolModal(initialTab: "markdown" | "config") {
-  return renderToStaticMarkup(
-    <ToolDetailModal
-      tool={tool}
-      source={{ data: source, loading: false, error: null }}
-      toggleBusy={false}
-      onClose={() => {}}
-      onToggle={() => {}}
-      initialTab={initialTab}
-    />,
-  );
+function renderToolModal() {
+  return renderToStaticMarkup(<ToolDetailModal tool={tool} onClose={() => {}} />);
 }
 
-test("ToolDetailModal uses the skills-style markdown presentation", () => {
-  const html = renderToolModal("markdown");
+test("ToolDetailModal renders code-defined tool details", () => {
+  const html = renderToolModal();
 
   assert.match(html, /当前状态：/);
   assert.match(html, /\.\.\.更多/);
-  assert.match(html, />版本</);
   assert.match(html, />Handler</);
   assert.match(html, />来源</);
   assert.match(html, />状态</);
-  assert.match(html, /文档/);
-  assert.match(html, /参数配置/);
-  assert.match(html, /Use this tool to run a CLI command safely\./);
-  assert.doesNotMatch(html, /Tool Detail/);
-  assert.doesNotMatch(html, /Markdown Source/);
-  assert.doesNotMatch(html, /Parameters/);
-});
-
-test("ToolDetailModal consolidates parameter data into one panel", () => {
-  const html = renderToolModal("config");
-
+  assert.match(html, /代码内置/);
   assert.match(html, /参数快照/);
   assert.match(html, /输入参数/);
   assert.match(html, /&quot;handler&quot;: &quot;cli&quot;/);
   assert.match(html, /&quot;command&quot;/);
   assert.match(html, /&quot;timeout&quot;/);
-  assert.match(html, /停用 Tool/);
   assert.doesNotMatch(html, /Markdown Source/);
-});
-
-test("ToolDetailModal shows system-managed tools as non-toggleable", () => {
-  const html = renderToStaticMarkup(
-    <ToolDetailModal
-      tool={{ ...tool, name: "web_search", origin: "builtin", managedBySystem: true }}
-      source={{ data: source, loading: false, error: null }}
-      toggleBusy={false}
-      onClose={() => {}}
-      onToggle={() => {}}
-      initialTab="config"
-    />,
-  );
-
-  assert.match(html, /系统内置功能，不受 `data\/tools\/state\.json` 控制，也不可停用。/);
-  assert.match(html, /系统内置，不可停用/);
   assert.doesNotMatch(html, /停用 Tool/);
 });

@@ -16,6 +16,7 @@ export const webFetchHandler: NativeHandler = {
       throw new Error("web_fetch requires a non-empty url");
     }
 
+    // URL 抓取、清洗和 provider fallback 都封装在 WebToolService，handler 只负责入参归一化和结果转文本。
     const result = await getWebToolService().fetch({
       url,
       signal: ctx.signal,

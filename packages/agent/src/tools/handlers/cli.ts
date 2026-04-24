@@ -15,6 +15,7 @@ function asStringArray(value: unknown): string[] {
 }
 
 function splitCommand(command: string): string[] {
+  // 只做简单 argv 切分，配合 execFile 使用；这里不是 shell parser，也不会执行 shell expansion。
   const args: string[] = [];
   let current = "";
   let inSingle = false;
@@ -76,6 +77,7 @@ function runCommand(
 
 export const cliHandler: NativeHandler = {
   async execute(args, config, ctx) {
+    // CLI handler 是高风险能力：二进制必须来自 allowlist，具体 binary 由 tool 文件配置，模型不能覆盖。
     const binary = typeof config.binary === "string" ? config.binary : "";
     if (!binary || !BINARY_ALLOWLIST.has(binary)) {
       throw new Error(`Binary is not allowed: ${binary || "(missing)"}`);
@@ -87,6 +89,7 @@ export const cliHandler: NativeHandler = {
     }
 
     if (FORBIDDEN_SHELL_PATTERN.test(command)) {
+      // execFile 本身不走 shell，这里额外拒绝 shell 元字符，避免用户以为可拼接复杂命令。
       throw new Error("Command contains forbidden shell metacharacters");
     }
 
@@ -106,6 +109,7 @@ export const cliHandler: NativeHandler = {
         : DEFAULT_MAX_OUTPUT_CHARS;
 
     const fullArgs = [...splitCommand(command), ...defaultArgs];
+    // AbortSignal 来自 runner 的工具超时/请求取消，确保外部进程不会在对话结束后继续运行。
     const { stdout, stderr } = await runCommand(binary, fullArgs, timeoutMs, ctx.signal);
 
     let output = stdout.trim() || stderr.trim() || "(no output)";

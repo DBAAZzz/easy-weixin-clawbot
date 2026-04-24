@@ -1,4 +1,5 @@
-import type { ToolInstaller, SkillInstaller, RuntimeProvisioner } from "@clawbot/agent";
+import type { SkillInstaller, RuntimeProvisioner } from "@clawbot/agent";
+import { listBuiltinToolCatalog } from "@clawbot/agent/tools/builtins";
 import { execFile } from "node:child_process";
 import { access, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -137,7 +138,6 @@ async function extractZipToTemp(zipBuffer: ArrayBuffer): Promise<{ extractDir: s
 export function registerSkillRoutes(
   app: Hono,
   installer: SkillInstaller,
-  toolInstaller: ToolInstaller,
   provisioner?: RuntimeProvisioner,
 ) {
   // ── ZIP / Markdown file upload ──
@@ -368,11 +368,10 @@ export function registerSkillRoutes(
 
   app.get("/api/legacy/skills", (c) => {
     return c.json({
-      data: toolInstaller.list().map((tool) => ({
+      data: listBuiltinToolCatalog().map((tool) => ({
         id: tool.name,
-        summary: tool.summary,
-        version: tool.version,
-        author: tool.author,
+        summary: tool.description,
+        version: "code",
         parameterNames: tool.parameterNames,
       })),
     });
@@ -381,7 +380,7 @@ export function registerSkillRoutes(
   app.get("/api/capabilities", (c) => {
     return c.json({
       data: {
-        tools: toolInstaller.list(),
+        tools: listBuiltinToolCatalog(),
         skills: installer.list(),
       },
     });

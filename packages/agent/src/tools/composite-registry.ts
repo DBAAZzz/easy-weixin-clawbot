@@ -17,6 +17,8 @@ function mergeSnapshots(registries: readonly ToolRegistry[]): ToolSnapshot {
   const tools: ToolSnapshotItem[] = [];
   const seen = new Set<string>();
 
+  // 合并顺序即优先级：local、MCP、scheduler、heartbeat、skill runtime 等 registry 可并列暴露给模型。
+  // 同名 tool 只保留第一个，防止后注册来源意外覆盖基础能力。
   for (const registry of registries) {
     for (const tool of registry.current().tools) {
       if (seen.has(tool.name)) {
@@ -43,6 +45,7 @@ export function createCompositeToolRegistry(...registries: ToolRegistry[]): Tool
     },
 
     async execute(name, args, ctx) {
+      // 执行时重新定位 owner，保证某个子 registry swap 后 composite 不需要维护额外缓存。
       const owner = findToolOwner(registries, name);
       if (!owner) {
         throw new Error(`Unknown tool: ${name}`);

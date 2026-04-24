@@ -3,7 +3,7 @@ import { serve } from "@hono/node-server";
 import { schedulerManager, startHeartbeat, stopHeartbeat } from "@clawbot/agent";
 import { purgeCompacted } from "@clawbot/agent/tape";
 import { createApiApp } from "./api/index.js";
-import { mcpToolRegistry, skillInstaller, toolInstaller, runtimeProvisioner, validateConfig } from "./ai.js";
+import { mcpToolRegistry, skillInstaller, runtimeProvisioner, validateConfig } from "./ai.js";
 import { createLoginManager } from "./login/login-manager.js";
 import { createModuleLogger, getErrorFields } from "./logger.js";
 import { createMcpManager } from "./mcp/manager.js";
@@ -97,7 +97,6 @@ const startedAt = new Date();
 const app = createApiApp({
   runtime,
   loginManager,
-  toolInstaller,
   skillInstaller,
   mcpManager,
   provisioner: runtimeProvisioner,

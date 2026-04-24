@@ -229,6 +229,8 @@ export function createAgentRunner(
     const maxRounds = config.maxRounds ?? 10;
     const timeoutMs = config.toolTimeoutMs ?? 30_000;
     const workingHistory = [...messages];
+    // 每次 run 都创建一个“本次对话作用域”的 skill runtime。
+    // 它会从历史里恢复已经 use_skill 加载过的技能，避免多轮工具调用后丢失已加载技能上下文。
     const skillRuntime = createConversationSkillRuntime({
       registry: skills,
       maxOnDemandSkills: config.maxOnDemandSkills,
@@ -243,16 +245,40 @@ export function createAgentRunner(
       callbacks.onRoundStart?.(round);
 
       // ── Context window trimming ──
+      // system prompt 每轮重新 assemble，是因为 on-demand skill 可能在上一轮被 use_skill 加载，
+      // 下一轮就需要把新技能正文注入 system prompt。
       const fullSystemPrompt = assembleSystemPrompt(PROMPT_PROFILES.chat, baseSystemPrompt, skills);
+
+      // currentTools 是“当前这一轮暴露给模型看的工具清单”，结构是 ToolSnapshotItem[] + use_skill。
+      // 其中 tools.current().tools 来自 composite registry，可能包含：
+      // - Markdown 本地工具：web_search、web_fetch、opencli
+      // - MCP 工具
+      // - scheduler / heartbeat 内置工具
+      // - skill runtime 相关工具
+      //
+      // 组装后的单项大致长这样：
+      // {
+      //   name: "web_search",
+      //   description: "搜索互联网并返回标题、链接和摘要...",
+      //   parameters: z.object({ query: z.string(), maxResults: z.number().optional() }),
+      //   execute: async (args, ctx) => [...]
+      // }
+      //
+      // 末尾追加的 USE_SKILL_TOOL 是 runner 内建工具，不在 registry 里落盘；
+      // 它只负责让模型按需加载 skill 正文。
       const currentTools = [...tools.current().tools, USE_SKILL_TOOL];
+
+      // 工具 schema 本身也会占上下文窗口，所以把 name/description/parameters 粗略计入固定开销。
       const toolsSchemaText = JSON.stringify(currentTools.map((t) => ({ name: t.name, description: t.description, parameters: t.parameters })));
       const fixedOverheadTokens = estimateTextTokens(fullSystemPrompt) + estimateTextTokens(toolsSchemaText);
 
       const promptHistory = (() => {
+        // DeepSeek 对“未推理的历史 tool-call”兼容性较弱，进入模型前先做 provider-specific 清理。
         let history = isDeepSeekModel(effectiveModel, effectiveModelId)
           ? stripUnreasonedToolCallHistory(workingHistory)
           : workingHistory;
 
+        // 如果当前模型不支持图片输入，只裁剪给模型的副本；原始 history 和 DB 仍保留图片消息。
         if (effectiveMeta.supportsImageInput === false) {
           history = replaceImagesWithTextPlaceholders(history);
         }
@@ -283,6 +309,8 @@ export function createAgentRunner(
       // ── Build AI SDK tools (schema only, no execute) ──
       const aiSdkTools: Record<string, ReturnType<typeof aiTool>> = {};
       for (const t of currentTools) {
+        // 这里传给 AI SDK 的只有工具说明和入参 schema，没有 execute。
+        // 项目自己在下方解析 tool-call 后调用 registry/skillRuntime 执行，方便统一埋点、超时和错误回灌。
         aiSdkTools[t.name] = aiTool({
           description: t.description,
           inputSchema: t.parameters as any,
@@ -308,10 +336,13 @@ export function createAgentRunner(
             });
 
             // Map finishReason → stopReason
+            // AI SDK 的 finishReason 是 provider 层概念；项目内部统一成 AssistantMessage.stopReason。
             const stopReason = mapFinishReason(result.finishReason);
             const modelId = result.response?.modelId ?? effectiveModelId;
 
             // Build AssistantMessage from result
+            // 把 AI SDK content part 转成项目内部 AgentMessage。
+            // 后续持久化、上下文裁剪、tool-result 回灌都只认这个内部消息格式。
             const assistantContent: AssistantMessage["content"] = [];
             for (const part of result.content) {
               if ((part as any).type === "text") {
@@ -385,12 +416,15 @@ export function createAgentRunner(
       workingHistory.push(response);
       callbacks.onMessage(response);
 
+      // 没有 tool-call 就说明这一轮已经产生最终回复，runner 结束，外层 chat.ts 负责提取文本并推送。
       if (response.stopReason !== "toolUse") {
         return { status: "completed", finalMessage: response };
       }
 
       const toolCalls = response.content.filter(isToolCall);
 
+      // 同一轮模型可能返回多个 tool-call，这里并行执行。
+      // 每个结果都会被包装成 toolResult message，再追加回 workingHistory 供下一轮 LLM 继续推理。
       const toolResults = await Promise.all(
         toolCalls.map(async (toolCall) => {
           const toolStartedAt = Date.now();
@@ -401,11 +435,13 @@ export function createAgentRunner(
               async (span) => {
                 const result =
                   toolCall.name === USE_SKILL_TOOL.name
+                    // use_skill 是 runner 特例：它不走 ToolRegistry，而是把技能正文加载进本次 skillRuntime。
                     ? await skillRuntime.execute(
                         typeof toolCall.arguments.skill_name === "string"
                           ? toolCall.arguments.skill_name.trim()
                           : "",
                       )
+                    // 普通工具走 composite ToolRegistry，registry 会定位具体 owner 并调用对应 handler。
                     : await tools.execute(
                         toolCall.name,
                         toolCall.arguments,
@@ -454,6 +490,7 @@ export function createAgentRunner(
       }
     }
 
+    // 走到这里表示连续 tool loop 超过 maxRounds。返回最后一条 assistant，外层决定如何降级回复。
     const lastMessage = [...workingHistory]
       .reverse()
       .find((message): message is AssistantMessage => message.role === "assistant");

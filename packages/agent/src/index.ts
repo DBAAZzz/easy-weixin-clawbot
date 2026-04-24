@@ -57,15 +57,16 @@ export type {
 } from "./skills/runtime-provisioner.js";
 export type {
   ToolCatalogItem,
-  ToolInstaller,
-  ToolInstallerResult,
   ToolRegistry,
   ToolSnapshot,
-  ToolSource,
 } from "./tools/types.js";
 export { createToolRegistry } from "./tools/registry.js";
 export { createCompositeToolRegistry } from "./tools/composite-registry.js";
-export { createToolInstaller } from "./tools/installer.js";
+export {
+  createBuiltinToolSnapshot,
+  getBuiltinToolCatalogItem,
+  listBuiltinToolCatalog,
+} from "./tools/builtins.js";
 export type {
   McpRemoteTool,
   McpToolBinding,

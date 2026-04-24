@@ -20,6 +20,7 @@ export const webSearchHandler: NativeHandler = {
     }
 
     const maxResults = clampMaxResults(args.maxResults);
+    // 实际 provider/API key 由 server 注入的 WebToolService 决定，agent 层只依赖 Port 接口。
     const results = await getWebToolService().search({
       query,
       maxResults,

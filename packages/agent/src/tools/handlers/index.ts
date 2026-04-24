@@ -10,5 +10,6 @@ const HANDLER_ALLOWLIST: Record<string, NativeHandler> = {
 };
 
 export function getNativeHandler(name: string): NativeHandler | undefined {
+  // Markdown tool 只能引用这里登记的 handler；新增执行能力必须显式进 allowlist。
   return HANDLER_ALLOWLIST[name];
 }

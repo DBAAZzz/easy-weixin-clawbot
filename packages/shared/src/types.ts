@@ -73,12 +73,10 @@ export interface LegacySkillInfo {
 
 export interface ToolInfo {
   name: string;
-  summary: string;
-  version: string;
-  author?: string;
+  description: string;
   type: "tool";
   handler: string;
-  origin: "builtin" | "user";
+  origin: "builtin";
   enabled: boolean;
   managedBySystem: boolean;
   parameterNames: string[];

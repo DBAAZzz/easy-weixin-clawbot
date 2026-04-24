@@ -1,25 +1,13 @@
 import type { ZodTypeAny } from "zod";
 import type { TextContent, ImageContent } from "../llm/types.js";
 
-export interface ParameterDef {
-  type: "string" | "integer" | "number" | "boolean";
-  description: string;
-  required?: boolean;
-  default?: unknown;
-  enum?: unknown[];
-}
-
-export interface ToolSource {
+export interface NativeToolDefinition {
   name: string;
-  version: string;
-  type: "tool";
-  author?: string;
-  summary: string;
   handler: string;
-  handlerConfig?: Record<string, unknown>;
-  inputSchema: Record<string, ParameterDef>;
-  body: string;
-  filePath: string;
+  description: string;
+  parameters: ZodTypeAny;
+  parameterNames: string[];
+  execute(args: Record<string, unknown>, ctx: ToolContext): Promise<ToolContent[]>;
 }
 
 export interface ToolContext {
@@ -27,20 +15,6 @@ export interface ToolContext {
 }
 
 export type ToolContent = TextContent | ImageContent;
-
-export interface CompiledTool {
-  source: ToolSource;
-  parameters: ZodTypeAny;
-  execute(args: Record<string, unknown>, ctx: ToolContext): Promise<ToolContent[]>;
-}
-
-export interface InstalledTool {
-  tool: CompiledTool;
-  origin: "builtin" | "user";
-  enabled: boolean;
-  managedBySystem: boolean;
-  installedAt: string;
-}
 
 export interface NativeHandler {
   execute(
@@ -54,7 +28,7 @@ export interface ToolSnapshotItem {
   name: string;
   description: string;
   parameters: ZodTypeAny;
-  execute: CompiledTool["execute"];
+  execute: NativeToolDefinition["execute"];
 }
 
 export interface ToolSnapshot {
@@ -69,38 +43,11 @@ export interface ToolRegistry {
 
 export interface ToolCatalogItem {
   name: string;
-  summary: string;
-  version: string;
-  author?: string;
+  description: string;
   type: "tool";
   handler: string;
-  origin: "builtin" | "user";
+  origin: "builtin";
   enabled: boolean;
   managedBySystem: boolean;
   parameterNames: string[];
-  installedAt: string;
-  filePath: string;
-}
-
-export interface InstallerError {
-  filePath: string;
-  error: string;
-}
-
-export interface ToolInstallerResult {
-  loaded: string[];
-  failed: InstallerError[];
-}
-
-export interface ToolInstaller {
-  initialize(builtinDir: string, userDir: string): Promise<ToolInstallerResult>;
-  list(): ToolCatalogItem[];
-  get(name: string): ToolCatalogItem | null;
-  getSource(name: string): Promise<string | null>;
-  validate(markdown: string): Promise<ToolCatalogItem>;
-  install(markdown: string): Promise<ToolCatalogItem>;
-  update(name: string, markdown: string): Promise<ToolCatalogItem>;
-  remove(name: string): Promise<void>;
-  enable(name: string): Promise<ToolCatalogItem>;
-  disable(name: string): Promise<ToolCatalogItem>;
 }

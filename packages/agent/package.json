@@ -36,10 +36,10 @@
       "development": "./src/tools/types.ts",
       "default": "./dist/tools/types.js"
     },
-    "./tools/installer": {
-      "types": "./src/tools/installer.ts",
-      "development": "./src/tools/installer.ts",
-      "default": "./dist/tools/installer.js"
+    "./tools/builtins": {
+      "types": "./src/tools/builtins.ts",
+      "development": "./src/tools/builtins.ts",
+      "default": "./dist/tools/builtins.js"
     },
     "./mcp/types": {
       "types": "./src/mcp/types.ts",

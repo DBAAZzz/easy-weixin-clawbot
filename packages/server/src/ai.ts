@@ -12,7 +12,6 @@ import {
   createSkillInstaller,
   createSkillRegistry,
   createSkillRuntimeToolSnapshot,
-  createToolInstaller,
   createToolRegistry,
   createRuntimeProvisioner,
   setMessageStore,
@@ -31,6 +30,7 @@ import {
   validateTemplateVars,
   PROMPT_ASSET_SPECS,
 } from "@clawbot/agent";
+import { createBuiltinToolSnapshot } from "@clawbot/agent/tools/builtins";
 import { setChatDeps } from "@clawbot/agent/chat";
 import { setDefaultModel, buildModelFromConfig } from "@clawbot/agent/model-resolver";
 import { mkdirSync } from "node:fs";
@@ -46,8 +46,6 @@ import {
   DOWNLOADS_DIR,
   SKILLS_BUILTIN_DIR,
   SKILLS_USER_DIR,
-  TOOLS_BUILTIN_DIR,
-  TOOLS_USER_DIR,
 } from "./paths.js";
 import { sendProactiveMessage } from "./proactive-push.js";
 import { createWebToolService } from "./web-tools/service.js";
@@ -165,6 +163,7 @@ export const skillRegistry = createSkillRegistry();
 export const skillInstaller = createSkillInstaller(skillRegistry);
 export const runtimeProvisioner = createRuntimeProvisioner();
 
+localToolRegistry.swap(createBuiltinToolSnapshot());
 skillRuntimeToolRegistry.swap(createSkillRuntimeToolSnapshot(skillInstaller, runtimeProvisioner));
 
 export const toolRegistry = createCompositeToolRegistry(
@@ -174,10 +173,6 @@ export const toolRegistry = createCompositeToolRegistry(
   heartbeatToolRegistry,
   skillRuntimeToolRegistry,
 );
-export const toolInstaller = createToolInstaller(localToolRegistry);
-
-const loadedTools = await toolInstaller.initialize(TOOLS_BUILTIN_DIR, TOOLS_USER_DIR);
-const loadedSkills = await skillInstaller.initialize(SKILLS_BUILTIN_DIR, SKILLS_USER_DIR);
 
 // ── Agent runner ───────────────────────────────────────────────────
 

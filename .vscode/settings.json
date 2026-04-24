@@ -1,4 +1,6 @@
 {
+  "js/ts.tsdk.path": "packages/agent/node_modules/typescript/lib",
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true,
   "github.copilot.chat.commitMessageGeneration.instructions": [
     {
       "text": "Always generate commit messages in English. Use the Conventional Commits specification.  "

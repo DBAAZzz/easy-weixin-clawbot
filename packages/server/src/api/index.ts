@@ -1,4 +1,4 @@
-import type { SkillInstaller, ToolInstaller, RuntimeProvisioner } from "@clawbot/agent";
+import type { SkillInstaller, RuntimeProvisioner } from "@clawbot/agent";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { pinoLogger } from "hono-pino";
@@ -34,7 +34,6 @@ import { registerWebhookRoutes } from "./routes/webhooks.js";
 export interface ApiDependencies {
   runtime: BotRuntime;
   loginManager: LoginManager;
-  toolInstaller: ToolInstaller;
   skillInstaller: SkillInstaller;
   mcpManager: McpManager;
   provisioner?: RuntimeProvisioner;
@@ -110,8 +109,8 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerConversationRoutes(app);
   registerMessageRoutes(app);
   registerLoginRoutes(app, dependencies.loginManager);
-  registerToolRoutes(app, dependencies.toolInstaller);
-  registerSkillRoutes(app, dependencies.skillInstaller, dependencies.toolInstaller, dependencies.provisioner);
+  registerToolRoutes(app);
+  registerSkillRoutes(app, dependencies.skillInstaller, dependencies.provisioner);
   registerMcpRoutes(app, dependencies.mcpManager);
   registerModelProviderTemplateRoutes(app);
   registerModelConfigRoutes(app);

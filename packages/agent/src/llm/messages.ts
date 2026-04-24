@@ -23,6 +23,9 @@ import type {
 
 // ── AgentMessage[] → AI SDK ModelMessage[] ─────────────────────────
 
+export const TEXT_ONLY_IMAGE_PLACEHOLDER =
+  "[图片: 当前模型不支持图片输入，图片内容已省略。请直接说明无法查看图片，不要猜测图片内容。]";
+
 function normalizeToolArguments(value: unknown): Record<string, unknown> {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return value as Record<string, unknown>;
@@ -130,6 +133,83 @@ export function agentToModelMessages(messages: AgentMessage[]): ModelMessage[] {
   }
 
   return result;
+}
+
+/**
+ * DeepSeek v4 thinking mode rejects historical assistant tool calls that do not
+ * include reasoning_content. Older non-thinking DeepSeek conversations can have
+ * exactly that shape, so remove only the stale tool-call linkage before sending.
+ */
+export function stripUnreasonedToolCallHistory(messages: AgentMessage[]): AgentMessage[] {
+  const strippedToolCallIds = new Set<string>();
+  const result: AgentMessage[] = [];
+
+  for (const msg of messages) {
+    if (msg.role === "assistant") {
+      const hasToolCall = msg.content.some((block) => block.type === "toolCall");
+      const hasThinking = msg.content.some(
+        (block) => block.type === "thinking" && block.thinking.trim().length > 0,
+      );
+
+      if (hasToolCall && !hasThinking) {
+        const content = msg.content.filter((block) => {
+          if (block.type !== "toolCall") {
+            return true;
+          }
+          strippedToolCallIds.add(block.id);
+          return false;
+        });
+
+        if (content.length > 0) {
+          result.push({ ...msg, content });
+        }
+        continue;
+      }
+    }
+
+    if (msg.role === "toolResult" && strippedToolCallIds.has(msg.toolCallId)) {
+      continue;
+    }
+
+    result.push(msg);
+  }
+
+  return result;
+}
+
+function replaceImageBlock(block: TextContent | ImageContent): TextContent {
+  if (block.type === "text") {
+    return block;
+  }
+  return { type: "text", text: TEXT_ONLY_IMAGE_PLACEHOLDER };
+}
+
+/**
+ * Text-only providers such as the current DeepSeek chat API reject OpenAI-style
+ * image_url parts. Preserve conversation text while replacing images with an
+ * explicit placeholder before converting to provider messages.
+ */
+export function replaceImagesWithTextPlaceholders(messages: AgentMessage[]): AgentMessage[] {
+  return messages.map((msg) => {
+    if (msg.role === "user") {
+      if (typeof msg.content === "string") {
+        return msg;
+      }
+      if (!msg.content.some((block) => block.type === "image")) {
+        return msg;
+      }
+      return { ...msg, content: msg.content.map(replaceImageBlock) };
+    }
+
+    if (msg.role === "toolResult") {
+      if (!msg.content.some((block) => block.type === "image")) {
+        return msg;
+      }
+      return { ...msg, content: msg.content.map(replaceImageBlock) };
+    }
+
+    return msg;
+  });
 }
 
 // ── Legacy pi-ai payload → AgentMessage ("读旧写新") ───────────────

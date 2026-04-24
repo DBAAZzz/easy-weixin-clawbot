@@ -9,7 +9,6 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createDeepSeek } from "@ai-sdk/deepseek";
 import { createMoonshotAI } from "@ai-sdk/moonshotai";
 import { createXai } from "@ai-sdk/xai";
 import { createGroq } from "@ai-sdk/groq";
@@ -25,7 +24,7 @@ const PROVIDER_DEFAULTS: Record<string, ModelMeta> = {
   moonshot: { contextWindow: 128_000, maxOutputTokens: 4096 },
   kimi: { contextWindow: 128_000, maxOutputTokens: 4096 },
   "kimi-coding": { contextWindow: 128_000, maxOutputTokens: 4096 },
-  deepseek: { contextWindow: 128_000, maxOutputTokens: 8192 },
+  deepseek: { contextWindow: 1_000_000, maxOutputTokens: 384_000, supportsImageInput: false },
   openrouter: { contextWindow: 128_000, maxOutputTokens: 4096 },
   xai: { contextWindow: 128_000, maxOutputTokens: 4096 },
   groq: { contextWindow: 128_000, maxOutputTokens: 4096 },
@@ -126,7 +125,10 @@ function buildProviderModel(
       })(modelId);
 
     case "deepseek":
-      return createDeepSeek({
+      // The official DeepSeek provider drops historical reasoning before the last user
+      // message, which breaks DeepSeek thinking-mode tool-call validation.
+      return createOpenAICompatible({
+        name: "deepseek",
         baseURL: options?.baseUrl ?? "https://api.deepseek.com/v1",
         ...(apiKey ? { apiKey } : {}),
       })(modelId);

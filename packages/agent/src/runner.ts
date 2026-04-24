@@ -10,7 +10,11 @@ import type {
   LanguageModel,
   ModelMeta,
 } from "./llm/types.js";
-import { agentToModelMessages } from "./llm/messages.js";
+import {
+  agentToModelMessages,
+  replaceImagesWithTextPlaceholders,
+  stripUnreasonedToolCallHistory,
+} from "./llm/messages.js";
 import {
   llmErrorsTotal,
   llmLatencyMs,
@@ -177,6 +181,18 @@ function snapshotAssistantMessage(message: AssistantMessage): string {
   );
 }
 
+function isDeepSeekModel(model: LanguageModel, modelId: string): boolean {
+  const provider =
+    typeof model === "object" && model !== null
+      ? (model as { provider?: unknown }).provider
+      : undefined;
+
+  return (
+    modelId.toLowerCase().includes("deepseek") ||
+    (typeof provider === "string" && provider.toLowerCase().includes("deepseek"))
+  );
+}
+
 function buildToolResult(
   toolCallId: string,
   toolName: string,
@@ -232,7 +248,19 @@ export function createAgentRunner(
       const toolsSchemaText = JSON.stringify(currentTools.map((t) => ({ name: t.name, description: t.description, parameters: t.parameters })));
       const fixedOverheadTokens = estimateTextTokens(fullSystemPrompt) + estimateTextTokens(toolsSchemaText);
 
-      const trimResult = fitToContextWindow(workingHistory, {
+      const promptHistory = (() => {
+        let history = isDeepSeekModel(effectiveModel, effectiveModelId)
+          ? stripUnreasonedToolCallHistory(workingHistory)
+          : workingHistory;
+
+        if (effectiveMeta.supportsImageInput === false) {
+          history = replaceImagesWithTextPlaceholders(history);
+        }
+
+        return history;
+      })();
+
+      const trimResult = fitToContextWindow(promptHistory, {
         contextWindowTokens: effectiveMeta.contextWindow,
         outputReserveTokens: effectiveMeta.maxOutputTokens,
         fixedOverheadTokens,

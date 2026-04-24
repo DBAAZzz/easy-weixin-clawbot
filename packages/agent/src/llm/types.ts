@@ -68,4 +68,9 @@ export type AgentMessage = UserMessage | AssistantMessage | ToolResultMessage;
 export interface ModelMeta {
   contextWindow: number;
   maxOutputTokens: number;
+  /**
+   * false means the runner must not send image parts to this model.
+   * undefined keeps existing provider behavior for providers with model-specific vision support.
+   */
+  supportsImageInput?: boolean;
 }

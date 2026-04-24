@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { generateText } from "ai";
+import { generateText, tool } from "ai";
+import { z } from "zod";
+import { agentToModelMessages } from "./messages.js";
 import { createLanguageModel } from "./provider-factory.js";
 
 test("openai provider keeps default responses model", () => {
@@ -11,12 +13,101 @@ test("openai provider keeps default responses model", () => {
   assert.equal((model as { provider?: string }).provider, "openai.responses");
 });
 
-test("deepseek provider uses official provider package", () => {
-  const { model } = createLanguageModel("deepseek", "deepseek-chat", {
+test("deepseek provider uses openai-compatible chat transport", () => {
+  const { model, meta } = createLanguageModel("deepseek", "deepseek-chat", {
     apiKey: "test-key",
   });
 
   assert.match((model as { provider?: string }).provider ?? "", /^deepseek/);
+  assert.equal(meta.contextWindow, 1_000_000);
+  assert.equal(meta.maxOutputTokens, 384_000);
+  assert.equal(meta.supportsImageInput, false);
+});
+
+test("deepseek provider preserves historical reasoning_content after tool calls", async () => {
+  const previousFetch = globalThis.fetch;
+  const bodies: Array<Record<string, unknown>> = [];
+
+  try {
+    globalThis.fetch = async (_input, init) => {
+      bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return new Response(
+        JSON.stringify({
+          id: "chatcmpl-test",
+          created: 1,
+          model: "deepseek-v4-flash",
+          choices: [
+            {
+              message: { role: "assistant", content: "ok" },
+              finish_reason: "stop",
+            },
+          ],
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    };
+
+    const { model } = createLanguageModel("deepseek", "deepseek-v4-flash", {
+      apiKey: "test-key",
+    });
+
+    await generateText({
+      model,
+      messages: agentToModelMessages([
+        {
+          role: "user",
+          timestamp: Date.now(),
+          content: [{ type: "text", text: "查一下今天日期" }],
+        },
+        {
+          role: "assistant",
+          timestamp: Date.now(),
+          stopReason: "toolUse",
+          content: [
+            { type: "thinking", thinking: "Need to call the date tool first." },
+            { type: "text", text: "我先查一下日期。" },
+            {
+              type: "toolCall",
+              id: "call_1",
+              name: "get_date",
+              arguments: {},
+            },
+          ],
+        },
+        {
+          role: "toolResult",
+          timestamp: Date.now(),
+          toolCallId: "call_1",
+          toolName: "get_date",
+          isError: false,
+          content: [{ type: "text", text: "2026-04-24" }],
+        },
+        {
+          role: "assistant",
+          timestamp: Date.now(),
+          stopReason: "stop",
+          content: [{ type: "text", text: "今天是 2026-04-24。" }],
+        },
+        {
+          role: "user",
+          timestamp: Date.now(),
+          content: [{ type: "text", text: "谢谢" }],
+        },
+      ]),
+      tools: {
+        get_date: tool({
+          description: "Get current date",
+          inputSchema: z.object({}),
+        }),
+      },
+    });
+
+    const requestMessages = bodies[0]?.messages as Array<Record<string, unknown>>;
+    assert.equal(requestMessages[1]?.reasoning_content, "Need to call the date tool first.");
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
 });
 
 test("moonshot provider uses official provider package", () => {

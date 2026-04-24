@@ -13,6 +13,18 @@ export type {
 } from "./llm/types.js";
 export { agentToModelMessages, legacyPayloadToAgentMessage } from "./llm/messages.js";
 export { createLanguageModel } from "./llm/provider-factory.js";
+export type { ResolvedModel } from "./model-resolver.js";
+export {
+  buildModelFromConfig,
+  resolveConfiguredModel,
+  resolveModel,
+  invalidateModelCache,
+  LLMProviderNotConfiguredError,
+  isLLMProviderNotConfiguredError,
+  LLM_PROVIDER_NOT_CONFIGURED_CODE,
+  LLM_PROVIDER_NOT_CONFIGURED_MESSAGE,
+  LLM_PROVIDER_NOT_CONFIGURED_USER_MESSAGE,
+} from "./model-resolver.js";
 
 export type {
   AgentConfig,

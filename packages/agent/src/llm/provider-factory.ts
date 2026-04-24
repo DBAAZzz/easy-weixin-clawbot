@@ -32,41 +32,48 @@ const PROVIDER_DEFAULTS: Record<string, ModelMeta> = {
 };
 
 const FALLBACK_META: ModelMeta = { contextWindow: 128_000, maxOutputTokens: 4096 };
+const OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1";
+const MOONSHOT_DEFAULT_BASE_URL = "https://api.moonshot.cn/v1";
+const KIMI_CODING_DEFAULT_BASE_URL = "https://api.kimi.com/coding/v1";
+const DEEPSEEK_DEFAULT_BASE_URL = "https://api.deepseek.com/v1";
+const OPENROUTER_DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
+const XAI_DEFAULT_BASE_URL = "https://api.x.ai/v1";
+const GROQ_DEFAULT_BASE_URL = "https://api.groq.com/openai/v1";
+const MISTRAL_DEFAULT_BASE_URL = "https://api.mistral.ai/v1";
+
+const PROVIDER_DEFAULT_BASE_URLS: Record<string, string> = {
+  openai: OPENAI_DEFAULT_BASE_URL,
+  moonshot: MOONSHOT_DEFAULT_BASE_URL,
+  kimi: MOONSHOT_DEFAULT_BASE_URL,
+  "kimi-coding": KIMI_CODING_DEFAULT_BASE_URL,
+  deepseek: DEEPSEEK_DEFAULT_BASE_URL,
+  openrouter: OPENROUTER_DEFAULT_BASE_URL,
+  xai: XAI_DEFAULT_BASE_URL,
+  groq: GROQ_DEFAULT_BASE_URL,
+  mistral: MISTRAL_DEFAULT_BASE_URL,
+};
+
+interface ProviderBuildContext {
+  provider: string;
+  modelId: string;
+  apiKey: string;
+  baseURL?: string;
+}
+
+type ProviderBuilder = (context: ProviderBuildContext) => LanguageModel;
+
+function requireBaseURL(provider: string, baseURL: string | undefined): string {
+  if (!baseURL) {
+    throw new Error(`[provider-factory] Provider "${provider}" requires a baseUrl.`);
+  }
+  return baseURL;
+}
 
 // ── Public API ─────────────────────────────────────────────────────
 
 export interface CreateModelResult {
   model: LanguageModel;
   meta: ModelMeta;
-}
-
-function firstNonEmptyEnv(keys: string[]): string | undefined {
-  for (const key of keys) {
-    const value = process.env[key];
-    if (value && value.trim()) {
-      return value;
-    }
-  }
-  return undefined;
-}
-
-function resolveProviderApiKey(
-  provider: string,
-  explicitApiKey?: string,
-): string | undefined {
-  if (explicitApiKey && explicitApiKey.trim()) {
-    return explicitApiKey;
-  }
-
-  switch (provider) {
-    case "moonshot":
-    case "kimi":
-      return firstNonEmptyEnv(["MOONSHOT_API_KEY", "KIMI_API_KEY"]);
-    case "kimi-coding":
-      return firstNonEmptyEnv(["KIMI_API_KEY", "ANTHROPIC_API_KEY", "MOONSHOT_API_KEY"]);
-    default:
-      return undefined;
-  }
 }
 
 /**
@@ -88,88 +95,104 @@ export function createLanguageModel(
 
 // ── Internal ───────────────────────────────────────────────────────
 
+const PROVIDER_BUILDERS: Record<string, ProviderBuilder> = {
+  anthropic: ({ modelId, apiKey, baseURL }) =>
+    createAnthropic({
+      ...(baseURL ? { baseURL } : {}),
+      apiKey,
+    })(modelId),
+
+  openai: ({ modelId, apiKey, baseURL }) =>
+    createOpenAI({
+      baseURL,
+      apiKey,
+    })(modelId),
+
+  google: ({ modelId, apiKey }) =>
+    createGoogleGenerativeAI({ apiKey })(modelId),
+
+  moonshot: ({ modelId, apiKey, baseURL }) =>
+    createMoonshotAI({
+      baseURL,
+      apiKey,
+    })(modelId),
+
+  kimi: ({ modelId, apiKey, baseURL }) =>
+    createMoonshotAI({
+      baseURL,
+      apiKey,
+    })(modelId),
+
+  "kimi-coding": ({ modelId, apiKey, baseURL }) =>
+    createAnthropic({
+      baseURL,
+      apiKey,
+    })(modelId),
+
+  // The official DeepSeek provider drops historical reasoning before the last user
+  // message, which breaks DeepSeek thinking-mode tool-call validation.
+  deepseek: ({ modelId, apiKey, baseURL }) =>
+    createOpenAICompatible({
+      name: "deepseek",
+      baseURL: requireBaseURL("deepseek", baseURL),
+      apiKey,
+    })(modelId),
+
+  openrouter: ({ modelId, apiKey, baseURL }) =>
+    createOpenAICompatible({
+      name: "openrouter",
+      baseURL: requireBaseURL("openrouter", baseURL),
+      apiKey,
+    })(modelId),
+
+  xai: ({ modelId, apiKey, baseURL }) =>
+    createXai({
+      ...(baseURL ? { baseURL } : {}),
+      apiKey,
+    })(modelId),
+
+  groq: ({ modelId, apiKey, baseURL }) =>
+    createGroq({
+      ...(baseURL ? { baseURL } : {}),
+      apiKey,
+    })(modelId),
+
+  mistral: ({ modelId, apiKey, baseURL }) =>
+    createMistral({
+      ...(baseURL ? { baseURL } : {}),
+      apiKey,
+    })(modelId),
+};
+
+function resolveBaseURL(provider: string, explicitBaseUrl?: string | null): string | undefined {
+  return explicitBaseUrl?.trim() || PROVIDER_DEFAULT_BASE_URLS[provider];
+}
+
 function buildProviderModel(
   provider: string,
   modelId: string,
   options?: { apiKey?: string; baseUrl?: string | null },
 ): LanguageModel {
-  const apiKey = resolveProviderApiKey(provider, options?.apiKey);
+  const apiKey = options?.apiKey?.trim() ?? "";
+  const baseURL = resolveBaseURL(provider, options?.baseUrl);
+  const context: ProviderBuildContext = { provider, modelId, apiKey, baseURL };
+  const builder = PROVIDER_BUILDERS[provider];
 
-  switch (provider) {
-    case "anthropic":
-      return createAnthropic({
-        ...(options?.baseUrl ? { baseURL: options.baseUrl } : {}),
-        ...(apiKey ? { apiKey } : {}),
-      })(modelId);
-
-    case "openai":
-      return createOpenAI({ ...(apiKey ? { apiKey } : {}) })(modelId);
-
-    case "google":
-      return createGoogleGenerativeAI({ ...(apiKey ? { apiKey } : {}) })(modelId);
-
-    case "moonshot":
-    case "kimi": {
-      const baseURL =
-        options?.baseUrl ??
-        (provider === "kimi"
-          ? "https://api.moonshot.cn/v1"
-          : "https://api.moonshot.cn/v1");
-      return createMoonshotAI({ baseURL, ...(apiKey ? { apiKey } : {}) })(modelId);
-    }
-
-    case "kimi-coding":
-      return createAnthropic({
-        baseURL: options?.baseUrl ?? "https://api.kimi.com/coding/v1",
-        ...(apiKey ? { apiKey } : {}),
-      })(modelId);
-
-    case "deepseek":
-      // The official DeepSeek provider drops historical reasoning before the last user
-      // message, which breaks DeepSeek thinking-mode tool-call validation.
-      return createOpenAICompatible({
-        name: "deepseek",
-        baseURL: options?.baseUrl ?? "https://api.deepseek.com/v1",
-        ...(apiKey ? { apiKey } : {}),
-      })(modelId);
-
-    case "openrouter":
-      return createOpenAICompatible({
-        name: "openrouter",
-        baseURL: options?.baseUrl ?? "https://openrouter.ai/api/v1",
-        ...(apiKey ? { apiKey } : {}),
-      })(modelId);
-
-    case "xai":
-      return createXai({
-        ...(options?.baseUrl ? { baseURL: options.baseUrl } : {}),
-        ...(apiKey ? { apiKey } : {}),
-      })(modelId);
-
-    case "groq":
-      return createGroq({
-        ...(options?.baseUrl ? { baseURL: options.baseUrl } : {}),
-        ...(apiKey ? { apiKey } : {}),
-      })(modelId);
-
-    case "mistral":
-      return createMistral({
-        ...(options?.baseUrl ? { baseURL: options.baseUrl } : {}),
-        ...(apiKey ? { apiKey } : {}),
-      })(modelId);
-
-    default:
-      // Unknown provider with custom baseUrl → OpenAI-compatible
-      if (options?.baseUrl) {
-        return createOpenAICompatible({
-          name: provider,
-          baseURL: options.baseUrl,
-          ...(apiKey ? { apiKey } : {}),
-        })(modelId);
-      }
-      throw new Error(
-        `[provider-factory] Unknown provider "${provider}" with no baseUrl. ` +
-          `Supported: anthropic, openai, google, moonshot, kimi, kimi-coding, deepseek, openrouter, xai, groq, mistral.`,
-      );
+  if (builder) {
+    return builder(context);
   }
+
+  // Unknown provider with custom baseUrl → OpenAI-compatible
+  if (baseURL) {
+    return createOpenAICompatible({
+      name: provider,
+      baseURL,
+      apiKey,
+    })(modelId);
+  }
+
+  throw new Error(
+    `[provider-factory] Unknown provider "${provider}" with no baseUrl. ` +
+      `Supported: ${Object.keys(PROVIDER_BUILDERS).join(", ")}.`,
+  );
 }

@@ -32,7 +32,6 @@ import {
 } from "@clawbot/agent";
 import { createBuiltinToolSnapshot } from "@clawbot/agent/tools/builtins";
 import { setChatDeps } from "@clawbot/agent/chat";
-import { setDefaultModel, buildModelFromConfig } from "@clawbot/agent/model-resolver";
 import { mkdirSync } from "node:fs";
 import { ensurePrismaUrls } from "./db/prisma-env.js";
 import { PrismaMessageStore } from "./db/message-store.impl.js";
@@ -55,17 +54,6 @@ mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
 const aiLogger = createModuleLogger("ai");
 
-// ── Env config ─────────────────────────────────────────────────────
-
-const PROVIDER = process.env.LLM_PROVIDER ?? "anthropic";
-const MODEL_ID = process.env.LLM_MODEL ?? "claude-sonnet-4-20250514";
-
-const EXPLICIT_API_KEY = process.env.LLM_API_KEY ?? process.env.KEY;
-const EXPLICIT_BASE_URL =
-  process.env.LLM_BASE_URL && process.env.LLM_BASE_URL.trim()
-    ? process.env.LLM_BASE_URL.trim()
-    : null;
-
 // ── Prompt assets ──────────────────────────────────────────────────
 
 const promptAssets = loadPromptAssets({
@@ -82,43 +70,38 @@ setPromptAssets(promptAssets);
 
 // ── Config validation ──────────────────────────────────────────────
 
-export function validateConfig() {
-  aiLogger.info(
-    {
-      provider: PROVIDER,
-      modelId: MODEL_ID,
-      apiKeyConfigured: Boolean(EXPLICIT_API_KEY),
-      apiKeyPreview: EXPLICIT_API_KEY ? `${EXPLICIT_API_KEY.slice(0, 6)}…` : null,
-      baseUrl: EXPLICIT_BASE_URL ?? null,
-      apiPort: process.env.API_PORT ?? "8028",
-    },
-    "已加载运行时配置",
-  );
+export interface ConfigDiagnostics {
+  info: {
+    llmConfigSource: "database";
+    apiPort: string;
+  };
+  warnings: string[];
+}
 
-  if (!EXPLICIT_API_KEY) {
-    const envMap: Record<string, string[]> = {
-      anthropic: ["ANTHROPIC_API_KEY"],
-      openai: ["OPENAI_API_KEY"],
-      google: ["GOOGLE_API_KEY"],
-      deepseek: ["DEEPSEEK_API_KEY"],
-      moonshot: ["MOONSHOT_API_KEY", "KIMI_API_KEY"],
-      kimi: ["MOONSHOT_API_KEY", "KIMI_API_KEY"],
-      "kimi-coding": ["KIMI_API_KEY", "ANTHROPIC_API_KEY", "MOONSHOT_API_KEY"],
-      xai: ["XAI_API_KEY"],
-      groq: ["GROQ_API_KEY"],
-      mistral: ["MISTRAL_API_KEY"],
-    };
-    const expected = envMap[PROVIDER];
-    const hasExpected = expected?.some((key) => Boolean(process.env[key]));
-    if (expected && !hasExpected) {
-      aiLogger.warn(
-        { provider: PROVIDER, expectedEnvKeys: expected },
-        "缺少 LLM API Key 配置，后续调用将失败",
-      );
-    }
+export function getConfigDiagnostics(
+  env: NodeJS.ProcessEnv = process.env,
+): ConfigDiagnostics {
+  const warnings: string[] = [];
+
+  if (!env.DATABASE_URL || !env.DIRECT_URL) {
+    warnings.push("missing-prisma-urls");
   }
 
-  if (!process.env.DATABASE_URL || !process.env.DIRECT_URL) {
+  return {
+    info: {
+      llmConfigSource: "database",
+      apiPort: env.API_PORT ?? "8028",
+    },
+    warnings,
+  };
+}
+
+export function validateConfig() {
+  const diagnostics = getConfigDiagnostics();
+
+  aiLogger.info(diagnostics.info, "已加载运行时配置");
+
+  if (diagnostics.warnings.includes("missing-prisma-urls")) {
     aiLogger.warn(
       "缺少 DATABASE_URL 或 DIRECT_URL，持久化与 API 查询将失败",
     );
@@ -133,26 +116,6 @@ export function validateConfig() {
     );
   }
 }
-
-// ── Model resolution ───────────────────────────────────────────────
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const { model, meta } = (() => {
-  try {
-    return buildModelFromConfig(PROVIDER, MODEL_ID, {
-      apiKey: EXPLICIT_API_KEY,
-      baseUrl: EXPLICIT_BASE_URL,
-    });
-  } catch {
-    throw new Error(
-      `[ai] Unknown provider/model: LLM_PROVIDER="${PROVIDER}" LLM_MODEL="${MODEL_ID}". ` +
-        `Check .env — e.g. LLM_PROVIDER=moonshot with LLM_MODEL=kimi-k2.5, or LLM_PROVIDER=deepseek with LLM_MODEL=deepseek-chat.`
-    );
-  }
-})();
-
-// Register the env-var model as the fallback default for ModelResolver
-setDefaultModel({ model, modelId: MODEL_ID, meta });
 
 // ── Tool & skill registries ────────────────────────────────────────
 
@@ -177,10 +140,7 @@ export const toolRegistry = createCompositeToolRegistry(
 // ── Agent runner ───────────────────────────────────────────────────
 
 const runner = createAgentRunner(
-  {
-    model,
-    meta,
-  },
+  {},
   toolRegistry,
   skillRegistry,
 );

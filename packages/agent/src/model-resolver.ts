@@ -5,7 +5,6 @@
  *   1. conversation-level config  (scope="conversation", scopeKey="accountId:conversationId")
  *   2. account-level config       (scope="account", scopeKey=accountId)
  *   3. global config              (scope="global", scopeKey="*")
- *   4. env-var default            (set at startup via setDefaultModel)
  */
 
 import type { LanguageModel } from "ai";
@@ -25,18 +24,36 @@ export interface ResolvedModel {
   meta: ModelMeta;
 }
 
-// ── Default model (env-var fallback) ──────────────────────────────────
+export const LLM_PROVIDER_NOT_CONFIGURED_CODE = "LLM_PROVIDER_NOT_CONFIGURED";
+export const LLM_PROVIDER_NOT_CONFIGURED_MESSAGE =
+  "LLM provider is not configured. Configure a provider template and usage config in Web admin before using the Agent.";
+export const LLM_PROVIDER_NOT_CONFIGURED_USER_MESSAGE =
+  "尚未配置 LLM Provider。请先在后台创建 Provider 模板并添加使用配置。";
 
-let defaultModel: ResolvedModel | null = null;
+export class LLMProviderNotConfiguredError extends Error {
+  readonly code = LLM_PROVIDER_NOT_CONFIGURED_CODE;
+  readonly userMessage = LLM_PROVIDER_NOT_CONFIGURED_USER_MESSAGE;
 
-export function setDefaultModel(resolved: ResolvedModel): void {
-  defaultModel = resolved;
+  constructor(
+    readonly accountId: string,
+    readonly conversationId: string,
+    readonly purpose: ModelPurpose,
+  ) {
+    super(LLM_PROVIDER_NOT_CONFIGURED_MESSAGE);
+    this.name = "LLMProviderNotConfiguredError";
+  }
 }
 
-export function getDefaultModel(): ResolvedModel {
-  if (!defaultModel)
-    throw new Error("Default model not set — call setDefaultModel() at startup");
-  return defaultModel;
+export function isLLMProviderNotConfiguredError(
+  error: unknown,
+): error is LLMProviderNotConfiguredError {
+  return (
+    error instanceof LLMProviderNotConfiguredError ||
+    (typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: unknown }).code === LLM_PROVIDER_NOT_CONFIGURED_CODE)
+  );
 }
 
 // ── In-memory cache ───────────────────────────────────────────────────
@@ -103,6 +120,19 @@ function rowSupportsModel(row: ModelConfigRow): boolean {
   return row.modelIds.includes(row.modelId);
 }
 
+function throwProviderNotConfigured(
+  accountId: string,
+  conversationId: string,
+  purpose: ModelPurpose,
+): never {
+  console.warn(
+    "[model-resolver] LLM provider is not configured",
+    { accountId, conversationId, purpose, code: LLM_PROVIDER_NOT_CONFIGURED_CODE },
+  );
+
+  throw new LLMProviderNotConfiguredError(accountId, conversationId, purpose);
+}
+
 /**
  * Resolve a model for a given request context.
  */
@@ -116,7 +146,7 @@ export async function resolveModel(
     return configured;
   }
 
-  return getDefaultModel();
+  throwProviderNotConfigured(accountId, conversationId, purpose);
 }
 
 /**
@@ -136,16 +166,23 @@ export async function resolveConfiguredModel(
 
   for (const [scope, scopeKey] of lookups) {
     const rows = await fetchRows(scope, scopeKey);
-    const match = rows.find((r) => matchPurpose(r.purpose, purpose));
-    if (match && match.templateEnabled && rowSupportsModel(match)) {
+    for (const row of rows) {
+      if (!matchPurpose(row.purpose, purpose)) {
+        continue;
+      }
+
+      if (!row.enabled || !row.templateEnabled || !rowSupportsModel(row)) {
+        continue;
+      }
+
       const { model, meta } = buildModelFromConfig(
-        match.provider,
-        match.modelId,
-        { apiKey: match.apiKey ?? undefined, baseUrl: match.baseUrl },
+        row.provider,
+        row.modelId,
+        { apiKey: row.apiKey ?? undefined, baseUrl: row.baseUrl },
       );
       return {
         model,
-        modelId: match.modelId,
+        modelId: row.modelId,
         meta,
       };
     }

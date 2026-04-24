@@ -16,7 +16,7 @@
 ```
 src/
 ├── index.ts          # 入口：bootstrap MCP → 运行时 → Hono listen :8028
-├── ai.ts             # Agent 配置：validate env, LLM model, registries
+├── ai.ts             # Agent 配置：validate env, registries, port wiring
 ├── runtime.ts        # 多账号运行时：Map<accountId, {abort, startPromise}>
 ├── api/
 │   ├── index.ts      # Hono app 创建、CORS、auth 中间件
@@ -110,11 +110,12 @@ bootstrap() → 从 DB 查询 active 账号 → ensureAccountStarted(id)
 必需：
 - `DATABASE_URL` — PostgreSQL 连接字符串
 - `DIRECT_URL` — Prisma direct connection
-- `LLM_PROVIDER` + `LLM_MODEL` + `LLM_API_KEY`（或 Provider 专用 key）
 - `API_PORT`（默认 8028）
 
 可选：
 - `WEB_ORIGIN` — CORS 白名单
+
+LLM Provider、模型和 API Key 不从环境变量读取。运行时配置只来自 Web 后台的 Provider 模板和作用域配置。
 
 后台登录鉴权环境变量：
 - `AUTH_USERNAME`

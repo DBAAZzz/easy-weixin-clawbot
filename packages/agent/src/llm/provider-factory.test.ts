@@ -5,6 +5,54 @@ import { z } from "zod";
 import { agentToModelMessages } from "./messages.js";
 import { createLanguageModel } from "./provider-factory.js";
 
+async function assertProviderIgnoresEnvApiKey(options: {
+  testName: string;
+  provider: string;
+  modelId: string;
+  envKey: string;
+}): Promise<void> {
+  const previousEnvValue = process.env[options.envKey];
+  const previousFetch = globalThis.fetch;
+
+  try {
+    process.env[options.envKey] = "test-key-from-env";
+
+    let fetchCalled = false;
+    let authorizationHeader: string | null = null;
+    globalThis.fetch = async (_input, init) => {
+      fetchCalled = true;
+      authorizationHeader = new Headers(init?.headers).get("authorization");
+      throw new Error("network blocked for unit test");
+    };
+
+    const { model } = createLanguageModel(options.provider, options.modelId);
+
+    await assert.rejects(
+      () =>
+        generateText({
+          model,
+          messages: [{ role: "user", content: "hi" }],
+        }),
+      (error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        assert.match(message, /network blocked/i, options.testName);
+        return true;
+      },
+    );
+
+    assert.equal(fetchCalled, true, options.testName);
+    assert.notEqual(authorizationHeader, "Bearer test-key-from-env", options.testName);
+  } finally {
+    if (previousEnvValue === undefined) {
+      delete process.env[options.envKey];
+    } else {
+      process.env[options.envKey] = previousEnvValue;
+    }
+
+    globalThis.fetch = previousFetch;
+  }
+}
+
 test("openai provider keeps default responses model", () => {
   const { model } = createLanguageModel("openai", "gpt-5", {
     apiKey: "test-key",
@@ -166,22 +214,20 @@ test("openrouter provider uses openai-compatible provider package", () => {
   assert.match((model as { provider?: string }).provider ?? "", /^openrouter/);
 });
 
-test("kimi provider accepts KIMI_API_KEY env var fallback", async () => {
-  const previousMoonshot = process.env.MOONSHOT_API_KEY;
-  const previousKimi = process.env.KIMI_API_KEY;
+test("openai provider uses configured baseUrl", async () => {
   const previousFetch = globalThis.fetch;
+  let requestUrl = "";
 
   try {
-    delete process.env.MOONSHOT_API_KEY;
-    process.env.KIMI_API_KEY = "test-key-from-kimi-env";
-
-    let fetchCalled = false;
-    globalThis.fetch = async () => {
-      fetchCalled = true;
+    globalThis.fetch = async (input) => {
+      requestUrl = input instanceof Request ? input.url : String(input);
       throw new Error("network blocked for unit test");
     };
 
-    const { model } = createLanguageModel("kimi", "kimi-k2.5");
+    const { model } = createLanguageModel("openai", "gpt-4o", {
+      apiKey: "test-key",
+      baseUrl: "https://proxy.example/v1",
+    });
 
     await assert.rejects(
       () =>
@@ -190,26 +236,78 @@ test("kimi provider accepts KIMI_API_KEY env var fallback", async () => {
           messages: [{ role: "user", content: "hi" }],
         }),
       (error: unknown) => {
-        const name = (error as { name?: string })?.name ?? "";
-        assert.notEqual(name, "AI_LoadAPIKeyError");
+        const message = error instanceof Error ? error.message : String(error);
+        assert.match(message, /network blocked/);
         return true;
       },
     );
 
-    assert.equal(fetchCalled, true);
+    assert.match(requestUrl, /^https:\/\/proxy\.example\/v1\//);
   } finally {
-    if (previousMoonshot === undefined) {
-      delete process.env.MOONSHOT_API_KEY;
-    } else {
-      process.env.MOONSHOT_API_KEY = previousMoonshot;
-    }
+    globalThis.fetch = previousFetch;
+  }
+});
 
-    if (previousKimi === undefined) {
-      delete process.env.KIMI_API_KEY;
+test("openai provider does not read OPENAI_BASE_URL env var fallback", async () => {
+  const previousBaseUrl = process.env.OPENAI_BASE_URL;
+  const previousFetch = globalThis.fetch;
+  let requestUrl = "";
+
+  try {
+    process.env.OPENAI_BASE_URL = "https://env-proxy.example/v1";
+    globalThis.fetch = async (input) => {
+      requestUrl = input instanceof Request ? input.url : String(input);
+      throw new Error("network blocked for unit test");
+    };
+
+    const { model } = createLanguageModel("openai", "gpt-4o", {
+      apiKey: "test-key",
+    });
+
+    await assert.rejects(
+      () =>
+        generateText({
+          model,
+          messages: [{ role: "user", content: "hi" }],
+        }),
+      /network blocked/,
+    );
+
+    assert.match(requestUrl, /^https:\/\/api\.openai\.com\/v1\//);
+  } finally {
+    if (previousBaseUrl === undefined) {
+      delete process.env.OPENAI_BASE_URL;
     } else {
-      process.env.KIMI_API_KEY = previousKimi;
+      process.env.OPENAI_BASE_URL = previousBaseUrl;
     }
 
     globalThis.fetch = previousFetch;
   }
+});
+
+test("openai provider does not read OPENAI_API_KEY env var fallback", async () => {
+  await assertProviderIgnoresEnvApiKey({
+    testName: "openai env fallback",
+    provider: "openai",
+    modelId: "gpt-4o",
+    envKey: "OPENAI_API_KEY",
+  });
+});
+
+test("moonshot provider does not read MOONSHOT_API_KEY env var fallback", async () => {
+  await assertProviderIgnoresEnvApiKey({
+    testName: "moonshot env fallback",
+    provider: "moonshot",
+    modelId: "moonshot-v1-8k",
+    envKey: "MOONSHOT_API_KEY",
+  });
+});
+
+test("kimi provider does not read KIMI_API_KEY env var fallback", async () => {
+  await assertProviderIgnoresEnvApiKey({
+    testName: "kimi env fallback",
+    provider: "kimi",
+    modelId: "kimi-k2.5",
+    envKey: "KIMI_API_KEY",
+  });
 });

@@ -109,7 +109,8 @@ pnpm -F @clawbot/web exec tsc --noEmit
 - **Port/Adapter 模式**：`agent` 包通过接口（`MessageStore`, `TapeStore`, `PushService`）访问外部 IO，不直接依赖 Prisma 或 HTTP
 - **Registry 模式**：工具/技能/命令使用 Map 注册表，提供 `register()`, `list()`, `get()` 方法
 - **Reducer 模式**：Tape 记忆 = `fold(LastAnchor.Snapshot, NewEntries[])`
-- **三级配置解析**：`conversation config → account config → global config → env vars`
+- **三级配置解析**：`conversation config → account config → global config`
+- **LLM 配置来源唯一**：运行时 LLM Provider/模型/API Key 只来自 Web 后台的数据库配置，不使用 `LLM_*` 或 provider 专用环境变量
 
 ### 错误处理
 

@@ -40,8 +40,8 @@ import { getPromptAssets } from "./prompts/port.js";
 import { PROMPT_PROFILES } from "./prompts/profiles.js";
 
 export interface AgentConfig {
-  model: LanguageModel;
-  meta: ModelMeta;
+  model?: LanguageModel;
+  meta?: ModelMeta;
   systemPrompt?: string;
   apiKey?: string;
   maxRounds?: number;
@@ -225,7 +225,15 @@ export function createAgentRunner(
   ): Promise<RunResult> {
     const effectiveModel = modelOverride?.model ?? config.model;
     const effectiveMeta = modelOverride?.meta ?? config.meta;
-    const effectiveModelId = typeof effectiveModel === "string" ? effectiveModel : (effectiveModel as { modelId: string }).modelId;
+    if (!effectiveModel || !effectiveMeta) {
+      throw new Error(
+        "AgentRunner model not provided — pass modelOverride at run() time or configure a default model.",
+      );
+    }
+    const effectiveModelId =
+      typeof effectiveModel === "string"
+        ? effectiveModel
+        : (effectiveModel as { modelId: string }).modelId;
     const maxRounds = config.maxRounds ?? 10;
     const timeoutMs = config.toolTimeoutMs ?? 30_000;
     const workingHistory = [...messages];

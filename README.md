@@ -70,8 +70,9 @@ docker compose up --build -d
 
 - `.env`：`POSTGRES_PASSWORD`
 - `.env`：`CLAWBOT_CREDENTIAL_KEY`
-- `.env`：一组可用的 LLM Key，例如 `LLM_API_KEY` 或对应 provider 的 API Key
 - `.env`：`AUTH_USERNAME`、`AUTH_PASSWORD`、`AUTH_JWT_SECRET`
+
+LLM Provider 不再通过 `.env` 配置。服务启动后，请登录 Web 管理后台，在“模型配置”页面创建 Provider 模板并添加使用配置。
 
 生成 `CLAWBOT_CREDENTIAL_KEY`：
 
@@ -105,6 +106,7 @@ docker compose down
 - `packages/web` 开发服务器也会从根目录 `.env` 读取环境变量，并自动根据 `API_PORT` 代理 `/api`
 - 外部数据库只支持 `DATABASE_URL` 和 `DIRECT_URL`，不再支持 `SUPABASE_*` 简化变量
 - Docker Compose 和源码开发都使用同一个 `.env`，只是在数据库区块填写不同变量
+- LLM Provider 运行时配置只来自数据库中的后台配置，不再读取 `LLM_*` 或 provider 专用 API Key 环境变量
 
 本地开发时：
 

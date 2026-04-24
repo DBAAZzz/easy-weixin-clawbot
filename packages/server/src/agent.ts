@@ -20,6 +20,7 @@ import {
   checkWaitingGoalsAsync,
   currentSeq,
   setHeartbeatToolContext,
+  isLLMProviderNotConfiguredError,
 } from "@clawbot/agent";
 import { getSchedulerStore } from "@clawbot/agent/ports";
 import { sendProactiveMessage } from "./proactive-push.js";
@@ -243,6 +244,18 @@ export function createAgent(accountId: string): Agent {
             },
           );
         } catch (err) {
+          if (isLLMProviderNotConfiguredError(err)) {
+            agentLogger.warn(
+              {
+                ...getErrorFields(err),
+                accountId,
+                conversationId: effectiveConvId,
+              },
+              "LLM Provider 尚未配置",
+            );
+            return { text: err.userMessage };
+          }
+
           log.error(`chat(${accountId}/${req.conversationId})`, err);
           return { text: "抱歉，出了点问题，请稍后再试。" };
         } finally {

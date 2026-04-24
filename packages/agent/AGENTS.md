@@ -16,7 +16,7 @@ src/
 ├── index.ts              # 公共 API barrel export
 ├── runner.ts             # createAgentRunner(): LLM tool-use 循环
 ├── chat.ts               # chat(): 完整对话编排（历史→LLM→持久化→记忆提取）
-├── model-resolver.ts     # 三级配置解析（conversation → account → global → env）
+├── model-resolver.ts     # 三级配置解析（conversation → account → global）
 ├── types.ts              # 包级别类型：ChatResponse, ChatMedia
 ├── media.ts              # 媒体提取与路径解析
 ├── llm/                  # LLM 适配层（AI SDK 边界）
@@ -55,6 +55,8 @@ src/
 | `HeartbeatExecutorPort` | Phase2 聊天执行桥接 |
 
 **添加新外部依赖时**，必须定义 Port 接口，在 `server` 侧实现。
+
+LLM 运行时配置只来自 `ModelConfigStore` 注入的数据库配置；`agent` 包内不得重新引入环境变量回退。
 
 ### AgentRunner（LLM 循环）
 

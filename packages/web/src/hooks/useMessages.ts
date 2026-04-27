@@ -11,7 +11,7 @@ export function useMessages(accountId?: string, conversationId?: string) {
       queryKey: queryKeys.messages(accountId ?? "", conversationId ?? ""),
       queryFn: ({ pageParam }) =>
         fetchMessages(accountId!, conversationId!, {
-          limit: 50,
+          limit: 20,
           before: pageParam,
         }),
       initialPageParam: undefined as number | undefined,

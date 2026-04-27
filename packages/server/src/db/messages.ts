@@ -329,6 +329,16 @@ export async function listMessages(
       conversationId,
       ...(before !== undefined ? { id: { lt: BigInt(before) } } : {}),
     },
+    select: {
+      id: true,
+      accountId: true,
+      conversationId: true,
+      seq: true,
+      role: true,
+      contentText: true,
+      mediaType: true,
+      createdAt: true,
+    },
     orderBy: {
       id: "desc",
     },
@@ -342,7 +352,7 @@ export async function listMessages(
     seq: row.seq,
     role: row.role as MessageRow["role"],
     content_text: row.contentText,
-    payload: row.payload as Record<string, unknown>,
+    payload: {},
     media_type: row.mediaType,
     created_at: row.createdAt.toISOString(),
   }));

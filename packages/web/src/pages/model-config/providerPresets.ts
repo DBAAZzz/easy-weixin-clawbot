@@ -48,6 +48,20 @@ export const MODEL_PROVIDER_PRESETS: ModelProviderPreset[] = [
     suggestedModelIds: ["kimi-k2.5", "kimi-latest"],
   },
   {
+    label: "Xiaomi MiMo",
+    provider: "xiaomi",
+    description: "小米 MiMo OpenAI 兼容端点",
+    baseUrlPlaceholder: "https://token-plan-cn.xiaomimimo.com/v1",
+    suggestedModelIds: ["mimo-v2.5-pro", "mimo-v2.5", "mimo-v2-pro", "mimo-v2-omni"],
+  },
+  {
+    label: "Xiaomi MiMo Anthropic",
+    provider: "xiaomi-anthropic",
+    description: "小米 MiMo Anthropic 兼容端点",
+    baseUrlPlaceholder: "https://token-plan-cn.xiaomimimo.com/anthropic",
+    suggestedModelIds: ["mimo-v2.5-pro", "mimo-v2.5", "mimo-v2-pro", "mimo-v2-omni"],
+  },
+  {
     label: "OpenRouter",
     provider: "openrouter",
     description: "聚合多模型供应商",

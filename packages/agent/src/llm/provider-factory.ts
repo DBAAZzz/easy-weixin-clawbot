@@ -24,6 +24,8 @@ const PROVIDER_DEFAULTS: Record<string, ModelMeta> = {
   moonshot: { contextWindow: 128_000, maxOutputTokens: 4096 },
   kimi: { contextWindow: 128_000, maxOutputTokens: 4096 },
   "kimi-coding": { contextWindow: 128_000, maxOutputTokens: 4096 },
+  xiaomi: { contextWindow: 128_000, maxOutputTokens: 4096 },
+  "xiaomi-anthropic": { contextWindow: 128_000, maxOutputTokens: 4096 },
   deepseek: { contextWindow: 1_000_000, maxOutputTokens: 384_000, supportsImageInput: false },
   openrouter: { contextWindow: 128_000, maxOutputTokens: 4096 },
   xai: { contextWindow: 128_000, maxOutputTokens: 4096 },
@@ -35,6 +37,8 @@ const FALLBACK_META: ModelMeta = { contextWindow: 128_000, maxOutputTokens: 4096
 const OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1";
 const MOONSHOT_DEFAULT_BASE_URL = "https://api.moonshot.cn/v1";
 const KIMI_CODING_DEFAULT_BASE_URL = "https://api.kimi.com/coding/v1";
+const XIAOMI_DEFAULT_BASE_URL = "https://token-plan-cn.xiaomimimo.com/v1";
+const XIAOMI_ANTHROPIC_DEFAULT_BASE_URL = "https://token-plan-cn.xiaomimimo.com/anthropic";
 const DEEPSEEK_DEFAULT_BASE_URL = "https://api.deepseek.com/v1";
 const OPENROUTER_DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
 const XAI_DEFAULT_BASE_URL = "https://api.x.ai/v1";
@@ -46,6 +50,8 @@ const PROVIDER_DEFAULT_BASE_URLS: Record<string, string> = {
   moonshot: MOONSHOT_DEFAULT_BASE_URL,
   kimi: MOONSHOT_DEFAULT_BASE_URL,
   "kimi-coding": KIMI_CODING_DEFAULT_BASE_URL,
+  xiaomi: XIAOMI_DEFAULT_BASE_URL,
+  "xiaomi-anthropic": XIAOMI_ANTHROPIC_DEFAULT_BASE_URL,
   deepseek: DEEPSEEK_DEFAULT_BASE_URL,
   openrouter: OPENROUTER_DEFAULT_BASE_URL,
   xai: XAI_DEFAULT_BASE_URL,
@@ -61,6 +67,10 @@ interface ProviderBuildContext {
 }
 
 type ProviderBuilder = (context: ProviderBuildContext) => LanguageModel;
+
+function normalizeXiaomiModelId(modelId: string): string {
+  return modelId.trim().toLowerCase();
+}
 
 function requireBaseURL(provider: string, baseURL: string | undefined): string {
   if (!baseURL) {
@@ -128,6 +138,20 @@ const PROVIDER_BUILDERS: Record<string, ProviderBuilder> = {
       baseURL,
       apiKey,
     })(modelId),
+
+  xiaomi: ({ modelId, apiKey, baseURL }) =>
+    createOpenAICompatible({
+      name: "xiaomi",
+      baseURL: requireBaseURL("xiaomi", baseURL),
+      apiKey,
+    })(normalizeXiaomiModelId(modelId)),
+
+  "xiaomi-anthropic": ({ modelId, apiKey, baseURL }) =>
+    createAnthropic({
+      name: "xiaomi-anthropic",
+      baseURL,
+      apiKey,
+    })(normalizeXiaomiModelId(modelId)),
 
   // The official DeepSeek provider drops historical reasoning before the last user
   // message, which breaks DeepSeek thinking-mode tool-call validation.

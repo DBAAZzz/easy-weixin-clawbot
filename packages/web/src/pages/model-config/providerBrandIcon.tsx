@@ -6,6 +6,7 @@ import kimiIcon from "../../assets/images/providers/kimi.svg";
 import moonshotIcon from "../../assets/images/providers/moonshot.svg";
 import openaiIcon from "../../assets/images/providers/openai.svg";
 import openrouterIcon from "../../assets/images/providers/openrouter.svg";
+import xiaomiIcon from "../../assets/images/providers/xiaomimimo.svg";
 import { CpuIcon } from "../../components/ui/icons.js";
 import { cn } from "../../lib/cn.js";
 import { getProviderBrandKey, type ProviderBrandKey } from "./providerBrand.js";
@@ -17,6 +18,8 @@ const PROVIDER_BRAND_ICON_MAP: Record<ProviderBrandKey, string> = {
   deepseek: deepseekIcon,
   moonshot: moonshotIcon,
   kimi: kimiIcon,
+  xiaomi: xiaomiIcon,
+  "xiaomi-anthropic": xiaomiIcon,
   openrouter: openrouterIcon,
   "azure-openai": azureOpenAiIcon,
 };

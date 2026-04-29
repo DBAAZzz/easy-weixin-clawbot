@@ -5,6 +5,8 @@ const PROVIDER_BRAND_KEYS = [
   "deepseek",
   "moonshot",
   "kimi",
+  "xiaomi",
+  "xiaomi-anthropic",
   "openrouter",
   "azure-openai",
 ] as const;

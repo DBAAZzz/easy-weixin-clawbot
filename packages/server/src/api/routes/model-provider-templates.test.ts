@@ -137,6 +137,73 @@ test("provider ping reports missing api key without probing upstream", async () 
   assert.equal(payload.data.message, "未配置 API Key");
 });
 
+test("provider ping uses Xiaomi OpenAI-compatible default base url", async () => {
+  const template = createTemplate({
+    provider: "xiaomi",
+    baseUrl: null,
+  });
+  const app = createAppWithTemplate(template);
+  let upstreamUrl = "";
+
+  globalThis.fetch = async (input) => {
+    upstreamUrl = String(input);
+    return new Response(JSON.stringify({ data: [] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  const response = await app.request("/api/model-provider-templates/1/ping", {
+    method: "POST",
+  });
+  const payload = (await response.json()) as {
+    data: {
+      endpoint: string;
+      reachable: boolean;
+    };
+  };
+
+  assert.equal(response.status, 200);
+  assert.equal(upstreamUrl, "https://token-plan-cn.xiaomimimo.com/v1/models");
+  assert.equal(payload.data.endpoint, "https://token-plan-cn.xiaomimimo.com/v1/models");
+  assert.equal(payload.data.reachable, true);
+});
+
+test("provider ping uses Xiaomi Anthropic-compatible default base url", async () => {
+  const template = createTemplate({
+    provider: "xiaomi-anthropic",
+    baseUrl: null,
+  });
+  const app = createAppWithTemplate(template);
+  let upstreamUrl = "";
+  let upstreamAnthropicVersion = "";
+
+  globalThis.fetch = async (input, init) => {
+    upstreamUrl = String(input);
+    upstreamAnthropicVersion = new Headers(init?.headers).get("anthropic-version") ?? "";
+    return new Response(JSON.stringify({ data: [] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  const response = await app.request("/api/model-provider-templates/1/ping", {
+    method: "POST",
+  });
+  const payload = (await response.json()) as {
+    data: {
+      endpoint: string;
+      reachable: boolean;
+    };
+  };
+
+  assert.equal(response.status, 200);
+  assert.equal(upstreamUrl, "https://token-plan-cn.xiaomimimo.com/anthropic/models");
+  assert.equal(upstreamAnthropicVersion, "2023-06-01");
+  assert.equal(payload.data.endpoint, "https://token-plan-cn.xiaomimimo.com/anthropic/models");
+  assert.equal(payload.data.reachable, true);
+});
+
 test.after(() => {
   globalThis.fetch = originalFetch;
 });

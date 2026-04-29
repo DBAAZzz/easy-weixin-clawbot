@@ -182,6 +182,56 @@ test("kimi-coding provider uses anthropic-compatible provider package", () => {
   assert.match((model as { provider?: string }).provider ?? "", /^anthropic/);
 });
 
+test("xiaomi provider uses openai-compatible provider package", () => {
+  const { model } = createLanguageModel("xiaomi", "MiMo-V2.5-Pro", {
+    apiKey: "test-key",
+  });
+
+  assert.match((model as { provider?: string }).provider ?? "", /^xiaomi/);
+});
+
+test("xiaomi provider lowercases display-style model ids before sending upstream", async () => {
+  const previousFetch = globalThis.fetch;
+  let requestModel = "";
+
+  try {
+    globalThis.fetch = async (_input, init) => {
+      const body = JSON.parse(String(init?.body)) as { model?: string };
+      requestModel = body.model ?? "";
+      throw new Error("network blocked for unit test");
+    };
+
+    const { model } = createLanguageModel("xiaomi", "MiMo-V2-Pro", {
+      apiKey: "test-key",
+    });
+
+    await assert.rejects(
+      () =>
+        generateText({
+          model,
+          messages: [{ role: "user", content: "hi" }],
+        }),
+      (error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        assert.match(message, /network blocked/);
+        return true;
+      },
+    );
+
+    assert.equal(requestModel, "mimo-v2-pro");
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("xiaomi-anthropic provider uses anthropic-compatible provider package", () => {
+  const { model } = createLanguageModel("xiaomi-anthropic", "MiMo-V2.5-Pro", {
+    apiKey: "test-key",
+  });
+
+  assert.match((model as { provider?: string }).provider ?? "", /^xiaomi-anthropic/);
+});
+
 test("xai provider uses official provider package", () => {
   const { model } = createLanguageModel("xai", "grok-3", {
     apiKey: "test-key",

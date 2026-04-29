@@ -32,6 +32,7 @@ const OPENAI_COMPATIBLE_BASE_URLS: Record<string, string> = {
   deepseek: "https://api.deepseek.com/v1",
   moonshot: "https://api.moonshot.cn/v1",
   kimi: "https://api.moonshot.cn/v1",
+  xiaomi: "https://token-plan-cn.xiaomimimo.com/v1",
   openrouter: "https://openrouter.ai/api/v1",
   xai: "https://api.x.ai/v1",
   groq: "https://api.groq.com/openai/v1",
@@ -67,8 +68,12 @@ function resolvePingTarget(
         "anthropic-version": "2023-06-01",
       },
     };
-  } else if (provider === "kimi-coding") {
-    const baseUrl = row.baseUrl?.trim() || "https://api.kimi.com/coding/v1";
+  } else if (provider === "kimi-coding" || provider === "xiaomi-anthropic") {
+    const baseUrl =
+      row.baseUrl?.trim() ||
+      (provider === "xiaomi-anthropic"
+        ? "https://token-plan-cn.xiaomimimo.com/anthropic"
+        : "https://api.kimi.com/coding/v1");
     endpoint = joinEndpoint(baseUrl, "models");
     init = {
       method: "GET",

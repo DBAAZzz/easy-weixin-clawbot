@@ -33,12 +33,11 @@ export function createBotRuntime(): BotRuntime {
       runtimeLogger.info({ accountId }, "开始启动账号运行时");
 
       try {
-        // Read credentials from DB (decrypted)
         const credential = await credentialStore.getDecrypted(accountId);
-        if (!credential || credential.status !== "active") {
+        if (!credential) {
           runtimeLogger.warn(
-            { accountId, credentialStatus: credential?.status ?? "missing" },
-            "账号缺少可用凭据，跳过启动",
+            { accountId },
+            "账号缺少已绑定凭据，跳过启动",
           );
           return;
         }
@@ -69,15 +68,11 @@ export function createBotRuntime(): BotRuntime {
       } finally {
         running.delete(accountId);
 
-        // Non-abort disconnect → credential may need re-login
         if (!abortController.signal.aborted) {
           runtimeLogger.info(
             { accountId },
-            "账号连接已断开，凭据标记为需要重新登录",
+            "账号连接已断开",
           );
-          await credentialStore.updateStatus(accountId, "relogin_required", "connection lost").catch((err) => {
-            log.error(`credentialStore.updateStatus(${accountId})`, err);
-          });
         }
       }
     })();
@@ -100,20 +95,13 @@ export function createBotRuntime(): BotRuntime {
 
   async function bootstrap(): Promise<void> {
     const accountIds = await getNonDeprecatedAccountIds();
-    const activeAccountIds: string[] = [];
 
-    for (const accountId of accountIds) {
-      if (await credentialStore.isActive(accountId)) {
-        activeAccountIds.push(accountId);
-      }
-    }
-
-    if (activeAccountIds.length === 0) {
-      runtimeLogger.info("当前没有运行中的账号，请在网页上绑定登录");
+    if (accountIds.length === 0) {
+      runtimeLogger.info("当前没有已绑定账号，请在网页上绑定登录");
       return;
     }
 
-    for (const accountId of activeAccountIds) {
+    for (const accountId of accountIds) {
       ensureAccountStarted(accountId);
     }
   }

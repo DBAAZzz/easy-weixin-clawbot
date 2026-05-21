@@ -6,11 +6,10 @@
  */
 
 import type {
-  AssistantMessage,
   ImageContent,
   AgentMessage,
   TextContent,
-  ToolResultMessage,
+  VisualContext,
 } from "./llm/types.js";
 import { withSpan } from "@clawbot/observability";
 import { readFileSync } from "node:fs";
@@ -30,35 +29,20 @@ import {
 import { extractMediaFromText } from "./media.js";
 import { assembleUserContext } from "./prompts/assembler.js";
 import { PROMPT_PROFILES } from "./prompts/profiles.js";
-
-/** Detect image MIME type from file header magic bytes. */
-function detectImageMime(buf: Buffer): string | null {
-  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return "image/jpeg";
-  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return "image/png";
-  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return "image/gif";
-  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
-      buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return "image/webp";
-  if (buf[0] === 0x42 && buf[1] === 0x4D) return "image/bmp";
-  return null;
-}
-
-function extractAssistantText(message: AssistantMessage): string {
-  return message.content
-    .filter((block): block is TextContent => block.type === "text")
-    .map((block) => block.text)
-    .join("\n")
-    .trim();
-}
-
-function extractToolResultText(message: ToolResultMessage): string {
-  const text = message.content
-    .filter((block): block is TextContent => block.type === "text")
-    .map((block) => block.text)
-    .join("\n")
-    .trim();
-
-  return text || "[non-text tool result]";
-}
+import { modelSupportsVision } from "./llm/model-meta.js";
+import {
+  createImagePlaceholder,
+  describeImageWithVisionModel,
+  formatVisualContextForPrompt,
+} from "./vision.js";
+import {
+  detectImageMime,
+  extractAssistantText,
+  extractToolResultText,
+  getChatModelVisionFallbackReason,
+  getVisionFailureReason,
+  isEmptyAssistantMessage,
+} from "./utils/chat-utils.js";
 
 function finalizeReply(
   text: string,
@@ -145,6 +129,8 @@ export async function chat(
       const userContent: (TextContent | ImageContent)[] = [
         { type: "text", text: assembledText },
       ];
+      const visualContexts: VisualContext[] = [];
+      let imagePromptReplacementText: string | undefined;
 
       if (media?.type === "image") {
         const buf = readFileSync(media.filePath);
@@ -153,10 +139,49 @@ export async function chat(
         if (mimeType !== media.mimeType) {
           console.log(`[chat] image mimeType corrected: ${media.mimeType} → ${mimeType}`);
         }
+
+        if (!modelSupportsVision(chatModel.meta)) {
+          const fallbackReason = getChatModelVisionFallbackReason(chatModel.meta);
+          const visionModel = await resolveConfiguredModel(accountId, conversationId, "vision");
+          if (visionModel) {
+            if (!modelSupportsVision(visionModel.meta)) {
+              userContent.push(createImagePlaceholder("no_vision_model_configured"));
+              imagePromptReplacementText = "[图片原始文件已保存；vision 模型未声明支持图片输入。]";
+              console.warn(
+                `[vision] configured vision model does not support image input: ${visionModel.modelId}`,
+              );
+            } else {
+              try {
+                const visualContext = await describeImageWithVisionModel({
+                  model: visionModel.model,
+                  modelId: visionModel.modelId,
+                  imageData: data,
+                  mimeType,
+                  imageBytes: buf.byteLength,
+                  fallbackReason,
+                });
+                visualContexts.push(visualContext);
+                userContent.push(formatVisualContextForPrompt(visualContext));
+                imagePromptReplacementText = "[图片原始文件已保存；图片内容见上方 visual_context。]";
+              } catch (error) {
+                const reason = getVisionFailureReason(error);
+                console.warn("[vision] describe image failed, using placeholder:", error);
+                userContent.push(createImagePlaceholder(reason));
+                imagePromptReplacementText = "[图片原始文件已保存；图片内容识别失败。]";
+              }
+            }
+          } else {
+            userContent.push(createImagePlaceholder("no_vision_model_configured"));
+            imagePromptReplacementText = "[图片原始文件已保存；未配置 vision 模型。]";
+            console.warn("[vision] no vision model configured; image will be replaced with placeholder");
+          }
+        }
+
         userContent.push({
           type: "image",
           data,
           mimeType: mimeType as ImageContent["mimeType"],
+          ...(imagePromptReplacementText ? { promptReplacementText: imagePromptReplacementText } : {}),
         });
       }
 
@@ -164,6 +189,7 @@ export async function chat(
         role: "user",
         content: userContent,
         timestamp: Date.now(),
+        ...(visualContexts.length > 0 ? { visualContext: visualContexts } : {}),
       };
 
       history.push(userMessage);
@@ -189,8 +215,7 @@ export async function chat(
 
           onMessage(message: AgentMessage) {
             // Skip persisting empty assistant messages (error responses from provider)
-            const isEmptyAssistant =
-              message.role === "assistant" && message.content.length === 0;
+            const isEmptyAssistant = isEmptyAssistantMessage(message);
 
             history.push(message);
             messagesAddedInRun++;

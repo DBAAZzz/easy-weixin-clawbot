@@ -146,6 +146,33 @@ test("replaceImagesWithTextPlaceholders converts user images before model conver
   ]);
 });
 
+test("replaceImagesWithTextPlaceholders honors image-specific replacement text", () => {
+  const messages: AgentMessage[] = [
+    {
+      role: "user",
+      timestamp: Date.now(),
+      content: [
+        { type: "text", text: "看这张图" },
+        {
+          type: "image",
+          data: "base64-image",
+          mimeType: "image/png",
+          promptReplacementText: "[visual context already injected]",
+        },
+      ],
+    },
+  ];
+
+  const downgraded = replaceImagesWithTextPlaceholders(messages);
+  const [modelMessage] = agentToModelMessages(downgraded);
+
+  assert.equal(modelMessage.role, "user");
+  assert.deepEqual(modelMessage.content, [
+    { type: "text", text: "看这张图" },
+    { type: "text", text: "[visual context already injected]" },
+  ]);
+});
+
 test("replaceImagesWithTextPlaceholders converts tool-result images", () => {
   const messages: AgentMessage[] = [
     {

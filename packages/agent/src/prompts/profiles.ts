@@ -22,6 +22,19 @@ export const PROMPT_PROFILES: Record<PromptLane, PromptProfile> = {
   },
 
   /**
+   * Vision fallback — pure image perception.
+   * No user context, memory, skills, or intent inference.
+   */
+  vision_describe: {
+    lane: "vision_describe",
+    systemPromptKey: "vision-describe",
+    injectSkills: false,
+    injectTapeMemory: false,
+    injectTime: false,
+    injectRecentContext: false,
+  },
+
+  /**
    * Heartbeat Phase 1 — lightweight goal evaluation via reasonInternal().
    * No skills or tools. Has tape memory and recent conversation context.
    */
@@ -66,6 +79,10 @@ export const PROMPT_TEMPLATES = {
 export const PROMPT_ASSET_SPECS: readonly PromptAssetSpec[] = [
   {
     key: "chat-system",
+    allowedRuntimeVars: [],
+  },
+  {
+    key: "vision-describe",
     allowedRuntimeVars: [],
   },
   {

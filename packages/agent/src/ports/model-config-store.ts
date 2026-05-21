@@ -4,7 +4,8 @@
  * Implemented by server (Prisma) and injected at startup.
  */
 
-export type ModelPurpose = "chat" | "extraction";
+export type ModelPurpose = "chat" | "extraction" | "vision";
+export type ModelVisionOverride = "default" | "supported" | "unsupported";
 export type ModelScope = "global" | "account" | "conversation";
 
 export interface ModelProviderTemplateRow {
@@ -50,6 +51,7 @@ export interface ModelConfigRow {
   modelIds: string[];
   apiKey: string | null;
   baseUrl: string | null;
+  supportsImageInputOverride: ModelVisionOverride;
   templateEnabled: boolean;
   enabled: boolean;
   priority: number;
@@ -61,6 +63,7 @@ export interface UpsertModelConfigInput {
   purpose: string;
   templateId: bigint;
   modelId: string;
+  supportsImageInputOverride?: ModelVisionOverride;
   enabled?: boolean;
   priority?: number;
 }

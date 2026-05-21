@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   invalidateModelCache,
   LLMProviderNotConfiguredError,
+  resolveConfiguredModel,
   resolveModel,
 } from "./model-resolver.js";
 import {
@@ -25,6 +26,7 @@ function createRow(overrides: Partial<ModelConfigRow> = {}): ModelConfigRow {
     modelIds: ["gpt-5"],
     apiKey: "db-key",
     baseUrl: null,
+    supportsImageInputOverride: "default",
     templateEnabled: true,
     enabled: true,
     priority: 0,
@@ -202,4 +204,64 @@ test("invalid model_id outside template model list is skipped", async () => {
   const resolved = await resolveModel("acct-1", "conv-1", "chat");
 
   assert.equal(resolved.modelId, "gpt-5-mini");
+});
+
+test("manual vision support override wins over model capability defaults", async () => {
+  applyStore({
+    "global:*": [
+      createRow({
+        provider: "deepseek",
+        modelId: "deepseek-chat",
+        modelIds: ["deepseek-chat"],
+        supportsImageInputOverride: "supported",
+      }),
+    ],
+  });
+
+  const resolved = await resolveModel("acct-1", "conv-1", "chat");
+
+  assert.equal(resolved.meta.supportsImageInput, true);
+});
+
+test("vision purpose requires an explicit vision config and ignores wildcard configs", async () => {
+  applyStore({
+    "global:*": [
+      createRow({
+        purpose: "*",
+        provider: "deepseek",
+        modelId: "deepseek-v4-flash",
+        modelIds: ["deepseek-v4-flash"],
+      }),
+    ],
+  });
+
+  const resolved = await resolveConfiguredModel("acct-1", "conv-1", "vision");
+
+  assert.equal(resolved, null);
+});
+
+test("explicit vision config resolves independently from wildcard chat fallback", async () => {
+  applyStore({
+    "global:*": [
+      createRow({
+        id: 1n,
+        purpose: "*",
+        provider: "deepseek",
+        modelId: "deepseek-v4-flash",
+        modelIds: ["deepseek-v4-flash"],
+      }),
+      createRow({
+        id: 2n,
+        purpose: "vision",
+        provider: "openai",
+        modelId: "gpt-4.1-mini",
+        modelIds: ["gpt-4.1-mini"],
+      }),
+    ],
+  });
+
+  const resolved = await resolveConfiguredModel("acct-1", "conv-1", "vision");
+
+  assert.equal(resolved?.modelId, "gpt-4.1-mini");
+  assert.equal(resolved?.meta.supportsImageInput, true);
 });

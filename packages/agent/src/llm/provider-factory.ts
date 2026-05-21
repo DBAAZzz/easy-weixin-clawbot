@@ -33,6 +33,29 @@ const PROVIDER_DEFAULTS: Record<string, ModelMeta> = {
   mistral: { contextWindow: 128_000, maxOutputTokens: 4096 },
 };
 
+const MODEL_CAPABILITIES: Record<string, Partial<ModelMeta>> = {
+  "deepseek:deepseek-chat": { supportsImageInput: false },
+  "deepseek:deepseek-reasoner": { supportsImageInput: false },
+  "deepseek:deepseek-v4-flash": { supportsImageInput: false },
+
+  "openai:gpt-4.1": { supportsImageInput: true },
+  "openai:gpt-4.1-mini": { supportsImageInput: true },
+  "openai:gpt-4o": { supportsImageInput: true },
+  "openai:gpt-4o-mini": { supportsImageInput: true },
+  "openai:gpt-5": { supportsImageInput: true },
+  "openai:gpt-5-mini": { supportsImageInput: true },
+
+  "google:gemini-2.5-flash": { supportsImageInput: true },
+  "google:gemini-2.5-flash-lite": { supportsImageInput: true },
+  "google:gemini-2.0-flash": { supportsImageInput: true },
+  "google:gemini-1.5-flash": { supportsImageInput: true },
+  "google:gemini-1.5-pro": { supportsImageInput: true },
+
+  "anthropic:claude-3-5-haiku-latest": { supportsImageInput: true },
+  "anthropic:claude-3-5-sonnet-latest": { supportsImageInput: true },
+  "anthropic:claude-3-7-sonnet-latest": { supportsImageInput: true },
+};
+
 const FALLBACK_META: ModelMeta = { contextWindow: 128_000, maxOutputTokens: 4096 };
 const OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1";
 const MOONSHOT_DEFAULT_BASE_URL = "https://api.moonshot.cn/v1";
@@ -79,6 +102,17 @@ function requireBaseURL(provider: string, baseURL: string | undefined): string {
   return baseURL;
 }
 
+function normalizeGoogleBaseURL(baseURL: string | undefined): string | undefined {
+  if (!baseURL) {
+    return undefined;
+  }
+  const trimmed = baseURL.replace(/\/+$/, "");
+  if (/\/v1(?:beta)?$/.test(trimmed)) {
+    return trimmed;
+  }
+  return `${trimmed}/v1beta`;
+}
+
 // ── Public API ─────────────────────────────────────────────────────
 
 export interface CreateModelResult {
@@ -99,7 +133,9 @@ export function createLanguageModel(
   },
 ): CreateModelResult {
   const model = buildProviderModel(provider, modelId, options);
-  const meta = PROVIDER_DEFAULTS[provider] ?? FALLBACK_META;
+  const providerMeta = PROVIDER_DEFAULTS[provider] ?? FALLBACK_META;
+  const modelMeta = MODEL_CAPABILITIES[`${provider}:${modelId}`] ?? {};
+  const meta: ModelMeta = { ...providerMeta, ...modelMeta };
   return { model, meta };
 }
 
@@ -118,8 +154,11 @@ const PROVIDER_BUILDERS: Record<string, ProviderBuilder> = {
       apiKey,
     })(modelId),
 
-  google: ({ modelId, apiKey }) =>
-    createGoogleGenerativeAI({ apiKey })(modelId),
+  google: ({ modelId, apiKey, baseURL }) =>
+    createGoogleGenerativeAI({
+      ...(baseURL ? { baseURL: normalizeGoogleBaseURL(baseURL) } : {}),
+      apiKey,
+    })(modelId),
 
   moonshot: ({ modelId, apiKey, baseURL }) =>
     createMoonshotAI({

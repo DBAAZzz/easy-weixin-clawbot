@@ -8,6 +8,8 @@ export type {
   ToolResultMessage,
   AgentMessage,
   ModelMeta,
+  VisualContext,
+  VisionFallbackReason,
   LanguageModel,
 } from "./types.js";
 
@@ -20,3 +22,5 @@ export {
   createLanguageModel,
   type CreateModelResult,
 } from "./provider-factory.js";
+
+export { modelSupportsVision } from "./model-meta.js";

@@ -383,6 +383,7 @@ export interface ModelConfigDto {
   template_name: string;
   provider: string;
   model_id: string;
+  supports_image_input_override: "default" | "supported" | "unsupported";
   template_enabled: boolean;
   enabled: boolean;
   priority: number;

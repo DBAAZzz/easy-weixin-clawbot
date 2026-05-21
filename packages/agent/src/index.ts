@@ -9,10 +9,13 @@ export type {
   ThinkingContent,
   ToolCallContent,
   ModelMeta,
+  VisualContext,
+  VisionFallbackReason,
   LanguageModel,
 } from "./llm/types.js";
 export { agentToModelMessages, legacyPayloadToAgentMessage } from "./llm/messages.js";
 export { createLanguageModel } from "./llm/provider-factory.js";
+export { modelSupportsVision } from "./llm/model-meta.js";
 export type { ResolvedModel } from "./model-resolver.js";
 export {
   buildModelFromConfig,
@@ -132,6 +135,7 @@ export type {
   UpsertModelConfigInput,
   ModelPurpose,
   ModelScope,
+  ModelVisionOverride,
   HeartbeatStore,
   HeartbeatExecutorPort,
   HeartbeatExecutionRequest,

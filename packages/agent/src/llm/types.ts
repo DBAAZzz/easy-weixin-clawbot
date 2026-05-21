@@ -18,7 +18,32 @@ export interface ImageContent {
   type: "image";
   data: string;
   mimeType: string;
+  promptReplacementText?: string;
 }
+
+export interface VisualContext {
+  provider: "vision";
+  modelId: string;
+  generatedAt: string;
+  summary: string;
+  ocrText: string[];
+  objects: string[];
+  scene?: string;
+  possibleIntent?: string;
+  confidence?: number;
+  limitations?: string[];
+  fallbackReason?: VisionFallbackReason;
+}
+
+export type VisionFallbackReason =
+  | "chat_model_no_vision"
+  | "chat_model_vision_unknown"
+  | "no_vision_model_configured"
+  | "vision_call_failed"
+  | "vision_call_timeout"
+  | "vision_empty_result"
+  | "vision_parse_failed"
+  | "image_limit_exceeded";
 
 export interface ThinkingContent {
   type: "thinking";
@@ -38,6 +63,7 @@ export interface UserMessage {
   role: "user";
   content: string | (TextContent | ImageContent)[];
   timestamp: number;
+  visualContext?: VisualContext[];
 }
 
 export interface AssistantMessage {
@@ -69,8 +95,8 @@ export interface ModelMeta {
   contextWindow: number;
   maxOutputTokens: number;
   /**
-   * false means the runner must not send image parts to this model.
-   * undefined keeps existing provider behavior for providers with model-specific vision support.
+   * true means the model can receive image content directly.
+   * false or undefined means image content must not be sent directly.
    */
   supportsImageInput?: boolean;
 }

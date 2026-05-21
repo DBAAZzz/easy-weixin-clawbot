@@ -56,7 +56,14 @@ const SCOPE_LABELS: Record<string, string> = {
 const PURPOSE_LABELS: Record<string, string> = {
   chat: "对话",
   extraction: "记忆提取",
+  vision: "Vision 识图",
   "*": "全部",
+};
+
+const VISION_OVERRIDE_LABELS: Record<string, string> = {
+  default: "跟随系统默认",
+  supported: "支持视觉输入",
+  unsupported: "不支持视觉输入",
 };
 
 const SCOPE_TONES: Record<string, "online" | "muted" | "warning"> = {
@@ -70,9 +77,10 @@ interface ConfigEditorForm {
   scopeKey: string;
   accountId: string;
   conversationId: string;
-  purpose: "*" | "chat" | "extraction";
+  purpose: "*" | "chat" | "extraction" | "vision";
   templateId: string;
   modelId: string;
+  supportsImageInputOverride: "default" | "supported" | "unsupported";
   enabled: boolean;
   priority: number;
 }
@@ -85,6 +93,7 @@ const EMPTY_CONFIG_FORM: ConfigEditorForm = {
   purpose: "*",
   templateId: "",
   modelId: "",
+  supportsImageInputOverride: "default",
   enabled: true,
   priority: 0,
 };
@@ -99,6 +108,7 @@ function createConfigFormFromDto(dto: ModelConfigDto): ConfigEditorForm {
     purpose: dto.purpose as ConfigEditorForm["purpose"],
     templateId: dto.template_id,
     modelId: dto.model_id,
+    supportsImageInputOverride: dto.supports_image_input_override,
     enabled: dto.enabled,
     priority: dto.priority,
   };
@@ -534,6 +544,11 @@ function ModelConfigCard(props: {
         <IconTag icon={<ChatIcon className="size-3" />}>
           {PURPOSE_LABELS[config.purpose] || config.purpose}
         </IconTag>
+        {config.supports_image_input_override !== "default" ? (
+          <IconTag icon={<CpuIcon className="size-3" />} tone="warning">
+            {VISION_OVERRIDE_LABELS[config.supports_image_input_override]}
+          </IconTag>
+        ) : null}
         <IconTag
           icon={<LinkIcon className="size-3" />}
           tone={config.template_enabled ? "muted" : "warning"}
@@ -692,6 +707,7 @@ function ModelConfigEditorModal(props: {
         purpose: form.purpose,
         template_id: form.templateId,
         model_id: form.modelId,
+        supports_image_input_override: form.supportsImageInputOverride,
         enabled: form.enabled,
         priority: form.priority,
       });
@@ -832,7 +848,7 @@ function ModelConfigEditorModal(props: {
             <div className="mt-4">
               <p className="text-sm text-muted">用途</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {(["*", "chat", "extraction"] as const).map((purpose) => (
+                {(["*", "chat", "extraction", "vision"] as const).map((purpose) => (
                   <button
                     key={purpose}
                     type="button"
@@ -890,6 +906,35 @@ function ModelConfigEditorModal(props: {
                 className="mt-1"
                 disabled={!selectedTemplate}
               />
+            </div>
+
+            <div>
+              <p className="text-sm text-muted">视觉输入能力覆盖</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["default", "supported", "unsupported"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() =>
+                      setForm((current) => ({
+                        ...current,
+                        supportsImageInputOverride: value,
+                      }))
+                    }
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-base transition",
+                      form.supportsImageInputOverride === value
+                        ? "border-accent bg-accent-soft text-accent-strong"
+                        : "border-line text-muted-strong hover:bg-white",
+                    )}
+                  >
+                    {VISION_OVERRIDE_LABELS[value]}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-sm text-muted">
+                仅在静态能力表无法判断自定义模型时手动覆盖。
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -1079,6 +1124,7 @@ export function ModelConfigPage() {
         purpose: config.purpose,
         template_id: config.template_id,
         model_id: config.model_id,
+        supports_image_input_override: config.supports_image_input_override,
         enabled: !config.enabled,
         priority: config.priority,
       });

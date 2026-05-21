@@ -12,6 +12,7 @@ import { createLanguageModel } from "./llm/provider-factory.js";
 import type { ModelMeta } from "./llm/types.js";
 import {
   getModelConfigStore,
+  type ModelVisionOverride,
   type ModelConfigRow,
   type ModelPurpose,
 } from "./ports/model-config-store.js";
@@ -102,17 +103,31 @@ async function fetchRows(
 export function buildModelFromConfig(
   provider: string,
   modelId: string,
-  options?: { apiKey?: string; baseUrl?: string | null },
+  options?: {
+    apiKey?: string;
+    baseUrl?: string | null;
+    supportsImageInputOverride?: ModelVisionOverride;
+  },
 ): { model: LanguageModel; meta: ModelMeta } {
-  return createLanguageModel(provider, modelId, {
+  const result = createLanguageModel(provider, modelId, {
     apiKey: options?.apiKey ?? undefined,
     baseUrl: options?.baseUrl,
   });
+  if (options?.supportsImageInputOverride === "supported") {
+    return { ...result, meta: { ...result.meta, supportsImageInput: true } };
+  }
+  if (options?.supportsImageInputOverride === "unsupported") {
+    return { ...result, meta: { ...result.meta, supportsImageInput: false } };
+  }
+  return result;
 }
 
 // ── Resolution ────────────────────────────────────────────────────────
 
 function matchPurpose(rowPurpose: string, wanted: ModelPurpose): boolean {
+  if (wanted === "vision") {
+    return rowPurpose === "vision";
+  }
   return rowPurpose === wanted || rowPurpose === "*";
 }
 
@@ -178,7 +193,11 @@ export async function resolveConfiguredModel(
       const { model, meta } = buildModelFromConfig(
         row.provider,
         row.modelId,
-        { apiKey: row.apiKey ?? undefined, baseUrl: row.baseUrl },
+        {
+          apiKey: row.apiKey ?? undefined,
+          baseUrl: row.baseUrl,
+          supportsImageInputOverride: row.supportsImageInputOverride,
+        },
       );
       return {
         model,

@@ -72,6 +72,14 @@ test("deepseek provider uses openai-compatible chat transport", () => {
   assert.equal(meta.supportsImageInput, false);
 });
 
+test("model capability table marks known vision models", () => {
+  const { meta } = createLanguageModel("openai", "gpt-4.1-mini", {
+    apiKey: "test-key",
+  });
+
+  assert.equal(meta.supportsImageInput, true);
+});
+
 test("deepseek provider preserves historical reasoning_content after tool calls", async () => {
   const previousFetch = globalThis.fetch;
   const bodies: Array<Record<string, unknown>> = [];
@@ -293,6 +301,74 @@ test("openai provider uses configured baseUrl", async () => {
     );
 
     assert.match(requestUrl, /^https:\/\/proxy\.example\/v1\//);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("google provider uses configured baseUrl", async () => {
+  const previousFetch = globalThis.fetch;
+  let requestUrl = "";
+
+  try {
+    globalThis.fetch = async (input) => {
+      requestUrl = input instanceof Request ? input.url : String(input);
+      throw new Error("network blocked for unit test");
+    };
+
+    const { model } = createLanguageModel("google", "gemini-2.5-flash", {
+      apiKey: "test-key",
+      baseUrl: "https://proxy.example/v1beta",
+    });
+
+    await assert.rejects(
+      () =>
+        generateText({
+          model,
+          messages: [{ role: "user", content: "hi" }],
+        }),
+      (error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        assert.match(message, /network blocked/);
+        return true;
+      },
+    );
+
+    assert.match(requestUrl, /^https:\/\/proxy\.example\/v1beta\//);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("google provider appends v1beta when configured baseUrl is a root host", async () => {
+  const previousFetch = globalThis.fetch;
+  let requestUrl = "";
+
+  try {
+    globalThis.fetch = async (input) => {
+      requestUrl = input instanceof Request ? input.url : String(input);
+      throw new Error("network blocked for unit test");
+    };
+
+    const { model } = createLanguageModel("google", "gemini-2.5-flash", {
+      apiKey: "test-key",
+      baseUrl: "https://proxy.example",
+    });
+
+    await assert.rejects(
+      () =>
+        generateText({
+          model,
+          messages: [{ role: "user", content: "hi" }],
+        }),
+      (error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        assert.match(message, /network blocked/);
+        return true;
+      },
+    );
+
+    assert.match(requestUrl, /^https:\/\/proxy\.example\/v1beta\//);
   } finally {
     globalThis.fetch = previousFetch;
   }

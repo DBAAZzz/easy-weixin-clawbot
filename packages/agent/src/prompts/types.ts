@@ -5,6 +5,7 @@
 /** Distinct LLM invocation channels in the system. */
 export type PromptLane =
   | "chat"
+  | "vision_describe"
   | "heartbeat_eval"
   | "memory_extract";
 

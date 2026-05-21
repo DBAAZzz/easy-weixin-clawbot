@@ -15,6 +15,7 @@ import {
   replaceImagesWithTextPlaceholders,
   stripUnreasonedToolCallHistory,
 } from "./llm/messages.js";
+import { modelSupportsVision } from "./llm/model-meta.js";
 import {
   llmErrorsTotal,
   llmLatencyMs,
@@ -113,6 +114,7 @@ function serializeMessage(message: AgentMessage): unknown {
     return {
       role: message.role,
       timestamp: message.timestamp,
+      visualContext: message.visualContext,
       content:
         typeof message.content === "string"
           ? message.content
@@ -287,7 +289,7 @@ export function createAgentRunner(
           : workingHistory;
 
         // 如果当前模型不支持图片输入，只裁剪给模型的副本；原始 history 和 DB 仍保留图片消息。
-        if (effectiveMeta.supportsImageInput === false) {
+        if (!modelSupportsVision(effectiveMeta)) {
           history = replaceImagesWithTextPlaceholders(history);
         }
 

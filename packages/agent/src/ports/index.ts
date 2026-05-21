@@ -42,6 +42,7 @@ export type {
   UpsertModelConfigInput,
   ModelPurpose,
   ModelScope,
+  ModelVisionOverride,
 } from "./model-config-store.js";
 export { setModelConfigStore, getModelConfigStore } from "./model-config-store.js";
 

@@ -14,6 +14,7 @@ function toDto(row: ModelConfigRow): ModelConfigDto {
     template_name: row.templateName,
     provider: row.provider,
     model_id: row.modelId,
+    supports_image_input_override: row.supportsImageInputOverride,
     template_enabled: row.templateEnabled,
     enabled: row.enabled,
     priority: row.priority,
@@ -49,8 +50,19 @@ export function registerModelConfigRoutes(app: Hono) {
       return c.json({ error: "scope must be global, account, or conversation" }, 400);
     }
 
-    if (!["chat", "extraction", "*"].includes(purpose)) {
-      return c.json({ error: "purpose must be chat, extraction, or *" }, 400);
+    if (!["chat", "extraction", "vision", "*"].includes(purpose)) {
+      return c.json({ error: "purpose must be chat, extraction, vision, or *" }, 400);
+    }
+
+    const supportsImageInputOverride = body.supports_image_input_override ?? "default";
+    if (!["default", "supported", "unsupported"].includes(supportsImageInputOverride)) {
+      return c.json(
+        {
+          error:
+            "supports_image_input_override must be default, supported, or unsupported",
+        },
+        400,
+      );
     }
 
     const templateId = BigInt(template_id);
@@ -68,6 +80,7 @@ export function registerModelConfigRoutes(app: Hono) {
       purpose,
       templateId,
       modelId: model_id,
+      supportsImageInputOverride,
       enabled: body.enabled ?? true,
       priority: body.priority ?? 0,
     });

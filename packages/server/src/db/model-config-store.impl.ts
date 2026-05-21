@@ -38,6 +38,7 @@ function toConfigRow(r: {
   purpose: string;
   templateId: bigint;
   modelId: string;
+  supportsImageInputOverride: string;
   enabled: boolean;
   priority: number;
   template: {
@@ -59,6 +60,7 @@ function toConfigRow(r: {
     templateName: r.template.name,
     provider: r.template.provider,
     modelId: r.modelId,
+    supportsImageInputOverride: r.supportsImageInputOverride as ModelConfigRow["supportsImageInputOverride"],
     modelIds: r.template.modelIds,
     apiKey: r.template.apiKey,
     baseUrl: r.template.baseUrl,
@@ -184,12 +186,14 @@ export class PrismaModelConfigStore implements ModelConfigStore {
         purpose: input.purpose,
         templateId: input.templateId,
         modelId: input.modelId,
+        supportsImageInputOverride: input.supportsImageInputOverride ?? "default",
         enabled: input.enabled ?? true,
         priority: input.priority ?? 0,
       },
       update: {
         templateId: input.templateId,
         modelId: input.modelId,
+        supportsImageInputOverride: input.supportsImageInputOverride ?? "default",
         enabled: input.enabled,
         priority: input.priority,
       },

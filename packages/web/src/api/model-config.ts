@@ -72,6 +72,7 @@ export function upsertModelConfig(payload: {
   purpose: string;
   template_id: string;
   model_id: string;
+  supports_image_input_override?: "default" | "supported" | "unsupported";
   enabled?: boolean;
   priority?: number;
 }): Promise<ModelConfigDto> {

@@ -181,7 +181,7 @@ function replaceImageBlock(block: TextContent | ImageContent): TextContent {
   if (block.type === "text") {
     return block;
   }
-  return { type: "text", text: TEXT_ONLY_IMAGE_PLACEHOLDER };
+  return { type: "text", text: block.promptReplacementText ?? TEXT_ONLY_IMAGE_PLACEHOLDER };
 }
 
 /**
@@ -227,6 +227,7 @@ export function legacyPayloadToAgentMessage(payload: Record<string, unknown>): A
       role: "user",
       content: payload.content as UserMessage["content"],
       timestamp,
+      visualContext: payload.visualContext as UserMessage["visualContext"],
     };
   }
 

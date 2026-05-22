@@ -3,7 +3,7 @@ import { getUpdates } from "../api/api.js";
 import { WeixinConfigManager } from "../api/config-cache.js";
 import { SESSION_EXPIRED_ERRCODE, pauseSession, getRemainingPauseMs } from "../api/session-guard.js";
 import { processOneMessage } from "../messaging/process-message.js";
-import { getSyncBufFilePath, loadGetUpdatesBuf, saveGetUpdatesBuf } from "../storage/sync-buf.js";
+import { resolveWeixinSdkWorkDirs } from "../storage/work-dir.js";
 import { logger } from "../util/logger.js";
 import { redactBody } from "../util/redact.js";
 
@@ -21,10 +21,12 @@ export type MonitorWeixinOpts = {
   abortSignal?: AbortSignal;
   longPollTimeoutMs?: number;
   log?: (msg: string) => void;
-  /** Pre-loaded sync buf value (from DB). When provided, file-based loading is skipped. */
-  syncBufInitial?: string;
-  /** Callback to persist sync buf externally (e.g. to DB). When provided, file-based saving is skipped. */
-  onSyncBufUpdate?: (buf: string) => void;
+  /** Pre-loaded sync buf value from the caller-owned store. */
+  syncBufInitial: string | undefined;
+  /** Callback to persist sync buf externally, e.g. to DB. */
+  onSyncBufUpdate: (buf: string) => void;
+  /** SDK working directory for temporary media. Defaults to packages/weixin-agent-sdk/.openclaw. */
+  workDir?: string;
 };
 
 /**
@@ -51,28 +53,18 @@ export async function monitorWeixinProvider(opts: MonitorWeixinOpts): Promise<vo
   log(`[weixin] monitor started (${baseUrl}, account=${accountId})`);
   aLog.info(`Monitor started: baseUrl=${baseUrl}`);
 
-  // Sync buf: prefer external (DB-based) initial value; fall back to file-based
-  const useExternalSyncBuf = opts.syncBufInitial !== undefined || opts.onSyncBufUpdate !== undefined;
-  let getUpdatesBuf: string;
-
-  if (useExternalSyncBuf) {
-    getUpdatesBuf = opts.syncBufInitial ?? "";
-    if (getUpdatesBuf) {
-      log(`[weixin] resuming from external sync buf (${getUpdatesBuf.length} bytes)`);
-    } else {
-      log(`[weixin] no external sync buf, starting fresh`);
-    }
-  } else {
-    const syncFilePath = getSyncBufFilePath(accountId);
-    const previousGetUpdatesBuf = loadGetUpdatesBuf(syncFilePath);
-    getUpdatesBuf = previousGetUpdatesBuf ?? "";
-    if (previousGetUpdatesBuf) {
-      log(`[weixin] resuming from file sync buf (${getUpdatesBuf.length} bytes)`);
-    } else {
-      log(`[weixin] no previous sync buf, starting fresh`);
-    }
+  if (typeof opts.onSyncBufUpdate !== "function") {
+    throw new Error("monitorWeixinProvider requires onSyncBufUpdate; file sync buf fallback was removed");
   }
 
+  let getUpdatesBuf = opts.syncBufInitial ?? "";
+  if (getUpdatesBuf) {
+    log(`[weixin] resuming from external sync buf (${getUpdatesBuf.length} bytes)`);
+  } else {
+    log(`[weixin] no external sync buf, starting fresh`);
+  }
+
+  const workDirs = resolveWeixinSdkWorkDirs(opts.workDir);
   const configManager = new WeixinConfigManager({ baseUrl, token }, log);
 
   let nextTimeoutMs = longPollTimeoutMs ?? DEFAULT_LONG_POLL_TIMEOUT_MS;
@@ -128,11 +120,7 @@ export async function monitorWeixinProvider(opts: MonitorWeixinOpts): Promise<vo
       consecutiveFailures = 0;
 
       if (resp.get_updates_buf != null && resp.get_updates_buf !== "") {
-        if (opts.onSyncBufUpdate) {
-          opts.onSyncBufUpdate(resp.get_updates_buf);
-        } else {
-          saveGetUpdatesBuf(getSyncBufFilePath(accountId), resp.get_updates_buf);
-        }
+        opts.onSyncBufUpdate(resp.get_updates_buf);
         getUpdatesBuf = resp.get_updates_buf;
       }
 
@@ -152,6 +140,7 @@ export async function monitorWeixinProvider(opts: MonitorWeixinOpts): Promise<vo
           cdnBaseUrl,
           token,
           typingTicket: cachedConfig.typingTicket,
+          workDirs,
           log,
           errLog,
         });

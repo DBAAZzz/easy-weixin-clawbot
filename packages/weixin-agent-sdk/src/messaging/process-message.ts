@@ -9,6 +9,8 @@ import { MessageItemType, TypingStatus } from "../api/types.js";
 import { downloadRemoteImageToTemp } from "../cdn/upload.js";
 import { downloadMediaFromItem } from "../media/media-download.js";
 import { getExtensionFromMime } from "../media/mime.js";
+import type { WeixinSdkWorkDirs } from "../storage/work-dir.js";
+import { resolveWeixinSdkWorkDirs } from "../storage/work-dir.js";
 import { logger } from "../util/logger.js";
 
 import { setContextToken, bodyFromItemList, isMediaItem } from "./inbound.js";
@@ -17,18 +19,15 @@ import { sendWeixinMediaFile } from "./send-media.js";
 import { markdownToPlainText, sendMessageWeixin } from "./send.js";
 import { handleSlashCommand } from "./slash-commands.js";
 
-const MEDIA_TEMP_DIR = "/tmp/weixin-agent/media";
-
 /** Save a buffer to a temporary file, returning the file path. */
 async function saveMediaBuffer(
   buffer: Buffer,
+  baseDir: string,
   contentType?: string,
-  subdir?: string,
   _maxBytes?: number,
   originalFilename?: string,
 ): Promise<{ path: string }> {
-  const dir = path.join(MEDIA_TEMP_DIR, subdir ?? "");
-  await fs.mkdir(dir, { recursive: true });
+  await fs.mkdir(baseDir, { recursive: true });
   let ext = ".bin";
   if (originalFilename) {
     ext = path.extname(originalFilename) || ".bin";
@@ -36,7 +35,7 @@ async function saveMediaBuffer(
     ext = getExtensionFromMime(contentType);
   }
   const name = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}${ext}`;
-  const filePath = path.join(dir, name);
+  const filePath = path.join(baseDir, name);
   await fs.writeFile(filePath, buffer);
   return { path: filePath };
 }
@@ -49,6 +48,7 @@ export type ProcessMessageDeps = {
   cdnBaseUrl: string;
   token?: string;
   typingTicket?: string;
+  workDirs?: WeixinSdkWorkDirs;
   log: (msg: string) => void;
   errLog: (msg: string) => void;
 };
@@ -108,6 +108,7 @@ export async function processOneMessage(
   full: WeixinMessage,
   deps: ProcessMessageDeps,
 ): Promise<void> {
+  const workDirs = deps.workDirs ?? resolveWeixinSdkWorkDirs();
   const receivedAt = Date.now();
   const textBody = extractTextBody(full.item_list);
 
@@ -145,7 +146,14 @@ export async function processOneMessage(
     try {
       const downloaded = await downloadMediaFromItem(mediaItem, {
         cdnBaseUrl: deps.cdnBaseUrl,
-        saveMedia: saveMediaBuffer,
+        saveMedia: (buffer, contentType, _subdir, maxBytes, originalFilename) =>
+          saveMediaBuffer(
+            buffer,
+            workDirs.mediaInboundDir,
+            contentType,
+            maxBytes,
+            originalFilename,
+          ),
         log: deps.log,
         errLog: deps.errLog,
         label: "inbound",
@@ -210,7 +218,7 @@ export async function processOneMessage(
       if (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) {
         filePath = await downloadRemoteImageToTemp(
           mediaUrl,
-          path.join(MEDIA_TEMP_DIR, "outbound"),
+          workDirs.mediaOutboundDir,
         );
       } else {
         filePath = path.isAbsolute(mediaUrl) ? mediaUrl : path.resolve(mediaUrl);

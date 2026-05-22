@@ -11,13 +11,24 @@ import { getPromptAssets } from "./prompts/port.js";
 import { PROMPT_PROFILES } from "./prompts/profiles.js";
 
 const VISION_TIMEOUT_MS = 120_000;
-const VISION_MAX_OUTPUT_TOKENS = 1200;
+const VISION_MAX_OUTPUT_TOKENS = 2000;
 const MAX_CONTEXT_CHARS = 1200;
+const MAX_OCR_ITEMS = 30;
+const MAX_OBJECT_ITEMS = 12;
+const MAX_ITEM_CHARS = 120;
 
 const VISION_OUTPUT_SCHEMA = z.object({
-  summary: z.string().describe("一句话概括图片中可见内容"),
-  ocr_text: z.array(z.string()).default([]).describe("图片中识别出的文字，按阅读顺序排列"),
-  objects: z.array(z.string()).default([]).describe("图片中清晰可见的主要对象、人物、界面元素或环境元素"),
+  summary: z.string().max(240).describe("一句话概括图片中可见内容"),
+  ocr_text: z
+    .array(z.string().max(MAX_ITEM_CHARS))
+    .max(MAX_OCR_ITEMS)
+    .default([])
+    .describe("图片中最重要的可见文字，按阅读顺序排列"),
+  objects: z
+    .array(z.string().max(MAX_ITEM_CHARS))
+    .max(MAX_OBJECT_ITEMS)
+    .default([])
+    .describe("图片中清晰可见的主要对象、人物、界面元素或环境元素"),
 });
 
 export interface DescribeImageInput {
@@ -40,7 +51,10 @@ function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => String(item).trim()).filter(Boolean);
+  return value
+    .map((item) => String(item).trim())
+    .filter(Boolean)
+    .map((item) => item.slice(0, MAX_ITEM_CHARS));
 }
 
 function extractJsonText(text: string): string | null {
@@ -57,6 +71,89 @@ function extractJsonText(text: string): string | null {
   return text.slice(start, end + 1);
 }
 
+function parseJsonStringLiteral(value: string): string | null {
+  try {
+    return JSON.parse(value) as string;
+  } catch {
+    return null;
+  }
+}
+
+function extractPartialJsonString(text: string, key: string): string | undefined {
+  const pattern = new RegExp(`"${key}"\\s*:\\s*("(?:\\\\.|[^"\\\\])*")`);
+  const match = pattern.exec(text);
+  if (!match?.[1]) {
+    return undefined;
+  }
+  return parseJsonStringLiteral(match[1]) ?? undefined;
+}
+
+function extractPartialJsonArray(text: string, key: string, maxItems: number): string[] {
+  const keyIndex = text.indexOf(`"${key}"`);
+  if (keyIndex < 0) {
+    return [];
+  }
+
+  const arrayStart = text.indexOf("[", keyIndex);
+  if (arrayStart < 0) {
+    return [];
+  }
+
+  const nextKeyIndex = text.slice(arrayStart + 1).search(/\n\s*"[^"]+"\s*:/);
+  const arrayBody =
+    nextKeyIndex >= 0
+      ? text.slice(arrayStart + 1, arrayStart + 1 + nextKeyIndex)
+      : text.slice(arrayStart + 1);
+  const values: string[] = [];
+  const stringPattern = /"(?:\\.|[^"\\])*"/g;
+
+  for (const match of arrayBody.matchAll(stringPattern)) {
+    const value = parseJsonStringLiteral(match[0]);
+    if (value?.trim()) {
+      values.push(value.trim());
+    }
+    if (values.length >= maxItems) {
+      break;
+    }
+  }
+
+  return values;
+}
+
+function getErrorText(error: unknown): string | undefined {
+  if (!error || typeof error !== "object") {
+    return undefined;
+  }
+
+  const directText = (error as { text?: unknown }).text;
+  if (typeof directText === "string") {
+    return directText;
+  }
+
+  const cause = (error as { cause?: unknown }).cause;
+  if (!cause || typeof cause !== "object") {
+    return undefined;
+  }
+
+  const causeText = (cause as { text?: unknown }).text;
+  return typeof causeText === "string" ? causeText : undefined;
+}
+
+function recoverVisualContextFromPartialText(
+  text: string,
+  modelId: string,
+): VisualContext | undefined {
+  const summary = extractPartialJsonString(text, "summary");
+  const ocrText = extractPartialJsonArray(text, "ocr_text", MAX_OCR_ITEMS);
+  const objects = extractPartialJsonArray(text, "objects", MAX_OBJECT_ITEMS);
+
+  if (!summary && ocrText.length === 0 && objects.length === 0) {
+    return undefined;
+  }
+
+  return normalizeVisualContext({ summary, ocr_text: ocrText, objects }, modelId, "vision_parse_failed");
+}
+
 function normalizeVisualContext(
   raw: RawVisualContext,
   modelId: string,
@@ -67,15 +164,19 @@ function normalizeVisualContext(
     provider: "vision",
     modelId,
     generatedAt: new Date().toISOString(),
-    summary,
-    ocrText: asStringArray(raw.ocr_text ?? raw.ocrText),
-    objects: asStringArray(raw.objects),
+    summary: summary.slice(0, 240),
+    ocrText: asStringArray(raw.ocr_text ?? raw.ocrText).slice(0, MAX_OCR_ITEMS),
+    objects: asStringArray(raw.objects).slice(0, MAX_OBJECT_ITEMS),
     ...(fallbackReason ? { fallbackReason } : {}),
   };
 }
 
 function buildVisionPrompt(): string {
-  return "请只识别这张图片中可见的事实，并按 schema 输出。";
+  return [
+    "请只识别这张图片中可见的事实，并按 schema 输出。",
+    `ocr_text 最多 ${MAX_OCR_ITEMS} 条，objects 最多 ${MAX_OBJECT_ITEMS} 条。`,
+    "不要列出状态栏碎片、图表刻度、重复数字、孤立字母或无意义 OCR 碎片。",
+  ].join("\n");
 }
 
 function truncateText(text: string, maxChars: number): string {
@@ -135,27 +236,53 @@ export async function describeImageWithVisionModel(
 
       const systemPrompt = getPromptAssets().get(PROMPT_PROFILES.vision_describe.systemPromptKey);
       const prompt = buildVisionPrompt();
-      const result = await generateObject({
-        model: input.model,
-        system: systemPrompt,
-        schema: VISION_OUTPUT_SCHEMA,
-        schemaName: "VisualContext",
-        schemaDescription: "纯图片识别结果，只包含图片中可见事实。",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image", image: input.imageData, mediaType: input.mimeType },
-            ],
+      let result: Awaited<ReturnType<typeof generateObject<typeof VISION_OUTPUT_SCHEMA>>>;
+      try {
+        result = await generateObject({
+          model: input.model,
+          system: systemPrompt,
+          schema: VISION_OUTPUT_SCHEMA,
+          schemaName: "VisualContext",
+          schemaDescription: "纯图片识别结果，只包含图片中可见事实。",
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image", image: input.imageData, mediaType: input.mimeType },
+              ],
+            },
+          ],
+          maxOutputTokens: VISION_MAX_OUTPUT_TOKENS,
+          abortSignal: AbortSignal.timeout(VISION_TIMEOUT_MS),
+          async experimental_repairText({ text }) {
+            return extractJsonText(text);
           },
-        ],
-        maxOutputTokens: VISION_MAX_OUTPUT_TOKENS,
-        abortSignal: AbortSignal.timeout(VISION_TIMEOUT_MS),
-        async experimental_repairText({ text }) {
-          return extractJsonText(text);
-        },
-      });
+        });
+      } catch (error) {
+        const partialText = getErrorText(error);
+        const recovered = partialText
+          ? recoverVisualContextFromPartialText(partialText, input.modelId)
+          : undefined;
+
+        if (!recovered?.summary) {
+          throw error;
+        }
+
+        const attributes: Record<string, string | number | boolean> = {
+          latencyMs: Date.now() - startedAt,
+          fallbackReason: "vision_parse_failed",
+          promptSnapshot: sanitize(prompt),
+          completionSnapshot: sanitize(JSON.stringify(recovered, null, 2)),
+        };
+        if (partialText) {
+          attributes.rawCompletionSnapshot = sanitize(truncateText(partialText, 2000));
+        }
+        span.addAttributes(attributes);
+
+        console.warn("[vision] recovered partial vision response after parse failure");
+        return recovered;
+      }
 
       const raw = result.object;
       if (!raw.summary.trim()) {

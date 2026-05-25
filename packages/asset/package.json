@@ -1,0 +1,28 @@
+{
+  "name": "@clawbot/asset",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "test": "tsx --conditions development --test 'src/**/*.test.ts'"
+  },
+  "dependencies": {
+    "@clawbot/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.15",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.3"
+  }
+}

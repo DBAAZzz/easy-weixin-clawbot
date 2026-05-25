@@ -18,6 +18,7 @@ export interface ImageContent {
   type: "image";
   data: string;
   mimeType: string;
+  assetId?: string;
   promptReplacementText?: string;
 }
 

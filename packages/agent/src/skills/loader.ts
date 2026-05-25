@@ -1,6 +1,6 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { parseMdFile } from "../shared/parser.js";
+import { parseMdFile } from "../utils/parser.js";
 import { compileSkill, createSkillSource } from "./compiler.js";
 import type { CompiledSkill, InstallerError } from "./types.js";
 

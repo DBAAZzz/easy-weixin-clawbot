@@ -1,4 +1,5 @@
 import { mkdirSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   getActiveTrace,
@@ -22,7 +23,9 @@ import {
   setHeartbeatToolContext,
   isLLMProviderNotConfiguredError,
 } from "@clawbot/agent";
+import type { ChatMedia as AgentChatMedia } from "@clawbot/agent";
 import { getSchedulerStore } from "@clawbot/agent/ports";
+import { getAssetService } from "./assets/index.js";
 import { sendProactiveMessage } from "./proactive-push.js";
 import { updateContextToken } from "./db/conversations.js";
 import { deleteRoute, getRoute, upsertRoute } from "./db/session-routes.js";
@@ -36,6 +39,69 @@ commandRegistry.registerAll(builtinCommands);
 commandRegistry.register(scheduleCommand);
 
 const agentLogger = createModuleLogger("agent");
+
+async function detectImageMimeFromPath(filePath: string): Promise<string | undefined> {
+  const header = await readFile(filePath).then((buf) => buf.subarray(0, 12));
+  if (header.length >= 3 && header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (
+    header.length >= 8 &&
+    header[0] === 0x89 &&
+    header[1] === 0x50 &&
+    header[2] === 0x4e &&
+    header[3] === 0x47
+  ) {
+    return "image/png";
+  }
+  if (
+    header.length >= 6 &&
+    header[0] === 0x47 &&
+    header[1] === 0x49 &&
+    header[2] === 0x46
+  ) {
+    return "image/gif";
+  }
+  if (
+    header.length >= 12 &&
+    header[0] === 0x52 &&
+    header[1] === 0x49 &&
+    header[2] === 0x46 &&
+    header[3] === 0x46 &&
+    header[8] === 0x57 &&
+    header[9] === 0x45 &&
+    header[10] === 0x42 &&
+    header[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  return undefined;
+}
+
+async function attachAssetIdToMedia(
+  accountId: string,
+  conversationId: string,
+  media: ChatRequest["media"],
+): Promise<AgentChatMedia | undefined> {
+  if (!media) return undefined;
+  const mimeType =
+    media.type === "image"
+      ? (await detectImageMimeFromPath(media.filePath)) ?? media.mimeType
+      : media.mimeType;
+  const asset = await getAssetService().createFromFile({
+    accountId,
+    conversationId,
+    sourcePath: media.filePath,
+    mimeType,
+    kind: media.type,
+    originalFilename: media.fileName,
+  });
+  return {
+    ...media,
+    mimeType,
+    assetId: asset.id,
+  };
+}
 
 /**
  * In-memory cache of wechatConvId → effectiveConvId per account.
@@ -213,13 +279,20 @@ export function createAgent(accountId: string): Agent {
           // Inject scheduler + heartbeat context so tools know the active account/conversation
           setSchedulerContext({ accountId, conversationId: req.conversationId });
           setHeartbeatToolContext({ accountId, conversationId: effectiveConvId });
-          const reply = await withSpan("conversation.lock", {}, async () =>
-            withConversationLock(accountId, effectiveConvId, async () =>
-              chat(accountId, effectiveConvId, req.text, req.media, startedAt),
-            ),
-          );
-          setSchedulerContext(null);
-          setHeartbeatToolContext(null);
+          let reply: ChatResponse;
+          try {
+            const media = await withSpan("asset.ingest", { hasMedia: Boolean(req.media) }, () =>
+              attachAssetIdToMedia(accountId, effectiveConvId, req.media),
+            );
+            reply = await withSpan("conversation.lock", {}, async () =>
+              withConversationLock(accountId, effectiveConvId, async () =>
+                chat(accountId, effectiveConvId, req.text, media, startedAt),
+              ),
+            );
+          } finally {
+            setSchedulerContext(null);
+            setHeartbeatToolContext(null);
+          }
 
           // Post-chat hook: notify heartbeat engine of new user/assistant messages
           const latestSeq = currentSeq(accountId, effectiveConvId);

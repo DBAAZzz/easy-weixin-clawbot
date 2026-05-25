@@ -6,7 +6,7 @@ import test from "node:test";
 import { scanSkillPackage } from "./package-scanner.js";
 import { detectSkillRuntime } from "./runtime-detector.js";
 import { compileSkill, createSkillSource } from "./compiler.js";
-import { parseMdContent } from "../shared/parser.js";
+import { parseMdContent } from "../utils/parser.js";
 
 async function withTempSkill(
   files: Record<string, string>,

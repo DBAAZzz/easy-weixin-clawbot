@@ -1,6 +1,6 @@
 import { cp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { parseMdContent } from "../shared/parser.js";
+import { parseMdContent } from "../utils/parser.js";
 import { compileSkill, createSkillSource } from "./compiler.js";
 import { loadSkillsFromDirectory } from "./loader.js";
 import { scanSkillPackage } from "./package-scanner.js";

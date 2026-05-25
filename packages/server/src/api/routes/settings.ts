@@ -16,6 +16,15 @@ function toDto(row: AppSettingsRow): AppSettingsDto {
     rsshub_password_set: Boolean(row.rsshubPassword),
     rsshub_bearer_token_set: Boolean(row.rsshubBearerToken),
     rss_request_timeout_ms: row.rssRequestTimeoutMs,
+    asset_storage_provider: row.assetStorageProvider,
+    asset_local_base_dir: row.assetLocalBaseDir,
+    asset_s3_name: row.assetS3Name,
+    asset_s3_endpoint: row.assetS3Endpoint,
+    asset_s3_region: row.assetS3Region,
+    asset_s3_bucket: row.assetS3Bucket,
+    asset_s3_access_key_id: row.assetS3AccessKeyId,
+    asset_s3_secret_access_key_set: Boolean(row.assetS3SecretAccessKey),
+    asset_s3_public_base_url: row.assetS3PublicBaseUrl,
     updated_at: row.updatedAt.toISOString(),
   };
 }

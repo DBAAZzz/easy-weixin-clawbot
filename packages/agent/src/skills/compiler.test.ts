@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseMdContent } from "../shared/parser.js";
+import { parseMdContent } from "../utils/parser.js";
 import { createSkillSource } from "./compiler.js";
 
 test("createSkillSource normalizes common third-party frontmatter fields", () => {

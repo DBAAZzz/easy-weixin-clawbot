@@ -13,6 +13,7 @@ Asset 层用于统一管理个人助理 Agent 在消息、记忆、报告和 Web
 - 云厂商能力不侵入 Agent 主流程。
 - 媒体资产是长期资料库的一部分，支撑每日、每周、每月、每年报告生成和 Web 查看。
 - `weixin-agent-sdk` 只作为微信协议接入层，不决定 ClawBot 的长期资产存储规范。
+- `packages/weixin-agent-sdk/.openclaw/media` 是 SDK 临时工作目录，不是 Asset 长期资产目录。
 
 ---
 
@@ -33,13 +34,18 @@ Asset 层用于统一管理个人助理 Agent 在消息、记忆、报告和 Web
 2. 不要求所有用户配置 OSS/R2。
 3. 不在 `messages.payload` 中保存本地绝对路径作为长期引用。
 4. 不让 `agent` 包直接依赖 Prisma、Hono、云厂商 SDK 或文件系统实现。
-5. 不沿用 OpenClaw 的 `.openclaw` 目录作为本项目的资产或运行状态规范。
+5. 不把 `packages/weixin-agent-sdk/.openclaw` 当作长期资产目录。
 
 ---
 
 ## 2. 和 weixin-agent-sdk 的边界
 
-`weixin-agent-sdk` 来源于微信接入能力，历史上服务于 OpenClaw，因此代码中存在 `.openclaw`、`OPENCLAW_STATE_DIR`、`openclaw.json`、文件型 sync buf 等兼容逻辑。ClawBot 不需要遵循这些文件状态约定。
+`weixin-agent-sdk` 来源于微信接入能力，历史上服务于 OpenClaw，因此代码中曾存在 home 目录 `.openclaw`、`OPENCLAW_STATE_DIR`、`openclaw.json`、文件型 sync buf 等兼容逻辑。ClawBot 不需要把这些文件状态作为长期架构边界。
+
+当前 SDK Phase 1 已完成两个收敛：
+
+- sync buf 文件 fallback 已移除，`weixin_sync_state` 是唯一 sync buf 权威来源。
+- 媒体临时文件从 `/tmp/weixin-agent/media` 收敛到 `packages/weixin-agent-sdk/.openclaw/media`。
 
 在本项目中，`weixin-agent-sdk` 的定位是 **Weixin Ingest Adapter**：
 
@@ -70,7 +76,7 @@ weixin-agent-sdk
 - server 启动账号运行时时，从 DB 读取 sync buf。
 - server 通过 `syncBufInitial` 传入 SDK。
 - SDK 每次获得新 sync buf 后，通过 `onSyncBufUpdate` 回调交给 server。
-- SDK 不再 fallback 到 `getSyncBufFilePath()` 或 `.openclaw` 文件。
+- SDK 不再 fallback 到 `getSyncBufFilePath()` 或任何本地 sync buf 文件。
 
 ```text
 server DB weixin_sync_state
@@ -95,22 +101,35 @@ server DB weixin_sync_state
   ↓ downloadMediaFromItem()
 下载 / 解密 / 转码
   ↓
-/tmp/weixin-agent/media/inbound/...
+packages/weixin-agent-sdk/.openclaw/media/inbound/...
   ↓
 ChatRequest.media.filePath
 ```
 
-这些临时文件不是长期资产，只是 AssetService 的输入。ClawBot 的长期资产目录应是项目自己的 `data/assets`，不是 `.openclaw`，也不是 `/tmp/weixin-agent/media`。
+这些临时文件不是长期资产，只是 AssetService 的输入。ClawBot 的长期资产目录应是项目自己的 `data/assets` 或对象存储，不是 `packages/weixin-agent-sdk/.openclaw/media`。
 
-### 2.3 OpenClaw 文件状态去除方向
+### 2.3 SDK 临时目录和 Asset 目录的区别
 
-后续代码清理应遵循：
+```text
+packages/weixin-agent-sdk/.openclaw/media
+  性质：SDK 临时工作目录
+  内容：微信 CDN 下载/解密/转码产物、远程回复媒体下载产物
+  生命周期：可清理、可重建、不可作为报告引用
+  所属层：weixin-agent-sdk
 
-- 删除 SDK 中 sync buf 的文件读写 fallback。
-- 删除 SDK 对 `.openclaw` 目录的运行状态依赖。
-- 删除 `openclaw.json` routeTag 读取逻辑，相关配置应由 server 显式传入。
-- 删除文件型 allowFrom / pairing 状态，授权列表以 server DB 为准。
-- 保留微信协议必要的 message id/channel 字符串时，应逐步改名为 ClawBot 语义，避免继续扩散 OpenClaw 命名。
+data/assets 或对象存储
+  性质：长期资产存储
+  内容：报告、消息、Web 展示需要稳定引用的资产
+  生命周期：需要备份、迁移、权限控制
+  所属层：AssetService
+```
+
+后续 SDK 清理仍可继续，但不阻塞 Asset 层设计：
+
+- routeTag 显式化。
+- allowFrom / debug mode 收敛到 server 或 SDK 包内工作目录。
+- logger 从 `/tmp/openclaw` 收敛到调用方注入或 SDK 包内日志目录。
+- OpenClaw 命名逐步替换为 ClawBot 语义。
 
 ---
 
@@ -151,6 +170,28 @@ agent  → shared
 - Node 文件系统读写
 - Cloudflare R2 / 腾讯云 / 阿里云 SDK
 - 具体环境变量读取
+
+### 3.1 运行时边界
+
+Asset 创建不发生在 `weixin-agent-sdk` 中，也不发生在 `agent` 核心包中。推荐边界：
+
+```text
+weixin-agent-sdk
+  ↓ ChatRequest.media.filePath
+server agent adapter
+  ↓ AssetService.createFromFile()
+agent chat()
+  ↓ message content contains assetId
+MessageStore
+  ↓ messages.payload stores assetId
+```
+
+这样：
+
+- SDK 不依赖 Asset 层。
+- Agent 不依赖存储实现。
+- Server 作为 adapter 组合微信临时文件、AssetService 和 chat 调用。
+- 后续 local/R2/COS/OSS 切换不影响 SDK 和 Agent。
 
 ---
 
@@ -309,6 +350,7 @@ export interface AssetService {
     kind?: AssetKind;
     conversationId?: string;
     messageSeq?: number;
+    originalFilename?: string;
   }): Promise<AssetRecord>;
 
   get(assetId: string): Promise<AssetRecord | null>;
@@ -456,7 +498,7 @@ weixin-agent-sdk processOneMessage()
   ↓
 下载微信 CDN 媒体，解密/转码
   ↓
-ChatRequest.media.filePath     # 临时文件
+ChatRequest.media.filePath     # packages/weixin-agent-sdk/.openclaw/media/inbound/...
   ↓
 server agent adapter
   ↓
@@ -473,6 +515,12 @@ chat 前创建 Asset 的原因：
 - 报告系统可以基于原始入站资产整理日报、周报、月报、年报。
 - Asset 生命周期从消息序列化副作用变成明确的 ingest 步骤。
 - `messages.ts` 不需要知道本地/R2/COS/OSS 的细节。
+
+实现要求：
+
+- 创建 Asset 后，`chat()` 仍可使用临时 `filePath` 给 vision 模型读取原始文件。
+- `AgentMessage` 中应携带 `assetId`，避免 `messages.ts` 在序列化时再次复制媒体。
+- 如果 Asset 创建失败，应明确降级策略：拒绝处理媒体、仅文本处理，或保留临时 filePath 但不入长期报告。不要静默吞掉资产创建失败。
 
 ### 9.2 消息写入
 
@@ -660,12 +708,12 @@ export type AssetStorageConfig =
 
 ## 13. 迁移路线
 
-### Phase 0：清理 SDK 文件状态 fallback
+### Phase 0：SDK ingest 边界收敛（已完成必做部分）
 
-1. 移除 `weixin-agent-sdk` 中 sync buf 的文件 fallback。
-2. `monitorWeixinProvider` 要求调用方显式传入 DB 驱动的 sync buf 读写能力。
-3. 移除 `.openclaw` 状态目录依赖。
-4. routeTag、allowFrom、debug mode 等运行状态改由 server DB 或显式参数管理。
+1. 已移除 `weixin-agent-sdk` 中 sync buf 的文件 fallback。
+2. `monitorWeixinProvider` 已要求调用方显式传入 DB 驱动的 sync buf 初始值和更新回调。
+3. SDK 媒体临时目录已从 `/tmp/weixin-agent/media` 收敛到 `packages/weixin-agent-sdk/.openclaw/media`。
+4. routeTag、allowFrom、debug mode、logger 暂不作为 Asset 落地前置条件。
 
 ### Phase 1：本地 Asset 层
 
@@ -710,7 +758,8 @@ export type AssetStorageConfig =
 | 直接把图片存 DB | 简单、原子性好 | DB 膨胀，视频不可行 | 不推荐 |
 | payload 存 objectKey | 比 filePath 稳定 | 仍然耦合存储后端 | 不推荐 |
 | payload 存 assetId + assets 表 | 解耦、可迁移、可复用 | 初始改动稍大 | 推荐 |
-| SDK 继续维护 `.openclaw` fallback | 兼容旧 OpenClaw 行为 | 状态权威不唯一，分布式不可控 | 不推荐 |
-| server DB 显式管理运行状态 | 状态来源单一，部署可预测 | 需要清理 SDK 兼容代码 | 推荐 |
+| SDK 维护 sync buf 文件 fallback | 兼容旧 OpenClaw 行为 | 状态权威不唯一，分布式不可控 | 已移除 |
+| SDK 使用包内 `.openclaw/media` 临时目录 | 便于开发查看，边界清晰 | 需要清理策略，不能作为长期资产 | 推荐作为临时目录 |
+| server DB 管理 sync buf | 状态来源单一，部署可预测 | 需要调用方传入回调 | 推荐 |
 
 最终推荐：**Asset 是一层稳定领域抽象；默认 local，云存储只是可选 adapter。**

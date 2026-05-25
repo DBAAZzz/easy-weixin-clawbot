@@ -9,12 +9,14 @@
     "build": "tsc",
     "test": "tsx --conditions development --test 'src/**/*.test.ts'",
     "start": "node dist/index.js",
+    "assets:migrate-local-to-s3": "tsx --conditions development src/assets/migrate-local-to-s3.ts",
     "prisma:generate": "tsx src/prisma-cli.ts generate --schema prisma/schema.prisma",
     "prisma:push": "tsx src/prisma-cli.ts db push --schema prisma/schema.prisma",
     "prisma:validate": "tsx src/prisma-cli.ts validate --schema prisma/schema.prisma"
   },
   "dependencies": {
     "@andresaya/edge-tts": "^1.8.0",
+    "@clawbot/asset": "workspace:*",
     "@clawbot/agent": "workspace:*",
     "@clawbot/observability": "workspace:*",
     "@clawbot/shared": "workspace:*",

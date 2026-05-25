@@ -1,4 +1,4 @@
-import type { ParsedFile } from "../shared/parser.js";
+import type { ParsedFile } from "../utils/parser.js";
 import { normalizeFrontmatter } from "./normalizer.js";
 import type { CompiledSkill, SkillActivation, SkillSource } from "./types.js";
 

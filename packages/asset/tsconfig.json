@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
+    "composite": true,
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "declaration": true,
+    "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "./src",
@@ -11,5 +13,5 @@
     "skipLibCheck": true
   },
   "include": ["src"],
-  "references": [{ "path": "../shared" }, { "path": "../asset" }, { "path": "../agent" }]
+  "references": [{ "path": "../shared" }]
 }

@@ -30,6 +30,11 @@ export {
 } from "./model-resolver.js";
 
 export type {
+  ChatMedia,
+  ChatResponse,
+} from "./types.js";
+
+export type {
   AgentConfig,
   AgentRunner,
   ModelOverride,

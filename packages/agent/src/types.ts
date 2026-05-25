@@ -21,5 +21,6 @@ export interface ChatMedia {
   type: "image" | "audio" | "video" | "file";
   filePath: string;
   mimeType: string;
+  assetId?: string;
   fileName?: string;
 }

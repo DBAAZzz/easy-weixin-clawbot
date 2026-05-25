@@ -20,6 +20,15 @@ function createRow(overrides: Partial<AppSettingsRow> = {}): AppSettingsRow {
     rsshubPassword: null,
     rsshubBearerToken: null,
     rssRequestTimeoutMs: 15000,
+    assetStorageProvider: "local",
+    assetLocalBaseDir: null,
+    assetS3Name: null,
+    assetS3Endpoint: null,
+    assetS3Region: null,
+    assetS3Bucket: null,
+    assetS3AccessKeyId: null,
+    assetS3SecretAccessKey: null,
+    assetS3PublicBaseUrl: null,
     createdAt: new Date("2026-04-22T00:00:00.000Z"),
     updatedAt: new Date("2026-04-22T00:00:00.000Z"),
     ...overrides,
@@ -54,6 +63,33 @@ function createStore(initialRow: AppSettingsRow = createRow()): AppSettingsStore
           input.rssRequestTimeoutMs !== undefined
             ? input.rssRequestTimeoutMs
             : row.rssRequestTimeoutMs,
+        assetStorageProvider:
+          input.assetStorageProvider !== undefined
+            ? input.assetStorageProvider
+            : row.assetStorageProvider,
+        assetLocalBaseDir:
+          input.assetLocalBaseDir !== undefined
+            ? input.assetLocalBaseDir
+            : row.assetLocalBaseDir,
+        assetS3Name: input.assetS3Name !== undefined ? input.assetS3Name : row.assetS3Name,
+        assetS3Endpoint:
+          input.assetS3Endpoint !== undefined ? input.assetS3Endpoint : row.assetS3Endpoint,
+        assetS3Region:
+          input.assetS3Region !== undefined ? input.assetS3Region : row.assetS3Region,
+        assetS3Bucket:
+          input.assetS3Bucket !== undefined ? input.assetS3Bucket : row.assetS3Bucket,
+        assetS3AccessKeyId:
+          input.assetS3AccessKeyId !== undefined
+            ? input.assetS3AccessKeyId
+            : row.assetS3AccessKeyId,
+        assetS3SecretAccessKey:
+          input.assetS3SecretAccessKey !== undefined
+            ? input.assetS3SecretAccessKey
+            : row.assetS3SecretAccessKey,
+        assetS3PublicBaseUrl:
+          input.assetS3PublicBaseUrl !== undefined
+            ? input.assetS3PublicBaseUrl
+            : row.assetS3PublicBaseUrl,
         updatedAt: new Date("2026-04-23T00:00:00.000Z"),
       });
       return row;
@@ -117,6 +153,30 @@ test("update supports rss settings and clears auth fields when auth is none", as
   assert.equal(row.rsshubUsername, null);
   assert.equal(row.rsshubPassword, null);
   assert.equal(row.rssRequestTimeoutMs, 20000);
+});
+
+test("update supports R2-compatible asset storage settings", async () => {
+  const service = createAppSettingsService(createStore(), createSamplingConsumer());
+
+  const row = await service.update({
+    asset_storage_provider: "s3-compatible",
+    asset_s3_name: "cloudflare-r2",
+    asset_s3_endpoint: " https://example.r2.cloudflarestorage.com ",
+    asset_s3_region: "auto",
+    asset_s3_bucket: "clawbot-assets",
+    asset_s3_access_key_id: "access-key",
+    asset_s3_secret_access_key: " secret-key ",
+    asset_s3_public_base_url: "https://assets.example.com",
+  });
+
+  assert.equal(row.assetStorageProvider, "s3-compatible");
+  assert.equal(row.assetS3Name, "cloudflare-r2");
+  assert.equal(row.assetS3Endpoint, "https://example.r2.cloudflarestorage.com");
+  assert.equal(row.assetS3Region, "auto");
+  assert.equal(row.assetS3Bucket, "clawbot-assets");
+  assert.equal(row.assetS3AccessKeyId, "access-key");
+  assert.equal(row.assetS3SecretAccessKey, "secret-key");
+  assert.equal(row.assetS3PublicBaseUrl, "https://assets.example.com");
 });
 
 test("update rejects missing or unsupported fields", async () => {

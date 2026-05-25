@@ -1,12 +1,11 @@
-import { randomUUID } from "node:crypto";
-import { copyFile, mkdir, readFile } from "node:fs/promises";
-import { basename, extname, join } from "node:path";
+import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
 import { Prisma } from "@prisma/client";
 import type { AgentMessage, ImageContent, TextContent } from "@clawbot/agent/llm";
 import { legacyPayloadToAgentMessage } from "@clawbot/agent/llm";
 import type { MessageRow, PaginatedResponse } from "@clawbot/shared";
 import { log } from "../logger.js";
-import { MEDIA_CACHE_DIR } from "../paths.js";
+import { getAssetService } from "../assets/index.js";
 import { getPrisma } from "./prisma.js";
 
 type StoredMessageRecord = Omit<MessageRow, "id" | "created_at">;
@@ -16,6 +15,7 @@ type QueueItem = {
 };
 
 type StoredImageContent = ImageContent & {
+  assetId?: string;
   filePath?: string;
   stripped?: boolean;
 };
@@ -81,26 +81,11 @@ function extractMediaType(message: AgentMessage): string | null {
   return message.content.some((block) => isImageContent(block)) ? "image" : null;
 }
 
-async function copyMediaToCache(
-  sourcePath: string,
-  accountId: string,
-  conversationId: string,
-  seq: number
-): Promise<string> {
-  await mkdir(MEDIA_CACHE_DIR, { recursive: true });
-  const extension = extname(sourcePath) || ".bin";
-  const fileName = `${accountId}-${conversationId}-${seq}-${randomUUID()}${extension}`;
-  const targetPath = join(MEDIA_CACHE_DIR, fileName);
-  await copyFile(sourcePath, targetPath);
-  return targetPath;
-}
-
 async function serializeMessage(
   accountId: string,
   conversationId: string,
   message: AgentMessage,
-  seq: number,
-  mediaSourcePath?: string
+  seq: number
 ): Promise<Record<string, unknown>> {
   const clone = structuredClone(message) as AgentMessage & { content: unknown };
 
@@ -108,21 +93,11 @@ async function serializeMessage(
     return clone as unknown as Record<string, unknown>;
   }
 
-  let cachedPath: string | undefined;
-
   for (const block of clone.content) {
     if (!isImageContent(block)) continue;
     if (typeof block.data !== "string" || block.data.length === 0) continue;
-
-    if (!cachedPath && mediaSourcePath) {
-      cachedPath = await copyMediaToCache(mediaSourcePath, accountId, conversationId, seq);
-    }
-
     block.data = "";
     block.stripped = true;
-    if (cachedPath) {
-      block.filePath = cachedPath;
-    }
   }
 
   return clone as unknown as Record<string, unknown>;
@@ -138,8 +113,36 @@ async function hydrateMessage(payload: Record<string, unknown>): Promise<AgentMe
   const hydratedContent: Array<TextContent | ImageContent | Record<string, unknown>> = [];
 
   for (const block of clone.content) {
-    if (!isImageContent(block) || !block.stripped || typeof block.filePath !== "string") {
+    if (!isImageContent(block) || !block.stripped) {
       hydratedContent.push(block as unknown as Record<string, unknown>);
+      continue;
+    }
+
+    if (typeof block.assetId === "string") {
+      try {
+        const asset = await getAssetService().read(block.assetId);
+        hydratedContent.push({
+          type: "image",
+          data: Buffer.from(asset.bytes).toString("base64"),
+          mimeType: asset.mimeType,
+          assetId: block.assetId,
+          ...(block.promptReplacementText ? { promptReplacementText: block.promptReplacementText } : {}),
+        });
+      } catch (error) {
+        hydratedContent.push({
+          type: "text",
+          text: `[image unavailable: ${block.assetId}]`,
+        });
+        log.error(`hydrateMessage(${block.assetId})`, error);
+      }
+      continue;
+    }
+
+    if (typeof block.filePath !== "string") {
+      hydratedContent.push({
+        type: "text",
+        text: "[image unavailable: missing asset reference]",
+      });
       continue;
     }
 
@@ -272,8 +275,7 @@ export function queuePersistMessage(params: {
         params.accountId,
         params.conversationId,
         params.message,
-        params.seq,
-        params.mediaSourcePath
+        params.seq
       ),
       media_type: extractMediaType(params.message),
     };

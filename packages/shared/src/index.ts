@@ -26,6 +26,7 @@ export type {
   TapeGraphNode,
   TapeGraphResponse,
   AppSettingsDto,
+  AssetStorageProvider,
   RsshubAuthType,
   MessageRow,
   ModelConfigDto,

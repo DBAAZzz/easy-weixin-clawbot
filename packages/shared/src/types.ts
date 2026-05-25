@@ -362,6 +362,7 @@ export interface WebSearchProviderDto {
 }
 
 export type RsshubAuthType = "none" | "basic" | "bearer";
+export type AssetStorageProvider = "local" | "s3-compatible";
 
 export interface AppSettingsDto {
   normal_rate: number;
@@ -371,6 +372,15 @@ export interface AppSettingsDto {
   rsshub_password_set: boolean;
   rsshub_bearer_token_set: boolean;
   rss_request_timeout_ms: number;
+  asset_storage_provider: AssetStorageProvider;
+  asset_local_base_dir: string | null;
+  asset_s3_name: string | null;
+  asset_s3_endpoint: string | null;
+  asset_s3_region: string | null;
+  asset_s3_bucket: string | null;
+  asset_s3_access_key_id: string | null;
+  asset_s3_secret_access_key_set: boolean;
+  asset_s3_public_base_url: string | null;
   updated_at: string;
 }
 

@@ -16,6 +16,7 @@ model Account {
   createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   conversations  Conversation[]
   messages       Message[]
+  assets         Asset[]
   sessionRoutes  SessionRoute[]
   webhookPermissions WebhookAccountPermission[]
   tapeEntries    TapeEntry[]
@@ -25,6 +26,30 @@ model Account {
   syncState      WeixinSyncState?
 
   @@map("accounts")
+}
+
+model Asset {
+  id          String   @id @db.Text
+  accountId   String   @map("account_id") @db.Text
+  kind        String   @db.Text
+  mimeType    String   @map("mime_type") @db.Text
+  sizeBytes   BigInt?  @map("size_bytes")
+  sha256      String?  @db.Text
+  provider    String   @db.Text
+  bucket      String?  @db.Text
+  objectKey   String?  @map("object_key") @db.Text
+  localPath   String?  @map("local_path") @db.Text
+  storageRef  Json?    @map("storage_ref")
+  width       Int?
+  height      Int?
+  durationMs  Int?     @map("duration_ms")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, kind, createdAt], map: "idx_assets_account_kind_created")
+  @@index([sha256], map: "idx_assets_sha256")
+  @@map("assets")
 }
 
 model Conversation {
@@ -436,6 +461,15 @@ model AppSettings {
   rsshubPassword     String?  @map("rsshub_password") @db.Text
   rsshubBearerToken  String?  @map("rsshub_bearer_token") @db.Text
   rssRequestTimeoutMs Int     @default(15000) @map("rss_request_timeout_ms")
+  assetStorageProvider String @default("local") @map("asset_storage_provider") @db.Text
+  assetLocalBaseDir String?   @map("asset_local_base_dir") @db.Text
+  assetS3Name       String?   @map("asset_s3_name") @db.Text
+  assetS3Endpoint   String?   @map("asset_s3_endpoint") @db.Text
+  assetS3Region     String?   @map("asset_s3_region") @db.Text
+  assetS3Bucket     String?   @map("asset_s3_bucket") @db.Text
+  assetS3AccessKeyId String?  @map("asset_s3_access_key_id") @db.Text
+  assetS3SecretAccessKey String? @map("asset_s3_secret_access_key") @db.Text
+  assetS3PublicBaseUrl String? @map("asset_s3_public_base_url") @db.Text
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 

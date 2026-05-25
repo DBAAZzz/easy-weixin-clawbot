@@ -181,6 +181,7 @@ export async function chat(
           type: "image",
           data,
           mimeType: mimeType as ImageContent["mimeType"],
+          ...(media.assetId ? { assetId: media.assetId } : {}),
           ...(imagePromptReplacementText ? { promptReplacementText: imagePromptReplacementText } : {}),
         });
       }
@@ -198,7 +199,6 @@ export async function chat(
         conversationId,
         message: userMessage,
         seq: nextSeq(accountId, conversationId),
-        mediaSourcePath: media?.type === "image" ? media.filePath : undefined,
       });
 
       const pendingToolArgs = new Map<string, Record<string, unknown>>();

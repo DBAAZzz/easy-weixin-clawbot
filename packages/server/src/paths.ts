@@ -7,6 +7,7 @@ export const ROOT_ENV_FILE = resolve(REPO_ROOT, ".env");
 
 export const DATA_DIR = resolve(REPO_ROOT, "data");
 export const ACCOUNTS_FILE = resolve(DATA_DIR, "accounts.json");
+export const ASSETS_DIR = resolve(DATA_DIR, "assets");
 export const MEDIA_CACHE_DIR = resolve(DATA_DIR, "media-cache");
 export const TTS_CACHE_DIR = resolve(DATA_DIR, "tts-cache");
 export const DOWNLOADS_DIR = resolve(DATA_DIR, "downloads");

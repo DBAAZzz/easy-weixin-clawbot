@@ -51,9 +51,11 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 Docker Compose 会创建两个卷：
 
 - `pgdata`：PostgreSQL 数据
-- `appdata`：工具、技能、下载缓存、媒体缓存、TTS 缓存
+- `appdata`：工具、技能、Asset 本地资产、下载缓存、媒体缓存、TTS 缓存
 
 其中微信登录态不在 `appdata`，而在 PostgreSQL。
+
+默认 Asset 本地资产目录是 `data/assets`，在 Docker 容器中会随 `appdata` 卷持久化。如果在后台 `设置 -> 资产存储` 改成宿主机其他路径，需要额外把该路径挂载到 server 容器。
 
 ## 常用命令
 
@@ -68,4 +70,5 @@ docker compose down
 ## 继续阅读
 
 - [多账号与微信登录](./multi-account-and-login.md)
+- [静态资源与资产存储](./asset-storage.md)
 - [docs/docker-deployment-architecture.md](../docker-deployment-architecture.md)

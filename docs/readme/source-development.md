@@ -45,8 +45,15 @@ pnpm test:agent
 - Web 开发环境：[http://localhost:5173](http://localhost:5173)
 - Server 开发环境：[http://localhost:8028](http://localhost:8028)
 
+## 静态资源
+
+本地开发默认把长期资产写入 `data/assets`。如需改成本机其他目录或 S3-compatible 对象存储，启动后在后台 `设置 -> 资产存储` 中配置。
+
+本地迁移脚本会读取 `.env` 中的 `ASSET_S3_*` 配置，详见 [静态资源与资产存储](./asset-storage.md)。
+
 ## 继续阅读
 
 - [docs/agent-architecture.md](../agent-architecture.md)
 - [docs/web-architecture.md](../web-architecture.md)
 - [docs/jwt-authentication.md](../jwt-authentication.md)
+- [静态资源与资产存储](./asset-storage.md)

@@ -14,7 +14,7 @@
 ## 为什么用它
 
 - 多账号统一管理：一个后台查看、接入和运营多个微信 AI 账号
-- 管理能力完整：账号、记忆、工具、技能、RSS 订阅、任务中心、Prompt 任务、Webhook、MCP 都有可视化入口
+- 管理能力完整：账号、记忆、工具、技能、静态资源、RSS 订阅、任务中心、Prompt 任务、Webhook、MCP 都有可视化入口
 - 部署路径直接：基于 Docker Compose 启动，适合作为开源项目快速体验和落地
 - 扩展方式清晰：支持工具、技能、Webhook 和 MCP Server 组合扩展
 
@@ -107,6 +107,7 @@ docker compose down
 - 外部数据库只支持 `DATABASE_URL` 和 `DIRECT_URL`，不再支持 `SUPABASE_*` 简化变量
 - Docker Compose 和源码开发都使用同一个 `.env`，只是在数据库区块填写不同变量
 - LLM Provider 运行时配置只来自数据库中的后台配置，不再读取 `LLM_*` 或 provider 专用 API Key 环境变量
+- 静态资源 / Asset 存储运行时配置在后台 `设置 -> 资产存储` 中维护；默认使用本地 `data/assets`，也可切换到 Cloudflare R2、MinIO 等 S3-compatible 存储
 
 本地开发时：
 
@@ -133,10 +134,19 @@ pnpm dev
 - 同一条内容只要成功推送给某个账号一次，就会按账号级规则去重，不会重复发送
 - `Prompt任务` 页面继续保留给通用 AI Prompt 定时任务，RSS 任务与其分开管理
 
+## 静态资源与资产存储
+
+微信图片、视频、音频和文件会进入统一 Asset 资产层。消息和报告只保存 `assetId`，Web 展示时再根据资产记录生成访问地址，避免把临时文件路径写入长期数据。
+
+默认存储位置是 `data/assets`。如果需要对象存储，可以在后台 `设置 -> 资产存储` 中切换到 Cloudflare R2、MinIO 或其他 S3-compatible 服务，并配置 Endpoint、Bucket、Access Key 和可选 Public Base URL。
+
+更完整的说明见 [docs/readme/asset-storage.md](./docs/readme/asset-storage.md)。
+
 ## 文档
 
 - [Docker 部署](./docs/readme/docker-deployment.md)
 - [多账号与微信登录](./docs/readme/multi-account-and-login.md)
+- [静态资源与资产存储](./docs/readme/asset-storage.md)
 - [记忆、工具、技能、RSS 与任务](./docs/readme/memory-tools-and-automation.md)
 - [Webhook、MCP、可观测性](./docs/readme/integrations-and-observability.md)
 - [本地源码开发](./docs/readme/source-development.md)

@@ -20,6 +20,17 @@ type StoredImageContent = ImageContent & {
   stripped?: boolean;
 };
 
+type MessagePayload = Record<string, unknown> & {
+  content?: unknown;
+};
+
+type DisplayAssetRef = {
+  id: string;
+  provider: string;
+  objectKey: string | null;
+  localPath: string | null;
+};
+
 const queue: QueueItem[] = [];
 let flushing = false;
 let retryTimer: NodeJS.Timeout | null = null;
@@ -79,6 +90,79 @@ function extractText(message: AgentMessage): string | null {
 function extractMediaType(message: AgentMessage): string | null {
   if (typeof message.content !== "object" || !Array.isArray(message.content)) return null;
   return message.content.some((block) => isImageContent(block)) ? "image" : null;
+}
+
+function toPayloadRecord(value: unknown): MessagePayload {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return value as MessagePayload;
+}
+
+function collectPayloadAssetIds(payload: MessagePayload): string[] {
+  if (!Array.isArray(payload.content)) {
+    return [];
+  }
+
+  return payload.content
+    .map((block) =>
+      block &&
+      typeof block === "object" &&
+      typeof (block as { assetId?: unknown }).assetId === "string"
+        ? (block as { assetId: string }).assetId
+        : null
+    )
+    .filter((assetId): assetId is string => Boolean(assetId));
+}
+
+function addDisplayPathsToPayload(
+  payload: MessagePayload,
+  assetsById: Map<string, DisplayAssetRef>,
+): MessagePayload {
+  if (!Array.isArray(payload.content)) {
+    return payload;
+  }
+
+  const clone = structuredClone(payload) as MessagePayload;
+  if (!Array.isArray(clone.content)) {
+    return clone;
+  }
+
+  clone.content = clone.content.map((block) => {
+    if (!block || typeof block !== "object") {
+      return block;
+    }
+
+    const imageBlock = block as Record<string, unknown>;
+    if (imageBlock.type !== "image" || typeof imageBlock.assetId !== "string") {
+      return block;
+    }
+
+    const asset = assetsById.get(imageBlock.assetId);
+    if (!asset) {
+      return block;
+    }
+
+    if (asset.provider === "s3-compatible" && asset.objectKey) {
+      return {
+        ...imageBlock,
+        filePath: asset.objectKey,
+        storageProvider: asset.provider,
+      };
+    }
+
+    if (asset.provider === "local" && asset.localPath) {
+      return {
+        ...imageBlock,
+        filePath: asset.localPath,
+        storageProvider: asset.provider,
+      };
+    }
+
+    return block;
+  });
+
+  return clone;
 }
 
 async function serializeMessage(
@@ -338,6 +422,7 @@ export async function listMessages(
       seq: true,
       role: true,
       contentText: true,
+      payload: true,
       mediaType: true,
       createdAt: true,
     },
@@ -347,14 +432,34 @@ export async function listMessages(
     take: limit + 1,
   });
 
-  const mappedRows: MessageRow[] = rows.map((row) => ({
+  const payloads = rows.map((row) => toPayloadRecord(row.payload));
+  const assetIds = [...new Set(payloads.flatMap((payload) => collectPayloadAssetIds(payload)))];
+  const assetRows =
+    assetIds.length > 0
+      ? await getPrisma().asset.findMany({
+          where: {
+            id: {
+              in: assetIds,
+            },
+          },
+          select: {
+            id: true,
+            provider: true,
+            objectKey: true,
+            localPath: true,
+          },
+        })
+      : [];
+  const assetsById = new Map(assetRows.map((asset) => [asset.id, asset]));
+
+  const mappedRows: MessageRow[] = rows.map((row, index) => ({
     id: Number(row.id),
     account_id: row.accountId,
     conversation_id: row.conversationId,
     seq: row.seq,
     role: row.role as MessageRow["role"],
     content_text: row.contentText,
-    payload: {},
+    payload: addDisplayPathsToPayload(payloads[index] ?? {}, assetsById),
     media_type: row.mediaType,
     created_at: row.createdAt.toISOString(),
   }));

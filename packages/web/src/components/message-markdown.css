@@ -54,6 +54,15 @@
   text-underline-offset: 0.18em;
 }
 
+.message-markdown img {
+  display: block;
+  max-width: 100%;
+  max-height: 22rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-panel);
+  object-fit: contain;
+}
+
 .message-markdown strong,
 .message-markdown b {
   color: inherit;

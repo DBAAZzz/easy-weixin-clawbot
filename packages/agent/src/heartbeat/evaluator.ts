@@ -6,6 +6,7 @@
  */
 
 import { reasonInternal } from "./reason-internal.js";
+import { MESSAGE_ROLE } from "@clawbot/shared";
 import { getHeartbeatStore } from "../ports/heartbeat-store.js";
 import { getHeartbeatExecutor } from "../ports/heartbeat-executor.js";
 import { getMessageStore } from "../ports/message-store.js";
@@ -69,8 +70,8 @@ async function getRecentContextSince(
 
   return recent
     .map((msg) => {
-      if (msg.role === "user") return `用户: ${msg.textContent}`;
-      if (msg.role === "assistant") return `助手: ${msg.textContent}`;
+      if (msg.role === MESSAGE_ROLE.USER) return `用户: ${msg.textContent}`;
+      if (msg.role === MESSAGE_ROLE.ASSISTANT) return `助手: ${msg.textContent}`;
       return "";
     })
     .filter(Boolean)

@@ -1,3 +1,4 @@
+import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import { getWebToolService } from "../../ports/web-tool-service.js";
 import type { NativeHandler } from "../types.js";
 
@@ -25,7 +26,7 @@ export const webFetchHandler: NativeHandler = {
     const title = result.title?.trim() || "未提供";
     return [
       {
-        type: "text",
+        type: MESSAGE_CONTENT_TYPE.TEXT,
         text: `标题：${title}\n来源：${result.url}\n\n${result.content}`,
       },
     ];

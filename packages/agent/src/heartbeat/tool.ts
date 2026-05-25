@@ -6,13 +6,14 @@
  */
 
 import { z } from "zod";
+import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import { createToolRegistry } from "../tools/registry.js";
 import type { ToolSnapshotItem, ToolContent } from "../tools/types.js";
 import { getHeartbeatStore } from "../ports/heartbeat-store.js";
 import { LIMITS, INITIAL_BACKOFF_MS } from "./types.js";
 
 function textResult(text: string): ToolContent[] {
-  return [{ type: "text", text }];
+  return [{ type: MESSAGE_CONTENT_TYPE.TEXT, text }];
 }
 
 // ── Heartbeat context detection ────────────────────────────────────

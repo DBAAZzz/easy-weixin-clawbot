@@ -1,3 +1,4 @@
+import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import type { NativeHandler } from "../types.js";
 import { getWebToolService } from "../../ports/web-tool-service.js";
 
@@ -28,7 +29,7 @@ export const webSearchHandler: NativeHandler = {
     });
 
     if (results.results.length === 0) {
-      return [{ type: "text", text: `没有找到与“${query}”相关的结果。` }];
+      return [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: `没有找到与“${query}”相关的结果。` }];
     }
 
     const lines = results.results.map(
@@ -36,6 +37,6 @@ export const webSearchHandler: NativeHandler = {
         `${index + 1}. ${result.title}\n链接：${result.url}\n摘要：${result.snippet}`,
     );
 
-    return [{ type: "text", text: `“${query}”的搜索结果：\n\n${lines.join("\n\n")}` }];
+    return [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: `“${query}”的搜索结果：\n\n${lines.join("\n\n")}` }];
   },
 };

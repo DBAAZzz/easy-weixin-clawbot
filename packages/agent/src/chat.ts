@@ -11,6 +11,11 @@ import type {
   TextContent,
   VisualContext,
 } from "./llm/types.js";
+import {
+  MESSAGE_CONTENT_TYPE,
+  MESSAGE_ROLE,
+  MESSAGE_STOP_REASON,
+} from "@clawbot/shared";
 import { withSpan } from "@clawbot/observability";
 import { readFileSync } from "node:fs";
 import type { AgentRunner } from "./runner.js";
@@ -127,7 +132,7 @@ export async function chat(
       });
 
       const userContent: (TextContent | ImageContent)[] = [
-        { type: "text", text: assembledText },
+        { type: MESSAGE_CONTENT_TYPE.TEXT, text: assembledText },
       ];
       const visualContexts: VisualContext[] = [];
       let imagePromptReplacementText: string | undefined;
@@ -178,7 +183,7 @@ export async function chat(
         }
 
         userContent.push({
-          type: "image",
+          type: MESSAGE_CONTENT_TYPE.IMAGE,
           data,
           mimeType: mimeType as ImageContent["mimeType"],
           ...(media.assetId ? { assetId: media.assetId } : {}),
@@ -187,7 +192,7 @@ export async function chat(
       }
 
       const userMessage: AgentMessage = {
-        role: "user",
+        role: MESSAGE_ROLE.USER,
         content: userContent,
         timestamp: Date.now(),
         ...(visualContexts.length > 0 ? { visualContext: visualContexts } : {}),
@@ -229,16 +234,16 @@ export async function chat(
               });
             }
 
-            if (message.role === "assistant") {
+            if (message.role === MESSAGE_ROLE.ASSISTANT) {
               for (const block of message.content) {
-                if (block.type === "toolCall") {
+                if (block.type === MESSAGE_CONTENT_TYPE.TOOL_CALL) {
                   pendingToolArgs.set(block.id, block.arguments);
                 }
               }
               return;
             }
 
-            if (message.role === "toolResult") {
+            if (message.role === MESSAGE_ROLE.TOOL_RESULT) {
               log.tool(
                 message.toolName,
                 pendingToolArgs.get(message.toolCallId) ?? {},
@@ -262,7 +267,7 @@ export async function chat(
           const replyText = extractAssistantText(msg);
 
           // If the LLM returned an error or completely empty response, roll back
-          if (!replyText && msg.stopReason !== "stop") {
+          if (!replyText && msg.stopReason !== MESSAGE_STOP_REASON.STOP) {
             console.warn(
               `[chat] error response — rolling back ${messagesAddedInRun} message(s). ` +
                 `stopReason: ${msg.stopReason} | errorMessage: ${(msg as any).errorMessage ?? "(none)"}`,

@@ -1,4 +1,4 @@
-import type { MessageRow, PaginatedResponse } from "@clawbot/shared";
+import { MESSAGE_CONTENT_TYPE, type MessageRow, type PaginatedResponse } from "@clawbot/shared";
 import { requestPaginated } from "./core/client";
 import { fetchAppSettings } from "./settings";
 import { toQueryString } from "./core/query";
@@ -21,11 +21,15 @@ function joinAssetUrl(baseUrl: string, filePath: string): string {
 }
 
 function isTextBlock(block: MessageContentBlock): block is MessageContentBlock & { text: string } {
-  return block.type === "text" && typeof block.text === "string";
+  return block.type === MESSAGE_CONTENT_TYPE.TEXT && typeof block.text === "string";
 }
 
 function imageBlockToMarkdown(block: MessageContentBlock, r2BaseUrl: string | null): string {
   const filePath = typeof block.filePath === "string" ? block.filePath : "";
+  if (/^https?:\/\//iu.test(filePath)) {
+    return `![图片](${filePath})`;
+  }
+
   if (r2BaseUrl && filePath && block.storageProvider === "s3-compatible") {
     return `![图片](${joinAssetUrl(r2BaseUrl, filePath)})`;
   }
@@ -49,7 +53,7 @@ function contentTextFromPayload(message: MessageRow, r2BaseUrl: string | null): 
         return block.text;
       }
 
-      if (block.type === "image") {
+      if (block.type === MESSAGE_CONTENT_TYPE.IMAGE) {
         return imageBlockToMarkdown(block, r2BaseUrl);
       }
 
@@ -60,16 +64,49 @@ function contentTextFromPayload(message: MessageRow, r2BaseUrl: string | null): 
   return parts.length > 0 ? parts.join("\n\n") : message.content_text;
 }
 
+function withDisplayAssetUrls(message: MessageRow, r2BaseUrl: string | null): MessageRow {
+  const content = isRecord(message.payload) ? message.payload.content : null;
+  if (!Array.isArray(content)) {
+    return message;
+  }
+
+  return {
+    ...message,
+    payload: {
+      ...message.payload,
+      content: content.map((block) => {
+        if (!isRecord(block) || block.type !== MESSAGE_CONTENT_TYPE.IMAGE) {
+          return block;
+        }
+
+        const filePath = typeof block.filePath === "string" ? block.filePath : "";
+        if (!r2BaseUrl || !filePath || block.storageProvider !== "s3-compatible") {
+          return block;
+        }
+
+        return {
+          ...block,
+          filePath: joinAssetUrl(r2BaseUrl, filePath),
+        };
+      }),
+    },
+  };
+}
+
 function withDisplayImageUrls(
   page: PaginatedResponse<MessageRow>,
   r2BaseUrl: string | null,
 ): PaginatedResponse<MessageRow> {
   return {
     ...page,
-    data: page.data.map((message) => ({
-      ...message,
-      content_text: contentTextFromPayload(message, r2BaseUrl),
-    })),
+    data: page.data.map((message) => {
+      const displayMessage = withDisplayAssetUrls(message, r2BaseUrl);
+
+      return {
+        ...displayMessage,
+        content_text: contentTextFromPayload(displayMessage, r2BaseUrl),
+      };
+    }),
   };
 }
 

@@ -1,4 +1,5 @@
 import type { AgentMessage, ToolResultMessage } from "../llm/types.js";
+import { MESSAGE_CONTENT_TYPE, MESSAGE_ROLE } from "@clawbot/shared";
 import type { SkillRegistry } from "../skills/types.js";
 import type { CompiledSkill } from "../skills/types.js";
 import type { ToolContent } from "../tools/types.js";
@@ -59,13 +60,13 @@ export function collectLoadedSkillNames(messages: AgentMessage[]): string[] {
   const pattern = /<skill name="([^"]+)"/g;
 
   for (const message of messages) {
-    if (message.role !== "toolResult") {
+    if (message.role !== MESSAGE_ROLE.TOOL_RESULT) {
       continue;
     }
 
     const toolResult = message as ToolResultMessage;
     for (const block of toolResult.content) {
-      if (block.type !== "text") {
+      if (block.type !== MESSAGE_CONTENT_TYPE.TEXT) {
         continue;
       }
 
@@ -87,14 +88,14 @@ export function createConversationSkillRuntime(
   return {
     async execute(skillName) {
       if (loadedSkillNames.has(skillName)) {
-        return [{ type: "text", text: "ok" }];
+        return [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: "ok" }];
       }
 
       if (loadedSkillNames.size >= maxOnDemandSkills) {
         const loaded = [...loadedSkillNames].join(", ");
         return [
           {
-            type: "text",
+            type: MESSAGE_CONTENT_TYPE.TEXT,
             text: `本次对话已加载 ${loadedSkillNames.size} 个技能（${loaded}），已达上限。请使用已加载的技能完成任务。`,
           },
         ];
@@ -102,12 +103,12 @@ export function createConversationSkillRuntime(
 
       const skill = config.registry.getOnDemandSkill(skillName);
       if (!skill) {
-        return [{ type: "text", text: `未找到技能: ${skillName}` }];
+        return [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: `未找到技能: ${skillName}` }];
       }
 
       loadedSkillNames.add(skillName);
 
-      return [{ type: "text", text: wrapSkillEnvelope(skill) }];
+      return [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: wrapSkillEnvelope(skill) }];
     },
 
     loadedSkillNames() {

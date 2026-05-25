@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import { createToolRegistry } from "../tools/registry.js";
 import type { ToolSnapshotItem, ToolContent } from "../tools/types.js";
 import { validate } from "node-cron";
@@ -30,7 +31,7 @@ function validateMinInterval(cronExpr: string): boolean {
 }
 
 function textResult(text: string): ToolContent[] {
-  return [{ type: "text", text }];
+  return [{ type: MESSAGE_CONTENT_TYPE.TEXT, text }];
 }
 
 // ── Context injection ──────────────────────────────────────────────

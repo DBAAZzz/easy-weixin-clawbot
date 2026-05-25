@@ -1,6 +1,7 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { sanitize, withSpan } from "@clawbot/observability";
+import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import type {
   LanguageModel,
   TextContent,
@@ -206,7 +207,7 @@ export function formatVisualContextForPrompt(
     "</visual_context>",
   ];
 
-  return { type: "text", text: truncateText(lines.join("\n"), maxChars) };
+  return { type: MESSAGE_CONTENT_TYPE.TEXT, text: truncateText(lines.join("\n"), maxChars) };
 }
 
 export function createImagePlaceholder(reason: VisionFallbackReason): TextContent {
@@ -214,7 +215,7 @@ export function createImagePlaceholder(reason: VisionFallbackReason): TextConten
     reason === "no_vision_model_configured"
       ? "[图片：当前 chat 模型不支持视觉输入，且未配置可用的 vision 模型]"
       : "[图片：当前 chat 模型不支持视觉输入，且图片识别失败]";
-  return { type: "text", text };
+  return { type: MESSAGE_CONTENT_TYPE.TEXT, text };
 }
 
 export async function describeImageWithVisionModel(

@@ -5,6 +5,7 @@
  */
 
 import type { AgentMessage } from "../llm/types.js";
+import { MESSAGE_CONTENT_TYPE, MESSAGE_ROLE } from "@clawbot/shared";
 import { getMessageStore } from "../ports/message-store.js";
 
 /**
@@ -179,8 +180,8 @@ export async function appendAssistantTextMessage(
     await ensureHistoryLoaded(accountId, conversationId);
 
     const message: AgentMessage = {
-      role: "assistant",
-      content: [{ type: "text", text }],
+      role: MESSAGE_ROLE.ASSISTANT,
+      content: [{ type: MESSAGE_CONTENT_TYPE.TEXT, text }],
       timestamp: Date.now(),
     };
 

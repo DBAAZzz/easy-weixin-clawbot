@@ -122,6 +122,7 @@
     "@ai-sdk/openai-compatible": "^2.0.41",
     "@ai-sdk/xai": "^3.0.82",
     "@clawbot/observability": "workspace:*",
+    "@clawbot/shared": "workspace:*",
     "ai": "^6.0.156",
     "node-cron": "^4.2.1",
     "yaml": "^2.8.3",

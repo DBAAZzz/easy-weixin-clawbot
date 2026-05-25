@@ -12,6 +12,10 @@ import type {
   ToolModelMessage,
   ToolResultPart,
 } from "ai";
+import {
+  MESSAGE_CONTENT_TYPE,
+  MESSAGE_ROLE,
+} from "@clawbot/shared";
 import type {
   AgentMessage,
   AssistantMessage,
@@ -38,7 +42,7 @@ function userToModel(msg: UserMessage): UserModelMessage {
     return { role: "user", content: msg.content };
   }
   const parts = msg.content.map((block) => {
-    if (block.type === "text") {
+    if (block.type === MESSAGE_CONTENT_TYPE.TEXT) {
       return { type: "text" as const, text: block.text };
     }
     // ImageContent → ImagePart
@@ -49,10 +53,10 @@ function userToModel(msg: UserMessage): UserModelMessage {
 
 function assistantToModel(msg: AssistantMessage): AssistantModelMessage {
   const parts = msg.content.map((block) => {
-    if (block.type === "text") {
+    if (block.type === MESSAGE_CONTENT_TYPE.TEXT) {
       return { type: "text" as const, text: block.text };
     }
-    if (block.type === "thinking") {
+    if (block.type === MESSAGE_CONTENT_TYPE.THINKING) {
       return { type: "reasoning" as const, text: block.thinking } as any;
     }
     // toolCall
@@ -71,7 +75,7 @@ function toolContentToOutput(
   isError: boolean,
 ): ToolResultPart["output"] {
   const text = content
-    .filter((b): b is TextContent => b.type === "text")
+    .filter((b): b is TextContent => b.type === MESSAGE_CONTENT_TYPE.TEXT)
     .map((b) => b.text)
     .join("\n");
 
@@ -79,14 +83,14 @@ function toolContentToOutput(
     return { type: "error-text", value: text || "Tool execution failed" };
   }
 
-  const hasImages = content.some((b) => b.type === "image");
+  const hasImages = content.some((b) => b.type === MESSAGE_CONTENT_TYPE.IMAGE);
   if (!hasImages) {
     return { type: "text", value: text };
   }
 
   // Mixed content with images
   const parts = content.map((block) => {
-    if (block.type === "text") {
+    if (block.type === MESSAGE_CONTENT_TYPE.TEXT) {
       return { type: "text" as const, text: block.text };
     }
     return {
@@ -109,10 +113,10 @@ export function agentToModelMessages(messages: AgentMessage[]): ModelMessage[] {
   while (i < messages.length) {
     const msg = messages[i];
 
-    if (msg.role === "toolResult") {
+    if (msg.role === MESSAGE_ROLE.TOOL_RESULT) {
       // Group consecutive toolResult messages into one ToolModelMessage
       const toolResults: ToolResultPart[] = [];
-      while (i < messages.length && messages[i].role === "toolResult") {
+      while (i < messages.length && messages[i].role === MESSAGE_ROLE.TOOL_RESULT) {
         const tr = messages[i] as ToolResultMessage;
         toolResults.push({
           type: "tool-result",
@@ -123,7 +127,7 @@ export function agentToModelMessages(messages: AgentMessage[]): ModelMessage[] {
         i++;
       }
       result.push({ role: "tool", content: toolResults } as ToolModelMessage);
-    } else if (msg.role === "user") {
+    } else if (msg.role === MESSAGE_ROLE.USER) {
       result.push(userToModel(msg));
       i++;
     } else {
@@ -145,15 +149,15 @@ export function stripUnreasonedToolCallHistory(messages: AgentMessage[]): AgentM
   const result: AgentMessage[] = [];
 
   for (const msg of messages) {
-    if (msg.role === "assistant") {
-      const hasToolCall = msg.content.some((block) => block.type === "toolCall");
+    if (msg.role === MESSAGE_ROLE.ASSISTANT) {
+      const hasToolCall = msg.content.some((block) => block.type === MESSAGE_CONTENT_TYPE.TOOL_CALL);
       const hasThinking = msg.content.some(
-        (block) => block.type === "thinking" && block.thinking.trim().length > 0,
+        (block) => block.type === MESSAGE_CONTENT_TYPE.THINKING && block.thinking.trim().length > 0,
       );
 
       if (hasToolCall && !hasThinking) {
         const content = msg.content.filter((block) => {
-          if (block.type !== "toolCall") {
+          if (block.type !== MESSAGE_CONTENT_TYPE.TOOL_CALL) {
             return true;
           }
           strippedToolCallIds.add(block.id);
@@ -167,7 +171,7 @@ export function stripUnreasonedToolCallHistory(messages: AgentMessage[]): AgentM
       }
     }
 
-    if (msg.role === "toolResult" && strippedToolCallIds.has(msg.toolCallId)) {
+    if (msg.role === MESSAGE_ROLE.TOOL_RESULT && strippedToolCallIds.has(msg.toolCallId)) {
       continue;
     }
 
@@ -178,10 +182,10 @@ export function stripUnreasonedToolCallHistory(messages: AgentMessage[]): AgentM
 }
 
 function replaceImageBlock(block: TextContent | ImageContent): TextContent {
-  if (block.type === "text") {
+  if (block.type === MESSAGE_CONTENT_TYPE.TEXT) {
     return block;
   }
-  return { type: "text", text: block.promptReplacementText ?? TEXT_ONLY_IMAGE_PLACEHOLDER };
+  return { type: MESSAGE_CONTENT_TYPE.TEXT, text: block.promptReplacementText ?? TEXT_ONLY_IMAGE_PLACEHOLDER };
 }
 
 /**
@@ -191,18 +195,18 @@ function replaceImageBlock(block: TextContent | ImageContent): TextContent {
  */
 export function replaceImagesWithTextPlaceholders(messages: AgentMessage[]): AgentMessage[] {
   return messages.map((msg) => {
-    if (msg.role === "user") {
+    if (msg.role === MESSAGE_ROLE.USER) {
       if (typeof msg.content === "string") {
         return msg;
       }
-      if (!msg.content.some((block) => block.type === "image")) {
+      if (!msg.content.some((block) => block.type === MESSAGE_CONTENT_TYPE.IMAGE)) {
         return msg;
       }
       return { ...msg, content: msg.content.map(replaceImageBlock) };
     }
 
-    if (msg.role === "toolResult") {
-      if (!msg.content.some((block) => block.type === "image")) {
+    if (msg.role === MESSAGE_ROLE.TOOL_RESULT) {
+      if (!msg.content.some((block) => block.type === MESSAGE_CONTENT_TYPE.IMAGE)) {
         return msg;
       }
       return { ...msg, content: msg.content.map(replaceImageBlock) };
@@ -222,37 +226,37 @@ export function legacyPayloadToAgentMessage(payload: Record<string, unknown>): A
   const role = payload.role as string;
   const timestamp = (payload.timestamp as number) ?? Date.now();
 
-  if (role === "user") {
+  if (role === MESSAGE_ROLE.USER) {
     return {
-      role: "user",
+      role: MESSAGE_ROLE.USER,
       content: payload.content as UserMessage["content"],
       timestamp,
       visualContext: payload.visualContext as UserMessage["visualContext"],
     };
   }
 
-  if (role === "assistant") {
+  if (role === MESSAGE_ROLE.ASSISTANT) {
     const rawContent = payload.content as any[];
     const content = rawContent?.map((block: any) => {
-      if (block.type === "toolCall") {
+      if (block.type === MESSAGE_CONTENT_TYPE.TOOL_CALL) {
         return {
-          type: "toolCall" as const,
+          type: MESSAGE_CONTENT_TYPE.TOOL_CALL,
           id: String(block.id ?? block.toolCallId ?? ""),
           name: String(block.name ?? block.toolName ?? ""),
           arguments: normalizeToolArguments(block.arguments ?? block.input ?? block.args),
         };
       }
-      if (block.type === "thinking") {
+      if (block.type === MESSAGE_CONTENT_TYPE.THINKING) {
         return {
-          type: "thinking" as const,
+          type: MESSAGE_CONTENT_TYPE.THINKING,
           thinking: block.thinking,
         };
       }
-      return { type: "text" as const, text: block.text ?? "" };
+      return { type: MESSAGE_CONTENT_TYPE.TEXT, text: block.text ?? "" };
     }) ?? [];
 
     return {
-      role: "assistant",
+      role: MESSAGE_ROLE.ASSISTANT,
       content,
       timestamp,
       model: payload.model as string | undefined,
@@ -265,7 +269,7 @@ export function legacyPayloadToAgentMessage(payload: Record<string, unknown>): A
 
   // toolResult (legacy role name is also "toolResult")
   return {
-    role: "toolResult",
+    role: MESSAGE_ROLE.TOOL_RESULT,
     toolCallId: (payload.toolCallId as string) ?? "",
     toolName: (payload.toolName as string) ?? "",
     content: (payload.content as ToolResultMessage["content"]) ?? [],

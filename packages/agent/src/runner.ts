@@ -1,5 +1,10 @@
 import { generateText, tool as aiTool } from "ai";
 import { z } from "zod";
+import {
+  MESSAGE_CONTENT_TYPE,
+  MESSAGE_ROLE,
+  MESSAGE_STOP_REASON,
+} from "@clawbot/shared";
 import type {
   AgentMessage,
   AssistantMessage,
@@ -76,7 +81,7 @@ export interface AgentRunner {
 }
 
 function isToolCall(block: AssistantMessage["content"][number]): block is ToolCallContent {
-  return block.type === "toolCall";
+  return block.type === MESSAGE_CONTENT_TYPE.TOOL_CALL;
 }
 
 function createToolSignal(parentSignal: AbortSignal | undefined, timeoutMs: number): AbortSignal {
@@ -110,7 +115,7 @@ function normalizeToolArguments(raw: unknown): Record<string, unknown> {
 }
 
 function serializeMessage(message: AgentMessage): unknown {
-  if (message.role === "user") {
+  if (message.role === MESSAGE_ROLE.USER) {
     return {
       role: message.role,
       timestamp: message.timestamp,
@@ -119,9 +124,9 @@ function serializeMessage(message: AgentMessage): unknown {
         typeof message.content === "string"
           ? message.content
           : message.content.map((block) => {
-              if (block.type === "image") {
+              if (block.type === MESSAGE_CONTENT_TYPE.IMAGE) {
                 return {
-                  type: "image",
+                  type: MESSAGE_CONTENT_TYPE.IMAGE,
                   mimeType: block.mimeType,
                   data: `[base64:${block.data.length} chars]`,
                 } satisfies ImageContent;
@@ -131,7 +136,7 @@ function serializeMessage(message: AgentMessage): unknown {
     };
   }
 
-  if (message.role === "assistant") {
+  if (message.role === MESSAGE_ROLE.ASSISTANT) {
     return {
       role: message.role,
       model: message.model,
@@ -151,9 +156,9 @@ function serializeMessage(message: AgentMessage): unknown {
     isError: message.isError,
     timestamp: message.timestamp,
     content: message.content.map((block) =>
-      block.type === "image"
+      block.type === MESSAGE_CONTENT_TYPE.IMAGE
         ? {
-            type: "image",
+            type: MESSAGE_CONTENT_TYPE.IMAGE,
             mimeType: block.mimeType,
             data: `[base64:${block.data.length} chars]`,
           }
@@ -202,7 +207,7 @@ function buildToolResult(
   isError: boolean,
 ): ToolResultMessage {
   return {
-    role: "toolResult",
+    role: MESSAGE_ROLE.TOOL_RESULT,
     toolCallId,
     toolName,
     content,
@@ -355,16 +360,16 @@ export function createAgentRunner(
             // 后续持久化、上下文裁剪、tool-result 回灌都只认这个内部消息格式。
             const assistantContent: AssistantMessage["content"] = [];
             for (const part of result.content) {
-              if ((part as any).type === "text") {
-                const textPart = part as { type: "text"; text: string };
-                if (textPart.text) {
-                  assistantContent.push({ type: "text", text: textPart.text });
-                }
-              } else if ((part as any).type === "reasoning") {
-                const reasonPart = part as { type: "reasoning"; text: string };
-                if (reasonPart.text) {
-                  assistantContent.push({ type: "thinking", thinking: reasonPart.text });
-                }
+            if ((part as any).type === "text") {
+              const textPart = part as { type: "text"; text: string };
+              if (textPart.text) {
+                  assistantContent.push({ type: MESSAGE_CONTENT_TYPE.TEXT, text: textPart.text });
+              }
+            } else if ((part as any).type === "reasoning") {
+              const reasonPart = part as { type: "reasoning"; text: string };
+              if (reasonPart.text) {
+                  assistantContent.push({ type: MESSAGE_CONTENT_TYPE.THINKING, thinking: reasonPart.text });
+              }
               } else if ((part as any).type === "tool-call") {
                 const tcPart = part as unknown as {
                   type: "tool-call";
@@ -374,7 +379,7 @@ export function createAgentRunner(
                   args?: unknown;
                 };
                 assistantContent.push({
-                  type: "toolCall",
+                  type: MESSAGE_CONTENT_TYPE.TOOL_CALL,
                   id: tcPart.toolCallId,
                   name: tcPart.toolName,
                   arguments: normalizeToolArguments(tcPart.input ?? tcPart.args),
@@ -383,7 +388,7 @@ export function createAgentRunner(
             }
 
             const assistantMsg: AssistantMessage = {
-              role: "assistant",
+              role: MESSAGE_ROLE.ASSISTANT,
               content: assistantContent,
               timestamp: Date.now(),
               model: modelId,
@@ -427,7 +432,7 @@ export function createAgentRunner(
       callbacks.onMessage(response);
 
       // 没有 tool-call 就说明这一轮已经产生最终回复，runner 结束，外层 chat.ts 负责提取文本并推送。
-      if (response.stopReason !== "toolUse") {
+      if (response.stopReason !== MESSAGE_STOP_REASON.TOOL_USE) {
         return { status: "completed", finalMessage: response };
       }
 
@@ -463,8 +468,8 @@ export function createAgentRunner(
                   completionSnapshot: sanitize(
                     JSON.stringify(
                       result.map((block) =>
-                        block.type === "image"
-                          ? { type: "image", data: `[base64:${(block as ImageContent).data.length} chars]` }
+                        block.type === MESSAGE_CONTENT_TYPE.IMAGE
+                          ? { type: MESSAGE_CONTENT_TYPE.IMAGE, data: `[base64:${(block as ImageContent).data.length} chars]` }
                           : block,
                       ),
                       null,
@@ -487,7 +492,7 @@ export function createAgentRunner(
             return buildToolResult(
               toolCall.id,
               toolCall.name,
-              [{ type: "text", text: toErrorText(error) }],
+              [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: toErrorText(error) }],
               true,
             );
           }
@@ -503,7 +508,7 @@ export function createAgentRunner(
     // 走到这里表示连续 tool loop 超过 maxRounds。返回最后一条 assistant，外层决定如何降级回复。
     const lastMessage = [...workingHistory]
       .reverse()
-      .find((message): message is AssistantMessage => message.role === "assistant");
+      .find((message): message is AssistantMessage => message.role === MESSAGE_ROLE.ASSISTANT);
 
     if (!lastMessage) {
       return { status: "aborted" };
@@ -521,12 +526,12 @@ export function createAgentRunner(
 
 function mapFinishReason(finishReason: string): string {
   switch (finishReason) {
-    case "stop": return "stop";
+    case "stop": return MESSAGE_STOP_REASON.STOP;
     case "length": return "length";
-    case "tool-calls": return "toolUse";
+    case "tool-calls": return MESSAGE_STOP_REASON.TOOL_USE;
     case "error": return "error";
     case "content-filter": return "error";
-    default: return "stop";
+    default: return MESSAGE_STOP_REASON.STOP;
   }
 }
 

@@ -1,4 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import type {
   McpRemoteTool,
   McpToolCallResult,
@@ -76,7 +77,7 @@ function summarizeUnknownContent(block: Record<string, unknown>): string {
 
 function mapContentBlocks(content: unknown): McpToolCallResult["content"] {
   if (!Array.isArray(content)) {
-    return [{ type: "text", text: "[empty MCP result]" }];
+    return [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: "[empty MCP result]" }];
   }
 
   const mapped: McpToolCallResult["content"] = [];
@@ -89,28 +90,28 @@ function mapContentBlocks(content: unknown): McpToolCallResult["content"] {
     const record = block as Record<string, unknown>;
     const type = record.type;
 
-    if (type === "text" && typeof record.text === "string") {
-      mapped.push({ type: "text", text: record.text });
+    if (type === MESSAGE_CONTENT_TYPE.TEXT && typeof record.text === "string") {
+      mapped.push({ type: MESSAGE_CONTENT_TYPE.TEXT, text: record.text });
       continue;
     }
 
     if (
-      type === "image" &&
+      type === MESSAGE_CONTENT_TYPE.IMAGE &&
       typeof record.data === "string" &&
       typeof record.mimeType === "string"
     ) {
       mapped.push({
-        type: "image",
+        type: MESSAGE_CONTENT_TYPE.IMAGE,
         data: record.data,
         mimeType: record.mimeType,
       });
       continue;
     }
 
-    mapped.push({ type: "text", text: summarizeUnknownContent(record) });
+    mapped.push({ type: MESSAGE_CONTENT_TYPE.TEXT, text: summarizeUnknownContent(record) });
   }
 
-  return mapped.length > 0 ? mapped : [{ type: "text", text: "[empty MCP result]" }];
+  return mapped.length > 0 ? mapped : [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: "[empty MCP result]" }];
 }
 
 function ensureToolArray(value: unknown): McpRemoteTool[] {

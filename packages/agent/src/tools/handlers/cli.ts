@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import type { NativeHandler } from "../types.js";
 
 const BINARY_ALLOWLIST = new Set(["opencli", "gh", "docker", "curl"]);
@@ -118,6 +119,6 @@ export const cliHandler: NativeHandler = {
       output = `${output.slice(0, maxOutputChars)}\n... (truncated, ${totalLength} total chars)`;
     }
 
-    return [{ type: "text", text: output }];
+    return [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: output }];
   },
 };

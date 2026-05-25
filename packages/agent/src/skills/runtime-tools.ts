@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, normalize, relative, resolve } from "node:path";
 import { z } from "zod";
+import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import type { ToolSnapshot } from "../tools/types.js";
 import type { SkillInstaller } from "./types.js";
 import type { RuntimeProvisioner } from "./runtime-provisioner.js";
@@ -255,7 +256,7 @@ export function createSkillRuntimeToolSnapshot(
 
           const content = await readFile(filePath, "utf8");
           return [{
-            type: "text",
+            type: MESSAGE_CONTENT_TYPE.TEXT,
             text: truncateText(content, maxChars),
           }];
         },
@@ -272,7 +273,7 @@ export function createSkillRuntimeToolSnapshot(
             throw new Error("skill_name is required");
           }
           const output = await ensureReadyRuntime(skillName, installer, provisioner);
-          return [{ type: "text", text: output || "Runtime prepared." }];
+          return [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: output || "Runtime prepared." }];
         },
       },
       {
@@ -366,7 +367,7 @@ export function createSkillRuntimeToolSnapshot(
             });
 
             return [{
-              type: "text",
+              type: MESSAGE_CONTENT_TYPE.TEXT,
               text: truncateText(output, DEFAULT_MAX_FILE_CHARS),
             }];
           } finally {

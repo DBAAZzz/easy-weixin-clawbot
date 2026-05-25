@@ -15,6 +15,10 @@ import type {
   ThinkingContent,
   ToolCallContent,
 } from "../llm/types.js";
+import {
+  MESSAGE_CONTENT_TYPE,
+  MESSAGE_ROLE,
+} from "@clawbot/shared";
 
 /**
  * Approximate tokens for a text string (works for mixed CJK + Latin).
@@ -39,13 +43,13 @@ function estimateContentBlock(
   block: TextContent | ImageContent | ThinkingContent | ToolCallContent,
 ): number {
   switch (block.type) {
-    case "text":
+    case MESSAGE_CONTENT_TYPE.TEXT:
       return estimateTextTokens(block.text ?? "");
-    case "image":
+    case MESSAGE_CONTENT_TYPE.IMAGE:
       return estimateImageTokens(block.data);
-    case "thinking":
+    case MESSAGE_CONTENT_TYPE.THINKING:
       return estimateTextTokens(block.thinking ?? "");
-    case "toolCall": {
+    case MESSAGE_CONTENT_TYPE.TOOL_CALL: {
       // name + serialized arguments
       const argText = JSON.stringify(block.arguments ?? {});
       return (
@@ -63,7 +67,7 @@ export function estimateMessageTokens(message: AgentMessage): number {
   // Per-message overhead (role tokens, separators, etc.)
   const MESSAGE_OVERHEAD = 4;
 
-  if (message.role === "user") {
+  if (message.role === MESSAGE_ROLE.USER) {
     const user = message as UserMessage;
     if (typeof user.content === "string") {
       return MESSAGE_OVERHEAD + estimateTextTokens(user.content);
@@ -74,7 +78,7 @@ export function estimateMessageTokens(message: AgentMessage): number {
     );
   }
 
-  if (message.role === "assistant") {
+  if (message.role === MESSAGE_ROLE.ASSISTANT) {
     const assistant = message as AssistantMessage;
     return MESSAGE_OVERHEAD + assistant.content.reduce(
       (sum, block) => sum + estimateContentBlock(block),

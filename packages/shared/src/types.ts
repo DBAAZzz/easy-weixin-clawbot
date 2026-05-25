@@ -1,6 +1,8 @@
+import type { MessageRole } from "./constant/index.js";
+
 /** A single entry in a stored conversation (serialisable subset of pi-ai Message). */
 export interface ConversationEntry {
-  role: "user" | "assistant" | "toolResult";
+  role: MessageRole;
   content: string;
   timestamp: number;
 }
@@ -45,7 +47,7 @@ export interface MessageRow {
   account_id: string;
   conversation_id: string;
   seq: number;
-  role: "user" | "assistant" | "toolResult";
+  role: MessageRole;
   content_text: string | null;
   payload: Record<string, unknown>;
   media_type: string | null;

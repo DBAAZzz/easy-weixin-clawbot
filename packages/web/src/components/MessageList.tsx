@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { MessageRow } from "@clawbot/shared";
+import { buildMessageTimeline } from "../lib/message-timeline.js";
 import { MessageBubble } from "./MessageBubble.js";
 import { ScrollArea } from "./ui/scroll-area.js";
 
@@ -20,6 +21,7 @@ export function MessageList(props: {
   const conversationRef = useRef<string | undefined>(conversationId);
   const stickToBottomRef = useRef(true);
   const items = Array.isArray(messages) ? messages : [];
+  const messageItems = buildMessageTimeline(items);
 
   const loadMoreFromTop = useCallback(() => {
     if (loading || loadingMore || !hasMore) return;
@@ -103,13 +105,13 @@ export function MessageList(props: {
             </div>
           ) : null}
 
-          {items.map((message, index) => (
+          {messageItems.map((item, index) => (
             <div
-              key={message.id}
+              key={item.message.id}
               className="reveal-up"
               style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
             >
-              <MessageBubble message={message} />
+              <MessageBubble message={item.message} thoughts={item.thoughts} tools={item.tools} />
             </div>
           ))}
         </div>

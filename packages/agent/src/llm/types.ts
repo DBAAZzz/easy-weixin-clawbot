@@ -5,17 +5,19 @@
  * Conversion to/from AI SDK ModelMessage happens at the boundary (llm/messages.ts).
  */
 
+import type { MESSAGE_CONTENT_TYPE, MESSAGE_ROLE } from "@clawbot/shared";
+
 export type { LanguageModel } from "ai";
 
 // ── Content blocks ─────────────────────────────────────────────────
 
 export interface TextContent {
-  type: "text";
+  type: typeof MESSAGE_CONTENT_TYPE.TEXT;
   text: string;
 }
 
 export interface ImageContent {
-  type: "image";
+  type: typeof MESSAGE_CONTENT_TYPE.IMAGE;
   data: string;
   mimeType: string;
   assetId?: string;
@@ -47,12 +49,12 @@ export type VisionFallbackReason =
   | "image_limit_exceeded";
 
 export interface ThinkingContent {
-  type: "thinking";
+  type: typeof MESSAGE_CONTENT_TYPE.THINKING;
   thinking: string;
 }
 
 export interface ToolCallContent {
-  type: "toolCall";
+  type: typeof MESSAGE_CONTENT_TYPE.TOOL_CALL;
   id: string;
   name: string;
   arguments: Record<string, unknown>;
@@ -61,14 +63,14 @@ export interface ToolCallContent {
 // ── Messages ───────────────────────────────────────────────────────
 
 export interface UserMessage {
-  role: "user";
+  role: typeof MESSAGE_ROLE.USER;
   content: string | (TextContent | ImageContent)[];
   timestamp: number;
   visualContext?: VisualContext[];
 }
 
 export interface AssistantMessage {
-  role: "assistant";
+  role: typeof MESSAGE_ROLE.ASSISTANT;
   content: (TextContent | ThinkingContent | ToolCallContent)[];
   timestamp: number;
   /** Metadata populated by the runner from GenerateTextResult */
@@ -80,7 +82,7 @@ export interface AssistantMessage {
 }
 
 export interface ToolResultMessage {
-  role: "toolResult";
+  role: typeof MESSAGE_ROLE.TOOL_RESULT;
   toolCallId: string;
   toolName: string;
   content: (TextContent | ImageContent)[];

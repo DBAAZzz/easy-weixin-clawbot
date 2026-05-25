@@ -5,6 +5,7 @@ import type {
   ToolResultMessage,
   VisionFallbackReason,
 } from "../llm/types.js";
+import { MESSAGE_CONTENT_TYPE, MESSAGE_ROLE } from "@clawbot/shared";
 
 export function detectImageMime(buf: Buffer): string | null {
   if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return "image/jpeg";
@@ -30,7 +31,7 @@ export function detectImageMime(buf: Buffer): string | null {
 
 export function extractTextContent(blocks: readonly { type: string }[]): string {
   return blocks
-    .filter((block): block is TextContent => block.type === "text")
+    .filter((block): block is TextContent => block.type === MESSAGE_CONTENT_TYPE.TEXT)
     .map((block) => block.text)
     .join("\n")
     .trim();
@@ -46,7 +47,7 @@ export function extractToolResultText(message: ToolResultMessage): string {
 
 export function isEmptyAssistantMessage(message: { role: string; content: unknown }): boolean {
   return (
-    message.role === "assistant" &&
+    message.role === MESSAGE_ROLE.ASSISTANT &&
     Array.isArray(message.content) &&
     message.content.length === 0
   );

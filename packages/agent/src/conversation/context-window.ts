@@ -17,6 +17,10 @@ import type {
   TextContent,
 } from "../llm/types.js";
 import {
+  MESSAGE_CONTENT_TYPE,
+  MESSAGE_ROLE,
+} from "@clawbot/shared";
+import {
   estimateMessageTokens,
   estimateHistoryTokens,
   withSafetyMargin,
@@ -51,7 +55,7 @@ export interface TrimResult {
 // ── Helpers ──────────────────────────────────────────────────────────
 
 const IMAGE_PLACEHOLDER: TextContent = {
-  type: "text",
+  type: MESSAGE_CONTENT_TYPE.TEXT,
   text: "[图片: 已省略]",
 };
 
@@ -59,7 +63,7 @@ const IMAGE_PLACEHOLDER: TextContent = {
 function findRecentTurnsBoundary(messages: AgentMessage[], minTurns: number): number {
   let userCount = 0;
   for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === "user") {
+    if (messages[i].role === MESSAGE_ROLE.USER) {
       userCount++;
       if (userCount >= minTurns) return i;
     }
@@ -71,33 +75,33 @@ function findRecentTurnsBoundary(messages: AgentMessage[], minTurns: number): nu
  * Check if a message contains image content.
  */
 function hasImage(message: AgentMessage): boolean {
-  if (message.role === "user") {
+  if (message.role === MESSAGE_ROLE.USER) {
     const user = message as UserMessage;
     if (typeof user.content === "string") return false;
-    return user.content.some((b) => b.type === "image");
+    return user.content.some((b) => b.type === MESSAGE_CONTENT_TYPE.IMAGE);
   }
-  if (message.role === "toolResult") {
+  if (message.role === MESSAGE_ROLE.TOOL_RESULT) {
     const tr = message as ToolResultMessage;
-    return tr.content.some((b) => b.type === "image");
+    return tr.content.some((b) => b.type === MESSAGE_CONTENT_TYPE.IMAGE);
   }
   return false;
 }
 
 /** Replace image blocks with a text placeholder. Returns a shallow clone. */
 function degradeImages(message: AgentMessage): AgentMessage {
-  if (message.role === "user") {
+  if (message.role === MESSAGE_ROLE.USER) {
     const user = message as UserMessage;
     if (typeof user.content === "string") return message;
     const newContent = user.content.map((block) =>
-      block.type === "image" ? IMAGE_PLACEHOLDER : block,
+      block.type === MESSAGE_CONTENT_TYPE.IMAGE ? IMAGE_PLACEHOLDER : block,
     );
     return { ...user, content: newContent } as UserMessage;
   }
 
-  if (message.role === "toolResult") {
+  if (message.role === MESSAGE_ROLE.TOOL_RESULT) {
     const tr = message as ToolResultMessage;
     const newContent = tr.content.map((block) =>
-      block.type === "image" ? IMAGE_PLACEHOLDER : block,
+      block.type === MESSAGE_CONTENT_TYPE.IMAGE ? IMAGE_PLACEHOLDER : block,
     );
     return { ...tr, content: newContent } as ToolResultMessage;
   }
@@ -119,24 +123,24 @@ function findSafeCutIndex(messages: AgentMessage[], rawIndex: number): number {
   let idx = rawIndex;
 
   // Skip past any toolResult messages at the cut point
-  while (idx < messages.length && messages[idx].role === "toolResult") {
+  while (idx < messages.length && messages[idx].role === MESSAGE_ROLE.TOOL_RESULT) {
     idx++;
   }
 
   // If we landed on an assistant message that has tool calls,
   // skip it and its following toolResults too
-  while (idx < messages.length && messages[idx].role === "assistant") {
+  while (idx < messages.length && messages[idx].role === MESSAGE_ROLE.ASSISTANT) {
     const assistant = messages[idx] as AssistantMessage;
-    const hasToolCalls = assistant.content.some((b) => b.type === "toolCall");
+    const hasToolCalls = assistant.content.some((b) => b.type === MESSAGE_CONTENT_TYPE.TOOL_CALL);
     if (!hasToolCalls) break;
     idx++; // skip the assistant
-    while (idx < messages.length && messages[idx].role === "toolResult") {
+    while (idx < messages.length && messages[idx].role === MESSAGE_ROLE.TOOL_RESULT) {
       idx++; // skip its tool results
     }
   }
 
   // Ensure we start with a user message
-  while (idx < messages.length && messages[idx].role !== "user") {
+  while (idx < messages.length && messages[idx].role !== MESSAGE_ROLE.USER) {
     idx++;
   }
 
@@ -219,7 +223,7 @@ export function fitToContextWindow(
   const droppedCount = safeCut;
 
   const ellipsis: UserMessage = {
-    role: "user",
+    role: MESSAGE_ROLE.USER,
     content: `[以上 ${droppedCount} 条早期对话已省略]`,
     timestamp: remaining.length > 0 ? (remaining[0] as any).timestamp ?? Date.now() : Date.now(),
   };

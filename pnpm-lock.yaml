@@ -37,6 +37,9 @@ importers:
       '@clawbot/observability':
         specifier: workspace:*
         version: link:../observability
+      '@clawbot/shared':
+        specifier: workspace:*
+        version: link:../shared
       ai:
         specifier: ^6.0.156
         version: 6.0.156(zod@4.3.6)
@@ -1355,6 +1358,7 @@ packages:
 
   '@zed-industries/claude-agent-acp@0.23.1':
     resolution: {integrity: sha512-aQ1gAm1MBalwEgE/VB/m4z6sXw/fRccNOW268pNLXnWV704ZuLbbm0N+oEv8KTmd53dJ6YzMhMpD8p5ig6C+sA==}
+    deprecated: This package has been renamed to @agentclientprotocol/claude-agent-acp. Please migrate to continue receiving updates.
     hasBin: true
 
   '@zed-industries/codex-acp-darwin-arm64@0.10.0':

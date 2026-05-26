@@ -183,6 +183,7 @@ export {
   clearConversation,
   withConversationLock,
   rollbackMessages,
+  generateConversationTitle,
 } from "./conversation/index.js";
 
 // ── Commands ────────────────────────────────────────────────────────

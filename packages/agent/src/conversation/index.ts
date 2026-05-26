@@ -19,3 +19,4 @@ export {
   estimateMessageTokens,
   estimateHistoryTokens,
 } from "./token-estimator.js";
+export { generateConversationTitle } from "./title.js";

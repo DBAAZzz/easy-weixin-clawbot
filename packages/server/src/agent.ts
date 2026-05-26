@@ -20,6 +20,7 @@ import {
   createHandoffAnchors,
   checkWaitingGoalsAsync,
   currentSeq,
+  generateConversationTitle,
   setHeartbeatToolContext,
   isLLMProviderNotConfiguredError,
 } from "@clawbot/agent";
@@ -27,7 +28,11 @@ import type { ChatMedia as AgentChatMedia } from "@clawbot/agent";
 import { getSchedulerStore } from "@clawbot/agent/ports";
 import { getAssetService } from "./assets/index.js";
 import { sendProactiveMessage } from "./proactive-push.js";
-import { updateContextToken } from "./db/conversations.js";
+import {
+  getConversationTitle,
+  setConversationTitleIfEmpty,
+  updateContextToken,
+} from "./db/conversations.js";
 import { deleteRoute, getRoute, upsertRoute } from "./db/session-routes.js";
 import { createModuleLogger, getErrorFields, log } from "./logger.js";
 import { observabilityService } from "./observability/service.js";
@@ -205,6 +210,24 @@ async function deliverUnpushedRuns(accountId: string, conversationId: string): P
   }
 }
 
+async function generateTitleIfNeeded(
+  accountId: string,
+  conversationId: string,
+  turn: { userText: string; assistantText: string },
+): Promise<void> {
+  const existingTitle = await getConversationTitle(accountId, conversationId);
+  if (existingTitle?.trim() && existingTitle.trim() !== "未命名会话") {
+    return;
+  }
+
+  const title = await generateConversationTitle(accountId, conversationId, turn);
+  if (!title) {
+    return;
+  }
+
+  await setConversationTitleIfEmpty(accountId, conversationId, title);
+}
+
 /** Create an Agent bound to a specific WeChat account. */
 export function createAgent(accountId: string): Agent {
   return {
@@ -292,6 +315,22 @@ export function createAgent(accountId: string): Agent {
           } finally {
             setSchedulerContext(null);
             setHeartbeatToolContext(null);
+          }
+
+          if (reply.text?.trim()) {
+            void generateTitleIfNeeded(accountId, effectiveConvId, {
+              userText: req.text,
+              assistantText: reply.text,
+            }).catch((err) => {
+              agentLogger.warn(
+                {
+                  ...getErrorFields(err),
+                  accountId,
+                  conversationId: effectiveConvId,
+                },
+                "会话标题生成失败",
+              );
+            });
           }
 
           // Post-chat hook: notify heartbeat engine of new user/assistant messages

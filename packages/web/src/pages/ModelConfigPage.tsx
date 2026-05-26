@@ -132,10 +132,7 @@ function accountLabel(account: AccountSummary): string {
 }
 
 function conversationLabel(conversation: ConversationRow): string {
-  const name = conversation.title?.trim() || conversation.conversation_id;
-  return name === conversation.conversation_id
-    ? conversation.conversation_id
-    : `${name} · ${conversation.conversation_id}`;
+  return conversation.title?.trim() || "未命名会话";
 }
 
 function ensureSelectedOption(

@@ -7,7 +7,8 @@ export type PromptLane =
   | "chat"
   | "vision_describe"
   | "heartbeat_eval"
-  | "memory_extract";
+  | "memory_extract"
+  | "conversation_title";
 
 /**
  * Declares what a given lane is allowed to inject into its LLM call.

@@ -60,6 +60,19 @@ export const PROMPT_PROFILES: Record<PromptLane, PromptProfile> = {
     injectTime: false,
     injectRecentContext: false,
   },
+
+  /**
+   * Conversation title extraction — creates a short display title after the
+   * first complete user/assistant exchange.
+   */
+  conversation_title: {
+    lane: "conversation_title",
+    systemPromptKey: "conversation-title",
+    injectSkills: false,
+    injectTapeMemory: false,
+    injectTime: false,
+    injectRecentContext: false,
+  },
 };
 
 /**
@@ -96,5 +109,9 @@ export const PROMPT_ASSET_SPECS: readonly PromptAssetSpec[] = [
   {
     key: "memory-extract",
     allowedRuntimeVars: ["EXISTING_KEYS"],
+  },
+  {
+    key: "conversation-title",
+    allowedRuntimeVars: [],
   },
 ];

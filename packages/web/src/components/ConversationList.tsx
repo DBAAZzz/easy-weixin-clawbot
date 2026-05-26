@@ -6,6 +6,10 @@ import { Input } from "./ui/input.js";
 import { SearchIcon } from "./ui/icons.js";
 import { ScrollArea } from "./ui/scroll-area.js";
 
+function conversationDisplayTitle(conversation: ConversationRow): string {
+  return conversation.title?.trim() || "未命名会话";
+}
+
 export function ConversationList(props: {
   conversations: ConversationRow[];
   selectedConversationId?: string;
@@ -17,13 +21,16 @@ export function ConversationList(props: {
   const normalized = deferredQuery.trim().toLowerCase();
   const visibleConversations = normalized
     ? props.conversations.filter((conversation) => {
-        const title = (conversation.title ?? conversation.conversation_id).toLowerCase();
-        return title.includes(normalized);
+        const title = conversationDisplayTitle(conversation).toLowerCase();
+        return (
+          title.includes(normalized) ||
+          conversation.conversation_id.toLowerCase().includes(normalized)
+        );
       })
     : props.conversations;
 
   function badgeForConversation(conversation: ConversationRow) {
-    const source = conversation.title ?? conversation.conversation_id;
+    const source = conversationDisplayTitle(conversation);
     return source.trim().slice(0, 1).toUpperCase() || "C";
   }
 
@@ -36,7 +43,7 @@ export function ConversationList(props: {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜索标题或 conversation id"
+            placeholder="搜索会话标题"
             className="h-9 rounded-lg pl-10"
           />
         </div>
@@ -73,7 +80,7 @@ export function ConversationList(props: {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-3">
                     <p className="truncate text-base font-medium text-ink">
-                      {conversation.title ?? conversation.conversation_id}
+                      {conversationDisplayTitle(conversation)}
                     </p>
                     <span className="shrink-0 font-mono text-xs text-muted">
                       {conversation.last_message_at
@@ -81,9 +88,6 @@ export function ConversationList(props: {
                         : "--:--"}
                     </span>
                   </div>
-                  <p className="mt-0.5 truncate text-sm text-muted">
-                    {conversation.conversation_id}
-                  </p>
                 </div>
               </div>
 
@@ -97,7 +101,7 @@ export function ConversationList(props: {
 
         {visibleConversations.length === 0 ? (
           <div className="rounded-card border border-dashed border-line px-4 py-6 text-base leading-6 text-muted">
-            没有匹配到会话。可以尝试搜索标题片段，或者直接输入 conversation id。
+            没有匹配到会话。可以尝试搜索标题片段。
           </div>
         ) : null}
       </ScrollArea>

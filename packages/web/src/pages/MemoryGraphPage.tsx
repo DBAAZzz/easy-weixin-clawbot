@@ -106,9 +106,7 @@ export function MemoryGraphPage() {
     { value: "*", label: "全部分支" },
     ...conversations.conversations.map((conversation) => ({
       value: conversation.conversation_id,
-      label: conversation.title
-        ? `${conversation.title} · ${conversation.conversation_id}`
-        : conversation.conversation_id,
+      label: conversation.title?.trim() || "未命名会话",
     })),
   ];
 

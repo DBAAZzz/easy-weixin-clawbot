@@ -1,55 +1,66 @@
 import { lazy } from "react";
+import type { ComponentType } from "react";
 
-export const AuthLoginPage = lazy(() =>
-  import("../pages/AuthLoginPage.js").then((m) => ({ default: m.AuthLoginPage })),
+function lazyNamedPage<TModule extends Record<TExport, ComponentType>, TExport extends string>(
+  load: () => Promise<TModule>,
+  exportName: TExport,
+) {
+  return lazy(async () => {
+    const module = await load();
+    return { default: module[exportName] };
+  });
+}
+
+export const AuthLoginPage = lazyNamedPage(
+  () => import("../pages/AuthLoginPage.js"),
+  "AuthLoginPage",
 );
-export const ConversationPage = lazy(() =>
-  import("../pages/ConversationPage.js").then((m) => ({ default: m.ConversationPage })),
+export const ConversationPage = lazyNamedPage(
+  () => import("../pages/ConversationPage.js"),
+  "ConversationPage",
 );
-export const DashboardPage = lazy(() =>
-  import("../pages/DashboardPage.js").then((m) => ({ default: m.DashboardPage })),
+export const DashboardPage = lazyNamedPage(
+  () => import("../pages/DashboardPage.js"),
+  "DashboardPage",
 );
-export const LoginPage = lazy(() =>
-  import("../pages/LoginPage.js").then((m) => ({ default: m.LoginPage })),
+export const LoginPage = lazyNamedPage(() => import("../pages/LoginPage.js"), "LoginPage");
+export const McpPage = lazyNamedPage(() => import("../pages/McpPage.js"), "McpPage");
+export const MemoryGraphPage = lazyNamedPage(
+  () => import("../pages/MemoryGraphPage.js"),
+  "MemoryGraphPage",
 );
-export const McpPage = lazy(() =>
-  import("../pages/McpPage.js").then((m) => ({ default: m.McpPage })),
+export const ModelConfigPage = lazyNamedPage(
+  () => import("../pages/ModelConfigPage.js"),
+  "ModelConfigPage",
 );
-export const MemoryGraphPage = lazy(() =>
-  import("../pages/MemoryGraphPage.js").then((m) => ({ default: m.MemoryGraphPage })),
+export const ObservabilityPage = lazyNamedPage(
+  () => import("../pages/ObservabilityPage.js"),
+  "ObservabilityPage",
 );
-export const ModelConfigPage = lazy(() =>
-  import("../pages/ModelConfigPage.js").then((m) => ({ default: m.ModelConfigPage })),
+export const ObservabilityTracePage = lazyNamedPage(
+  () => import("../pages/ObservabilityTracePage.js"),
+  "ObservabilityTracePage",
 );
-export const ObservabilityPage = lazy(() =>
-  import("../pages/ObservabilityPage.js").then((m) => ({ default: m.ObservabilityPage })),
+export const ProviderConfigPage = lazyNamedPage(
+  () => import("../pages/ProviderConfigPage.js"),
+  "ProviderConfigPage",
 );
-export const ObservabilityTracePage = lazy(() =>
-  import("../pages/ObservabilityTracePage.js").then((m) => ({
-    default: m.ObservabilityTracePage,
-  })),
+export const RssSubscriptionsPage = lazyNamedPage(
+  () => import("../pages/RssSubscriptionsPage.js"),
+  "RssSubscriptionsPage",
 );
-export const ProviderConfigPage = lazy(() =>
-  import("../pages/ProviderConfigPage.js").then((m) => ({ default: m.ProviderConfigPage })),
+export const ScheduledTasksPage = lazyNamedPage(
+  () => import("../pages/ScheduledTasksPage.js"),
+  "ScheduledTasksPage",
 );
-export const RssSubscriptionsPage = lazy(() =>
-  import("../pages/RssSubscriptionsPage.js").then((m) => ({ default: m.RssSubscriptionsPage })),
+export const TaskCenterPage = lazyNamedPage(
+  () => import("../pages/TaskCenterPage.js"),
+  "TaskCenterPage",
 );
-export const ScheduledTasksPage = lazy(() =>
-  import("../pages/ScheduledTasksPage.js").then((m) => ({ default: m.ScheduledTasksPage })),
+export const SkillsPage = lazyNamedPage(() => import("../pages/SkillsPage.js"), "SkillsPage");
+export const ToolsPage = lazyNamedPage(() => import("../pages/ToolsPage.js"), "ToolsPage");
+export const WebhookLogsPage = lazyNamedPage(
+  () => import("../pages/WebhookLogsPage.js"),
+  "WebhookLogsPage",
 );
-export const TaskCenterPage = lazy(() =>
-  import("../pages/TaskCenterPage.js").then((m) => ({ default: m.TaskCenterPage })),
-);
-export const SkillsPage = lazy(() =>
-  import("../pages/SkillsPage.js").then((m) => ({ default: m.SkillsPage })),
-);
-export const ToolsPage = lazy(() =>
-  import("../pages/ToolsPage.js").then((m) => ({ default: m.ToolsPage })),
-);
-export const WebhookLogsPage = lazy(() =>
-  import("../pages/WebhookLogsPage.js").then((m) => ({ default: m.WebhookLogsPage })),
-);
-export const WebhooksPage = lazy(() =>
-  import("../pages/WebhooksPage.js").then((m) => ({ default: m.WebhooksPage })),
-);
+export const WebhooksPage = lazyNamedPage(() => import("../pages/WebhooksPage.js"), "WebhooksPage");

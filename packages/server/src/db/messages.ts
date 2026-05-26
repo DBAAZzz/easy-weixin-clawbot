@@ -289,7 +289,6 @@ async function persistRecord(record: StoredMessageRecord): Promise<void> {
         create: {
           accountId: record.account_id,
           conversationId: record.conversation_id,
-          title: record.content_text?.trim() || record.conversation_id,
           lastMessageAt: new Date(),
           messageCount: 1,
         },

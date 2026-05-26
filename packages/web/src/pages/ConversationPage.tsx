@@ -30,7 +30,7 @@ export function ConversationPage() {
   const selectedConversation = conversations.find(
     (conversation) => conversation.conversation_id === selectedConversationId,
   );
-  const conversationTitle = selectedConversation?.title ?? selectedConversationId ?? "未选择会话";
+  const conversationTitle = selectedConversation?.title?.trim() || "未选择会话";
   const conversationMeta = selectedConversation
     ? `${formatCount(selectedConversation.message_count)} 条消息 · ${formatRelativeTime(selectedConversation.last_message_at)}`
     : null;

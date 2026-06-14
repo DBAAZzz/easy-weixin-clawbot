@@ -30,7 +30,6 @@ packages/
   web/          ← @clawbot/web     React SPA 管理后台
   shared/       ← @clawbot/shared  纯类型包，零运行时依赖
   observability/← @clawbot/observability  Trace/Metrics/采样
-  weixin-acp/   ← weixin-acp       微信 ACP 适配器（CLI）
   weixin-agent-sdk/ ← weixin-agent-sdk  微信协议 SDK
 data/
   tools/        ← Markdown 工具定义（builtin/ + user/）

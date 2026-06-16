@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import type { WebSearchProviderDto } from "@clawbot/shared";
-import { CardToggle } from "../ui/admin-card.js";
-import { Badge } from "../ui/badge.js";
-import { Button } from "../ui/button.js";
-import { Input } from "../ui/input.js";
-import { NetworkIcon, SearchIcon } from "../ui/icons.js";
-import { toast } from "../ui/sonner.js";
+import { Badge, CardToggle } from "@clawbot/ui";
+import { Button } from "@clawbot/ui";
+import { Input } from "@clawbot/ui";
+import { NetworkIcon, SearchIcon } from "@clawbot/ui";
+import { toast } from "@clawbot/ui";
 import { cn } from "../../lib/cn.js";
 import { useWebSearchProviders } from "../../hooks/useWebSearchProviders.js";
 
@@ -250,7 +249,7 @@ export function NetworkSearchSettingsPanel(props: { active: boolean }) {
           ) : null}
 
           <div className="flex justify-end pt-2">
-            <Button disabled={saving || loading} onClick={() => void handleSave()}>
+            <Button size="sm" disabled={saving || loading} onClick={() => void handleSave()}>
               {saving ? "保存中..." : "保存"}
             </Button>
           </div>

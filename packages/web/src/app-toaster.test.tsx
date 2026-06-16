@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 test("AppToaster renders the Clawbot notification landmark", async () => {
-  const { AppToaster } = await import("./components/ui/sonner.js").catch(() => ({
+  const { AppToaster } = await import("@clawbot/ui").catch(() => ({
     AppToaster: () => null,
   }));
 

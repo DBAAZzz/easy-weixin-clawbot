@@ -1,10 +1,22 @@
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
+@import "@clawbot/ui/style.css";
+@import "@clawbot/ui/sonner.css";
 
-/* ===== Theme Tokens (主真源) ===== */
+/* =============================================================================
+ * Web app — semantic theme layer.
+ *
+ * UI component styles and component tokens come from @clawbot/ui/style.css.
+ * This file owns only the app semantic theme, Tailwind compile-time tokens,
+ * and web-specific tokens such as page layout, glass, and dashboard colors.
+ *
+ * To re-theme: change semantic values here. Do not import UI package source
+ * files or restate component spacing/color tokens in the web package.
+ * ========================================================================== */
+
 @theme {
-  /* ── Color: Foundation (solid) ── */
-  --color-paper: #f4f7f8;
+  /* ── Semantic: foundation (solid colors) ── */
+  --color-paper: rgb(245, 247, 249);
   --color-surface: #edf2f4;
   --color-ink: #15202b;
   --color-ink-deep: #111827;
@@ -13,29 +25,66 @@
   --color-muted-strong: #4b5969;
   --color-accent: #156e63;
   --color-accent-strong: #0f5b52;
+  --color-accent-deep: #0f5b52;
 
-  /* ── Color: Foundation (rgba, reference :root vars) ── */
-  --color-panel: var(--panel);
-  --color-panel-strong: var(--panel-strong);
-  --color-sidebar: var(--sidebar);
-  --color-accent-soft: var(--accent-soft);
-  --color-line: var(--line);
-  --color-line-strong: var(--line-strong);
+  /* ── Semantic: surfaces & controls ── */
+  --color-panel: rgba(255, 255, 255, 0.78);
+  --color-panel-strong: rgba(255, 255, 255, 0.92);
+  --color-sidebar: rgba(247, 250, 251, 0.86);
+  --color-accent-soft: rgba(21, 110, 99, 0.06);
+  --color-accent-subtle: rgba(21, 110, 99, 0.06);
+  --color-accent-soft-border: rgba(21, 110, 99, 0.18);
+  --color-surface-raised: rgba(255, 255, 255, 0.92);
+  --color-surface-sunken: #edf2f4;
+  --color-border-muted: rgba(21, 32, 43, 0.08);
+  --color-control-border-strong: rgba(21, 32, 43, 0.16);
+  --color-ghost-hover-bg: rgba(21, 32, 43, 0.04);
+  --color-ghost-active: rgba(246, 249, 250, 0.9);
 
-  /* ── Color: Extended palette ── */
-  --color-ring-accent: rgba(21, 110, 99, 0.14);
-  --color-accent-mist: rgba(21, 110, 99, 0.08);
-  --color-accent-border: rgba(21, 110, 99, 0.12);
-  --color-accent-border-strong: rgba(21, 110, 99, 0.18);
-  --color-overlay: rgba(15, 23, 42, 0.24);
-  --color-overlay-strong: rgba(15, 23, 42, 0.28);
-  --color-toggle-off: rgba(148, 163, 184, 0.34);
-  --color-toggle-off-strong: rgba(148, 163, 184, 0.38);
-  --color-toggle-border: rgba(28, 100, 242, 0.14);
+  /* ── Semantic: state ── */
+  --color-danger: #c2433a;
+  --color-danger-strong: #a5392f;
+  --color-state-success: #22c55e;
+  --color-state-error: #ef4444;
+  --color-state-warning: #f59e0b;
+  --color-success-soft: rgba(240, 253, 250, 0.92);
+  --color-success-soft-border: rgba(21, 110, 99, 0.14);
+  --color-success-soft-fg: #0f5b52;
+  --color-success-solid: #156e63;
+  --color-success-solid-hover: #0f5b52;
+
+  /* ── Semantic: notice ── */
   --color-notice-error-bg: rgba(254, 242, 242, 0.9);
   --color-notice-error-border: rgba(185, 28, 28, 0.12);
   --color-notice-success-bg: rgba(240, 253, 250, 0.92);
   --color-notice-success-border: rgba(21, 110, 99, 0.14);
+  --color-notice-warning-bg: rgba(244, 232, 196, 0.68);
+  --color-notice-warning-border: rgba(177, 126, 43, 0.2);
+  --color-notice-warning-fg: #8a5d1f;
+
+  /* ── Semantic: misc ── */
+  --color-toggle-off: rgba(148, 163, 184, 0.34);
+  --color-toggle-off-strong: rgba(148, 163, 184, 0.38);
+  --color-toggle-border: rgba(28, 100, 242, 0.14);
+  --color-line: rgba(21, 32, 43, 0.08);
+  --color-line-strong: rgba(21, 32, 43, 0.16);
+  --color-overlay: rgba(15, 23, 42, 0.24);
+  --color-overlay-strong: rgba(15, 23, 42, 0.28);
+  --color-modal-border: rgba(21, 32, 43, 0.1);
+  --color-icon-muted: #999;
+
+  /* ── Web extended palette ── */
+  --color-ring-accent: rgba(21, 110, 99, 0.14);
+  --color-accent-mist: rgba(21, 110, 99, 0.08);
+  --color-accent-border: rgba(21, 110, 99, 0.12);
+  --color-accent-border-strong: rgba(21, 110, 99, 0.18);
+  --color-accent-hover: rgba(21, 110, 99, 0.04);
+  --color-accent-active: rgba(21, 110, 99, 0.12);
+  --color-accent-ring-soft: rgba(21, 110, 99, 0.15);
+  --color-accent-border-active: rgba(21, 110, 99, 0.2);
+  --color-accent-mist-strong: rgba(21, 110, 99, 0.07);
+  --color-accent-selected: rgba(21, 110, 99, 0.38);
+  --color-accent-selected-ring: rgba(21, 110, 99, 0.1);
   --color-detail-bg: rgba(247, 250, 251, 0.84);
   --color-table-header: rgba(246, 249, 250, 0.92);
   --color-card-line: rgba(21, 32, 43, 0.08);
@@ -44,18 +93,6 @@
   --color-ghost-hover: rgba(21, 32, 43, 0.04);
   --color-hover-bg: rgba(246, 249, 250, 0.9);
   --color-detail-bg-strong: rgba(255, 255, 255, 0.94);
-  --color-state-success: #22c55e;
-  --color-state-error: #ef4444;
-  --color-state-warning: #f59e0b;
-  --color-modal-border: rgba(21, 32, 43, 0.1);
-  --color-accent-hover: rgba(21, 110, 99, 0.04);
-  --color-accent-active: rgba(21, 110, 99, 0.12);
-  --color-accent-ring-soft: rgba(21, 110, 99, 0.15);
-  --color-accent-subtle: rgba(21, 110, 99, 0.06);
-  --color-accent-border-active: rgba(21, 110, 99, 0.2);
-  --color-accent-mist-strong: rgba(21, 110, 99, 0.07);
-  --color-accent-selected: rgba(21, 110, 99, 0.38);
-  --color-accent-selected-ring: rgba(21, 110, 99, 0.1);
   --color-slate-border: rgba(148, 163, 184, 0.14);
   --color-slate-border-soft: rgba(148, 163, 184, 0.12);
   --color-slate-border-strong: rgba(148, 163, 184, 0.24);
@@ -75,14 +112,34 @@
   --color-pane-95: rgba(248, 250, 252, 0.95);
   --color-pane-98: rgba(248, 250, 251, 0.98);
   --color-shell-soft: rgba(252, 253, 253, 0.9);
-  --color-success-solid: rgba(240, 253, 250, 1);
+  --color-success-solid: #156e63;
   --color-indigo-soft: rgba(99, 102, 241, 0.06);
   --color-indigo-medium: rgba(99, 102, 241, 0.6);
-  --color-icon-muted: #999;
   --color-notice-error-border-strong: rgba(185, 28, 28, 0.14);
   --color-notice-error-bg-strong: rgba(254, 242, 242, 0.92);
 
-  /* ── Color: Glass / Frost ── */
+  /* ── Account dashboard palette ── */
+  --color-account-page: #f5f7f9;
+  --color-account-ink: #1a2128;
+  --color-account-ink-soft: #2d353c;
+  --color-account-muted: #69737b;
+  --color-account-muted-soft: #8a949c;
+  --color-account-muted-faint: #aeb6bd;
+  --color-account-card: #ffffff;
+  --color-account-table-head: #fafbfc;
+  --color-account-filter-track: #eef1f4;
+  --color-account-line: #eceff1;
+  --color-account-line-strong: #e0e5e9;
+  --color-account-line-soft: #f1f3f5;
+  --color-account-control-hover: #d2d8dd;
+  --color-account-success-dot: #4c9576;
+  --color-account-success-bg: #d7e9df;
+  --color-account-success-fg: #30634e;
+  --color-account-warning-dot: #c2872f;
+  --color-account-warning-bg: #f6e6cd;
+  --color-account-warning-fg: #8a5d18;
+
+  /* ── Glass / Frost ── */
   --color-glass-48: rgba(255, 255, 255, 0.48);
   --color-glass-52: rgba(255, 255, 255, 0.52);
   --color-glass-74: rgba(255, 255, 255, 0.74);
@@ -133,6 +190,9 @@
   --shadow-inset-white: inset 0 1px 0 rgba(255, 255, 255, 0.8);
   --shadow-legend-dot: 0 0 0 3px rgba(255, 255, 255, 0.85);
   --shadow-focus-accent: 0 0 0 3px rgba(21, 110, 99, 0.14);
+  --shadow-account-card: 0 1px 3px rgba(18, 28, 38, 0.05);
+  --shadow-account-control: 0 1px 2px rgba(18, 28, 38, 0.04);
+  --shadow-account-segment: 0 1px 2px rgba(18, 28, 38, 0.06);
 
   /* ── Font Family ── */
   --font-sans:
@@ -152,6 +212,12 @@
   --text-4xl: 20px;
   --text-5xl: 22px;
   --text-6xl: 24px;
+  --text-page-title: 20px;
+  --text-stat: 24px;
+
+  /* ── Page Layout ── */
+  --spacing-account-search: 248px;
+  --spacing-account-sort: 132px;
 
   /* ── Easing ── */
   --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -176,27 +242,9 @@
   --animate-rise: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ===== Runtime Variables & Compat Layer ===== */
+/* ===== Runtime Variables ===== */
 :root {
   color-scheme: light;
-
-  /* ── RGBA values (runtime, referenced by @theme) ── */
-  --panel: rgba(255, 255, 255, 0.78);
-  --panel-strong: rgba(255, 255, 255, 0.92);
-  --sidebar: rgba(247, 250, 251, 0.86);
-  --accent-soft: rgba(21, 110, 99, 0.1);
-  --line: rgba(21, 32, 43, 0.08);
-  --line-strong: rgba(21, 32, 43, 0.16);
-
-  /* ── Compat: old var names → @theme token vars ── */
-  --ink: var(--color-ink);
-  --ink-soft: var(--color-ink-soft);
-  --muted: var(--color-muted);
-  --muted-strong: var(--color-muted-strong);
-  --accent: var(--color-accent);
-  --accent-strong: var(--color-accent-strong);
-  --paper: var(--color-paper);
-  --surface: var(--color-surface);
 }
 
 * {
@@ -217,7 +265,7 @@ body,
 body {
   margin: 0;
   overflow: hidden;
-  color: var(--ink);
+  color: var(--color-ink);
   background:
     radial-gradient(circle at top right, rgba(21, 110, 99, 0.12), transparent 26%),
     radial-gradient(circle at left 10% top 8%, rgba(82, 149, 177, 0.1), transparent 24%),
@@ -452,6 +500,12 @@ pre {
 
 @utility bg-qr-shell-soft {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 250, 251, 0.94));
+}
+
+@utility account-table-grid {
+  grid-template-columns:
+    minmax(0, 2.6fr) minmax(96px, 1fr) minmax(84px, 0.9fr) minmax(132px, 1.2fr)
+    minmax(104px, 1.1fr);
 }
 
 @utility bg-account-avatar {

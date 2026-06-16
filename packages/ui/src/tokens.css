@@ -1,0 +1,206 @@
+/* =============================================================================
+ * @clawbot/ui component token contract.
+ *
+ * This file is runtime CSS, not a Tailwind entry. Consumers can import it
+ * directly, but the recommended public entry remains @clawbot/ui/style.css.
+ * ========================================================================== */
+
+:root {
+  /* Spacing scale */
+  --spacing-0: 0;
+  --spacing-1: 2px;
+  --spacing-2: 4px;
+  --spacing-3: 6px;
+  --spacing-4: 8px;
+  --spacing-5: 12px;
+  --spacing-6: 16px;
+  --spacing-7: 20px;
+  --spacing-8: 24px;
+  --spacing-9: 32px;
+  --spacing-10: 40px;
+  --spacing-11: 48px;
+  --spacing-12: 64px;
+  --spacing-13: 80px;
+
+  /* Icon sizing */
+  --spacing-icon-sm: var(--spacing-6);
+  --spacing-icon-md: var(--spacing-7);
+  --spacing-icon-lg: var(--spacing-8);
+
+  /* Dialog geometry */
+  --spacing-dialog-viewport: var(--spacing-6);
+  --spacing-dialog-viewport-md: var(--spacing-8);
+  --spacing-dialog-x: var(--spacing-6);
+  --spacing-dialog-y: var(--spacing-6);
+  --spacing-dialog-x-md: var(--spacing-7);
+  --spacing-dialog-split-x: var(--spacing-6);
+  --spacing-dialog-split-y: var(--spacing-5);
+  --spacing-dialog-split-x-md: var(--spacing-7);
+  --spacing-dialog-split-y-md: var(--spacing-6);
+  --spacing-dialog-sidebar-x: var(--spacing-7);
+  --spacing-dialog-sidebar-y: var(--spacing-6);
+  --spacing-dialog-sidebar-x-md: var(--spacing-8);
+  --spacing-dialog-sidebar-y-md: var(--spacing-8);
+  --spacing-dialog-footer-x-md: var(--spacing-8);
+  --spacing-dialog-footer-y: var(--spacing-6);
+  --spacing-dialog-close-offset: var(--spacing-7);
+  --spacing-dialog-close-safe: var(--spacing-11);
+  --spacing-dialog-header-gap: var(--spacing-5);
+  --spacing-dialog-title-gap: var(--spacing-5);
+  --spacing-dialog-section-gap: var(--spacing-4);
+  --spacing-dialog-content-gap: var(--spacing-6);
+  --spacing-dialog-sidebar-section-y: var(--spacing-5);
+  --spacing-dialog-action-gap: var(--spacing-4);
+  --spacing-dialog-code-padding: var(--spacing-5);
+  --spacing-dialog-badge-x: 10px;
+  --spacing-dialog-badge-y: var(--spacing-1);
+
+  /* Button geometry */
+  --spacing-button-sm: var(--spacing-9);
+  --spacing-button-md: var(--spacing-10);
+  --spacing-button-sm-x: var(--spacing-5);
+  --spacing-button-md-x: var(--spacing-6);
+  --spacing-button-sm-gap: var(--spacing-3);
+  --spacing-button-md-gap: var(--spacing-4);
+
+  /* Input geometry */
+  --spacing-input-sm: var(--spacing-9);
+  --spacing-input-md: var(--spacing-10);
+  --spacing-input-sm-x: var(--spacing-5);
+  --spacing-input-md-x: var(--spacing-6);
+  --spacing-input-icon-gap: var(--spacing-3);
+  --spacing-input-demo-width: 320px;
+
+  /* Accordion geometry */
+  --spacing-accordion-trigger-x: var(--spacing-6);
+  --spacing-accordion-trigger-y: var(--spacing-5);
+  --spacing-accordion-trigger-gap: var(--spacing-5);
+  --spacing-accordion-meta-gap: var(--spacing-4);
+  --spacing-accordion-content-padding: var(--spacing-6);
+  --spacing-accordion-demo-width: 560px;
+
+  /* Select geometry */
+  --spacing-select-trigger-x: var(--spacing-6);
+  --spacing-select-trigger-x-sm: var(--spacing-5);
+  --spacing-select-trigger-height: var(--spacing-10);
+  --spacing-select-trigger-height-sm: var(--spacing-9);
+  --spacing-select-trigger-gap: var(--spacing-4);
+  --spacing-select-value-gap: var(--spacing-4);
+  --spacing-select-popup-padding: var(--spacing-3);
+  --spacing-select-popup-max-h: 280px;
+  --spacing-select-item-x: var(--spacing-5);
+  --spacing-select-item-y: var(--spacing-4);
+  --spacing-select-item-gap: var(--spacing-4);
+  --spacing-select-demo-width: 320px;
+
+  /* Toggle geometry */
+  --spacing-toggle-sm: var(--spacing-9);
+  --spacing-toggle-md: var(--spacing-10);
+  --spacing-toggle-sm-x: var(--spacing-5);
+  --spacing-toggle-md-x: var(--spacing-6);
+  --spacing-toggle-sm-gap: var(--spacing-3);
+  --spacing-toggle-md-gap: var(--spacing-4);
+  --spacing-toggle-group-padding-sm: var(--spacing-2);
+  --spacing-toggle-group-padding-md: var(--spacing-2);
+  --spacing-toggle-demo-width: 360px;
+  --spacing-toggle-group-demo-width: 520px;
+
+  /* Admin card geometry */
+  --spacing-admin-card-padding: var(--spacing-7);
+  --spacing-admin-card-action-offset: var(--spacing-5);
+  --spacing-admin-card-action-gap: var(--spacing-2);
+  --spacing-admin-card-action-button: var(--spacing-9);
+  --spacing-admin-card-toggle-height: 28px;
+  --spacing-admin-card-toggle-width: 52px;
+  --spacing-admin-card-toggle-padding: 3px;
+  --spacing-admin-card-toggle-thumb: 22px;
+  --spacing-admin-card-toggle-translate: 24px;
+  --spacing-admin-card-menu-min-width: 168px;
+  --spacing-admin-card-menu-padding: var(--spacing-3);
+  --spacing-admin-card-menu-item-x: var(--spacing-5);
+  --spacing-admin-card-menu-item-y: var(--spacing-4);
+  --spacing-admin-card-menu-item-gap: var(--spacing-4);
+  --spacing-admin-card-tag-x: var(--spacing-5);
+  --spacing-admin-card-tag-y: var(--spacing-3);
+  --spacing-admin-card-tag-gap: var(--spacing-3);
+  --spacing-admin-card-metric-gap: var(--spacing-6);
+  --spacing-admin-card-metric-cell-x: var(--spacing-5);
+  --spacing-admin-card-metric-cell-y: var(--spacing-5);
+  --spacing-admin-card-metric-label-gap: var(--spacing-3);
+  --spacing-admin-card-metric-value-gap: var(--spacing-3);
+  --spacing-admin-card-demo-width: 540px;
+  --spacing-admin-card-demo-header-gap: var(--spacing-6);
+  --spacing-admin-card-demo-action-gap: var(--spacing-4);
+  --spacing-admin-card-demo-description-gap: var(--spacing-3);
+
+  /* Scroll area demo geometry */
+  --spacing-scroll-area-demo-width: 520px;
+  --spacing-scroll-area-demo-height: 240px;
+  --spacing-scroll-area-content-padding: var(--spacing-6);
+  --spacing-scroll-area-content-gap: var(--spacing-4);
+
+  /* Button colors */
+  --color-button-primary: var(--color-accent, #1d6e54);
+  --color-button-primary-hover: var(--color-accent-strong, #185b46);
+  --color-button-primary-active: var(--color-accent-deep, #13483a);
+  --color-button-primary-fg: #ffffff;
+  --color-button-ink: var(--color-ink, #1a2128);
+  --color-button-ink-hover: var(--color-ink-soft, #2d353c);
+  --color-button-ink-active: var(--color-ink-deep, #11171c);
+  --color-button-ink-fg: #ffffff;
+  --color-button-secondary: var(--color-surface-raised, #ffffff);
+  --color-button-secondary-fg: var(--color-ink-soft, #2d353c);
+  --color-button-secondary-hover: var(--color-surface, #f5f7f9);
+  --color-button-secondary-active: var(--color-surface-sunken, #eef1f4);
+  --color-button-secondary-border-hover: var(--color-control-border-strong, #d2d8dd);
+  --color-button-ghost-fg: var(--color-muted-strong, #4a535b);
+  --color-button-ghost-hover: var(--color-ghost-hover-bg, #eef1f4);
+  --color-button-ghost-hover-fg: var(--color-ink, #1a2128);
+  --color-button-ghost-active: var(--color-ghost-active, #e3e7eb);
+  --color-button-danger: var(--color-danger, #c2433a);
+  --color-button-danger-hover: var(--color-danger-strong, #a5392f);
+  --color-button-danger-active: var(--color-danger-strong, #a5392f);
+  --color-button-danger-fg: #ffffff;
+
+  /* Toggle colors */
+  --color-toggle-group-track: var(--color-surface-sunken, #eef1f4);
+  --color-toggle-accent-soft: var(--color-accent-soft, #e9f5ef);
+  --color-toggle-accent-soft-border: var(--color-accent-soft-border, #a9d5c1);
+  --color-toggle-accent-soft-fg: var(--color-accent-deep, #13483a);
+  --color-toggle-accent-solid: var(--color-accent, #1d6e54);
+  --color-toggle-accent-solid-hover: var(--color-accent-strong, #185b46);
+  --color-toggle-success-soft: var(--color-success-soft, #eaf3ee);
+  --color-toggle-success-soft-border: var(--color-success-soft-border, #b4d6c5);
+  --color-toggle-success-soft-fg: var(--color-success-soft-fg, #30634e);
+  --color-toggle-success-solid: var(--color-success-solid, #4c9576);
+  --color-toggle-success-solid-hover: var(--color-success-solid-hover, #3c7c61);
+  --color-toggle-ink-soft: var(--color-surface-sunken, #eef1f4);
+  --color-toggle-ink-soft-border: var(--color-control-border-strong, #d2d8dd);
+  --color-toggle-ink-soft-fg: var(--color-ink, #1a2128);
+  --color-toggle-ink-solid: var(--color-ink, #1a2128);
+  --color-toggle-ink-solid-hover: var(--color-ink-deep, #11171c);
+
+  /* Badge colors */
+  --color-badge-online-bg: var(--color-notice-success-bg, rgba(215, 233, 223, 0.68));
+  --color-badge-online-border: var(--color-notice-success-border, rgba(76, 149, 118, 0.18));
+  --color-badge-online-fg: var(--color-accent-strong, #185b46);
+  --color-badge-online-dot: var(--color-state-success, #4c9576);
+  --color-badge-offline-bg: var(--color-surface-sunken, #eef1f4);
+  --color-badge-offline-border: var(--color-border-muted, #e3e7eb);
+  --color-badge-offline-fg: var(--color-muted-strong, #4a535b);
+  --color-badge-offline-dot: var(--color-muted, #8a949c);
+
+  /* Action colors */
+  --color-action-primary-hover: var(--color-accent, #1d6e54);
+  --color-action-primary-bg-hover: var(--color-accent-subtle, rgba(29, 110, 84, 0.07));
+  --color-action-primary-border-hover: var(--color-toggle-border, rgba(29, 110, 84, 0.18));
+  --color-action-success-hover: var(--color-accent-strong, #185b46);
+  --color-action-success-bg-hover: var(--color-notice-success-bg, rgba(215, 233, 223, 0.68));
+  --color-action-success-border-hover: var(--color-notice-success-border, rgba(76, 149, 118, 0.18));
+  --color-action-warning-hover: var(--color-notice-warning-fg, #8a5d1f);
+  --color-action-warning-bg-hover: var(--color-notice-warning-bg, rgba(244, 232, 196, 0.68));
+  --color-action-warning-border-hover: var(--color-notice-warning-border, rgba(177, 126, 43, 0.2));
+  --color-action-danger-hover: var(--color-danger-strong, #a5392f);
+  --color-action-danger-bg-hover: var(--color-notice-error-bg, rgba(246, 217, 212, 0.58));
+  --color-action-danger-border-hover: var(--color-notice-error-border, rgba(194, 67, 58, 0.18));
+}

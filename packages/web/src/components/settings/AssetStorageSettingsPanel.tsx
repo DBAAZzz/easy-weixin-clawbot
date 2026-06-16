@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AssetStorageProvider } from "@clawbot/shared";
 import { useAppSettings } from "../../hooks/useAppSettings.js";
-import { Badge } from "../ui/badge.js";
-import { Button } from "../ui/button.js";
-import { Input } from "../ui/input.js";
-import { Select } from "../ui/select.js";
-import { StackIcon } from "../ui/icons.js";
-import { toast } from "../ui/sonner.js";
+import { Badge } from "@clawbot/ui";
+import { Button } from "@clawbot/ui";
+import { Input } from "@clawbot/ui";
+import { Select } from "@clawbot/ui";
+import { StackIcon } from "@clawbot/ui";
+import { toast } from "@clawbot/ui";
 import { cn } from "../../lib/cn.js";
 
 const STORAGE_OPTIONS: Array<{ value: AssetStorageProvider; label: string }> = [
@@ -190,6 +190,7 @@ export function AssetStorageSettingsPanel(props: { active: boolean }) {
                 <div className="flex flex-col gap-2.5">
                   <label className="text-base font-medium text-muted-strong">Provider</label>
                   <Select
+                    size="sm"
                     value={provider}
                     onChange={(value) => setProvider(value as AssetStorageProvider)}
                     options={STORAGE_OPTIONS}
@@ -337,7 +338,8 @@ export function AssetStorageSettingsPanel(props: { active: boolean }) {
 
           <div className="flex flex-wrap justify-end gap-2 pt-2">
             <Button
-              variant="outline"
+              size="sm"
+              variant="secondary"
               disabled={!settings || loading || saving}
               onClick={() => {
                 if (!settings) {
@@ -359,6 +361,7 @@ export function AssetStorageSettingsPanel(props: { active: boolean }) {
               重置
             </Button>
             <Button
+              size="sm"
               disabled={saving || loading || !isDirty || !hasRequiredS3Fields}
               onClick={() => void handleSave()}
             >

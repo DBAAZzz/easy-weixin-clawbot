@@ -2,7 +2,7 @@ import { useCallback, useLayoutEffect, useRef } from "react";
 import type { MessageRow } from "@clawbot/shared";
 import { buildMessageTimeline } from "../lib/message-timeline.js";
 import { MessageBubble } from "./MessageBubble.js";
-import { ScrollArea } from "./ui/scroll-area.js";
+import { ScrollArea } from "@clawbot/ui";
 
 const LOAD_MORE_THRESHOLD = 48;
 const BOTTOM_STICK_THRESHOLD = 96;

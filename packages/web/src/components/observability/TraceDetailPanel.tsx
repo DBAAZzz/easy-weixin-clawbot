@@ -2,7 +2,7 @@ import type { ObservabilityTraceDetail } from "@clawbot/shared";
 import { formatCount, formatMs } from "../../lib/format.js";
 import { cn } from "../../lib/cn.js";
 import { getTraceStatus } from "../../lib/observability.js";
-import { Card } from "../ui/card.js";
+import { Card } from "@clawbot/ui";
 import { WaterfallTimeline } from "./WaterfallTimeline.js";
 import { TraceFlagList } from "./TraceFlagList.js";
 

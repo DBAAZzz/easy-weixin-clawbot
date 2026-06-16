@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import type { RsshubAuthType } from "@clawbot/shared";
 import { testRssSettingsConnection } from "@/api/rss.js";
 import { useAppSettings } from "../../hooks/useAppSettings.js";
-import { Badge } from "../ui/badge.js";
-import { Button } from "../ui/button.js";
-import { Input } from "../ui/input.js";
-import { Select } from "../ui/select.js";
-import { LinkIcon, RefreshIcon, SearchIcon } from "../ui/icons.js";
-import { toast } from "../ui/sonner.js";
+import { Badge } from "@clawbot/ui";
+import { Button } from "@clawbot/ui";
+import { Input } from "@clawbot/ui";
+import { Select } from "@clawbot/ui";
+import { LinkIcon, RefreshIcon, SearchIcon } from "@clawbot/ui";
+import { toast } from "@clawbot/ui";
 import { cn } from "../../lib/cn.js";
 
 const AUTH_OPTIONS: Array<{ value: RsshubAuthType; label: string }> = [
@@ -231,6 +231,7 @@ export function RssSettingsPanel(props: { active: boolean }) {
                 <div className="flex flex-col gap-2.5">
                   <label className="text-base font-medium text-muted-strong">认证方式</label>
                   <Select
+                    size="sm"
                     value={authType}
                     onChange={(value) => setAuthType(value as RsshubAuthType)}
                     options={AUTH_OPTIONS}
@@ -358,18 +359,25 @@ export function RssSettingsPanel(props: { active: boolean }) {
 
           <div className="flex flex-wrap justify-end gap-2 pt-2">
             <Button
-              variant="outline"
+              size="sm"
+              variant="secondary"
               disabled={testing || loading}
               onClick={() => void handleTest()}
             >
               <SearchIcon data-icon="inline-start" />
               {testing ? "测试中..." : "测试连接"}
             </Button>
-            <Button variant="outline" disabled={loading} onClick={() => setTestResult(null)}>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={loading}
+              onClick={() => setTestResult(null)}
+            >
               <RefreshIcon data-icon="inline-start" />
               清空结果
             </Button>
             <Button
+              size="sm"
               disabled={saving || loading || !isDirty || !isValidTimeout}
               onClick={() => void handleSave()}
             >

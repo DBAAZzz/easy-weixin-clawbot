@@ -1,6 +1,6 @@
 # AGENTS.md — @clawbot/web
 
-> React 19 SPA 管理后台，Vite 8 + Tailwind CSS 4 + shadcn/ui。
+> React 19 SPA 管理后台，Vite 8 + Tailwind CSS 4 + @clawbot/ui（Base UI 封装）。
 
 ## 目录结构
 
@@ -14,7 +14,7 @@ src/
 ├── layout/
 │   └── AppShell.tsx      # 侧边栏 + 顶栏 + Outlet 布局
 ├── pages/                # 页面组件（15+）
-├── components/           # UI 原子组件 + 业务组件
+├── components/           # 业务组件（基础 UI 从 @clawbot/ui 引入）
 ├── hooks/                # React Query 封装 hooks
 ├── api/                  # HTTP 请求适配器（按领域拆分）
 └── lib/                  # 工具函数、query-keys、API client
@@ -86,7 +86,7 @@ Page → useXxx() hook → React Query → api/xxx.ts → fetch('/api/xxx')
 - 分区优先轻分隔：使用 `border-b border-line` + 合理留白。
 - 卡片/模块信息结构保持一致：标题区、动作区、主体区、补充信息区。
 - 交互状态统一：hover/focus/active/disabled 均使用现有 token（特别是 focus ring 和阴影）。
-- 新页面优先复用 `components/ui` 和已有业务组件，不重复造轮子。
+- 新页面优先复用 `@clawbot/ui` 和已有业务组件，不重复造轮子。
 
 ### 禁止（硬约束）
 
@@ -124,7 +124,7 @@ pnpm -F @clawbot/web build
 
 ### 组件体系
 
-- **UI 原子**：Button, Input, Dialog, Card 等（shadcn/ui 风格，无业务逻辑）
+- **UI 原子**：Button, Input, Dialog, Card 等统一从 `@clawbot/ui` 引入；底层基于 `@base-ui/react` 封装，无业务逻辑
 - **业务组件**：MemoryGraph, ObservabilityTimeline, MessageBubble
 - **页面层**：组合 hooks + 组件，处理数据编排
 

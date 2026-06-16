@@ -15,6 +15,7 @@
     "types": ["vite/client", "node"],
     "baseUrl": ".",
     "paths": {
+      "@clawbot/ui": ["../ui/src/index.ts"],
       "@/*": ["src/*"]
     }
   },

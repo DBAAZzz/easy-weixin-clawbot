@@ -1,4 +1,4 @@
-import { Badge } from "../ui/badge.js";
+import { Badge } from "@clawbot/ui";
 import { cn } from "../../lib/cn.js";
 
 export function TraceFlagList({ flags }: { flags: string[] }) {

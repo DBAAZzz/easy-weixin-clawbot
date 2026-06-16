@@ -38,7 +38,7 @@ export function AppShell() {
           resizing={sidebarWidth.isResizing}
           width={sidebarWidth.width}
         />
-        <main className="bg-main-shell min-w-0 flex-1 overflow-hidden border-l border-line backdrop-blur-xl">
+        <main className="bg-paper min-w-0 flex-1 overflow-hidden border-l border-line backdrop-blur-xl">
           <div className="h-full overflow-y-auto p-4 md:p-6 xl:p-8">
             <Outlet />
           </div>

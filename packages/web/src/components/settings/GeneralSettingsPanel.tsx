@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Badge } from "../ui/badge.js";
-import { Button } from "../ui/button.js";
-import { Slider } from "../ui/slider.js";
-import { toast } from "../ui/sonner.js";
+import { Badge } from "@clawbot/ui";
+import { Button } from "@clawbot/ui";
+import { Slider } from "@clawbot/ui";
+import { toast } from "@clawbot/ui";
 import { cn } from "../../lib/cn.js";
 import { useAppSettings } from "../../hooks/useAppSettings.js";
 
@@ -136,7 +136,8 @@ export function GeneralSettingsPanel(props: { active: boolean }) {
               <div className="flex flex-col gap-3 pt-2 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
-                    variant="outline"
+                    size="sm"
+                    variant="secondary"
                     disabled={!settings || saving}
                     onClick={() => {
                       if (!settings) {
@@ -150,6 +151,7 @@ export function GeneralSettingsPanel(props: { active: boolean }) {
                     重置
                   </Button>
                   <Button
+                    size="sm"
                     disabled={loading || saving || !isDirty || !isValidDraft}
                     onClick={() => void handleSave()}
                   >

@@ -1,6 +1,6 @@
 ---
 name: web-design
-description: Clawbot 项目 Web 前端设计规范。当你在 packages/web 下新建页面、组件、修改 UI 样式、添加图标、调整布局，或者用户提到界面设计、样式、组件开发时，使用此 skill 来保证视觉和代码风格的一致性。即使用户没有明确提到"设计规范"，只要涉及前端 UI 变更就应该参考。
+description: Clawbot Web 业务前端设计规范。仅当任务涉及 packages/web 下的业务页面、业务组件、布局、样式或交互时使用，用于保证视觉和代码风格的一致性。不要用于 packages/ui 组件库、dumi 文档、组件 token 或 Playground（那些属于 ui-design）。
 ---
 
 # Role: Clawbot 首席前端设计工程师

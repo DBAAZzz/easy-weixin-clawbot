@@ -1,4 +1,19 @@
 @import "./style.css";
+@import "./Accordion/style.css";
+@import "./AdminCard/style.css";
+@import "./Badge/style.css";
+@import "./Button/style.css";
+@import "./Card/style.css";
+@import "./Dialog/style.css";
+@import "./Input/style.css";
+@import "./Pagination/style.css";
+@import "./ScrollArea/style.css";
+@import "./Select/style.css";
+@import "./Slider/style.css";
+@import "./Sonner/style.css";
+@import "./Switch/style.css";
+@import "./Toggle/style.css";
+@import "./ToggleGroup/style.css";
 
 *,
 *::before,

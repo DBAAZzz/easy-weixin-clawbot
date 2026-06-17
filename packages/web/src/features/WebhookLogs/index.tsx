@@ -1,0 +1,247 @@
+import { useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Badge } from "@clawbot/ui";
+import { Button } from "@clawbot/ui";
+import { ActivityIcon, RefreshIcon, WebhookIcon } from "@clawbot/ui";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchWebhookLogs, fetchWebhookTokens } from "@/api/webhooks.js";
+import { queryKeys } from "../../lib/query-keys.js";
+import { useAccounts } from "../../hooks/useAccounts.js";
+import { formatCount, formatDateTime } from "../../lib/format.js";
+import { MetricCard, statusClassName } from "./components.jsx";
+
+export function WebhookLogsPage() {
+  const navigate = useNavigate();
+  const params = useParams<{ source: string }>();
+  const source = params.source ?? "";
+  const queryClient = useQueryClient();
+
+  const {
+    data: logsResp,
+    isPending: logsLoading,
+    error: logsRawError,
+  } = useQuery({
+    queryKey: queryKeys.webhookLogs(source, 200),
+    queryFn: () => fetchWebhookLogs(source, 200),
+    enabled: Boolean(source),
+    staleTime: 15_000,
+  });
+  const { data: tokensResp, isPending: tokensLoading } = useQuery({
+    queryKey: queryKeys.webhookTokens,
+    queryFn: fetchWebhookTokens,
+  });
+  const { accounts, loading: accountsLoading } = useAccounts();
+
+  const logsError =
+    logsRawError instanceof Error
+      ? logsRawError.message
+      : logsRawError
+        ? String(logsRawError)
+        : null;
+
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.webhookLogs(source, 200) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.webhookTokens });
+  };
+
+  const logs = logsResp?.data ?? [];
+  const tokens = tokensResp?.data ?? [];
+  const token = tokens.find((item) => item.source === source) ?? null;
+  const successCount = logs.filter((log) => log.status === "success").length;
+  const rejectedCount = logs.filter((log) => log.status === "rejected").length;
+  const errorCount = logs.length - successCount - rejectedCount;
+  const latestLogAt = useMemo(() => {
+    if (logs.length === 0) {
+      return null;
+    }
+
+    return logs.reduce<string | null>((latest, log) => {
+      if (!latest) return log.createdAt;
+      return new Date(log.createdAt).getTime() > new Date(latest).getTime()
+        ? log.createdAt
+        : latest;
+    }, null);
+  }, [logs]);
+  const activeAccountCount = new Set(logs.map((log) => log.accountId)).size;
+
+  if (!source) {
+    return (
+      <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
+        缺少 Webhook source，无法加载日志详情。
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <section className="space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-label-xl text-muted">Webhook Logs</p>
+            <h2 className="mt-1.5 text-6xl text-ink">{token?.source ?? source} 调用日志</h2>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="secondary" onClick={() => navigate("/webhooks")}>
+              返回 Webhooks
+            </Button>
+            <Button size="sm" variant="secondary" onClick={refresh}>
+              <ActivityIcon className="size-4" />
+              刷新日志
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+          <Badge tone={token?.enabled ? "online" : "offline"}>
+            {token?.enabled ? "Token 已启用" : "Token 已停用"}
+          </Badge>
+          <Badge tone="muted">日志 {formatCount(logs.length)}</Badge>
+          <Badge tone="muted">账号 {formatCount(token?.accountIds.length ?? 0)}</Badge>
+          <Badge tone="muted">
+            最近调用 {latestLogAt ? formatDateTime(latestLogAt) : "暂无记录"}
+          </Badge>
+        </div>
+
+        {token?.description ? (
+          <div className="bg-glass-72 rounded-lg border border-line px-4 py-2 text-sm text-muted">
+            {" "}
+            {token.description}
+          </div>
+        ) : null}
+      </section>
+
+      {logsError ? (
+        <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
+          加载日志失败：{logsError}
+        </div>
+      ) : null}
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Total Events"
+          value={formatCount(logs.length)}
+          hint="当前窗口内抓取到的日志总量。"
+        />
+        <MetricCard
+          label="Success"
+          value={formatCount(successCount)}
+          hint="成功写入微信或成功接受处理的请求。"
+        />
+        <MetricCard
+          label="Rejected"
+          value={formatCount(rejectedCount)}
+          hint="被策略拒绝或参数校验未通过的请求。"
+        />
+        <MetricCard
+          label="Failed"
+          value={formatCount(errorCount)}
+          hint="服务端异常或执行阶段失败的请求。"
+        />
+      </section>
+
+      <section className="rounded-xl border border-line bg-detail-bg px-4 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-label-lg text-muted">Insight Canvas</p>
+          </div>
+          <Badge tone="muted">Planning Space</Badge>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="rounded-section border border-dashed border-line bg-white/66 px-4 py-5">
+            <p className="text-base font-medium text-ink">24h 请求趋势</p>
+          </div>
+          <div className="rounded-section border border-dashed border-line bg-white/66 px-4 py-5">
+            <p className="text-base font-medium text-ink">状态分布</p>
+          </div>
+          <div className="rounded-section border border-dashed border-line bg-white/66 px-4 py-5">
+            <p className="text-base font-medium text-ink">账号热度</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-line bg-detail-bg px-4 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-label-lg text-muted">Log Stream</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+            <Badge tone="muted">活跃账号 {formatCount(activeAccountCount)}</Badge>
+            <Button size="sm" variant="ghost" onClick={refresh}>
+              <RefreshIcon className="size-3.5" />
+              刷新
+            </Button>
+          </div>
+        </div>
+
+        {logsLoading || tokensLoading || accountsLoading ? (
+          <div className="mt-4 grid gap-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="rounded-section border border-line bg-white/80 px-4 py-4">
+                <div className="ui-skeleton h-4 rounded-lg" />
+                <div className="mt-3 ui-skeleton h-3 rounded-lg" />
+                <div className="mt-2 ui-skeleton h-3 w-4/5 rounded-lg" />
+              </div>
+            ))}
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="mt-4 rounded-section border border-dashed border-line bg-white/60 px-4 py-8 text-center">
+            <WebhookIcon className="mx-auto size-7 text-muted" />
+            <p className="mt-3 text-lg text-muted-strong">暂无调用日志</p>
+          </div>
+        ) : (
+          <div className="mt-4 overflow-hidden rounded-section border border-line bg-white/90">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-base">
+                <thead>
+                  <tr className="border-b border-line bg-detail-bg text-left text-muted">
+                    <th className="px-4 py-3 font-medium">时间</th>
+                    <th className="px-4 py-3 font-medium">账号</th>
+                    <th className="px-4 py-3 font-medium">会话</th>
+                    <th className="px-4 py-3 font-medium">状态</th>
+                    <th className="px-4 py-3 font-medium">错误</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log, index) => {
+                    const account = accounts?.find((item) => item.id === log.accountId);
+                    return (
+                      <tr
+                        key={`${log.conversationId}-${log.createdAt}-${index}`}
+                        className="border-b border-line/50 align-top last:border-b-0"
+                      >
+                        <td className="px-4 py-3 text-muted-strong">
+                          {formatDateTime(log.createdAt)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="min-w-[160px]">
+                            <p className="text-ink">
+                              {account?.alias ||
+                                account?.display_name ||
+                                log.accountId.slice(0, 12)}
+                            </p>
+                            <p className="mt-1 font-mono text-sm text-muted">{log.accountId}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-sm text-muted">
+                          {log.conversationId}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={statusClassName(log.status)}>{log.status}</span>
+                        </td>
+                        <td className="px-4 py-3 text-sm leading-5 text-muted-strong">
+                          {log.error || "--"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}

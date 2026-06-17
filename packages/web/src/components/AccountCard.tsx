@@ -163,12 +163,7 @@ export function AccountCard({
                     autoFocus
                   />
                   <div className="flex gap-3">
-                    <Button
-                      type="button"
-                      onClick={handleSave}
-                      size="sm"
-                      variant="primary"
-                    >
+                    <Button type="button" onClick={handleSave} size="sm" variant="primary">
                       <CheckIcon /> 保存
                     </Button>
                     <Button

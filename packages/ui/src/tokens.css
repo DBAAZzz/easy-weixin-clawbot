@@ -17,34 +17,41 @@
   --spacing-2: 4px;
   --spacing-3: 6px;
   --spacing-4: 8px;
-  --spacing-5: 12px;
-  --spacing-6: 16px;
-  --spacing-7: 20px;
-  --spacing-8: 24px;
-  --spacing-9: 32px;
-  --spacing-10: 40px;
-  --spacing-11: 48px;
-  --spacing-12: 64px;
-  --spacing-13: 80px;
+  --spacing-5: 10px;
+  --spacing-6: 12px;
+  --spacing-7: 16px;
+  --spacing-8: 20px;
+  --spacing-9: 24px;
+  --spacing-10: 28px;
+  --spacing-11: 32px;
+  --spacing-12: 40px;
+  --spacing-13: 48px;
+  --spacing-14: 64px;
+  --spacing-15: 80px;
+
+  /* Control sizing (shared by Button, Toggle, Input, Select and compact actions) */
+  --size-control-sm: var(--spacing-11);
+  --size-control-md: var(--spacing-12);
+  --size-control-lg: var(--spacing-13);
 
   /* Icon sizing (shared across components and shared.css) */
-  --spacing-icon-sm: var(--spacing-6);
-  --spacing-icon-md: var(--spacing-7);
-  --spacing-icon-lg: var(--spacing-8);
+  --spacing-icon-sm: var(--spacing-7);
+  --spacing-icon-md: var(--spacing-8);
+  --spacing-icon-lg: var(--spacing-9);
 
   /* Button geometry (shared by .cb-button and .cb-toggle in shared.css) */
-  --spacing-button-sm: var(--spacing-9);
-  --spacing-button-md: var(--spacing-10);
-  --spacing-button-sm-x: var(--spacing-5);
-  --spacing-button-md-x: var(--spacing-6);
+  --spacing-button-sm: var(--size-control-sm);
+  --spacing-button-md: var(--size-control-md);
+  --spacing-button-sm-x: var(--spacing-6);
+  --spacing-button-md-x: var(--spacing-7);
   --spacing-button-sm-gap: var(--spacing-3);
   --spacing-button-md-gap: var(--spacing-4);
 
   /* Toggle geometry (shared by .cb-button and .cb-toggle in shared.css) */
-  --spacing-toggle-sm: var(--spacing-9);
-  --spacing-toggle-md: var(--spacing-10);
-  --spacing-toggle-sm-x: var(--spacing-5);
-  --spacing-toggle-md-x: var(--spacing-6);
+  --spacing-toggle-sm: var(--size-control-sm);
+  --spacing-toggle-md: var(--size-control-md);
+  --spacing-toggle-sm-x: var(--spacing-6);
+  --spacing-toggle-md-x: var(--spacing-7);
   --spacing-toggle-sm-gap: var(--spacing-3);
   --spacing-toggle-md-gap: var(--spacing-4);
 

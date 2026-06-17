@@ -24,15 +24,14 @@
 
   .cb-badge--sm {
     gap: var(--spacing-2);
-    padding: var(--spacing-1) var(--spacing-3);
+    padding: var(--spacing-2) var(--spacing-4);
     font-size: var(--text-xs);
   }
 
   .cb-badge--md {
     gap: var(--spacing-2);
-    /* 10px is intentionally off the spacing scale for md horizontal padding */
-    padding: var(--spacing-3) 10px;
-    font-size: var(--text-xs);
+    padding: var(--spacing-3) var(--spacing-5);
+    font-size: var(--text-sm);
   }
 
   .cb-badge--online {

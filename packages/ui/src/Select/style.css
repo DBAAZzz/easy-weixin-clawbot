@@ -24,13 +24,13 @@
   }
 
   .cb-select-trigger--default {
-    height: var(--spacing-10);
-    padding-inline: var(--spacing-6);
+    height: var(--size-control-md);
+    padding-inline: var(--spacing-7);
   }
 
   .cb-select-trigger--sm {
-    height: var(--spacing-9);
-    padding-inline: var(--spacing-5);
+    height: var(--size-control-sm);
+    padding-inline: var(--spacing-6);
   }
 
   .cb-select-trigger svg {
@@ -85,7 +85,7 @@
     align-items: center;
     gap: var(--spacing-4);
     border-radius: var(--radius-card);
-    padding: var(--spacing-4) var(--spacing-5);
+    padding: var(--spacing-4) var(--spacing-6);
     color: var(--color-ink);
     font-size: var(--text-base);
     cursor: pointer;

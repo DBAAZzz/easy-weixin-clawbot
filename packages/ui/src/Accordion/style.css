@@ -11,10 +11,10 @@
     width: 100%;
     align-items: center;
     justify-content: space-between;
-    gap: var(--spacing-5);
+    gap: var(--spacing-6);
     border: 0;
     background: transparent;
-    padding: var(--spacing-5) var(--spacing-6);
+    padding: var(--spacing-6) var(--spacing-7);
     text-align: left;
     cursor: pointer;
     transition: background-color 0.2s var(--ease-expo);

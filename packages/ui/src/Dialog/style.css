@@ -24,14 +24,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: var(--spacing-6);
+    padding: var(--spacing-7);
   }
 
   .cb-dialog-content {
     position: relative;
     display: flex;
     width: 100%;
-    max-height: calc(100dvh - var(--spacing-11));
+    max-height: calc(100dvh - var(--spacing-13));
     flex-direction: column;
     overflow: hidden;
     border: 1px solid var(--color-dialog-border);
@@ -60,14 +60,14 @@
   }
 
   .cb-dialog-content--split {
-    max-height: calc(100dvh - var(--spacing-13));
+    max-height: calc(100dvh - var(--spacing-15));
     max-width: 880px;
   }
 
   .cb-dialog-close {
     display: inline-flex;
-    width: var(--spacing-9);
-    height: var(--spacing-9);
+    width: var(--size-control-sm);
+    height: var(--size-control-sm);
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
@@ -95,32 +95,32 @@
 
   .cb-dialog-close--floating {
     position: absolute;
-    top: var(--spacing-6);
-    right: var(--spacing-6);
+    top: var(--spacing-7);
+    right: var(--spacing-7);
     z-index: 10;
   }
 
   .cb-dialog-section-padding {
-    padding: var(--spacing-8) var(--spacing-8);
+    padding: var(--spacing-9) var(--spacing-9);
   }
 
   .cb-dialog-split-section-padding {
-    padding: var(--spacing-7) var(--spacing-8);
+    padding: var(--spacing-8) var(--spacing-9);
   }
 
   .cb-dialog-split-sidebar-padding {
-    padding: var(--spacing-7) var(--spacing-7);
+    padding: var(--spacing-8) var(--spacing-8);
   }
 
   .cb-dialog-footer-padding {
-    padding: var(--spacing-6) var(--spacing-8);
+    padding: var(--spacing-7) var(--spacing-9);
   }
 
   .cb-dialog-header {
     display: flex;
     flex-shrink: 0;
     align-items: flex-start;
-    gap: var(--spacing-5);
+    gap: var(--spacing-6);
   }
 
   .cb-dialog-header--with-border {
@@ -128,13 +128,13 @@
   }
 
   .cb-dialog-header--split {
-    padding-right: var(--spacing-12);
+    padding-right: var(--spacing-14);
   }
 
   .cb-dialog-icon {
     display: inline-flex;
-    width: var(--spacing-9);
-    height: var(--spacing-9);
+    width: var(--size-control-sm);
+    height: var(--size-control-sm);
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
@@ -260,7 +260,7 @@
 
   .cb-dialog-sidebar-section {
     border-bottom: 1px solid var(--color-line);
-    padding-block: var(--spacing-6);
+    padding-block: var(--spacing-7);
   }
 
   .cb-dialog-sidebar-section:first-child {
@@ -308,7 +308,7 @@
     border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
     background: var(--color-dialog-bg);
-    padding: var(--spacing-4) var(--spacing-5);
+    padding: var(--spacing-4) var(--spacing-6);
   }
 
   .cb-dialog-param-name {
@@ -344,7 +344,7 @@
     display: inline-flex;
     min-width: 0;
     align-items: center;
-    gap: var(--spacing-5);
+    gap: var(--spacing-6);
   }
 
   .cb-dialog-frame-title-text {
@@ -380,20 +380,20 @@
   }
 
   .cb-dialog-content--dialog .cb-dialog-footer.cb-dialog-section-padding {
-    padding-top: var(--spacing-6);
+    padding-top: var(--spacing-7);
   }
 
   .cb-dialog-content--panel .cb-dialog-header.cb-dialog-section-padding {
-    padding: var(--spacing-7) var(--spacing-8);
-    padding-right: var(--spacing-12);
+    padding: var(--spacing-8) var(--spacing-9);
+    padding-right: var(--spacing-14);
   }
 
   .cb-dialog-content--panel .cb-dialog-body.cb-dialog-section-padding {
-    padding: var(--spacing-7) var(--spacing-8);
+    padding: var(--spacing-8) var(--spacing-9);
   }
 
   .cb-dialog-content--panel .cb-dialog-footer.cb-dialog-section-padding {
-    padding: var(--spacing-6) var(--spacing-8);
+    padding: var(--spacing-7) var(--spacing-9);
   }
 
   .cb-dialog-content--split .cb-dialog-header {
@@ -401,13 +401,13 @@
   }
 
   .cb-dialog-content--split .cb-dialog-header.cb-dialog-split-section-padding {
-    padding: var(--spacing-7) var(--spacing-8);
-    padding-right: var(--spacing-12);
+    padding: var(--spacing-8) var(--spacing-9);
+    padding-right: var(--spacing-14);
   }
 
   .cb-dialog-content--split .cb-dialog-icon {
-    width: var(--spacing-9);
-    height: var(--spacing-9);
+    width: var(--size-control-sm);
+    height: var(--size-control-sm);
     border-radius: var(--radius-card);
   }
 
@@ -430,7 +430,7 @@
 
   @media (min-width: 768px) {
     .cb-dialog-viewport {
-      padding: var(--spacing-8);
+      padding: var(--spacing-9);
     }
 
     .cb-dialog-split {

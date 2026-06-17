@@ -19,8 +19,8 @@
   .cb-card-action-button {
     pointer-events: auto;
     display: inline-flex;
-    width: var(--spacing-9);
-    height: var(--spacing-9);
+    width: var(--size-control-sm);
+    height: var(--size-control-sm);
     align-items: center;
     justify-content: center;
     border: 1px solid transparent;
@@ -38,8 +38,8 @@
   .cb-card-action-group {
     pointer-events: none;
     position: absolute;
-    top: var(--spacing-5);
-    right: var(--spacing-5);
+    top: var(--spacing-6);
+    right: var(--spacing-6);
     display: flex;
     align-items: center;
     gap: var(--spacing-2);
@@ -103,7 +103,7 @@
     border: 0;
     border-radius: var(--radius-card);
     background: transparent;
-    padding: var(--spacing-4) var(--spacing-5);
+    padding: var(--spacing-4) var(--spacing-6);
     color: var(--color-muted-strong);
     font-size: var(--text-base);
     text-align: left;
@@ -129,7 +129,7 @@
 
   .cb-icon-tag {
     gap: var(--spacing-3);
-    padding: var(--spacing-3) var(--spacing-5);
+    padding: var(--spacing-3) var(--spacing-6);
     letter-spacing: var(--tracking-tag);
   }
 
@@ -137,7 +137,7 @@
     display: grid;
     gap: 1px;
     overflow: hidden;
-    margin-top: var(--spacing-6);
+    margin-top: var(--spacing-7);
     border: 1px solid var(--color-line);
     border-radius: var(--radius-panel);
     background: var(--color-line);
@@ -157,7 +157,7 @@
 
   .cb-metric-cell {
     background: var(--color-pane-82);
-    padding: var(--spacing-5) var(--spacing-5);
+    padding: var(--spacing-6) var(--spacing-6);
   }
 
   .cb-metric-label {

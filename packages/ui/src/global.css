@@ -53,7 +53,7 @@ body {
 }
 
 .ui-demo-accordion-content {
-  padding: var(--spacing-6);
+  padding: var(--spacing-7);
   color: var(--color-muted-strong);
   font-size: var(--text-base);
 }
@@ -61,7 +61,7 @@ body {
 .ui-demo-admin-card {
   position: relative;
   max-width: 540px;
-  padding: var(--spacing-7);
+  padding: var(--spacing-8);
 }
 
 .ui-demo-admin-card-header,
@@ -84,7 +84,7 @@ body {
 
 .ui-demo-admin-card-header {
   align-items: flex-start;
-  gap: var(--spacing-6);
+  gap: var(--spacing-7);
 }
 
 .ui-demo-admin-card-actions,
@@ -97,7 +97,7 @@ body {
 
 .ui-demo-admin-card-tags {
   flex-wrap: wrap;
-  margin-top: var(--spacing-6);
+  margin-top: var(--spacing-7);
 }
 
 .ui-demo-card {
@@ -127,7 +127,7 @@ body {
 }
 
 .ui-demo-dialog-stack > * + * {
-  margin-top: var(--spacing-6);
+  margin-top: var(--spacing-7);
 }
 
 .ui-demo-dialog-section > * + *,
@@ -188,7 +188,7 @@ body {
   border: 1px solid var(--color-line);
   border-radius: var(--radius-panel);
   background: var(--color-pane-82);
-  padding: var(--spacing-5);
+  padding: var(--spacing-6);
   color: var(--color-muted-strong);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
@@ -218,7 +218,7 @@ body {
   border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
   background: var(--color-panel-strong);
-  padding: var(--spacing-5);
+  padding: var(--spacing-6);
   color: var(--color-ink);
 }
 
@@ -250,7 +250,7 @@ body {
 .ui-demo-scroll-content {
   display: grid;
   gap: var(--spacing-4);
-  padding: var(--spacing-6);
+  padding: var(--spacing-7);
   color: var(--color-muted-strong);
   font-size: var(--text-base);
 }
@@ -275,7 +275,7 @@ body {
   width: 260px;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-5);
+  gap: var(--spacing-6);
   color: var(--color-muted-strong);
   font-size: var(--text-base);
 }
@@ -287,5 +287,5 @@ body {
 .ui-demo-toggle-group {
   display: grid;
   width: 520px;
-  gap: var(--spacing-5);
+  gap: var(--spacing-6);
 }

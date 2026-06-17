@@ -3,7 +3,7 @@
     position: relative;
     display: flex;
     width: 100%;
-    height: var(--spacing-7);
+    height: var(--spacing-8);
     touch-action: none;
     user-select: none;
     align-items: center;
@@ -19,7 +19,7 @@
     position: relative;
     display: flex;
     width: 100%;
-    height: var(--spacing-7);
+    height: var(--spacing-8);
     align-items: center;
   }
 
@@ -43,8 +43,8 @@
 
   .cb-slider-thumb {
     position: absolute;
-    width: var(--spacing-6);
-    height: var(--spacing-6);
+    width: var(--spacing-7);
+    height: var(--spacing-7);
     border: 1px solid var(--color-line);
     border-radius: 999px;
     background: var(--color-claw-0);

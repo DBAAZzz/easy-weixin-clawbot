@@ -17,7 +17,7 @@
   .cb-toaster-description {
     color: var(--color-muted-strong);
     font-size: var(--text-base);
-    line-height: var(--spacing-7);
+    line-height: var(--spacing-8);
   }
 
   .cb-toaster-close-button {

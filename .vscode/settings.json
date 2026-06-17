@@ -13,6 +13,7 @@
     "**/.git",
     "**/.svn",
     "**/.hg",
+    "**/docs-dist",
     "**/CVS",
     "**/.DS_Store",
     "**/.next",

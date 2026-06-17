@@ -1,8 +1,21 @@
+/* Pagination color contract. Consumers re-theme these; defined on :root outside
+ * the cascade layer so consumer overrides win, matching the central token setup. */
+:root {
+  --color-pagination-bg: var(--color-surface-raised, #ffffff);
+  --color-pagination-bg-hover: var(--color-surface, #f5f7f9);
+  --color-pagination-border: var(--color-line-strong, rgba(26, 33, 40, 0.16));
+  --color-pagination-border-hover: var(--color-control-border-strong, #d2d8dd);
+  --color-pagination-fg: var(--color-muted-strong, #4a535b);
+  --color-pagination-icon: var(--color-icon-muted, #8a949c);
+  --color-pagination-selected-bg: var(--color-ink, #1a2128);
+  --color-pagination-selected-fg: #ffffff;
+}
+
 @layer clawbot {
   .cb-pagination {
     display: inline-flex;
     align-items: center;
-    gap: var(--spacing-pagination-gap);
+    gap: var(--spacing-4);
     max-width: 100%;
   }
 
@@ -12,8 +25,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: var(--spacing-pagination-item);
-    height: var(--spacing-pagination-item);
+    width: var(--spacing-9);
+    height: var(--spacing-9);
     border-radius: var(--radius-card);
     font-size: var(--text-sm);
     font-weight: 600;
@@ -55,7 +68,7 @@
   }
 
   .cb-pagination-ellipsis {
-    width: var(--spacing-pagination-ellipsis);
+    width: var(--spacing-7);
     color: var(--color-muted);
   }
 }

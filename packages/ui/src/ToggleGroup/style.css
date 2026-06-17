@@ -41,11 +41,11 @@
   }
 
   .cb-toggle-group--padded-md {
-    padding: var(--spacing-toggle-group-padding-md);
+    padding: var(--spacing-2);
   }
 
   .cb-toggle-group--padded-sm {
-    padding: var(--spacing-toggle-group-padding-sm);
+    padding: var(--spacing-2);
   }
 
   .cb-toggle-group[data-disabled] {

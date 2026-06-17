@@ -1,9 +1,26 @@
+/* Action-button color contract (only consumed by AdminCard). Consumers re-theme
+ * these; defined on :root outside the cascade layer so consumer overrides win. */
+:root {
+  --color-action-primary-hover: var(--color-accent, #1d6e54);
+  --color-action-primary-bg-hover: var(--color-accent-subtle, rgba(29, 110, 84, 0.07));
+  --color-action-primary-border-hover: var(--color-toggle-border, rgba(29, 110, 84, 0.18));
+  --color-action-success-hover: var(--color-accent-strong, #185b46);
+  --color-action-success-bg-hover: var(--color-notice-success-bg, rgba(215, 233, 223, 0.68));
+  --color-action-success-border-hover: var(--color-notice-success-border, rgba(76, 149, 118, 0.18));
+  --color-action-warning-hover: var(--color-notice-warning-fg, #8a5d1f);
+  --color-action-warning-bg-hover: var(--color-notice-warning-bg, rgba(244, 232, 196, 0.68));
+  --color-action-warning-border-hover: var(--color-notice-warning-border, rgba(177, 126, 43, 0.2));
+  --color-action-danger-hover: var(--color-danger-strong, #a5392f);
+  --color-action-danger-bg-hover: var(--color-notice-error-bg, rgba(246, 217, 212, 0.58));
+  --color-action-danger-border-hover: var(--color-notice-error-border, rgba(194, 67, 58, 0.18));
+}
+
 @layer clawbot {
   .cb-card-action-button {
     pointer-events: auto;
     display: inline-flex;
-    width: var(--spacing-admin-card-action-button);
-    height: var(--spacing-admin-card-action-button);
+    width: var(--spacing-9);
+    height: var(--spacing-9);
     align-items: center;
     justify-content: center;
     border: 1px solid transparent;
@@ -21,11 +38,11 @@
   .cb-card-action-group {
     pointer-events: none;
     position: absolute;
-    top: var(--spacing-admin-card-action-offset);
-    right: var(--spacing-admin-card-action-offset);
+    top: var(--spacing-5);
+    right: var(--spacing-5);
     display: flex;
     align-items: center;
-    gap: var(--spacing-admin-card-action-gap);
+    gap: var(--spacing-2);
     opacity: 1;
     transition: opacity 0.2s var(--ease-expo);
   }
@@ -68,12 +85,12 @@
   }
 
   .cb-card-menu-popup {
-    min-width: var(--spacing-admin-card-menu-min-width);
+    min-width: 168px;
     overflow: hidden;
     border: 1px solid var(--color-line);
     border-radius: var(--radius-panel);
     background: var(--color-pane-98);
-    padding: var(--spacing-admin-card-menu-padding);
+    padding: var(--spacing-3);
     box-shadow: var(--shadow-menu);
     backdrop-filter: blur(8px);
   }
@@ -82,11 +99,11 @@
     display: flex;
     width: 100%;
     align-items: center;
-    gap: var(--spacing-admin-card-menu-item-gap);
+    gap: var(--spacing-4);
     border: 0;
     border-radius: var(--radius-card);
     background: transparent;
-    padding: var(--spacing-admin-card-menu-item-y) var(--spacing-admin-card-menu-item-x);
+    padding: var(--spacing-4) var(--spacing-5);
     color: var(--color-muted-strong);
     font-size: var(--text-base);
     text-align: left;
@@ -111,8 +128,8 @@
   }
 
   .cb-icon-tag {
-    gap: var(--spacing-admin-card-tag-gap);
-    padding: var(--spacing-admin-card-tag-y) var(--spacing-admin-card-tag-x);
+    gap: var(--spacing-3);
+    padding: var(--spacing-3) var(--spacing-5);
     letter-spacing: var(--tracking-tag);
   }
 
@@ -120,7 +137,7 @@
     display: grid;
     gap: 1px;
     overflow: hidden;
-    margin-top: var(--spacing-admin-card-metric-gap);
+    margin-top: var(--spacing-6);
     border: 1px solid var(--color-line);
     border-radius: var(--radius-panel);
     background: var(--color-line);
@@ -140,19 +157,19 @@
 
   .cb-metric-cell {
     background: var(--color-pane-82);
-    padding: var(--spacing-admin-card-metric-cell-y) var(--spacing-admin-card-metric-cell-x);
+    padding: var(--spacing-5) var(--spacing-5);
   }
 
   .cb-metric-label {
     display: flex;
     align-items: center;
-    gap: var(--spacing-admin-card-metric-label-gap);
+    gap: var(--spacing-3);
     color: var(--color-muted);
     font-size: var(--text-sm);
   }
 
   .cb-metric-value {
-    margin: var(--spacing-admin-card-metric-value-gap) 0 0;
+    margin: var(--spacing-3) 0 0;
     color: var(--color-muted-strong);
     font-size: var(--text-md);
     font-weight: 500;

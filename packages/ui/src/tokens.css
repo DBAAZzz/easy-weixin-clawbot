@@ -1,5 +1,10 @@
 /* =============================================================================
- * @clawbot/ui component token contract.
+ * @clawbot/ui shared token contract.
+ *
+ * This file holds ONLY tokens that are atomic (the spacing scale, icon sizing)
+ * or shared across more than one component. Single-component tokens live in
+ * that component's own style.css (geometry is inlined onto the spacing scale,
+ * colors are co-located on :root there). Demo-only tokens live in global.css.
  *
  * This file is runtime CSS, not a Tailwind entry. Consumers can import it
  * directly, but the recommended public entry remains @clawbot/ui/style.css.
@@ -22,62 +27,12 @@
   --spacing-12: 64px;
   --spacing-13: 80px;
 
-  /* Icon sizing */
+  /* Icon sizing (shared across components and shared.css) */
   --spacing-icon-sm: var(--spacing-6);
   --spacing-icon-md: var(--spacing-7);
   --spacing-icon-lg: var(--spacing-8);
 
-  /* Dialog geometry */
-  --spacing-dialog-viewport: var(--spacing-6);
-  --spacing-dialog-viewport-md: var(--spacing-8);
-  --spacing-dialog-max-height-offset: var(--spacing-11);
-  --spacing-dialog-width: 440px;
-  --spacing-dialog-panel-width: 540px;
-  --spacing-dialog-split-width: 880px;
-  --spacing-dialog-split-height-offset: var(--spacing-13);
-  --spacing-dialog-x: var(--spacing-8);
-  --spacing-dialog-y: var(--spacing-8);
-  --spacing-dialog-body-x: var(--spacing-8);
-  --spacing-dialog-body-y: var(--spacing-4);
-  --spacing-dialog-panel-header-x: var(--spacing-8);
-  --spacing-dialog-panel-header-y: var(--spacing-7);
-  --spacing-dialog-panel-body-x: var(--spacing-8);
-  --spacing-dialog-panel-body-y: var(--spacing-7);
-  --spacing-dialog-panel-footer-x: var(--spacing-8);
-  --spacing-dialog-panel-footer-y: var(--spacing-6);
-  --spacing-dialog-split-header-x: var(--spacing-8);
-  --spacing-dialog-split-header-y: var(--spacing-7);
-  --spacing-dialog-split-main-x: var(--spacing-8);
-  --spacing-dialog-split-main-y: var(--spacing-7);
-  --spacing-dialog-sidebar-width: 256px;
-  --spacing-dialog-sidebar-x: var(--spacing-7);
-  --spacing-dialog-sidebar-y: var(--spacing-7);
-  --spacing-dialog-footer-x: var(--spacing-8);
-  --spacing-dialog-footer-y: var(--spacing-6);
-  --spacing-dialog-close: var(--spacing-9);
-  --spacing-dialog-close-icon: var(--spacing-icon-sm);
-  --spacing-dialog-close-offset: var(--spacing-6);
-  --spacing-dialog-close-safe: var(--spacing-12);
-  --spacing-dialog-header-gap: var(--spacing-5);
-  --spacing-dialog-header-title-gap: var(--spacing-2);
-  --spacing-dialog-icon-box: var(--spacing-9);
-  --spacing-dialog-icon-glyph: var(--spacing-icon-sm);
-  --spacing-dialog-split-icon-box: var(--spacing-9);
-  --spacing-dialog-split-icon-glyph: var(--spacing-icon-sm);
-  --spacing-dialog-title-gap: var(--spacing-5);
-  --spacing-dialog-section-gap: var(--spacing-4);
-  --spacing-dialog-content-gap: var(--spacing-6);
-  --spacing-dialog-sidebar-section-y: var(--spacing-6);
-  --spacing-dialog-action-gap: var(--spacing-4);
-  --spacing-dialog-code-padding: var(--spacing-5);
-  --spacing-dialog-param-x: var(--spacing-5);
-  --spacing-dialog-param-y: var(--spacing-4);
-  --spacing-dialog-param-badge-x: var(--spacing-4);
-  --spacing-dialog-param-badge-y: var(--spacing-1);
-  --spacing-dialog-scrollbar: 9px;
-  --spacing-dialog-scrollbar-border: var(--spacing-1);
-
-  /* Button geometry */
+  /* Button geometry (shared by .cb-button and .cb-toggle in shared.css) */
   --spacing-button-sm: var(--spacing-9);
   --spacing-button-md: var(--spacing-10);
   --spacing-button-sm-x: var(--spacing-5);
@@ -85,112 +40,15 @@
   --spacing-button-sm-gap: var(--spacing-3);
   --spacing-button-md-gap: var(--spacing-4);
 
-  /* Pagination geometry */
-  --spacing-pagination-gap: var(--spacing-4);
-  --spacing-pagination-item: var(--spacing-9);
-  --spacing-pagination-ellipsis: var(--spacing-7);
-
-  /* Input geometry */
-  --spacing-input-sm: var(--spacing-9);
-  --spacing-input-md: var(--spacing-10);
-  --spacing-input-sm-x: var(--spacing-5);
-  --spacing-input-md-x: var(--spacing-6);
-  --spacing-input-icon-gap: var(--spacing-3);
-  --spacing-input-demo-width: 320px;
-
-  /* Accordion geometry */
-  --spacing-accordion-trigger-x: var(--spacing-6);
-  --spacing-accordion-trigger-y: var(--spacing-5);
-  --spacing-accordion-trigger-gap: var(--spacing-5);
-  --spacing-accordion-meta-gap: var(--spacing-4);
-  --spacing-accordion-content-padding: var(--spacing-6);
-  --spacing-accordion-demo-width: 560px;
-
-  /* Select geometry */
-  --spacing-select-trigger-x: var(--spacing-6);
-  --spacing-select-trigger-x-sm: var(--spacing-5);
-  --spacing-select-trigger-height: var(--spacing-10);
-  --spacing-select-trigger-height-sm: var(--spacing-9);
-  --spacing-select-trigger-gap: var(--spacing-4);
-  --spacing-select-value-gap: var(--spacing-4);
-  --spacing-select-popup-padding: var(--spacing-3);
-  --spacing-select-popup-max-h: 280px;
-  --spacing-select-item-x: var(--spacing-5);
-  --spacing-select-item-y: var(--spacing-4);
-  --spacing-select-item-gap: var(--spacing-4);
-  --spacing-select-demo-width: 320px;
-
-  /* Icons demo geometry */
-  --spacing-icons-demo-grid-min: 148px;
-  --spacing-icons-demo-card-padding: var(--spacing-5);
-  --spacing-icons-demo-card-gap: var(--spacing-4);
-
-  /* Toggle geometry */
+  /* Toggle geometry (shared by .cb-button and .cb-toggle in shared.css) */
   --spacing-toggle-sm: var(--spacing-9);
   --spacing-toggle-md: var(--spacing-10);
   --spacing-toggle-sm-x: var(--spacing-5);
   --spacing-toggle-md-x: var(--spacing-6);
   --spacing-toggle-sm-gap: var(--spacing-3);
   --spacing-toggle-md-gap: var(--spacing-4);
-  --spacing-toggle-group-padding-sm: var(--spacing-2);
-  --spacing-toggle-group-padding-md: var(--spacing-2);
-  --spacing-toggle-demo-width: 360px;
-  --spacing-toggle-group-demo-width: 520px;
 
-  /* Switch geometry */
-  --spacing-switch-sm-width: 40px;
-  --spacing-switch-sm-height: 22px;
-  --spacing-switch-sm-padding: var(--spacing-1);
-  --spacing-switch-sm-thumb: 16px;
-  --spacing-switch-sm-translate: 18px;
-  --spacing-switch-md-width: 52px;
-  --spacing-switch-md-height: 28px;
-  --spacing-switch-md-padding: 3px;
-  --spacing-switch-md-thumb: 22px;
-  --spacing-switch-md-translate: 24px;
-  --spacing-switch-demo-width: 260px;
-  --spacing-switch-demo-gap: var(--spacing-5);
-
-  /* Badge geometry */
-  --spacing-badge-sm-x: var(--spacing-3);
-  --spacing-badge-sm-y: var(--spacing-1);
-  --spacing-badge-sm-gap: var(--spacing-2);
-  --spacing-badge-sm-dot: var(--spacing-2);
-  --spacing-badge-md-x: 10px;
-  --spacing-badge-md-y: var(--spacing-3);
-  --spacing-badge-md-gap: var(--spacing-2);
-  --spacing-badge-md-dot: var(--spacing-3);
-
-  /* Admin card geometry */
-  --spacing-admin-card-padding: var(--spacing-7);
-  --spacing-admin-card-action-offset: var(--spacing-5);
-  --spacing-admin-card-action-gap: var(--spacing-2);
-  --spacing-admin-card-action-button: var(--spacing-9);
-  --spacing-admin-card-menu-min-width: 168px;
-  --spacing-admin-card-menu-padding: var(--spacing-3);
-  --spacing-admin-card-menu-item-x: var(--spacing-5);
-  --spacing-admin-card-menu-item-y: var(--spacing-4);
-  --spacing-admin-card-menu-item-gap: var(--spacing-4);
-  --spacing-admin-card-tag-x: var(--spacing-5);
-  --spacing-admin-card-tag-y: var(--spacing-3);
-  --spacing-admin-card-tag-gap: var(--spacing-3);
-  --spacing-admin-card-metric-gap: var(--spacing-6);
-  --spacing-admin-card-metric-cell-x: var(--spacing-5);
-  --spacing-admin-card-metric-cell-y: var(--spacing-5);
-  --spacing-admin-card-metric-label-gap: var(--spacing-3);
-  --spacing-admin-card-metric-value-gap: var(--spacing-3);
-  --spacing-admin-card-demo-width: 540px;
-  --spacing-admin-card-demo-header-gap: var(--spacing-6);
-  --spacing-admin-card-demo-action-gap: var(--spacing-4);
-  --spacing-admin-card-demo-description-gap: var(--spacing-3);
-
-  /* Scroll area demo geometry */
-  --spacing-scroll-area-demo-width: 520px;
-  --spacing-scroll-area-demo-height: 240px;
-  --spacing-scroll-area-content-padding: var(--spacing-6);
-  --spacing-scroll-area-content-gap: var(--spacing-4);
-
-  /* Button colors */
+  /* Button colors (consumed by Button and Toggle) */
   --color-button-primary: var(--color-accent, #1d6e54);
   --color-button-primary-hover: var(--color-accent-strong, #185b46);
   --color-button-primary-active: var(--color-accent-deep, #13483a);
@@ -213,24 +71,7 @@
   --color-button-danger-active: var(--color-danger-strong, #a5392f);
   --color-button-danger-fg: #ffffff;
 
-  /* Dialog colors */
-  --color-dialog-bg: var(--color-surface-raised, #ffffff);
-  --color-dialog-sidebar-bg: var(--color-surface-sunken, #eef1f4);
-  --color-dialog-footer-bg: var(--color-surface-sunken, #eef1f4);
-  --color-dialog-border: var(--color-modal-border, rgba(26, 33, 40, 0.1));
-  --color-dialog-scrollbar-thumb: var(--color-claw-300, #d2d8dd);
-
-  /* Pagination colors */
-  --color-pagination-bg: var(--color-surface-raised, #ffffff);
-  --color-pagination-bg-hover: var(--color-surface, #f5f7f9);
-  --color-pagination-border: var(--color-line-strong, rgba(26, 33, 40, 0.16));
-  --color-pagination-border-hover: var(--color-control-border-strong, #d2d8dd);
-  --color-pagination-fg: var(--color-muted-strong, #4a535b);
-  --color-pagination-icon: var(--color-icon-muted, #8a949c);
-  --color-pagination-selected-bg: var(--color-ink, #1a2128);
-  --color-pagination-selected-fg: #ffffff;
-
-  /* Toggle colors */
+  /* Toggle colors (consumed by Toggle, ToggleGroup and Switch) */
   --color-toggle-group-track: var(--color-surface-sunken, #eef1f4);
   --color-toggle-accent-soft: var(--color-accent-soft, #e9f5ef);
   --color-toggle-accent-soft-border: var(--color-accent-soft-border, #a9d5c1);
@@ -247,28 +88,4 @@
   --color-toggle-ink-soft-fg: var(--color-ink, #1a2128);
   --color-toggle-ink-solid: var(--color-ink, #1a2128);
   --color-toggle-ink-solid-hover: var(--color-ink-deep, #11171c);
-
-  /* Badge colors */
-  --color-badge-online-bg: var(--color-notice-success-bg, rgba(215, 233, 223, 0.68));
-  --color-badge-online-border: var(--color-notice-success-border, rgba(76, 149, 118, 0.18));
-  --color-badge-online-fg: var(--color-accent-strong, #185b46);
-  --color-badge-online-dot: var(--color-state-success, #4c9576);
-  --color-badge-offline-bg: var(--color-surface-sunken, #eef1f4);
-  --color-badge-offline-border: var(--color-border-muted, #e3e7eb);
-  --color-badge-offline-fg: var(--color-muted-strong, #4a535b);
-  --color-badge-offline-dot: var(--color-muted, #8a949c);
-
-  /* Action colors */
-  --color-action-primary-hover: var(--color-accent, #1d6e54);
-  --color-action-primary-bg-hover: var(--color-accent-subtle, rgba(29, 110, 84, 0.07));
-  --color-action-primary-border-hover: var(--color-toggle-border, rgba(29, 110, 84, 0.18));
-  --color-action-success-hover: var(--color-accent-strong, #185b46);
-  --color-action-success-bg-hover: var(--color-notice-success-bg, rgba(215, 233, 223, 0.68));
-  --color-action-success-border-hover: var(--color-notice-success-border, rgba(76, 149, 118, 0.18));
-  --color-action-warning-hover: var(--color-notice-warning-fg, #8a5d1f);
-  --color-action-warning-bg-hover: var(--color-notice-warning-bg, rgba(244, 232, 196, 0.68));
-  --color-action-warning-border-hover: var(--color-notice-warning-border, rgba(177, 126, 43, 0.2));
-  --color-action-danger-hover: var(--color-danger-strong, #a5392f);
-  --color-action-danger-bg-hover: var(--color-notice-error-bg, rgba(246, 217, 212, 0.58));
-  --color-action-danger-border-hover: var(--color-notice-error-border, rgba(194, 67, 58, 0.18));
 }

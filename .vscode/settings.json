@@ -5,5 +5,23 @@
     {
       "text": "Always generate commit messages in English. Use the Conventional Commits specification.  "
     }
+  ],
+  "cssVariables.lookupFiles": [
+    "packages/ui/src/**/*.css"
+  ],
+  "cssVariables.blacklistFolders": [
+    "**/.git",
+    "**/.svn",
+    "**/.hg",
+    "**/CVS",
+    "**/.DS_Store",
+    "**/.next",
+    "**/.cache",
+    "**/node_modules",
+    "**/bower_components",
+    "**/dist",
+    "**/build",
+    "**/out",
+    "**/tmp"
   ]
 }

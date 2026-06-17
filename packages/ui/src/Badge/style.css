@@ -1,3 +1,17 @@
+/* Badge color contract.
+ * Kept as tokens (consumers re-theme these) and defined on :root outside the
+ * cascade layer so consumer overrides win, exactly as in the central tokens. */
+:root {
+  --color-badge-online-bg: var(--color-notice-success-bg, rgba(215, 233, 223, 0.68));
+  --color-badge-online-border: var(--color-notice-success-border, rgba(76, 149, 118, 0.18));
+  --color-badge-online-fg: var(--color-accent-strong, #185b46);
+  --color-badge-online-dot: var(--color-state-success, #4c9576);
+  --color-badge-offline-bg: var(--color-surface-sunken, #eef1f4);
+  --color-badge-offline-border: var(--color-border-muted, #e3e7eb);
+  --color-badge-offline-fg: var(--color-muted-strong, #4a535b);
+  --color-badge-offline-dot: var(--color-muted, #8a949c);
+}
+
 @layer clawbot {
   .cb-badge {
     display: inline-flex;
@@ -9,14 +23,15 @@
   }
 
   .cb-badge--sm {
-    gap: var(--spacing-badge-sm-gap);
-    padding: var(--spacing-badge-sm-y) var(--spacing-badge-sm-x);
+    gap: var(--spacing-2);
+    padding: var(--spacing-1) var(--spacing-3);
     font-size: var(--text-xs);
   }
 
   .cb-badge--md {
-    gap: var(--spacing-badge-md-gap);
-    padding: var(--spacing-badge-md-y) var(--spacing-badge-md-x);
+    gap: var(--spacing-2);
+    /* 10px is intentionally off the spacing scale for md horizontal padding */
+    padding: var(--spacing-3) 10px;
     font-size: var(--text-xs);
   }
 
@@ -59,13 +74,13 @@
   }
 
   .cb-badge--sm .cb-badge-dot {
-    width: var(--spacing-badge-sm-dot);
-    height: var(--spacing-badge-sm-dot);
+    width: var(--spacing-2);
+    height: var(--spacing-2);
   }
 
   .cb-badge--md .cb-badge-dot {
-    width: var(--spacing-badge-md-dot);
-    height: var(--spacing-badge-md-dot);
+    width: var(--spacing-3);
+    height: var(--spacing-3);
   }
 
   .cb-badge-dot--online {

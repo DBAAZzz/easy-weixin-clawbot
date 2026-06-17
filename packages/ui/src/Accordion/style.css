@@ -11,10 +11,10 @@
     width: 100%;
     align-items: center;
     justify-content: space-between;
-    gap: var(--spacing-accordion-trigger-gap);
+    gap: var(--spacing-5);
     border: 0;
     background: transparent;
-    padding: var(--spacing-accordion-trigger-y) var(--spacing-accordion-trigger-x);
+    padding: var(--spacing-5) var(--spacing-6);
     text-align: left;
     cursor: pointer;
     transition: background-color 0.2s var(--ease-expo);
@@ -33,7 +33,7 @@
     display: flex;
     flex-shrink: 0;
     align-items: center;
-    gap: var(--spacing-accordion-meta-gap);
+    gap: var(--spacing-4);
     color: var(--color-muted);
     font-size: var(--text-xs);
   }

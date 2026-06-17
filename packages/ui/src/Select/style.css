@@ -4,7 +4,7 @@
     width: 100%;
     align-items: center;
     justify-content: space-between;
-    gap: var(--spacing-select-trigger-gap);
+    gap: var(--spacing-4);
     box-sizing: border-box;
     border: 1px solid var(--color-line-strong);
     border-radius: var(--radius-card);
@@ -24,13 +24,13 @@
   }
 
   .cb-select-trigger--default {
-    height: var(--spacing-select-trigger-height);
-    padding-inline: var(--spacing-select-trigger-x);
+    height: var(--spacing-10);
+    padding-inline: var(--spacing-6);
   }
 
   .cb-select-trigger--sm {
-    height: var(--spacing-select-trigger-height-sm);
-    padding-inline: var(--spacing-select-trigger-x-sm);
+    height: var(--spacing-9);
+    padding-inline: var(--spacing-5);
   }
 
   .cb-select-trigger svg {
@@ -56,7 +56,7 @@
   .cb-select-value {
     display: flex;
     align-items: center;
-    gap: var(--spacing-select-value-gap);
+    gap: var(--spacing-4);
   }
 
   .cb-select-value svg,
@@ -70,22 +70,22 @@
   .cb-select-popup {
     width: var(--anchor-width);
     box-sizing: border-box;
-    max-height: var(--spacing-select-popup-max-h);
+    max-height: 280px;
     overflow-y: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--color-line-strong);
     border-radius: var(--radius-panel);
     background: var(--color-claw-0);
-    padding: var(--spacing-select-popup-padding);
+    padding: var(--spacing-3);
     box-shadow: var(--shadow-popover);
   }
 
   .cb-select-item {
     display: flex;
     align-items: center;
-    gap: var(--spacing-select-item-gap);
+    gap: var(--spacing-4);
     border-radius: var(--radius-card);
-    padding: var(--spacing-select-item-y) var(--spacing-select-item-x);
+    padding: var(--spacing-4) var(--spacing-5);
     color: var(--color-ink);
     font-size: var(--text-base);
     cursor: pointer;

@@ -19,39 +19,31 @@
   }
 
   .cb-input--sm {
-    height: var(--spacing-input-sm);
-    padding-inline: var(--spacing-input-sm-x);
+    height: var(--spacing-9);
+    padding-inline: var(--spacing-5);
     font-size: var(--text-sm);
   }
 
   .cb-input--md {
-    height: var(--spacing-input-md);
-    padding-inline: var(--spacing-input-md-x);
+    height: var(--spacing-10);
+    padding-inline: var(--spacing-6);
     font-size: var(--text-base);
   }
 
   .cb-input--sm.cb-input--with-left-icon {
-    padding-left: calc(
-      var(--spacing-input-sm-x) + var(--spacing-icon-sm) + var(--spacing-input-icon-gap)
-    );
+    padding-left: calc(var(--spacing-5) + var(--spacing-icon-sm) + var(--spacing-3));
   }
 
   .cb-input--sm.cb-input--with-right-icon {
-    padding-right: calc(
-      var(--spacing-input-sm-x) + var(--spacing-icon-sm) + var(--spacing-input-icon-gap)
-    );
+    padding-right: calc(var(--spacing-5) + var(--spacing-icon-sm) + var(--spacing-3));
   }
 
   .cb-input--md.cb-input--with-left-icon {
-    padding-left: calc(
-      var(--spacing-input-md-x) + var(--spacing-icon-sm) + var(--spacing-input-icon-gap)
-    );
+    padding-left: calc(var(--spacing-6) + var(--spacing-icon-sm) + var(--spacing-3));
   }
 
   .cb-input--md.cb-input--with-right-icon {
-    padding-right: calc(
-      var(--spacing-input-md-x) + var(--spacing-icon-sm) + var(--spacing-input-icon-gap)
-    );
+    padding-right: calc(var(--spacing-6) + var(--spacing-icon-sm) + var(--spacing-3));
   }
 
   .cb-input::placeholder {
@@ -89,19 +81,19 @@
   }
 
   .cb-input-icon--left {
-    left: var(--spacing-input-md-x);
+    left: var(--spacing-6);
   }
 
   .cb-input-icon--right {
-    right: var(--spacing-input-md-x);
+    right: var(--spacing-6);
   }
 
   .cb-input-wrapper--sm .cb-input-icon--left {
-    left: var(--spacing-input-sm-x);
+    left: var(--spacing-5);
   }
 
   .cb-input-wrapper--sm .cb-input-icon--right {
-    right: var(--spacing-input-sm-x);
+    right: var(--spacing-5);
   }
 
   .cb-input-wrapper[data-disabled] .cb-input-icon {

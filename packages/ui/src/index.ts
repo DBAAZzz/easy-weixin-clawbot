@@ -8,6 +8,7 @@ export * from "./Card/index.js";
 export * from "./Dialog/index.js";
 export * from "./Icons/index.js";
 export * from "./Input/index.js";
+export * from "./Pagination/index.js";
 export * from "./ScrollArea/index.js";
 export * from "./Select/index.js";
 export * from "./Slider/index.js";

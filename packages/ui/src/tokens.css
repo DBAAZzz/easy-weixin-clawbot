@@ -63,6 +63,11 @@
   --spacing-button-sm-gap: var(--spacing-3);
   --spacing-button-md-gap: var(--spacing-4);
 
+  /* Pagination geometry */
+  --spacing-pagination-gap: var(--spacing-4);
+  --spacing-pagination-item: var(--spacing-9);
+  --spacing-pagination-ellipsis: var(--spacing-7);
+
   /* Input geometry */
   --spacing-input-sm: var(--spacing-9);
   --spacing-input-md: var(--spacing-10);
@@ -185,6 +190,16 @@
   --color-button-danger-hover: var(--color-danger-strong, #a5392f);
   --color-button-danger-active: var(--color-danger-strong, #a5392f);
   --color-button-danger-fg: #ffffff;
+
+  /* Pagination colors */
+  --color-pagination-bg: var(--color-surface-raised, #ffffff);
+  --color-pagination-bg-hover: var(--color-surface, #f5f7f9);
+  --color-pagination-border: var(--color-line-strong, rgba(26, 33, 40, 0.16));
+  --color-pagination-border-hover: var(--color-control-border-strong, #d2d8dd);
+  --color-pagination-fg: var(--color-muted-strong, #4a535b);
+  --color-pagination-icon: var(--color-icon-muted, #8a949c);
+  --color-pagination-selected-bg: var(--color-ink, #1a2128);
+  --color-pagination-selected-fg: #ffffff;
 
   /* Toggle colors */
   --color-toggle-group-track: var(--color-surface-sunken, #eef1f4);

@@ -7,6 +7,7 @@ export type { InputProps, InputSize } from "./type.js";
 export function Input({
   className,
   disabled,
+  inputClassName,
   leftIcon,
   rightIcon,
   size = "md",
@@ -20,6 +21,7 @@ export function Input({
       className={cn(
         "cb-input-wrapper",
         size === "sm" ? "cb-input-wrapper--sm" : "cb-input-wrapper--md",
+        className,
       )}
       data-disabled={disabled ? "" : undefined}
     >
@@ -34,7 +36,7 @@ export function Input({
           size === "sm" ? "cb-input--sm" : "cb-input--md",
           hasLeftIcon ? "cb-input--with-left-icon" : null,
           hasRightIcon ? "cb-input--with-right-icon" : null,
-          className,
+          inputClassName,
         )}
         disabled={disabled}
         {...props}

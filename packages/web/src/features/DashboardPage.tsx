@@ -252,7 +252,7 @@ export function DashboardPage() {
                 placeholder="搜索账号名称或 ID"
                 leftIcon={<SearchIcon />}
                 size="sm"
-                className="rounded-card border-account-line-strong bg-account-card text-base placeholder:text-account-muted-faint focus:border-account-control-hover"
+                inputClassName="rounded-card border-account-line-strong bg-account-card text-base placeholder:text-account-muted-faint focus:border-account-control-hover"
               />
             </div>
 

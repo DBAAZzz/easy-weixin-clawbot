@@ -8,15 +8,15 @@ import {
   CpuIcon,
   GaugeIcon,
   LayersIcon,
-  LinkIcon,
+  McpServerIcon,
   LogOutIcon,
-  PulseIcon,
+  MemoryIcon,
   PuzzleIcon,
   ScanIcon,
   SettingsIcon,
   RssIcon,
-  StackIcon,
-  TerminalIcon,
+  CheckListIcon,
+  ToolsIcon,
   WebhookIcon,
 } from "@clawbot/ui";
 import logoUrl from "../assets/images/logo.png";
@@ -191,19 +191,19 @@ export function Sidebar(props: {
           <NavItem
             to="/memory-graph"
             label="记忆图谱"
-            icon={<PulseIcon className="size-4" />}
+            icon={<MemoryIcon className="size-4" />}
             collapsed={props.collapsed}
           />
           <NavItem
             to="/mcp"
             label="MCP 服务"
-            icon={<LinkIcon className="size-4" />}
+            icon={<McpServerIcon className="size-4" />}
             collapsed={props.collapsed}
           />
           <NavItem
             to="/tools"
             label="工具列表"
-            icon={<TerminalIcon className="size-4" />}
+            icon={<ToolsIcon className="size-4" />}
             collapsed={props.collapsed}
           />
           <NavItem
@@ -231,7 +231,7 @@ export function Sidebar(props: {
           <NavItem
             to="/task-center"
             label="任务中心"
-            icon={<StackIcon className="size-4" />}
+            icon={<CheckListIcon className="size-4" />}
             collapsed={props.collapsed}
           />
           <NavItem

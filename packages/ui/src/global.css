@@ -170,6 +170,41 @@ body {
   width: var(--spacing-input-demo-width);
 }
 
+.ui-demo-icons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--spacing-icons-demo-grid-min), 1fr));
+  gap: var(--spacing-icons-demo-card-gap);
+}
+
+.ui-demo-icons-item {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--spacing-icons-demo-card-gap);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-panel-strong);
+  padding: var(--spacing-icons-demo-card-padding);
+  color: var(--color-ink);
+}
+
+.ui-demo-icons-glyph {
+  width: var(--spacing-icon-md);
+  height: var(--spacing-icon-md);
+  flex-shrink: 0;
+  color: var(--color-accent-strong);
+}
+
+.ui-demo-icons-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted-strong);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ui-demo-scroll {
   height: var(--spacing-scroll-area-demo-height);
   max-width: var(--spacing-scroll-area-demo-width);
@@ -199,6 +234,16 @@ body {
 
 .ui-demo-sonner-actions {
   gap: var(--spacing-3);
+}
+
+.ui-demo-switch {
+  display: flex;
+  width: var(--spacing-switch-demo-width);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-switch-demo-gap);
+  color: var(--color-muted-strong);
+  font-size: var(--text-base);
 }
 
 .ui-demo-toggle {

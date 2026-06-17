@@ -1,7 +1,7 @@
 :root {
   --clawbot-doc-header-height: 64px;
   --clawbot-doc-sidebar-width: 240px;
-  --clawbot-doc-toc-width: 184px;
+  --clawbot-doc-toc-width: 240px;
   --clawbot-doc-content-width: 980px;
   --clawbot-doc-bg: #f6f7f8;
   --clawbot-doc-surface: #ffffff;
@@ -205,23 +205,33 @@ body {
 }
 
 .dumi-default-doc-layout-toc-wrapper > h4 {
-  color: var(--clawbot-doc-subtle) !important;
-  font-weight: 600 !important;
+  display: none !important;
 }
 
 .dumi-default-toc {
+  padding-inline-start: 28px !important;
   border-inline-start-color: var(--clawbot-doc-border) !important;
 }
 
 .dumi-default-toc > li > a {
-  color: var(--clawbot-doc-muted) !important;
-  font-size: 13px !important;
-  line-height: 1.35 !important;
+  overflow: hidden;
+  color: var(--clawbot-doc-text) !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  line-height: 1.55 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dumi-default-toc > li > a.active {
   color: var(--clawbot-doc-text) !important;
   border-inline-start-color: var(--clawbot-doc-primary) !important;
+}
+
+.dumi-default-toc > li[data-depth="3"] > a {
+  color: var(--clawbot-doc-muted) !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
 }
 
 .clawbot-api-header {

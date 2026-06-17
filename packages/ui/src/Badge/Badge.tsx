@@ -1,13 +1,34 @@
 import type { HTMLAttributes } from "react";
 import { cn } from "../utils/cn.js";
 
-type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
-  tone?: "online" | "offline" | "muted" | "error" | "warning";
+export type BadgeTone = "online" | "offline" | "muted" | "error" | "warning";
+export type BadgeSize = "sm" | "md";
+
+export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
+  bordered?: boolean;
+  size?: BadgeSize;
+  tone?: BadgeTone;
 };
 
-export function Badge({ children, className, tone = "muted", ...props }: BadgeProps) {
+export function Badge({
+  bordered = true,
+  children,
+  className,
+  size = "md",
+  tone = "muted",
+  ...props
+}: BadgeProps) {
   return (
-    <span className={cn("cb-badge", `cb-badge--${tone}`, className)} {...props}>
+    <span
+      className={cn(
+        "cb-badge",
+        `cb-badge--${size}`,
+        `cb-badge--${tone}`,
+        !bordered && "cb-badge--borderless",
+        className,
+      )}
+      {...props}
+    >
       {tone === "online" || tone === "offline" ? (
         <span
           className={cn(

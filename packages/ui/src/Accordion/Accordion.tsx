@@ -1,6 +1,6 @@
 import { Collapsible } from "@base-ui/react/collapsible";
 import { type ReactNode } from "react";
-import { ChevronDownIcon } from "../icons/index.js";
+import { ChevronDownIcon } from "../Icons/index.js";
 import { cn } from "../utils/cn.js";
 
 export function Accordion(props: {

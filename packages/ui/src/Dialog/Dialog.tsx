@@ -1,6 +1,6 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import { useId, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from "react";
-import { XIcon } from "../icons/index.js";
+import { XIcon } from "../Icons/index.js";
 import { cn } from "../utils/cn.js";
 import { DialogContext, useDialogContext } from "./context.js";
 import type { DialogLayout, DialogTone } from "./type.js";

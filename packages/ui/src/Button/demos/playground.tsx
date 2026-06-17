@@ -1,5 +1,5 @@
 import { Button } from "../index.js";
-import { ActivityIcon, PulseIcon } from "../../icons/index.js";
+import { ActivityIcon, PulseIcon } from "../../Icons/index.js";
 import { StoryBook, useControls } from "../../Playground/index.js";
 import type { ButtonSize, ButtonVariant } from "../index.js";
 

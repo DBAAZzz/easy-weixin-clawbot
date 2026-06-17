@@ -1,5 +1,5 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
-import { CheckIcon, ChevronDownIcon } from "../icons/index.js";
+import { CheckIcon, ChevronDownIcon } from "../Icons/index.js";
 import { cn } from "../utils/cn.js";
 import { selectPopupSideOffset, selectTriggerSizeClassName } from "./style.js";
 import type { SelectProps } from "./type.js";

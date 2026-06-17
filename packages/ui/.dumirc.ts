@@ -36,7 +36,7 @@ const themeConfig = {
     contentMaxWidth: 980,
     headerHeight: 64,
     sidebarWidth: 240,
-    tocWidth: 184,
+    tocWidth: 240,
   },
   title: "Clawbot UI",
 };

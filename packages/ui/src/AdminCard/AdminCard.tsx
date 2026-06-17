@@ -1,8 +1,8 @@
 import { Menu } from "@base-ui/react/menu";
-import { Switch } from "@base-ui/react/switch";
 import { type ReactNode } from "react";
 import { Badge } from "../Badge/index.js";
-import { MoreHorizontalIcon } from "../icons/index.js";
+import { MoreHorizontalIcon } from "../Icons/index.js";
+import { Switch } from "../Switch/index.js";
 import { cn } from "../utils/cn.js";
 import {
   cardActionButtonClassName,
@@ -106,9 +106,9 @@ export function CardToggle(props: {
 }) {
   const { enabled, busy, label, onToggle, className, disabled } = props;
   return (
-    <Switch.Root
+    <Switch
       disabled={busy || disabled}
-      aria-label={label}
+      label={label}
       checked={enabled}
       title={enabled ? "已启用" : "已停用"}
       onMouseDown={(event) => event.stopPropagation()}
@@ -116,10 +116,8 @@ export function CardToggle(props: {
       onCheckedChange={() => {
         onToggle();
       }}
-      className={cn("cb-card-toggle", className)}
-    >
-      <Switch.Thumb className="cb-card-toggle-thumb" />
-    </Switch.Root>
+      className={className}
+    />
   );
 }
 

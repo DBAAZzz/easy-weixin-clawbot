@@ -93,6 +93,11 @@
   --spacing-select-item-gap: var(--spacing-4);
   --spacing-select-demo-width: 320px;
 
+  /* Icons demo geometry */
+  --spacing-icons-demo-grid-min: 148px;
+  --spacing-icons-demo-card-padding: var(--spacing-5);
+  --spacing-icons-demo-card-gap: var(--spacing-4);
+
   /* Toggle geometry */
   --spacing-toggle-sm: var(--spacing-9);
   --spacing-toggle-md: var(--spacing-10);
@@ -105,16 +110,35 @@
   --spacing-toggle-demo-width: 360px;
   --spacing-toggle-group-demo-width: 520px;
 
+  /* Switch geometry */
+  --spacing-switch-sm-width: 40px;
+  --spacing-switch-sm-height: 22px;
+  --spacing-switch-sm-padding: var(--spacing-1);
+  --spacing-switch-sm-thumb: 16px;
+  --spacing-switch-sm-translate: 18px;
+  --spacing-switch-md-width: 52px;
+  --spacing-switch-md-height: 28px;
+  --spacing-switch-md-padding: 3px;
+  --spacing-switch-md-thumb: 22px;
+  --spacing-switch-md-translate: 24px;
+  --spacing-switch-demo-width: 260px;
+  --spacing-switch-demo-gap: var(--spacing-5);
+
+  /* Badge geometry */
+  --spacing-badge-sm-x: var(--spacing-3);
+  --spacing-badge-sm-y: var(--spacing-1);
+  --spacing-badge-sm-gap: var(--spacing-2);
+  --spacing-badge-sm-dot: var(--spacing-2);
+  --spacing-badge-md-x: 10px;
+  --spacing-badge-md-y: var(--spacing-3);
+  --spacing-badge-md-gap: var(--spacing-2);
+  --spacing-badge-md-dot: var(--spacing-3);
+
   /* Admin card geometry */
   --spacing-admin-card-padding: var(--spacing-7);
   --spacing-admin-card-action-offset: var(--spacing-5);
   --spacing-admin-card-action-gap: var(--spacing-2);
   --spacing-admin-card-action-button: var(--spacing-9);
-  --spacing-admin-card-toggle-height: 28px;
-  --spacing-admin-card-toggle-width: 52px;
-  --spacing-admin-card-toggle-padding: 3px;
-  --spacing-admin-card-toggle-thumb: 22px;
-  --spacing-admin-card-toggle-translate: 24px;
   --spacing-admin-card-menu-min-width: 168px;
   --spacing-admin-card-menu-padding: var(--spacing-3);
   --spacing-admin-card-menu-item-x: var(--spacing-5);

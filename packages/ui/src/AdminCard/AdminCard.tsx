@@ -109,6 +109,7 @@ export function CardToggle(props: {
     <Switch
       disabled={busy || disabled}
       label={label}
+      size="sm"
       checked={enabled}
       title={enabled ? "已启用" : "已停用"}
       onMouseDown={(event) => event.stopPropagation()}

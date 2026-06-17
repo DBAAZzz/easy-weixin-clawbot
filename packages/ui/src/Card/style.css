@@ -1,0 +1,10 @@
+@layer clawbot {
+  .cb-card {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-panel);
+    padding: var(--spacing-5);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(24px);
+  }
+}

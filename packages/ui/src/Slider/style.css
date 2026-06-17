@@ -1,0 +1,69 @@
+@layer clawbot {
+  .cb-slider {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: var(--spacing-7);
+    touch-action: none;
+    user-select: none;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .cb-slider--disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .cb-slider-control {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: var(--spacing-7);
+    align-items: center;
+  }
+
+  .cb-slider-track {
+    position: relative;
+    width: 100%;
+    height: 6px;
+    flex-grow: 1;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--color-pane-74);
+  }
+
+  .cb-slider-indicator {
+    position: absolute;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--color-accent);
+    transition: all 75ms var(--ease-expo);
+  }
+
+  .cb-slider-thumb {
+    position: absolute;
+    width: var(--spacing-6);
+    height: var(--spacing-6);
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: var(--color-claw-0);
+    box-shadow: var(--shadow-btn-soft);
+    transform: translateX(-50%);
+    transition:
+      border-color 0.2s var(--ease-expo),
+      box-shadow 0.2s var(--ease-expo),
+      transform 0.2s var(--ease-expo);
+  }
+
+  .cb-slider-thumb:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-btn);
+  }
+
+  .cb-slider-thumb[data-dragging] {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-btn);
+    transform: translateX(-50%) scale(1.1);
+  }
+}

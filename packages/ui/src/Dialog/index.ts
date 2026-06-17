@@ -1,3 +1,5 @@
+import "./style.css";
+
 export * from "./Dialog.js";
 export * from "./DialogHeader.js";
 export * from "./DialogBody.js";

@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { glob, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -37,8 +37,23 @@ async function writeBundledCss(input, output) {
   const bundled = await bundleCss(input);
   const outputPath = resolve(packageRoot, output);
 
+  let fullCss = bundled;
+
+  // When bundling the main style.css, also include component CSS files
+  if (input === "src/style.css") {
+    const componentFiles = [];
+    for await (const entry of glob("src/*/style.css", { cwd: packageRoot })) {
+      componentFiles.push(entry);
+    }
+    componentFiles.sort();
+    for (const file of componentFiles) {
+      const content = await readFile(resolve(packageRoot, file), "utf8");
+      fullCss += `\n${content.trim()}\n`;
+    }
+  }
+
   await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, `${bundled.trim()}\n`, "utf8");
+  await writeFile(outputPath, `${fullCss.trim()}\n`, "utf8");
 }
 
 await writeBundledCss("src/style.css", "dist/style.css");

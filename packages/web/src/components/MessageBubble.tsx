@@ -4,8 +4,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "../lib/cn.js";
 import { formatFullDateTime } from "../lib/format.js";
-import { Accordion } from "./ui/accordion.js";
-import { ChevronDownIcon, PulseIcon, TerminalIcon } from "./ui/icons.js";
+import { Accordion } from "@clawbot/ui";
+import { ChevronDownIcon, PulseIcon, TerminalIcon } from "@clawbot/ui";
 import "./message-markdown.css";
 
 type MessageContentBlock = Record<string, unknown>;

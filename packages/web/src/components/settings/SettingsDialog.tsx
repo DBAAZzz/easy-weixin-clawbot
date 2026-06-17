@@ -8,8 +8,8 @@ import {
   DialogOverlay,
   DialogPortal,
   DialogTitle,
-} from "../ui/dialog.js";
-import { LinkIcon, SearchIcon, SlidersIcon, StackIcon } from "../ui/icons.js";
+} from "@clawbot/ui";
+import { LinkIcon, SearchIcon, SlidersIcon, StackIcon } from "@clawbot/ui";
 import { cn } from "../../lib/cn.js";
 import { AssetStorageSettingsPanel } from "./AssetStorageSettingsPanel.js";
 import { GeneralSettingsPanel } from "./GeneralSettingsPanel.js";

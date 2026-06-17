@@ -1,0 +1,11 @@
+@layer clawbot {
+  .cb-scroll-area {
+    overflow: hidden;
+  }
+
+  .cb-scroll-area-viewport {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+  }
+}

@@ -16,6 +16,9 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
+        "@clawbot/ui/style.css": path.resolve(__dirname, "../ui/src/style.css"),
+        "@clawbot/ui/sonner.css": path.resolve(__dirname, "../ui/src/sonner.css"),
+        "@clawbot/ui": path.resolve(__dirname, "../ui/src/index.ts"),
         "@": path.resolve(__dirname, "src"),
       },
     },

@@ -1,6 +1,6 @@
 ---
 name: web-design
-description: Clawbot 项目 Web 前端设计规范。当你在 packages/web 下新建页面、组件、修改 UI 样式、添加图标、调整布局，或者用户提到界面设计、样式、组件开发时，使用此 skill 来保证视觉和代码风格的一致性。即使用户没有明确提到"设计规范"，只要涉及前端 UI 变更就应该参考。
+description: Clawbot Web 业务前端设计规范。仅当任务涉及 packages/web 下的业务页面、业务组件、布局、样式或交互时使用，用于保证视觉和代码风格的一致性。不要用于 packages/ui 组件库、dumi 文档、组件 token 或 Playground（那些属于 ui-design）。
 ---
 
 # Role: Clawbot 首席前端设计工程师
@@ -176,74 +176,6 @@ cn("base-class", condition && "conditional-class", className)
 
 注意：这是简化版（Boolean filter + join），不是 clsx + tailwind-merge。避免传入冲突的 Tailwind class，后者不会自动覆盖前者。
 
-### Button
-
-位于 `src/components/ui/button.tsx`，支持四种 variant：
-
-| Variant | 外观 |
-|---|---|
-| `primary` | 深色填充（`bg-ink`），hover 变为品牌色 |
-| `outline` | 白色背景 + 边框 |
-| `ghost` | 透明背景 |
-| `destructive` | 红色系 |
-
-两种 size：`default`（h-9）、`sm`（h-8）、`icon`（size-9）。
-
-所有按钮共享：`transition-all duration-200 ease-expo`、`active:translate-y-px`（按下微沉）。
-
-### Card
-
-```tsx
-<Card className="...">内容</Card>
-```
-
-默认样式：`rounded-card border border-line bg-panel p-5 shadow-card backdrop-blur-xl`。
-Card 默认停留在 `rounded-card` 或 `rounded-panel`，不要为了“更柔和”抬到 `rounded-section`、`rounded-dialog` 或 `rounded-pill`。
-
-### Dialog
-
-自建组件（非 Radix），通过 `createPortal` 渲染。组合使用：
-
-```tsx
-<Dialog open={open} onOpenChange={setOpen}>
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogContent className="max-w-lg">
-      <DialogHeader>
-        <DialogTitle>标题</DialogTitle>
-        <DialogClose />
-      </DialogHeader>
-      <DialogBody>内容</DialogBody>
-      <DialogFooter>操作</DialogFooter>
-    </DialogContent>
-  </DialogPortal>
-</Dialog>
-```
-
-弹窗默认使用 `rounded-dialog`、`shadow-modal`、`bg-card-hover`。不要把 `rounded-pill` 用在弹窗外壳上；`rounded-pill` 只属于弹窗内部的小胶囊元素。
-
-### Input
-
-高度 `h-9`，圆角优先 `rounded-control`；不要为了“更现代”抬到 `rounded-section` 以上。
-
-### Badge
-
-用于状态标签，圆角使用 `rounded-pill`，小字号 `text-sm`。胶囊圆角只在这类天然胶囊元素上使用。
-
-## 图标
-
-使用项目自建 SVG 图标集（`src/components/ui/icons.tsx`），基于 `BaseIcon` 封装：
-
-- viewBox: `0 0 24 24`
-- strokeWidth: `1.8`
-- strokeLinecap/Join: `round`
-- fill: `none`
-- 默认 `aria-hidden="true"`
-
-使用时统一设置 `className="size-4"`（16px）。
-
-新增图标时遵循同样的 BaseIcon 模式，不要引入外部图标库。
-
 ## 布局
 
 ### AppShell
@@ -279,7 +211,6 @@ xl: grid-cols-[292px_minmax(0,1fr)]
 5. **无注释**：代码自解释，不写多余注释
 6. **中文 UI**：界面文案使用中文（按钮、标签、提示等）
 7. **文件组织**：
-   - `src/components/ui/` — 基础 UI 原子组件
    - `src/components/<feature>/` — 业务组件
    - `src/layout/` — 布局组件
    - `src/pages/` — 页面组件

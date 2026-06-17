@@ -14,7 +14,7 @@
 | 运行时 | Node.js >= 22, pnpm >= 10.30.0 |
 | 语言 | TypeScript 5.7+, 纯 ESM (`type: "module"`) |
 | 后端 | Hono 4 + @hono/node-server |
-| 前端 | React 19 + Vite 8 + Tailwind CSS 4 + shadcn/ui |
+| 前端 | React 19 + Vite 8 + Tailwind CSS 4 + @clawbot/ui（Base UI 封装） |
 | 数据库 | PostgreSQL + Prisma 6 |
 | AI 框架 | AI SDK 6 (Vercel) |
 | 代码质量 | oxlint + oxfmt（Rust 实现，**非 ESLint/Prettier**） |
@@ -28,9 +28,9 @@ packages/
   agent/        ← @clawbot/agent   AI 核心引擎（LLM 循环、技能、工具、MCP、Tape 记忆）
   server/       ← @clawbot/server  Hono API + Prisma DB + 微信运行时
   web/          ← @clawbot/web     React SPA 管理后台
+  ui/           ← @clawbot/ui      基于 @base-ui/react 的基础组件库
   shared/       ← @clawbot/shared  纯类型包，零运行时依赖
   observability/← @clawbot/observability  Trace/Metrics/采样
-  weixin-acp/   ← weixin-acp       微信 ACP 适配器（CLI）
   weixin-agent-sdk/ ← weixin-agent-sdk  微信协议 SDK
 data/
   tools/        ← Markdown 工具定义（builtin/ + user/）
@@ -42,11 +42,23 @@ docs/           ← 架构文档、设计规范、迭代计划
 scripts/        ← 辅助脚本
 ```
 
+## 项目内 Skills
+
+仓库内维护的 AI skills 位于 `.agent/skills/`，这是本项目 skill 的事实源。项目级 `.codex/skills/` 只放软链，指向 `.agent/skills/`，不要复制两份内容，也不要把项目专属 skill 软链到全局 `~/.codex/skills/`。
+
+当前项目 skills：
+
+- `.agent/skills/ui-design/SKILL.md`：仅用于 `packages/ui`、`@clawbot/ui` 组件库、dumi 文档、demo、Playground 和组件 token 相关任务。
+- `.agent/skills/web-design/SKILL.md`：仅用于 `packages/web` 业务页面、业务组件、布局、样式和交互相关任务。
+
+如果任务命中上述范围，AI 必须先读取对应 `SKILL.md`，再执行代码修改。`packages/ui` 和 `packages/web` 的 UI 任务不要混用 skill：组件库任务用 `ui-design`，业务前端任务用 `web-design`。
+
 ## 依赖方向（严格单向）
 
 ```
 server → agent → observability → shared
 server → shared
+web    → ui
 web    → shared（仅类型）
 ```
 

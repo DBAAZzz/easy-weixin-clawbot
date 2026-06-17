@@ -1,7 +1,7 @@
-import { Input } from "../ui/input.js";
-import { Button } from "../ui/button.js";
-import { Select } from "../ui/select.js";
-import { RefreshIcon, SearchIcon } from "../ui/icons.js";
+import { Input } from "@clawbot/ui";
+import { Button } from "@clawbot/ui";
+import { Select } from "@clawbot/ui";
+import { RefreshIcon, SearchIcon } from "@clawbot/ui";
 
 interface Option {
   value: string;
@@ -27,6 +27,7 @@ export function MemoryFilters(props: {
       <div className="space-y-1.5">
         <span className="text-xs uppercase tracking-caps-lg text-muted">账号</span>
         <Select
+          size="sm"
           value={props.selectedAccountId}
           options={props.accountOptions}
           onChange={props.onAccountChange}
@@ -38,6 +39,7 @@ export function MemoryFilters(props: {
       <div className="space-y-1.5">
         <span className="text-xs uppercase tracking-caps-lg text-muted">分支</span>
         <Select
+          size="sm"
           value={props.selectedBranch}
           options={props.branchOptions}
           onChange={props.onBranchChange}
@@ -62,7 +64,7 @@ export function MemoryFilters(props: {
 
       <div className="flex items-end xl:justify-end">
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           className="w-full justify-center gap-1.5 xl:min-w-[88px] xl:w-auto"
           onClick={props.onRefresh}

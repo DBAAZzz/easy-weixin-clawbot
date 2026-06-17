@@ -1,0 +1,58 @@
+@layer clawbot {
+  .cb-accordion {
+    overflow: hidden;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-panel);
+    background: var(--color-panel);
+  }
+
+  .cb-accordion-trigger {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-6);
+    border: 0;
+    background: transparent;
+    padding: var(--spacing-6) var(--spacing-7);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s var(--ease-expo);
+  }
+
+  .cb-accordion-trigger:hover {
+    background: var(--color-card-hover);
+  }
+
+  .cb-accordion-title {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .cb-accordion-meta {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--spacing-4);
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+  }
+
+  .cb-accordion-meta svg {
+    width: var(--spacing-icon-sm);
+    height: var(--spacing-icon-sm);
+    flex-shrink: 0;
+  }
+
+  .cb-accordion-chevron {
+    transition: transform 0.2s var(--ease-expo);
+  }
+
+  .cb-accordion-trigger[data-panel-open] .cb-accordion-chevron {
+    transform: rotate(180deg);
+  }
+
+  .cb-accordion-panel {
+    border-top: 1px solid var(--color-line);
+  }
+}

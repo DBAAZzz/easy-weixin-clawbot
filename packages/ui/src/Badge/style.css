@@ -1,0 +1,92 @@
+/* Badge color contract.
+ * Kept as tokens (consumers re-theme these) and defined on :root outside the
+ * cascade layer so consumer overrides win, exactly as in the central tokens. */
+:root {
+  --color-badge-online-bg: var(--color-notice-success-bg, rgba(215, 233, 223, 0.68));
+  --color-badge-online-border: var(--color-notice-success-border, rgba(76, 149, 118, 0.18));
+  --color-badge-online-fg: var(--color-accent-strong, #185b46);
+  --color-badge-online-dot: var(--color-state-success, #4c9576);
+  --color-badge-offline-bg: var(--color-surface-sunken, #eef1f4);
+  --color-badge-offline-border: var(--color-border-muted, #e3e7eb);
+  --color-badge-offline-fg: var(--color-muted-strong, #4a535b);
+  --color-badge-offline-dot: var(--color-muted, #8a949c);
+}
+
+@layer clawbot {
+  .cb-badge {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    font-weight: 600;
+    letter-spacing: var(--tracking-badge);
+  }
+
+  .cb-badge--sm {
+    gap: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-4);
+    font-size: var(--text-xs);
+  }
+
+  .cb-badge--md {
+    gap: var(--spacing-2);
+    padding: var(--spacing-3) var(--spacing-5);
+    font-size: var(--text-sm);
+  }
+
+  .cb-badge--online {
+    border-color: var(--color-badge-online-border);
+    background: var(--color-badge-online-bg);
+    color: var(--color-badge-online-fg);
+  }
+
+  .cb-badge--offline {
+    border-color: var(--color-badge-offline-border);
+    background: var(--color-badge-offline-bg);
+    color: var(--color-badge-offline-fg);
+  }
+
+  .cb-badge--muted {
+    border-color: var(--color-line);
+    background: var(--color-panel);
+    color: var(--color-muted-strong);
+  }
+
+  .cb-badge--error {
+    border-color: var(--color-notice-error-border);
+    background: var(--color-notice-error-bg);
+    color: var(--color-danger-strong);
+  }
+
+  .cb-badge--warning {
+    border-color: var(--color-notice-warning-border);
+    background: var(--color-notice-warning-bg);
+    color: var(--color-notice-warning-fg);
+  }
+
+  .cb-badge--borderless {
+    border-color: transparent;
+  }
+
+  .cb-badge-dot {
+    border-radius: 999px;
+  }
+
+  .cb-badge--sm .cb-badge-dot {
+    width: var(--spacing-2);
+    height: var(--spacing-2);
+  }
+
+  .cb-badge--md .cb-badge-dot {
+    width: var(--spacing-3);
+    height: var(--spacing-3);
+  }
+
+  .cb-badge-dot--online {
+    background: var(--color-badge-online-dot);
+  }
+
+  .cb-badge-dot--offline {
+    background: var(--color-badge-offline-dot);
+  }
+}

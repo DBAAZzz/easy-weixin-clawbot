@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import type { TapeGraphNode } from "@clawbot/shared";
 import { formatDateTime } from "../../lib/format.js";
-import { Card } from "../ui/card.js";
-import { BookIcon, DiamondIcon, HeartIcon, SearchIcon } from "../ui/icons.js";
+import { Card } from "@clawbot/ui";
+import { BookIcon, DiamondIcon, HeartIcon, SearchIcon } from "@clawbot/ui";
 
 export function formatMemoryValue(value: unknown): string {
   if (typeof value === "string") return value;

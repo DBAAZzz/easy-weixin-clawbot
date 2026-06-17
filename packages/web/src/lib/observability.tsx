@@ -1,14 +1,7 @@
 import type { ObservabilityTraceDetail, ObservabilityTraceSummary } from "@clawbot/shared";
 import React, { type ComponentType, type SVGProps } from "react";
 import { cn } from "./cn.js";
-import {
-  ArrowRightIcon,
-  BoltIcon,
-  BookIcon,
-  ChatIcon,
-  LockIcon,
-  TerminalIcon,
-} from "../components/ui/icons.js";
+import { ArrowRightIcon, BoltIcon, BookIcon, ChatIcon, LockIcon, TerminalIcon } from "@clawbot/ui";
 
 type TraceRecord = ObservabilityTraceSummary | ObservabilityTraceDetail;
 type IconProps = SVGProps<SVGSVGElement>;

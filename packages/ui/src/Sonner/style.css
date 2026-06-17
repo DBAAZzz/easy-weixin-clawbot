@@ -1,0 +1,64 @@
+@layer clawbot {
+  .cb-toaster-toast {
+    border: 1px solid var(--color-line-strong);
+    border-radius: var(--radius-panel);
+    background: var(--color-panel-strong);
+    color: var(--color-ink);
+    box-shadow: var(--shadow-popover);
+  }
+
+  .cb-toaster-title {
+    color: var(--color-ink);
+    font-size: var(--text-md);
+    font-weight: 500;
+    letter-spacing: var(--tracking-body);
+  }
+
+  .cb-toaster-description {
+    color: var(--color-muted-strong);
+    font-size: var(--text-base);
+    line-height: var(--spacing-8);
+  }
+
+  .cb-toaster-close-button {
+    border-color: var(--color-line-strong);
+    background: var(--color-panel-strong);
+    color: var(--color-muted-strong);
+    box-shadow: var(--shadow-btn-soft);
+  }
+
+  .cb-toaster-close-button:hover {
+    background: var(--color-hover-bg);
+    color: var(--color-ink);
+  }
+
+  .cb-toaster-success {
+    border-color: var(--color-notice-success-border);
+    background: var(--color-notice-success-bg);
+    color: var(--color-accent-strong);
+  }
+
+  .cb-toaster-error {
+    border-color: var(--color-notice-error-border);
+    background: var(--color-notice-error-bg);
+    color: var(--color-danger-strong);
+  }
+
+  .cb-toaster-info {
+    border-color: var(--color-line);
+    background: var(--color-detail-bg);
+    color: var(--color-ink-soft);
+  }
+
+  .cb-toaster-warning {
+    border-color: var(--color-slate-border-strong);
+    background: var(--color-detail-bg);
+    color: var(--color-ink-soft);
+  }
+
+  .cb-toaster-loading {
+    border-color: var(--color-line);
+    background: var(--color-card-hover);
+    color: var(--color-ink-soft);
+  }
+}

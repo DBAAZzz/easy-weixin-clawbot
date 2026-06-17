@@ -1,0 +1,194 @@
+/* Action-button color contract (only consumed by AdminCard). Consumers re-theme
+ * these; defined on :root outside the cascade layer so consumer overrides win. */
+:root {
+  --color-action-primary-hover: var(--color-accent, #1d6e54);
+  --color-action-primary-bg-hover: var(--color-accent-subtle, rgba(29, 110, 84, 0.07));
+  --color-action-primary-border-hover: var(--color-toggle-border, rgba(29, 110, 84, 0.18));
+  --color-action-success-hover: var(--color-accent-strong, #185b46);
+  --color-action-success-bg-hover: var(--color-notice-success-bg, rgba(215, 233, 223, 0.68));
+  --color-action-success-border-hover: var(--color-notice-success-border, rgba(76, 149, 118, 0.18));
+  --color-action-warning-hover: var(--color-notice-warning-fg, #8a5d1f);
+  --color-action-warning-bg-hover: var(--color-notice-warning-bg, rgba(244, 232, 196, 0.68));
+  --color-action-warning-border-hover: var(--color-notice-warning-border, rgba(177, 126, 43, 0.2));
+  --color-action-danger-hover: var(--color-danger-strong, #a5392f);
+  --color-action-danger-bg-hover: var(--color-notice-error-bg, rgba(246, 217, 212, 0.58));
+  --color-action-danger-border-hover: var(--color-notice-error-border, rgba(194, 67, 58, 0.18));
+}
+
+@layer clawbot {
+  .cb-card-action-button {
+    pointer-events: auto;
+    display: inline-flex;
+    width: var(--size-control-sm);
+    height: var(--size-control-sm);
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-icon-muted);
+    cursor: pointer;
+    transition:
+      background-color 0.2s var(--ease-expo),
+      border-color 0.2s var(--ease-expo),
+      color 0.2s var(--ease-expo),
+      box-shadow 0.2s var(--ease-expo);
+  }
+
+  .cb-card-action-group {
+    pointer-events: none;
+    position: absolute;
+    top: var(--spacing-6);
+    right: var(--spacing-6);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    opacity: 1;
+    transition: opacity 0.2s var(--ease-expo);
+  }
+
+  .cb-card-action-button:hover,
+  .cb-card-action-button[data-popup-open] {
+    border-color: var(--color-slate-border-26);
+    background: var(--color-pane-98);
+    color: var(--color-muted-strong);
+  }
+
+  .cb-card-action-tone--primary:hover {
+    border-color: var(--color-action-primary-border-hover);
+    background: var(--color-action-primary-bg-hover);
+    color: var(--color-action-primary-hover);
+  }
+
+  .cb-card-action-tone--success:hover {
+    border-color: var(--color-action-success-border-hover);
+    background: var(--color-action-success-bg-hover);
+    color: var(--color-action-success-hover);
+  }
+
+  .cb-card-action-tone--warning:hover {
+    border-color: var(--color-action-warning-border-hover);
+    background: var(--color-action-warning-bg-hover);
+    color: var(--color-action-warning-hover);
+  }
+
+  .cb-card-action-tone--danger:hover {
+    border-color: var(--color-action-danger-border-hover);
+    background: var(--color-action-danger-bg-hover);
+    color: var(--color-action-danger-hover);
+  }
+
+  .cb-card-overflow-trigger {
+    border-color: var(--color-line);
+    background: var(--color-claw-0);
+    box-shadow: var(--shadow-overflow-btn);
+  }
+
+  .cb-card-menu-popup {
+    min-width: 168px;
+    overflow: hidden;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-panel);
+    background: var(--color-pane-98);
+    padding: var(--spacing-3);
+    box-shadow: var(--shadow-menu);
+    backdrop-filter: blur(8px);
+  }
+
+  .cb-card-menu-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: var(--spacing-4);
+    border: 0;
+    border-radius: var(--radius-card);
+    background: transparent;
+    padding: var(--spacing-4) var(--spacing-6);
+    color: var(--color-muted-strong);
+    font-size: var(--text-base);
+    text-align: left;
+    cursor: pointer;
+    outline: none;
+    transition:
+      background-color 0.2s var(--ease-expo),
+      color 0.2s var(--ease-expo);
+  }
+
+  .cb-card-menu-item:hover,
+  .cb-card-menu-item[data-highlighted] {
+    background: var(--color-ghost-hover);
+    color: var(--color-ink);
+  }
+
+  .cb-icon-container {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cb-icon-tag {
+    gap: var(--spacing-3);
+    padding: var(--spacing-3) var(--spacing-6);
+    letter-spacing: var(--tracking-tag);
+  }
+
+  .cb-metric-grid {
+    display: grid;
+    gap: 1px;
+    overflow: hidden;
+    margin-top: var(--spacing-7);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-panel);
+    background: var(--color-line);
+  }
+
+  .cb-metric-grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cb-metric-grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cb-metric-grid--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .cb-metric-cell {
+    background: var(--color-pane-82);
+    padding: var(--spacing-6) var(--spacing-6);
+  }
+
+  .cb-metric-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
+
+  .cb-metric-value {
+    margin: var(--spacing-3) 0 0;
+    color: var(--color-muted-strong);
+    font-size: var(--text-md);
+    font-weight: 500;
+  }
+
+  @media (min-width: 768px) {
+    .cb-card-action-group {
+      opacity: 0;
+    }
+
+    .group:hover .cb-card-action-group,
+    .group:focus-within .cb-card-action-group {
+      opacity: 1;
+    }
+
+    .group:hover .cb-card-action-button {
+      border-color: var(--color-slate-border-strong);
+      background: var(--color-panel-strong);
+      box-shadow: var(--shadow-popover-strong);
+    }
+  }
+}

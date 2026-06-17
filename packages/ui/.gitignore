@@ -1,0 +1,5 @@
+/.dumi/tmp
+/.dumi/tmp-production
+/.dumi/cache
+/dist
+/docs-dist

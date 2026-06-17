@@ -18,7 +18,7 @@ import {
   StackIcon,
   TerminalIcon,
   WebhookIcon,
-} from "../components/ui/icons.js";
+} from "@clawbot/ui";
 import logoUrl from "../assets/images/logo.png";
 
 function navClassName(isActive: boolean, collapsed: boolean) {

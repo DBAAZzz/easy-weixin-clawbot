@@ -20,11 +20,12 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/shared/package.json          packages/shared/
 COPY packages/observability/package.json   packages/observability/
+COPY packages/asset/package.json           packages/asset/
 COPY packages/agent/package.json           packages/agent/
 COPY packages/server/package.json          packages/server/
+COPY packages/ui/package.json              packages/ui/
 COPY packages/web/package.json             packages/web/
 COPY packages/weixin-agent-sdk/package.json packages/weixin-agent-sdk/
-COPY packages/weixin-acp/package.json      packages/weixin-acp/
 
 # 在拷贝源码之前预下载包，这样 Docker 缓存层可以重用，避免触发依赖源码的脚本
 RUN pnpm fetch --frozen-lockfile
@@ -83,7 +84,6 @@ COPY --from=builder /app/packages/observability/ /app/packages/observability/
 COPY --from=builder /app/packages/agent/       /app/packages/agent/
 COPY --from=builder /app/packages/server/      /app/packages/server/
 COPY --from=builder /app/packages/weixin-agent-sdk/ /app/packages/weixin-agent-sdk/
-COPY --from=builder /app/packages/weixin-acp/  /app/packages/weixin-acp/
 
 # 拷贝初始数据 (内置工具/技能 + 状态文件)
 COPY --from=builder /app/data/ /app/data/

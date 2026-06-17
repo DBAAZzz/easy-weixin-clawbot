@@ -1,0 +1,102 @@
+@layer clawbot {
+  .cb-input-wrapper {
+    position: relative;
+    display: block;
+    width: 100%;
+  }
+
+  .cb-input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--color-line-strong);
+    border-radius: var(--radius-card);
+    background: var(--color-panel-strong);
+    color: var(--color-ink);
+    outline: none;
+    transition:
+      border-color 0.3s var(--ease-expo),
+      box-shadow 0.3s var(--ease-expo);
+  }
+
+  .cb-input--sm {
+    height: var(--size-control-sm);
+    padding-inline: var(--spacing-6);
+    font-size: var(--text-sm);
+  }
+
+  .cb-input--md {
+    height: var(--size-control-md);
+    padding-inline: var(--spacing-7);
+    font-size: var(--text-base);
+  }
+
+  .cb-input--sm.cb-input--with-left-icon {
+    padding-left: calc(var(--spacing-6) + var(--spacing-icon-sm) + var(--spacing-3));
+  }
+
+  .cb-input--sm.cb-input--with-right-icon {
+    padding-right: calc(var(--spacing-6) + var(--spacing-icon-sm) + var(--spacing-3));
+  }
+
+  .cb-input--md.cb-input--with-left-icon {
+    padding-left: calc(var(--spacing-7) + var(--spacing-icon-sm) + var(--spacing-3));
+  }
+
+  .cb-input--md.cb-input--with-right-icon {
+    padding-right: calc(var(--spacing-7) + var(--spacing-icon-sm) + var(--spacing-3));
+  }
+
+  .cb-input::placeholder {
+    color: var(--color-muted);
+  }
+
+  .cb-input:focus {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-focus-accent);
+  }
+
+  .cb-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .cb-input-icon {
+    position: absolute;
+    top: 50%;
+    z-index: 1;
+    display: inline-flex;
+    width: var(--spacing-icon-sm);
+    height: var(--spacing-icon-sm);
+    align-items: center;
+    justify-content: center;
+    color: var(--color-icon-muted);
+    pointer-events: none;
+    transform: translateY(-50%);
+  }
+
+  .cb-input-icon svg {
+    width: var(--spacing-icon-sm);
+    height: var(--spacing-icon-sm);
+    flex-shrink: 0;
+  }
+
+  .cb-input-icon--left {
+    left: var(--spacing-7);
+  }
+
+  .cb-input-icon--right {
+    right: var(--spacing-7);
+  }
+
+  .cb-input-wrapper--sm .cb-input-icon--left {
+    left: var(--spacing-6);
+  }
+
+  .cb-input-wrapper--sm .cb-input-icon--right {
+    right: var(--spacing-6);
+  }
+
+  .cb-input-wrapper[data-disabled] .cb-input-icon {
+    opacity: 0.45;
+  }
+}

@@ -1,0 +1,74 @@
+/* Pagination color contract. Consumers re-theme these; defined on :root outside
+ * the cascade layer so consumer overrides win, matching the central token setup. */
+:root {
+  --color-pagination-bg: var(--color-surface-raised, #ffffff);
+  --color-pagination-bg-hover: var(--color-surface, #f5f7f9);
+  --color-pagination-border: var(--color-line-strong, rgba(26, 33, 40, 0.16));
+  --color-pagination-border-hover: var(--color-control-border-strong, #d2d8dd);
+  --color-pagination-fg: var(--color-muted-strong, #4a535b);
+  --color-pagination-icon: var(--color-icon-muted, #8a949c);
+  --color-pagination-selected-bg: var(--color-ink, #1a2128);
+  --color-pagination-selected-fg: #ffffff;
+}
+
+@layer clawbot {
+  .cb-pagination {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-4);
+    max-width: 100%;
+  }
+
+  .cb-pagination-button,
+  .cb-pagination-ellipsis {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-control-sm);
+    height: var(--size-control-sm);
+    border-radius: var(--radius-card);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: var(--tracking-body);
+    user-select: none;
+  }
+
+  .cb-pagination-button {
+    border: 1px solid var(--color-pagination-border);
+    background: var(--color-pagination-bg);
+    color: var(--color-pagination-fg);
+    cursor: pointer;
+    outline: none;
+    transition:
+      background-color 0.2s var(--ease-expo),
+      border-color 0.2s var(--ease-expo),
+      color 0.2s var(--ease-expo),
+      box-shadow 0.2s var(--ease-expo),
+      transform 0.2s var(--ease-expo);
+  }
+
+  .cb-pagination-button svg {
+    color: var(--color-pagination-icon);
+  }
+
+  .cb-pagination-button:hover {
+    border-color: var(--color-pagination-border-hover);
+    background: var(--color-pagination-bg-hover);
+    color: var(--color-ink);
+  }
+
+  .cb-pagination-button--selected,
+  .cb-pagination-button--selected:hover {
+    border-color: transparent;
+    background: var(--color-pagination-selected-bg);
+    color: var(--color-pagination-selected-fg);
+    box-shadow: var(--shadow-btn);
+  }
+
+  .cb-pagination-ellipsis {
+    width: var(--spacing-8);
+    color: var(--color-muted);
+  }
+}

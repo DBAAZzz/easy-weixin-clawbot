@@ -1,0 +1,98 @@
+/* =============================================================================
+ * @clawbot/ui shared token contract.
+ *
+ * This file holds ONLY tokens that are atomic (the spacing scale, icon sizing)
+ * or shared across more than one component. Single-component tokens live in
+ * that component's own style.css (geometry is inlined onto the spacing scale,
+ * colors are co-located on :root there). Demo-only tokens live in global.css.
+ *
+ * This file is runtime CSS, not a Tailwind entry. Consumers can import it
+ * directly, but the recommended public entry remains @clawbot/ui/style.css.
+ * ========================================================================== */
+
+:root {
+  /* Spacing scale */
+  --spacing-0: 0;
+  --spacing-1: 2px;
+  --spacing-2: 4px;
+  --spacing-3: 6px;
+  --spacing-4: 8px;
+  --spacing-5: 10px;
+  --spacing-6: 12px;
+  --spacing-7: 16px;
+  --spacing-8: 20px;
+  --spacing-9: 24px;
+  --spacing-10: 28px;
+  --spacing-11: 32px;
+  --spacing-12: 40px;
+  --spacing-13: 48px;
+  --spacing-14: 64px;
+  --spacing-15: 80px;
+
+  /* Control sizing (shared by Button, Toggle, Input, Select and compact actions) */
+  --size-control-sm: var(--spacing-11);
+  --size-control-md: var(--spacing-12);
+  --size-control-lg: var(--spacing-13);
+
+  /* Icon sizing (shared across components and shared.css) */
+  --spacing-icon-sm: var(--spacing-7);
+  --spacing-icon-md: var(--spacing-8);
+  --spacing-icon-lg: var(--spacing-9);
+
+  /* Button geometry (shared by .cb-button and .cb-toggle in shared.css) */
+  --spacing-button-sm: var(--size-control-sm);
+  --spacing-button-md: var(--size-control-md);
+  --spacing-button-sm-x: var(--spacing-6);
+  --spacing-button-md-x: var(--spacing-7);
+  --spacing-button-sm-gap: var(--spacing-3);
+  --spacing-button-md-gap: var(--spacing-4);
+
+  /* Toggle geometry (shared by .cb-button and .cb-toggle in shared.css) */
+  --spacing-toggle-sm: var(--size-control-sm);
+  --spacing-toggle-md: var(--size-control-md);
+  --spacing-toggle-sm-x: var(--spacing-6);
+  --spacing-toggle-md-x: var(--spacing-7);
+  --spacing-toggle-sm-gap: var(--spacing-3);
+  --spacing-toggle-md-gap: var(--spacing-4);
+
+  /* Button colors (consumed by Button and Toggle) */
+  --color-button-primary: var(--color-accent, #1d6e54);
+  --color-button-primary-hover: var(--color-accent-strong, #185b46);
+  --color-button-primary-active: var(--color-accent-deep, #13483a);
+  --color-button-primary-fg: #ffffff;
+  --color-button-ink: var(--color-ink, #1a2128);
+  --color-button-ink-hover: var(--color-ink-soft, #2d353c);
+  --color-button-ink-active: var(--color-ink-deep, #11171c);
+  --color-button-ink-fg: #ffffff;
+  --color-button-secondary: var(--color-surface-raised, #ffffff);
+  --color-button-secondary-fg: var(--color-ink-soft, #2d353c);
+  --color-button-secondary-hover: var(--color-surface, #f5f7f9);
+  --color-button-secondary-active: var(--color-surface-sunken, #eef1f4);
+  --color-button-secondary-border-hover: var(--color-control-border-strong, #d2d8dd);
+  --color-button-ghost-fg: var(--color-muted-strong, #4a535b);
+  --color-button-ghost-hover: var(--color-ghost-hover-bg, #eef1f4);
+  --color-button-ghost-hover-fg: var(--color-ink, #1a2128);
+  --color-button-ghost-active: var(--color-ghost-active, #e3e7eb);
+  --color-button-danger: var(--color-danger, #c2433a);
+  --color-button-danger-hover: var(--color-danger-strong, #a5392f);
+  --color-button-danger-active: var(--color-danger-strong, #a5392f);
+  --color-button-danger-fg: #ffffff;
+
+  /* Toggle colors (consumed by Toggle, ToggleGroup and Switch) */
+  --color-toggle-group-track: var(--color-surface-sunken, #eef1f4);
+  --color-toggle-accent-soft: var(--color-accent-soft, #e9f5ef);
+  --color-toggle-accent-soft-border: var(--color-accent-soft-border, #a9d5c1);
+  --color-toggle-accent-soft-fg: var(--color-accent-deep, #13483a);
+  --color-toggle-accent-solid: var(--color-accent, #1d6e54);
+  --color-toggle-accent-solid-hover: var(--color-accent-strong, #185b46);
+  --color-toggle-success-soft: var(--color-success-soft, #eaf3ee);
+  --color-toggle-success-soft-border: var(--color-success-soft-border, #b4d6c5);
+  --color-toggle-success-soft-fg: var(--color-success-soft-fg, #30634e);
+  --color-toggle-success-solid: var(--color-success-solid, #4c9576);
+  --color-toggle-success-solid-hover: var(--color-success-solid-hover, #3c7c61);
+  --color-toggle-ink-soft: var(--color-surface-sunken, #eef1f4);
+  --color-toggle-ink-soft-border: var(--color-control-border-strong, #d2d8dd);
+  --color-toggle-ink-soft-fg: var(--color-ink, #1a2128);
+  --color-toggle-ink-solid: var(--color-ink, #1a2128);
+  --color-toggle-ink-solid-hover: var(--color-ink-deep, #11171c);
+}

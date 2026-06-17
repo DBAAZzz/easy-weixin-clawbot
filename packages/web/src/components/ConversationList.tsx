@@ -2,9 +2,9 @@ import { useDeferredValue, useState } from "react";
 import type { ConversationRow } from "@clawbot/shared";
 import { cn } from "../lib/cn.js";
 import { formatCount, formatRelativeTime, formatTime } from "../lib/format.js";
-import { Input } from "./ui/input.js";
-import { SearchIcon } from "./ui/icons.js";
-import { ScrollArea } from "./ui/scroll-area.js";
+import { Input } from "@clawbot/ui";
+import { SearchIcon } from "@clawbot/ui";
+import { ScrollArea } from "@clawbot/ui";
 
 function conversationDisplayTitle(conversation: ConversationRow): string {
   return conversation.title?.trim() || "未命名会话";

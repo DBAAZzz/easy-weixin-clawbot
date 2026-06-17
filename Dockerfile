@@ -20,8 +20,10 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/shared/package.json          packages/shared/
 COPY packages/observability/package.json   packages/observability/
+COPY packages/asset/package.json           packages/asset/
 COPY packages/agent/package.json           packages/agent/
 COPY packages/server/package.json          packages/server/
+COPY packages/ui/package.json              packages/ui/
 COPY packages/web/package.json             packages/web/
 COPY packages/weixin-agent-sdk/package.json packages/weixin-agent-sdk/
 

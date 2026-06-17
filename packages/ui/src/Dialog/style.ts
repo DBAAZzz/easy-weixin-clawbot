@@ -14,19 +14,3 @@ export const toneIcon: Record<DialogTone, string> = {
   danger: "cb-tone-icon--danger",
   neutral: "cb-tone-icon--neutral",
 };
-
-// tone -> 状态徽标的边框、底色与前景
-export const toneBadge: Record<DialogTone, string> = {
-  accent: "cb-tone-badge--accent",
-  success: "cb-tone-badge--success",
-  danger: "cb-tone-badge--danger",
-  neutral: "cb-tone-badge--neutral",
-};
-
-// tone -> 状态徽标圆点底色
-export const toneDot: Record<DialogTone, string> = {
-  accent: "cb-tone-dot--accent",
-  success: "cb-tone-dot--success",
-  danger: "cb-tone-dot--danger",
-  neutral: "cb-tone-dot--neutral",
-};

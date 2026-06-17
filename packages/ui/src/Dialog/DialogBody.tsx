@@ -67,7 +67,7 @@ export function DialogAction({
 
   return (
     <Button
-      size="md"
+      size="sm"
       variant={variant}
       onClick={(event) => {
         onClick?.(event);

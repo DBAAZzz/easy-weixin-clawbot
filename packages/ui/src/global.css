@@ -1,5 +1,39 @@
 @import "./style.css";
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+figure,
+blockquote,
+dl,
+dd,
+pre {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+}
+
 body {
   margin: 0;
   color: var(--color-ink);

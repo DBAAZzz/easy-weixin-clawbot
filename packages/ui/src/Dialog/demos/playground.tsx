@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Badge,
   Button,
   ConfirmDialog,
   CopyIcon,
@@ -8,13 +9,20 @@ import {
   DialogMetaItem,
   DialogParamItem,
   DialogSidebarSection,
-  DialogStatusBadge,
   SplitDialog,
   TerminalIcon,
+  type BadgeTone,
   type DialogLayout,
   type DialogTone,
 } from "@clawbot/ui";
 import { StoryBook, useControls } from "../../Playground/index.js";
+
+const badgeToneByTone: Record<DialogTone, BadgeTone> = {
+  accent: "online",
+  success: "online",
+  danger: "error",
+  neutral: "muted",
+};
 
 export default function Demo() {
   const [open, setOpen] = useState(false);
@@ -33,12 +41,16 @@ export default function Demo() {
     },
     title: "opencli",
     subtitle: "外部能力 · 工具调用 handler",
-    status: "已启用",
+    status: false,
+    icon: true,
   });
 
   const layout = controls.layout as DialogLayout;
   const tone = controls.tone as DialogTone;
-  const statusBadge = <DialogStatusBadge tone={tone}>{controls.status}</DialogStatusBadge>;
+  const icon = controls.icon ? <TerminalIcon /> : undefined;
+  const statusBadge = controls.status ? (
+    <Badge tone={badgeToneByTone[tone]}>已启用</Badge>
+  ) : undefined;
 
   const mainContent = (
     <div className="ui-demo-dialog-stack">
@@ -107,7 +119,7 @@ export default function Demo() {
           description={controls.subtitle}
           footer={footer}
           footerMeta="最近更新 · 2026/06/14"
-          icon={<TerminalIcon />}
+          icon={icon}
           onOpenChange={setOpen}
           open={open}
           sidebar={sidebar}
@@ -130,7 +142,7 @@ export default function Demo() {
               </DialogAction>
             </div>
           }
-          icon={<TerminalIcon />}
+          icon={icon}
           layout={layout}
           onOpenChange={setOpen}
           open={open}
@@ -150,12 +162,10 @@ export default function Demo() {
           cancelText="取消"
           confirmText="确定"
           description="此操作会立即生效，请确认是否继续。"
-          icon={<TerminalIcon />}
+          icon={icon}
           onOpenChange={setOpen}
           open={open}
-          status={
-            tone === "danger" ? <DialogStatusBadge tone="danger">高风险</DialogStatusBadge> : null
-          }
+          status={statusBadge}
           title={tone === "danger" ? "确认危险操作" : "确认操作"}
           tone={tone}
         >

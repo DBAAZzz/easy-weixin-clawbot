@@ -30,30 +30,52 @@
   /* Dialog geometry */
   --spacing-dialog-viewport: var(--spacing-6);
   --spacing-dialog-viewport-md: var(--spacing-8);
-  --spacing-dialog-x: var(--spacing-6);
-  --spacing-dialog-y: var(--spacing-6);
-  --spacing-dialog-x-md: var(--spacing-7);
-  --spacing-dialog-split-x: var(--spacing-6);
-  --spacing-dialog-split-y: var(--spacing-5);
-  --spacing-dialog-split-x-md: var(--spacing-7);
-  --spacing-dialog-split-y-md: var(--spacing-6);
+  --spacing-dialog-max-height-offset: var(--spacing-11);
+  --spacing-dialog-width: 440px;
+  --spacing-dialog-panel-width: 540px;
+  --spacing-dialog-split-width: 880px;
+  --spacing-dialog-split-height-offset: var(--spacing-13);
+  --spacing-dialog-x: var(--spacing-8);
+  --spacing-dialog-y: var(--spacing-8);
+  --spacing-dialog-body-x: var(--spacing-8);
+  --spacing-dialog-body-y: var(--spacing-4);
+  --spacing-dialog-panel-header-x: var(--spacing-8);
+  --spacing-dialog-panel-header-y: var(--spacing-7);
+  --spacing-dialog-panel-body-x: var(--spacing-8);
+  --spacing-dialog-panel-body-y: var(--spacing-7);
+  --spacing-dialog-panel-footer-x: var(--spacing-8);
+  --spacing-dialog-panel-footer-y: var(--spacing-6);
+  --spacing-dialog-split-header-x: var(--spacing-8);
+  --spacing-dialog-split-header-y: var(--spacing-7);
+  --spacing-dialog-split-main-x: var(--spacing-8);
+  --spacing-dialog-split-main-y: var(--spacing-7);
+  --spacing-dialog-sidebar-width: 256px;
   --spacing-dialog-sidebar-x: var(--spacing-7);
-  --spacing-dialog-sidebar-y: var(--spacing-6);
-  --spacing-dialog-sidebar-x-md: var(--spacing-8);
-  --spacing-dialog-sidebar-y-md: var(--spacing-8);
-  --spacing-dialog-footer-x-md: var(--spacing-8);
+  --spacing-dialog-sidebar-y: var(--spacing-7);
+  --spacing-dialog-footer-x: var(--spacing-8);
   --spacing-dialog-footer-y: var(--spacing-6);
-  --spacing-dialog-close-offset: var(--spacing-7);
-  --spacing-dialog-close-safe: var(--spacing-11);
+  --spacing-dialog-close: var(--spacing-9);
+  --spacing-dialog-close-icon: var(--spacing-icon-sm);
+  --spacing-dialog-close-offset: var(--spacing-6);
+  --spacing-dialog-close-safe: var(--spacing-12);
   --spacing-dialog-header-gap: var(--spacing-5);
+  --spacing-dialog-header-title-gap: var(--spacing-2);
+  --spacing-dialog-icon-box: var(--spacing-9);
+  --spacing-dialog-icon-glyph: var(--spacing-icon-sm);
+  --spacing-dialog-split-icon-box: var(--spacing-9);
+  --spacing-dialog-split-icon-glyph: var(--spacing-icon-sm);
   --spacing-dialog-title-gap: var(--spacing-5);
   --spacing-dialog-section-gap: var(--spacing-4);
   --spacing-dialog-content-gap: var(--spacing-6);
-  --spacing-dialog-sidebar-section-y: var(--spacing-5);
+  --spacing-dialog-sidebar-section-y: var(--spacing-6);
   --spacing-dialog-action-gap: var(--spacing-4);
   --spacing-dialog-code-padding: var(--spacing-5);
-  --spacing-dialog-badge-x: 10px;
-  --spacing-dialog-badge-y: var(--spacing-1);
+  --spacing-dialog-param-x: var(--spacing-5);
+  --spacing-dialog-param-y: var(--spacing-4);
+  --spacing-dialog-param-badge-x: var(--spacing-4);
+  --spacing-dialog-param-badge-y: var(--spacing-1);
+  --spacing-dialog-scrollbar: 9px;
+  --spacing-dialog-scrollbar-border: var(--spacing-1);
 
   /* Button geometry */
   --spacing-button-sm: var(--spacing-9);
@@ -190,6 +212,13 @@
   --color-button-danger-hover: var(--color-danger-strong, #a5392f);
   --color-button-danger-active: var(--color-danger-strong, #a5392f);
   --color-button-danger-fg: #ffffff;
+
+  /* Dialog colors */
+  --color-dialog-bg: var(--color-surface-raised, #ffffff);
+  --color-dialog-sidebar-bg: var(--color-surface-sunken, #eef1f4);
+  --color-dialog-footer-bg: var(--color-surface-sunken, #eef1f4);
+  --color-dialog-border: var(--color-modal-border, rgba(26, 33, 40, 0.1));
+  --color-dialog-scrollbar-thumb: var(--color-claw-300, #d2d8dd);
 
   /* Pagination colors */
   --color-pagination-bg: var(--color-surface-raised, #ffffff);

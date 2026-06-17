@@ -2,8 +2,8 @@ import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "../utils/cn.js";
 import { useDialogContext } from "./context.js";
-import { sectionPadding, splitSectionPadding, toneBadge, toneDot, toneIcon } from "./style.js";
-import type { DialogLayout, DialogTone } from "./type.js";
+import { sectionPadding, splitSectionPadding, toneIcon } from "./style.js";
+import type { DialogLayout } from "./type.js";
 
 export function DialogHeader({
   className,
@@ -64,23 +64,4 @@ export function DialogDescription({ className, ...props }: HTMLAttributes<HTMLPa
   useDialogContext("DialogDescription");
 
   return <BaseDialog.Description className={cn("cb-dialog-description", className)} {...props} />;
-}
-
-export function DialogStatusBadge({
-  children,
-  className,
-  tone = "success",
-}: {
-  children: ReactNode;
-  className?: string;
-  tone?: DialogTone;
-}) {
-  useDialogContext("DialogStatusBadge");
-
-  return (
-    <span className={cn("cb-dialog-status-badge", toneBadge[tone], className)}>
-      <span className={cn("cb-tone-dot", toneDot[tone])} />
-      {children}
-    </span>
-  );
 }

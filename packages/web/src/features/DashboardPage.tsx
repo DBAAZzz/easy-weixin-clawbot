@@ -2,10 +2,10 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AccountCard } from "../components/AccountCard.js";
 import {
-  ArrowRightIcon,
   Button,
   Card,
   Input,
+  Pagination,
   PlusIcon,
   RefreshIcon,
   ScanIcon,
@@ -86,18 +86,6 @@ export function DashboardPage() {
   const visibleAccounts = filteredAccounts.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const firstVisible = filteredAccounts.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
   const lastVisible = Math.min(safePage * PAGE_SIZE, filteredAccounts.length);
-  const pageStart =
-    pageCount <= 3
-      ? 1
-      : safePage <= 2
-        ? 1
-        : safePage >= pageCount - 1
-          ? pageCount - 2
-          : safePage - 1;
-  const pageNumbers = Array.from(
-    { length: Math.min(3, pageCount) },
-    (_, index) => pageStart + index,
-  );
   const tabCounts: Record<AccountStatus, number> = {
     all: accounts.length,
     active: activeCount,
@@ -183,7 +171,7 @@ export function DashboardPage() {
           >
             <div className="mb-3.5 flex items-center gap-2">
               <span className={cn("size-1.5 rounded-full", stat.dotClassName)} />
-              <span className="text-base font-medium text-account-muted">{stat.label}</span>
+              <span className="text-sm font-medium text-account-muted">{stat.label}</span>
             </div>
             <div className="flex items-baseline gap-2">
               <span
@@ -194,7 +182,7 @@ export function DashboardPage() {
               >
                 {stat.value}
               </span>
-              <span className="whitespace-nowrap text-base text-account-muted-faint">
+              <span className="whitespace-nowrap text-sm text-account-muted-faint">
                 {stat.meta}
               </span>
             </div>
@@ -314,17 +302,17 @@ export function DashboardPage() {
         {!loading && accounts.length > 0 ? (
           <div>
             <div className="hidden border-b border-account-line bg-account-table-head px-6 py-3 lg:grid lg:account-table-grid">
-              <p className="text-md font-semibold tracking-body text-account-muted-soft">账号</p>
-              <p className="text-center text-md font-semibold tracking-body text-account-muted-soft">
+              <p className="text-sm font-semibold tracking-body text-account-muted-soft">账号</p>
+              <p className="text-center text-sm font-semibold tracking-body text-account-muted-soft">
                 状态
               </p>
-              <p className="text-center text-md font-semibold tracking-body text-account-muted-soft">
+              <p className="text-center text-sm font-semibold tracking-body text-account-muted-soft">
                 会话数
               </p>
-              <p className="text-md font-semibold tracking-body text-account-muted-soft">
+              <p className="text-sm font-semibold tracking-body text-account-muted-soft">
                 创建时间
               </p>
-              <p className="text-right text-md font-semibold tracking-body text-account-muted-soft">
+              <p className="text-right text-sm font-semibold tracking-body text-account-muted-soft">
                 操作
               </p>
             </div>
@@ -343,46 +331,19 @@ export function DashboardPage() {
 
         {!loading && accounts.length > 0 ? (
           <div className="flex flex-col gap-3 bg-account-table-head px-5 py-3.5 md:flex-row md:items-center md:justify-between md:px-6">
-            <span className="text-md text-account-muted-soft">
+            <span className="text-sm text-account-muted-soft">
               共{" "}
               <span className="font-mono font-semibold text-account-ink-soft">
                 {formatCount(filteredAccounts.length)}
               </span>{" "}
               个账号 · 显示 {formatCount(firstVisible)}–{formatCount(lastVisible)}
             </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                disabled={safePage === 1}
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-                className="inline-flex size-8 items-center justify-center rounded-card border border-account-line-strong bg-account-card text-account-muted-faint transition hover:bg-account-table-head disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                <ArrowRightIcon className="size-4 rotate-180" />
-              </button>
-              {pageNumbers.map((pageNumber) => (
-                <button
-                  key={pageNumber}
-                  type="button"
-                  onClick={() => setPage(pageNumber)}
-                  className={cn(
-                    "inline-flex h-8 min-w-8 items-center justify-center rounded-card px-1.5 font-mono text-md font-semibold transition",
-                    safePage === pageNumber
-                      ? "bg-account-ink text-white"
-                      : "border border-account-line-strong bg-account-card text-account-ink-soft hover:bg-account-table-head",
-                  )}
-                >
-                  {pageNumber}
-                </button>
-              ))}
-              <button
-                type="button"
-                disabled={safePage === pageCount}
-                onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
-                className="inline-flex size-8 items-center justify-center rounded-card border border-account-line-strong bg-account-card text-account-ink-soft transition hover:bg-account-table-head disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                <ArrowRightIcon className="size-4" />
-              </button>
-            </div>
+            <Pagination
+              page={safePage}
+              total={filteredAccounts.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+            />
           </div>
         ) : null}
       </section>

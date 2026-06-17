@@ -30,9 +30,6 @@ export function AccountCard({
   const displayName = account.alias || account.display_name || "未命名账号";
   const statusTone = account.deprecated ? "offline" : "online";
   const statusLabel = account.deprecated ? "已废弃" : "活跃";
-  const statusClassName = account.deprecated
-    ? "border-transparent bg-account-filter-track text-account-muted"
-    : "border-transparent bg-account-success-bg text-account-success-fg";
   const dotClassName = account.deprecated ? "bg-account-muted-faint" : "bg-account-success-dot";
 
   return (
@@ -90,7 +87,7 @@ export function AccountCard({
                 </div>
               ) : (
                 <div className="group/name flex items-center gap-1.5">
-                  <p className="truncate text-base font-semibold leading-tight text-account-ink">
+                  <p className="truncate text-sm font-semibold leading-tight text-account-ink">
                     {displayName}
                   </p>
                   <button
@@ -114,13 +111,12 @@ export function AccountCard({
           <div className="flex justify-center">
             <Badge
               tone={statusTone}
-              className={cn("px-2.5 py-1 text-sm tracking-body", statusClassName)}
             >
               {statusLabel}
             </Badge>
           </div>
 
-          <div className="text-center font-mono text-base font-semibold text-account-ink-soft">
+          <div className="text-center font-mono text-sm font-semibold text-account-ink-soft">
             {formatCount(account.conversation_count)}
           </div>
 
@@ -130,7 +126,7 @@ export function AccountCard({
             </p>
           </div>
 
-          <div className="flex items-center justify-end gap-1.5 text-md font-semibold text-account-ink transition group-hover:text-accent">
+          <div className="flex items-center justify-end gap-1.5 text-base font-semibold text-account-ink transition group-hover:text-accent">
             <span>查看会话</span>
             <ArrowRightIcon className="size-4 transition group-hover:translate-x-0.5" />
           </div>
@@ -182,7 +178,7 @@ export function AccountCard({
               ) : (
                 <>
                   <div className="flex items-center gap-1.5">
-                    <p className="truncate text-base font-semibold leading-tight text-account-ink">
+                    <p className="truncate text-sm font-semibold leading-tight text-account-ink">
                       {displayName}
                     </p>
                     <button
@@ -205,7 +201,6 @@ export function AccountCard({
 
             <Badge
               tone={statusTone}
-              className={cn("shrink-0 px-2.5 py-1 text-sm tracking-body", statusClassName)}
             >
               {statusLabel}
             </Badge>
@@ -214,7 +209,7 @@ export function AccountCard({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-sm font-medium text-account-muted-soft">会话数</p>
-              <p className="mt-1 font-mono text-base font-semibold text-account-ink-soft">
+              <p className="mt-1 font-mono text-sm font-semibold text-account-ink-soft">
                 {formatCount(account.conversation_count)}
               </p>
             </div>
@@ -227,7 +222,7 @@ export function AccountCard({
           </div>
 
           <div className="flex items-center justify-end border-t border-account-line pt-3">
-            <span className="inline-flex items-center gap-1.5 text-md font-semibold text-account-ink">
+            <span className="inline-flex items-center gap-1.5 text-base font-semibold text-account-ink">
               查看会话
               <ArrowRightIcon className="size-4 transition group-hover:translate-x-0.5" />
             </span>

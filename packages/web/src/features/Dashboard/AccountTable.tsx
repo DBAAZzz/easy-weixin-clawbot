@@ -1,6 +1,6 @@
 import type { AccountSummary } from "@clawbot/shared";
 import { Link } from "react-router-dom";
-import { ScanIcon, buttonClassName } from "@clawbot/ui";
+import { Card, ScanIcon, buttonClassName } from "@clawbot/ui";
 import { AccountCard } from "../../components/AccountCard.js";
 import { PAGE_SIZE } from "./types.js";
 

@@ -49,6 +49,7 @@ import SlidersHorizontalIcon from "@hugeicons/core-free-icons/SlidersHorizontalI
 import HugeTerminalIcon from "@hugeicons/core-free-icons/TerminalIcon";
 import Upload01Icon from "@hugeicons/core-free-icons/Upload01Icon";
 import HugeWebhookIcon from "@hugeicons/core-free-icons/WebhookIcon";
+import Robot02Icon from "@hugeicons/core-free-icons/Robot02Icon";
 import { createIcon } from "./create-icon.js";
 
 export type { IconProps } from "./create-icon.js";
@@ -74,6 +75,7 @@ export const StackIcon = createIcon(ServerStack01Icon, "StackIcon");
 export const TerminalIcon = createIcon(HugeTerminalIcon, "TerminalIcon");
 export const LogOutIcon = createIcon(Logout01Icon, "LogOutIcon");
 export const WebhookIcon = createIcon(HugeWebhookIcon, "WebhookIcon");
+export const RobotIcon = createIcon(Robot02Icon, "RobotIcon");
 export const CopyIcon = createIcon(Copy01Icon, "CopyIcon");
 export const TrashIcon = createIcon(Delete02Icon, "TrashIcon");
 export const RefreshIcon = createIcon(HugeRefreshIcon, "RefreshIcon");

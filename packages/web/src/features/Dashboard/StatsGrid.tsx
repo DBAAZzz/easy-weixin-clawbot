@@ -17,7 +17,7 @@ export function StatsGrid({ stats }: { stats: AccountStat[] }) {
           <div className="flex items-baseline gap-2">
             <span
               className={cn(
-                "font-sans text-stat font-bold leading-none tracking-title",
+                "font-sans text-2xl font-bold leading-none tracking-title",
                 stat.valueClassName,
               )}
             >

@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { formatCount, formatDateTime } from "../lib/format.js";
 import { cn } from "../lib/cn.js";
-import { Badge, Input } from "@clawbot/ui";
-import { ArrowRightIcon, CheckIcon, PencilIcon, PulseIcon, XIcon } from "@clawbot/ui";
+import { Badge, Button, Input } from "@clawbot/ui";
+import { ArrowRightIcon, CheckIcon, PencilIcon, RobotIcon, XIcon } from "@clawbot/ui";
 import { updateAccountAlias } from "@/api/accounts.js";
 
 export function AccountCard({
@@ -38,7 +38,7 @@ export function AccountCard({
         <div className="hidden items-center px-6 py-3 lg:grid lg:account-table-grid">
           <div className="flex min-w-0 items-center gap-3">
             <div className="relative flex size-9 shrink-0 items-center justify-center rounded-panel border border-account-line-strong bg-account-filter-track text-account-muted-faint">
-              <PulseIcon className="size-4" />
+              <RobotIcon className="size-5" />
               <span
                 className={cn(
                   "absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-account-card",
@@ -63,43 +63,53 @@ export function AccountCard({
                         setIsEditing(false);
                       }
                     }}
-                    className="h-8 max-w-sm rounded-card border-account-line-strong bg-account-card text-base font-semibold text-account-ink"
+                    size="sm"
+                    className="max-w-sm"
+                    inputClassName="!h-7 rounded-card border-account-line-strong bg-account-card text-base font-semibold text-account-ink"
                     placeholder="设置别名"
                     autoFocus
                   />
-                  <button
+                  <Button
                     type="button"
                     onClick={handleSave}
-                    className="flex size-8 items-center justify-center rounded-card border border-account-line-strong bg-account-card text-account-success-fg transition hover:bg-account-table-head"
+                    size="sm"
+                    variant="primary"
+                    className="shrink-0 !size-7"
                   >
-                    <CheckIcon className="size-4" />
-                  </button>
-                  <button
+                    <CheckIcon />
+                  </Button>
+                  <Button
                     type="button"
                     onClick={() => {
                       setAlias(account.alias ?? "");
                       setIsEditing(false);
                     }}
-                    className="flex size-8 items-center justify-center rounded-card border border-account-line-strong bg-account-card text-account-muted transition hover:bg-account-table-head"
+                    size="sm"
+                    variant="secondary"
+                    className="shrink-0 !size-7"
                   >
-                    <XIcon className="size-4" />
-                  </button>
+                    <XIcon />
+                  </Button>
                 </div>
               ) : (
                 <div className="group/name flex items-center gap-1.5">
                   <p className="truncate text-sm font-semibold leading-tight text-account-ink">
                     {displayName}
                   </p>
-                  <button
+                  <Button
                     type="button"
                     onClick={(event) => {
                       event.preventDefault();
                       setIsEditing(true);
                     }}
-                    className="flex size-6 items-center justify-center rounded-card text-account-muted-soft opacity-0 transition hover:bg-account-filter-track hover:text-account-ink group-hover/name:opacity-100"
+                    size="sm"
+                    variant="ghost"
+                    className="!size-6 shrink-0 opacity-0 group-hover/name:opacity-100"
+                    title="编辑别名"
+                    aria-label="编辑别名"
                   >
-                    <PencilIcon className="size-3.5" />
-                  </button>
+                    <PencilIcon />
+                  </Button>
                 </div>
               )}
               <p className="mt-0.5 truncate font-mono text-xs tracking-body text-account-muted-soft">
@@ -109,11 +119,7 @@ export function AccountCard({
           </div>
 
           <div className="flex justify-center">
-            <Badge
-              tone={statusTone}
-            >
-              {statusLabel}
-            </Badge>
+            <Badge tone={statusTone}>{statusLabel}</Badge>
           </div>
 
           <div className="text-center font-mono text-sm font-semibold text-account-ink-soft">
@@ -135,7 +141,7 @@ export function AccountCard({
         <div className="flex flex-col gap-3 px-4 py-3.5 lg:hidden">
           <div className="flex items-start gap-3">
             <div className="relative flex size-9 shrink-0 items-center justify-center rounded-panel border border-account-line-strong bg-account-filter-track text-account-muted-faint">
-              <PulseIcon className="size-4" />
+              <RobotIcon className="size-4" />
               <span
                 className={cn(
                   "absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-account-card",
@@ -151,28 +157,31 @@ export function AccountCard({
                   <Input
                     value={alias}
                     onChange={(event) => setAlias(event.target.value)}
-                    className="h-8 rounded-card border-account-line-strong bg-account-card text-base font-semibold text-account-ink"
+                    size="sm"
+                    inputClassName="!h-8 rounded-card border-account-line-strong bg-account-card text-base font-semibold text-account-ink"
                     placeholder="设置别名"
                     autoFocus
                   />
                   <div className="flex gap-3">
-                    <button
+                    <Button
                       type="button"
                       onClick={handleSave}
-                      className="inline-flex items-center gap-1 text-md font-semibold text-account-success-fg"
+                      size="sm"
+                      variant="primary"
                     >
-                      <CheckIcon className="size-4" /> 保存
-                    </button>
-                    <button
+                      <CheckIcon /> 保存
+                    </Button>
+                    <Button
                       type="button"
                       onClick={() => {
                         setAlias(account.alias ?? "");
                         setIsEditing(false);
                       }}
-                      className="inline-flex items-center gap-1 text-md font-medium text-account-muted"
+                      size="sm"
+                      variant="secondary"
                     >
-                      <XIcon className="size-4" /> 取消
-                    </button>
+                      <XIcon /> 取消
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -181,16 +190,20 @@ export function AccountCard({
                     <p className="truncate text-sm font-semibold leading-tight text-account-ink">
                       {displayName}
                     </p>
-                    <button
+                    <Button
                       type="button"
                       onClick={(event) => {
                         event.preventDefault();
                         setIsEditing(true);
                       }}
-                      className="flex size-6 items-center justify-center rounded-card text-account-muted-soft"
+                      size="sm"
+                      variant="ghost"
+                      className="!size-6 shrink-0"
+                      title="编辑别名"
+                      aria-label="编辑别名"
                     >
-                      <PencilIcon className="size-4" />
-                    </button>
+                      <PencilIcon />
+                    </Button>
                   </div>
                   <p className="mt-0.5 break-all font-mono text-xs text-account-muted-soft">
                     {account.id}
@@ -199,11 +212,7 @@ export function AccountCard({
               )}
             </div>
 
-            <Badge
-              tone={statusTone}
-            >
-              {statusLabel}
-            </Badge>
+            <Badge tone={statusTone}>{statusLabel}</Badge>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

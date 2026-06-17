@@ -1,3 +1,4 @@
+import { Card } from "@clawbot/ui";
 import { AccountFilters } from "./AccountFilters.js";
 import { AccountTable } from "./AccountTable.js";
 import { AccountTableFooter } from "./AccountTableFooter.js";
@@ -38,7 +39,7 @@ export function DashboardPage() {
         </div>
       ) : null}
 
-      <section className="overflow-hidden rounded-section border border-account-line bg-account-card shadow-account-card">
+      <Card className="overflow-hidden !p-0">
         <AccountFilters
           query={query}
           onQueryChange={setQuery}
@@ -66,7 +67,7 @@ export function DashboardPage() {
             total={filteredAccounts.length}
           />
         ) : null}
-      </section>
+      </Card>
     </div>
   );
 }

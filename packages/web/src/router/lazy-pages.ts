@@ -20,7 +20,7 @@ export const ConversationPage = lazyNamedPage(
   "ConversationPage",
 );
 export const DashboardPage = lazyNamedPage(
-  () => import("../features/DashboardPage.js"),
+  () => import("../features/Dashboard/index.js"),
   "DashboardPage",
 );
 export const LoginPage = lazyNamedPage(() => import("../features/LoginPage.js"), "LoginPage");

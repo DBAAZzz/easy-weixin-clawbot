@@ -1,5 +1,5 @@
 import type { McpServerInfo } from "@clawbot/shared";
-import { Badge, CardToggle, PuzzleIcon, TerminalIcon } from "@clawbot/ui";
+import { Badge, CardToggle, SkillIcon, TerminalIcon } from "@clawbot/ui";
 import { cn } from "@/lib/cn.js";
 import { formatCount, formatRelativeTime } from "@/lib/format.js";
 import { statusLabel, statusTone } from "./types.js";
@@ -51,7 +51,7 @@ export function ServerCard(props: {
           </span>
           <span className="size-1 rounded-full bg-line-strong" />
           <span className="inline-flex items-center gap-0.5">
-            <PuzzleIcon className="size-3" />
+            <SkillIcon className="size-3" />
             tools {formatCount(props.server.tool_count)}
           </span>
           <span className="size-1 rounded-full bg-line-strong" />

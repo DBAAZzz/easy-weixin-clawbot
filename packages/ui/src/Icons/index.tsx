@@ -43,6 +43,7 @@ import HugeRefreshIcon from "@hugeicons/core-free-icons/RefreshIcon";
 import HugeRssIcon from "@hugeicons/core-free-icons/RssIcon";
 import HugeScanIcon from "@hugeicons/core-free-icons/ScanIcon";
 import Search01Icon from "@hugeicons/core-free-icons/Search01Icon";
+import HugeSkillIcon from "@hugeicons/core-free-icons/AtomicPowerIcon";
 import ServerStack01Icon from "@hugeicons/core-free-icons/ServerStack01Icon";
 import Settings01Icon from "@hugeicons/core-free-icons/Settings01Icon";
 import SlidersHorizontalIcon from "@hugeicons/core-free-icons/SlidersHorizontalIcon";
@@ -72,6 +73,7 @@ export const PanelLeftOpenIcon = createIcon(HugePanelLeftOpenIcon, "PanelLeftOpe
 export const PanelLeftCloseIcon = createIcon(HugePanelLeftCloseIcon, "PanelLeftCloseIcon");
 export const CheckListIcon = createIcon(HugeCheckListIcon, "CheckListIcon");
 export const GitBranchIcon = createIcon(HugeGitBranchIcon, "GitBranchIcon");
+export const SkillIcon = createIcon(HugeSkillIcon, "SkillIcon");
 export const BookIcon = createIcon(HugeBookIcon, "BookIcon");
 export const ChatIcon = createIcon(BubbleChatIcon, "ChatIcon");
 export const GridIcon = createIcon(HugeGridIcon, "GridIcon");

@@ -13,7 +13,7 @@ import {
   MemoryIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
-  PuzzleIcon,
+  SkillIcon,
   ScanIcon,
   SettingsIcon,
   RssIcon,
@@ -245,7 +245,7 @@ export function Sidebar(props: {
           <NavItem
             to="/skills"
             label="技能列表"
-            icon={<PuzzleIcon className="size-4" />}
+            icon={<SkillIcon className="size-4" />}
             collapsed={props.collapsed}
           />
         </MenuSection>

@@ -1,5 +1,5 @@
 import type { SkillInfo } from "@clawbot/shared";
-import { PuzzleIcon } from "@clawbot/ui";
+import { SkillIcon } from "@clawbot/ui";
 import { cn } from "../../lib/cn.js";
 
 export function SkillAvatar(props: { origin: SkillInfo["origin"] }) {
@@ -12,7 +12,7 @@ export function SkillAvatar(props: { origin: SkillInfo["origin"] }) {
           : "border-accent-border text-accent-strong",
       )}
     >
-      <PuzzleIcon className="size-[18px]" />
+      <SkillIcon className="size-[18px]" />
     </span>
   );
 }

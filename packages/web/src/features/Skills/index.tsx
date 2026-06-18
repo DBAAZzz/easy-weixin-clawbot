@@ -4,7 +4,8 @@ import {
   Button,
   Input,
   ActivityIcon,
-  PuzzleIcon,
+  buttonClassName,
+  SkillIcon,
   SearchIcon,
   UploadIcon,
 } from "@clawbot/ui";
@@ -37,7 +38,6 @@ export function SkillsPage() {
     preflightPlan,
     preflightError,
     provisionLogs,
-    fileInputRef,
     filteredSkills,
     source,
     enabledCount,
@@ -50,6 +50,7 @@ export function SkillsPage() {
     handleProvision,
     handleReprovision,
   } = useSkillsPage();
+  const uploadInputId = "skill-upload-input";
 
   return (
     <>
@@ -62,22 +63,26 @@ export function SkillsPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".zip,.md"
-                className="hidden"
-                onChange={(event) => void handleFileUpload(event)}
-              />
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={uploading}
-                onClick={() => fileInputRef.current?.click()}
+              <label
+                htmlFor={uploadInputId}
+                className={buttonClassName({
+                  size: "sm",
+                  variant: "secondary",
+                  className: uploading ? "cursor-not-allowed opacity-45" : "cursor-pointer",
+                })}
               >
+                <input
+                  id={uploadInputId}
+                  type="file"
+                  accept=".zip,.md"
+                  className="sr-only"
+                  disabled={uploading}
+                  aria-label="上传技能"
+                  onChange={(event) => void handleFileUpload(event)}
+                />
                 <UploadIcon className="size-4" />
                 {uploading ? "上传中…" : "上传技能"}
-              </Button>
+              </label>
               <Button size="sm" onClick={() => void handleRefresh()}>
                 <ActivityIcon className="size-4" />
                 刷新列表
@@ -86,7 +91,7 @@ export function SkillsPage() {
           </div>
 
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="relative w-full xl:max-w-[360px]">
+            <div className="relative w-full xl:max-w-90">
               <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
               <Input
                 value={query}
@@ -154,7 +159,7 @@ export function SkillsPage() {
                     <div className="ui-skeleton h-4 rounded-lg" />
                     <div className="ui-skeleton h-3 w-2/3 rounded-full" />
                   </div>
-                  <div className="ui-skeleton h-8 w-[50px] rounded-full" />
+                  <div className="ui-skeleton h-8 w-12.5 rounded-full" />
                 </div>
               </div>
             ))}
@@ -170,7 +175,7 @@ export function SkillsPage() {
         {!loading && filteredSkills.length > 0 ? (
           <section className="space-y-3">
             <div className="flex items-center gap-2 text-sm text-muted">
-              <PuzzleIcon className="size-4 text-muted-strong" />
+              <SkillIcon className="size-4 text-muted-strong" />
               <span>当前展示 {formatCount(filteredSkills.length)} 个已安装 skill</span>
             </div>
 

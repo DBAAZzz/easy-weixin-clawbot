@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useDeferredValue, useEffect, useState, type ChangeEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type {
   SkillInfo,
@@ -43,7 +43,6 @@ export function useSkillsPage() {
   const [preflightPlan, setPreflightPlan] = useState<SkillProvisionPlan | null>(null);
   const [preflightError, setPreflightError] = useState<string | null>(null);
   const [provisionLogs, setProvisionLogs] = useState<SkillProvisionLog[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const filteredSkills = skills.filter((skill) => {
@@ -241,7 +240,6 @@ export function useSkillsPage() {
     preflightPlan,
     preflightError,
     provisionLogs,
-    fileInputRef,
     filteredSkills,
     activeSkill,
     source,

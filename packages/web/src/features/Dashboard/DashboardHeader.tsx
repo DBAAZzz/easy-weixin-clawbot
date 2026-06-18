@@ -39,16 +39,18 @@ export function DashboardHeader({
           <RefreshIcon className="size-4" />
           {refreshLabel}
         </Button>
-        <Button
-          onClick={onCreate}
-          className={buttonClassName({
-            variant: "primary",
-            size: "sm",
-          })}
-        >
-          <PlusIcon className="size-4" />
-          {primaryLabel}
-        </Button>
+        {onCreate ? (
+          <Button
+            onClick={onCreate}
+            className={buttonClassName({
+              variant: "primary",
+              size: "sm",
+            })}
+          >
+            <PlusIcon className="size-4" />
+            {primaryLabel}
+          </Button>
+        ) : null}
       </div>
     </section>
   );

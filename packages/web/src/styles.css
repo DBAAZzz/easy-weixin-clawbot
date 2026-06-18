@@ -514,6 +514,12 @@ pre {
     minmax(92px, 0.7fr);
 }
 
+@utility tools-table-grid {
+  grid-template-columns:
+    minmax(0, 3fr) minmax(96px, 0.85fr) minmax(160px, 1.4fr) minmax(76px, 0.6fr)
+    minmax(92px, 0.7fr);
+}
+
 @media (min-width: 768px) {
   .mcp-editor-split {
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);

@@ -59,6 +59,8 @@ export function useModelConfigPage() {
   const [pingStates, setPingStates] = useState<Record<string, ProviderPingState>>({});
   const [pendingTemplateToggleId, setPendingTemplateToggleId] = useState<string | null>(null);
   const [pendingConfigToggleId, setPendingConfigToggleId] = useState<string | null>(null);
+  const [deleteConfirmTemplate, setDeleteConfirmTemplate] =
+    useState<ModelProviderTemplateDto | null>(null);
 
   const refresh = () =>
     Promise.all([
@@ -76,14 +78,33 @@ export function useModelConfigPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [configEditorTarget]);
 
-  async function handleProviderConfigDelete(template: ModelProviderTemplateDto) {
-    if (!confirm(`确定要删除供应商配置 ${template.name} 吗？`)) return;
+  function handleProviderConfigDelete(template: ModelProviderTemplateDto) {
+    setDeleteConfirmTemplate(template);
+  }
+
+  function cancelProviderConfigDelete() {
+    if (deleteConfirmTemplate && pendingTemplateToggleId === deleteConfirmTemplate.id) {
+      return;
+    }
+
+    setDeleteConfirmTemplate(null);
+  }
+
+  async function confirmProviderConfigDelete() {
+    if (!deleteConfirmTemplate) return;
+
+    const template = deleteConfirmTemplate;
+    setPendingTemplateToggleId(template.id);
+
     try {
       await deleteModelProviderTemplate(template.id);
       await refresh();
+      setDeleteConfirmTemplate(null);
       toast.success(`供应商配置 ${template.name} 已删除`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "删除失败");
+    } finally {
+      setPendingTemplateToggleId(null);
     }
   }
 
@@ -178,9 +199,12 @@ export function useModelConfigPage() {
 
   return {
     accounts,
+    cancelProviderConfigDelete,
+    confirmProviderConfigDelete,
     configEditorTarget,
     setConfigEditorTarget,
     configs,
+    deleteConfirmTemplate,
     error,
     handleConfigDelete,
     handleConfigToggle,

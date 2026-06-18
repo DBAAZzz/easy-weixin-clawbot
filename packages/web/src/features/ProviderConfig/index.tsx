@@ -17,10 +17,7 @@ import {
   createProviderConfigFormFromDto,
   type ProviderConfigFormState,
 } from "./providerConfigForm.js";
-import {
-  MODEL_PROVIDER_PRESETS,
-  type ModelProviderPreset,
-} from "./providerPresets.js";
+import { MODEL_PROVIDER_PRESETS, type ModelProviderPreset } from "./providerPresets.js";
 import { normalizeModelIdList } from "./templateForm.js";
 
 export function ProviderConfigPage() {

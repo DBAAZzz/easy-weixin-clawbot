@@ -11,9 +11,9 @@ import {
 } from "@clawbot/ui";
 import { ProviderBrandIcon } from "./providerBrandIcon.js";
 import { cn } from "../../lib/cn.js";
-import { getPingMeta, PingStatusButton } from "./PingStatusButton.js";
-import { IconTag } from "./IconTag.js";
-import { MetricPanel } from "./MetricPanel.js";
+import { getPingMeta, PingStatusButton } from "../ModelConfig/PingStatusButton.js";
+import { IconTag } from "../ModelConfig/IconTag.js";
+import { MetricPanel } from "../ModelConfig/MetricPanel.js";
 import { SCOPE_LABELS, PURPOSE_LABELS, SCOPE_TONES, VISION_OVERRIDE_LABELS } from "./types.js";
 import type { ProviderPingState } from "./types.js";
 

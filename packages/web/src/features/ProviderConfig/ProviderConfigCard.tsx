@@ -9,9 +9,9 @@ import {
 } from "@clawbot/ui";
 import { ProviderBrandIcon } from "./providerBrandIcon.js";
 import { formatCount } from "../../lib/format.js";
-import { getPingMeta, PingStatusButton } from "./PingStatusButton.js";
-import { IconTag } from "./IconTag.js";
-import { MetricPanel } from "./MetricPanel.js";
+import { getPingMeta, PingStatusButton } from "../ModelConfig/PingStatusButton.js";
+import { IconTag } from "../ModelConfig/IconTag.js";
+import { MetricPanel } from "../ModelConfig/MetricPanel.js";
 import type { ProviderPingState } from "./types.js";
 
 export function ProviderConfigCard(props: {

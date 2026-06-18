@@ -1,19 +1,20 @@
-import type { ModelConfigDto } from "../../../../shared/src/types.js";
+import type { ModelConfigDto } from "@clawbot/shared";
 import {
+  Card,
   CardOverflowMenu,
   CardToggle,
   ChatIcon,
   CpuIcon,
+  IconTag,
   LayersIcon,
   LinkIcon,
+  MetricGrid,
   PencilIcon,
   TrashIcon,
 } from "@clawbot/ui";
 import { ProviderBrandIcon } from "../ProviderConfig/providerBrandIcon.js";
-import { cn } from "../../lib/cn.js";
+import { cn } from "@/lib/cn.js";
 import { getPingMeta, PingStatusButton } from "./PingStatusButton.js";
-import { IconTag } from "./IconTag.js";
-import { MetricPanel } from "./MetricPanel.js";
 import { SCOPE_LABELS, PURPOSE_LABELS, SCOPE_TONES, VISION_OVERRIDE_LABELS } from "./types.js";
 import type { ProviderPingState } from "./types.js";
 
@@ -29,14 +30,14 @@ export function ModelConfigCard(props: {
   const { config } = props;
 
   return (
-    <div className="reveal-up group relative rounded-lg border border-card-line bg-glass-90 shadow-card-hover transition duration-200 ease-expo hover:-translate-y-0.5 hover:border-accent-border-strong">
+    <Card className="reveal-up group relative overflow-hidden !p-0 border-card-line bg-glass-90 shadow-card-hover transition duration-200 ease-expo hover:-translate-y-0.5 hover:border-accent-border-strong">
       <div className="flex items-start gap-3 px-5 pt-5">
         <span
           className={cn(
-            "flex size-10 shrink-0 items-center justify-center rounded-lg border",
+            "flex size-10 shrink-0 items-center justify-center rounded-card border",
             config.template_enabled
-              ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-              : "border-amber-200 bg-amber-50 text-amber-600",
+              ? "border-notice-success-border bg-notice-success-bg text-accent-strong"
+              : "border-notice-warning-border bg-notice-warning-bg text-notice-warning-fg",
           )}
         >
           <ProviderBrandIcon provider={config.provider} className="size-5" />
@@ -81,7 +82,7 @@ export function ModelConfigCard(props: {
       </div>
 
       <div className="px-5">
-        <MetricPanel
+        <MetricGrid
           items={[
             {
               icon: <LayersIcon className="size-3.5" />,
@@ -133,6 +134,6 @@ export function ModelConfigCard(props: {
       {getPingMeta(props.pingState) ? (
         <p className="px-5 pb-4 text-sm text-muted">{getPingMeta(props.pingState)}</p>
       ) : null}
-    </div>
+    </Card>
   );
 }

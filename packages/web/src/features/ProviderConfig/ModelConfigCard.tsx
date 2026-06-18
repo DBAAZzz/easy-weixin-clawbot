@@ -9,7 +9,7 @@ import {
   PencilIcon,
   TrashIcon,
 } from "@clawbot/ui";
-import { ProviderBrandIcon } from "../ProviderConfig/providerBrandIcon.js";
+import { ProviderBrandIcon } from "./providerBrandIcon.js";
 import { cn } from "../../lib/cn.js";
 import { getPingMeta, PingStatusButton } from "./PingStatusButton.js";
 import { IconTag } from "./IconTag.js";

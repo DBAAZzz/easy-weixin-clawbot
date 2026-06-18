@@ -6,7 +6,7 @@ import type {
   ModelProviderTemplateDto,
   ModelProviderTemplatePingDto,
 } from "../../../../shared/src/types.js";
-import { parseScopeSelection } from "../ProviderConfig/configForm.js";
+import { parseScopeSelection } from "./configForm.js";
 
 export const SCOPE_LABELS: Record<string, string> = {
   global: "全局",

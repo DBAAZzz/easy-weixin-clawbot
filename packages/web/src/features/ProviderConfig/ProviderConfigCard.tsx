@@ -7,7 +7,7 @@ import {
   StackIcon,
   TrashIcon,
 } from "@clawbot/ui";
-import { ProviderBrandIcon } from "../ProviderConfig/providerBrandIcon.js";
+import { ProviderBrandIcon } from "./providerBrandIcon.js";
 import { formatCount } from "../../lib/format.js";
 import { getPingMeta, PingStatusButton } from "./PingStatusButton.js";
 import { IconTag } from "./IconTag.js";

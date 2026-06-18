@@ -10,8 +10,8 @@ import type { SelectOption } from "@clawbot/ui";
 import { useConversations } from "../../hooks/useConversations.js";
 import { cn } from "../../lib/cn.js";
 import { upsertModelConfig } from "@/api/model-config.js";
-import { buildScopeKey } from "../ProviderConfig/configForm.js";
-import { resolveNextSelectedModel } from "../ProviderConfig/templateForm.js";
+import { buildScopeKey } from "./configForm.js";
+import { resolveNextSelectedModel } from "./templateForm.js";
 import {
   SCOPE_LABELS,
   PURPOSE_LABELS,

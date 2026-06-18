@@ -11,17 +11,17 @@ import {
   updateModelProviderTemplate,
 } from "@/api/model-config.js";
 import { queryKeys } from "../../lib/query-keys.js";
-import { ProviderBrandIcon } from "../model-config/providerBrandIcon.js";
+import { ProviderBrandIcon } from "./providerBrandIcon.js";
 import {
   createProviderConfigForm,
   createProviderConfigFormFromDto,
   type ProviderConfigFormState,
-} from "../model-config/providerConfigForm.js";
+} from "./providerConfigForm.js";
 import {
   MODEL_PROVIDER_PRESETS,
   type ModelProviderPreset,
-} from "../model-config/providerPresets.js";
-import { normalizeModelIdList } from "../model-config/templateForm.js";
+} from "./providerPresets.js";
+import { normalizeModelIdList } from "./templateForm.js";
 
 export function ProviderConfigPage() {
   const navigate = useNavigate();

@@ -1,8 +1,8 @@
 import type { AccountSummary } from "@clawbot/shared";
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import { formatCount, formatDateTime } from "../lib/format.js";
-import { cn } from "../lib/cn.js";
+import { formatCount, formatDateTime } from "@/lib/format.js";
+import { cn } from "@/lib/cn.js";
 import { Badge, Button, Input } from "@clawbot/ui";
 import { ArrowRightIcon, CheckIcon, PencilIcon, RobotIcon, XIcon } from "@clawbot/ui";
 import { updateAccountAlias } from "@/api/accounts.js";

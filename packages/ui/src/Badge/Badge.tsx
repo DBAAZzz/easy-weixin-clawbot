@@ -6,6 +6,7 @@ export type BadgeSize = "sm" | "md";
 
 export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
   bordered?: boolean;
+  showDot?: boolean;
   size?: BadgeSize;
   tone?: BadgeTone;
 };
@@ -14,6 +15,7 @@ export function Badge({
   bordered = true,
   children,
   className,
+  showDot = true,
   size = "md",
   tone = "muted",
   ...props
@@ -29,7 +31,7 @@ export function Badge({
       )}
       {...props}
     >
-      {tone === "online" || tone === "offline" ? (
+      {showDot && (tone === "online" || tone === "offline") ? (
         <span
           className={cn(
             "cb-badge-dot",

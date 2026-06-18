@@ -4,7 +4,7 @@ import { Button } from "@clawbot/ui";
 import { Card } from "@clawbot/ui";
 import { Input } from "@clawbot/ui";
 import { login } from "@/api/auth-login.js";
-import logoUrl from "../assets/images/logo.png";
+import logoUrl from "../../assets/images/logo.png";
 
 export function AuthLoginPage() {
   const [username, setUsername] = useState("");

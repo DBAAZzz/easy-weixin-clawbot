@@ -1,26 +1,17 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { TapeGraphNode } from "@clawbot/shared";
-import { useAccounts } from "../../hooks/useAccounts.js";
-import { useConversations } from "../../hooks/useConversations.js";
-import { useTapeGraph } from "../../hooks/useTapeGraph.js";
-import { Card } from "@clawbot/ui";
-import { buttonClassName } from "@clawbot/ui";
-import { MemoryFilters } from "../../components/memory/MemoryFilters.js";
-import { MemoryGraph } from "../../components/memory/MemoryGraph.js";
-import { MemoryTooltip } from "../../components/memory/MemoryTooltip.js";
-import { formatCount, formatDateTime } from "../../lib/format.js";
-import {
-  AlertCircleIcon,
-  CheckCircleIcon,
-  LayersIcon,
-  LinkIcon,
-  NetworkIcon,
-  PulseIcon,
-  ScanIcon,
-} from "@clawbot/ui";
+import { Card, ClockIcon, GitBranchIcon, RobotIcon, buttonClassName } from "@clawbot/ui";
+import { useAccounts } from "@/hooks/useAccounts.js";
+import { useConversations } from "@/hooks/useConversations.js";
+import { useTapeGraph } from "@/hooks/useTapeGraph.js";
+import { MemoryFilters, MemoryGlobalBadge } from "@/components/memory/MemoryFilters.js";
+import { MemoryGraph } from "@/components/memory/MemoryGraph.js";
+import { MemoryTooltip } from "@/components/memory/MemoryTooltip.js";
+import { formatCount, formatDateTime } from "@/lib/format.js";
 import { Link } from "react-router-dom";
 import { matchesQuery } from "./types.js";
-import { StatCard } from "./StatCard.js";
+import { StatCard, StatBreakdownItem, StatMeta } from "./StatCard.js";
+import { PrefixGroups } from "./PrefixGroups.js";
 
 export function MemoryGraphPage() {
   const accounts = useAccounts({ status: "active" });
@@ -62,7 +53,7 @@ export function MemoryGraphPage() {
   }));
 
   const branchOptions = [
-    { value: "__global__", label: "全局记忆" },
+    { value: "__global__", label: "main", suffix: <MemoryGlobalBadge /> },
     { value: "*", label: "全部分支" },
     ...conversations.conversations.map((conversation) => ({
       value: conversation.conversation_id,
@@ -117,30 +108,51 @@ export function MemoryGraphPage() {
       : hoveredNode && visibleNodeIds.has(hoveredNode.id)
         ? hoveredNode
         : null;
-  const highlightedCount = activeNode
-    ? new Set(
-        edges
-          .filter((edge) => edge.source === activeNode.id || edge.target === activeNode.id)
-          .flatMap((edge) => [edge.source, edge.target]),
-      ).size
+  const activeDegree = activeNode
+    ? edges.filter((edge) => edge.source === activeNode.id || edge.target === activeNode.id).length
     : 0;
 
-  // Category breakdown
+  const activeNeighbors = useMemo(() => {
+    if (!activeNode) return [];
+    const neighborIds = new Set<string>();
+    for (const edge of edges) {
+      if (edge.source === activeNode.id) neighborIds.add(edge.target);
+      else if (edge.target === activeNode.id) neighborIds.add(edge.source);
+    }
+    return nodes.filter((node) => neighborIds.has(node.id));
+  }, [activeNode, edges, nodes]);
+
+  const activePinned = !!selectedNode && activeNode?.id === selectedNode.id;
+
   const factCount = nodes.filter((n) => n.category === "fact").length;
   const prefCount = nodes.filter((n) => n.category === "preference").length;
   const decCount = nodes.filter((n) => n.category === "decision").length;
 
+  const connectedCount = nodes.length - isolatedCount;
+  const avgDegree = nodes.length > 0 ? ((2 * edges.length) / nodes.length).toFixed(1) : "0";
+
+  const selectedAccount = accounts.accounts.find((a) => a.id === selectedAccountId);
+
+  const handleQueryChange = (nextQuery: string) => {
+    setQuery(nextQuery);
+    graph.refresh();
+  };
+
   if (!accounts.loading && accounts.accounts.length === 0) {
     return (
       <div className="space-y-4">
-        <section className="space-y-3">
-          <p className="text-xs uppercase tracking-label-xl text-muted">Memory Graph</p>
-          <h2 className="text-4xl text-ink">记忆图谱</h2>
+        <section>
+          <p className="text-xs font-semibold uppercase tracking-caps-lg text-account-muted-soft">
+            Memory Graph
+          </p>
+          <h2 className="mt-2 text-page-title font-bold leading-tight tracking-body text-account-ink">
+            记忆图谱
+          </h2>
         </section>
 
         <Card className="grid gap-5 px-5 py-7 md:grid-cols-[minmax(0,1fr)_180px] md:items-end">
           <div>
-            <p className="text-xs uppercase tracking-label-xl text-muted">暂无账号</p>
+            <p className="text-base uppercase tracking-label-xl text-muted">暂无账号</p>
           </div>
 
           <Link
@@ -151,7 +163,6 @@ export function MemoryGraphPage() {
               size: "sm",
             })}
           >
-            <ScanIcon className="size-4" />
             打开扫码连接
           </Link>
         </Card>
@@ -160,135 +171,167 @@ export function MemoryGraphPage() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-5">
-      <section className="flex items-start justify-between gap-4">
-        <div className="space-y-1.5">
-          <p className="text-xs uppercase tracking-label-xl text-muted">Memory Graph</p>
-          <h2 className="text-4xl text-ink">记忆图谱</h2>
+    <div className="mx-auto max-w-7xl space-y-4 text-account-ink">
+      <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-caps-lg text-account-muted-soft">
+            Memory Graph
+          </p>
+          <h1 className="mt-2 text-page-title font-bold leading-tight tracking-body text-account-ink">
+            记忆图谱
+          </h1>
+          <p className="mt-2 text-sm leading-5 text-account-muted">
+            浏览账号记忆节点、关联关系与前缀聚类
+          </p>
         </div>
       </section>
 
-      <Card className="space-y-4 p-4 md:p-5">
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            icon={<NetworkIcon className="size-4" />}
-            color="#6366F1"
-            label="Nodes"
-            value={formatCount(nodes.length)}
-            hint={`事实 ${factCount} · 偏好 ${prefCount} · 决策 ${decCount}`}
-          />
-          <StatCard
-            icon={<LinkIcon className="size-4" />}
-            color="#8B5CF6"
-            label="Edges"
-            value={formatCount(edges.length)}
-            hint="共现 + 前缀关联边"
-          />
-          <StatCard
-            icon={<LayersIcon className="size-4" />}
-            color="#10B981"
-            label="Groups"
-            value={formatCount(groups.length)}
-            hint="前缀聚类组"
-          />
-          <StatCard
-            icon={
-              isolatedCount > 0 ? (
-                <AlertCircleIcon className="size-4" />
-              ) : (
-                <CheckCircleIcon className="size-4" />
-              )
-            }
-            color={isolatedCount > 0 ? "#F59E0B" : "#10B981"}
-            label="Isolated"
-            value={formatCount(isolatedCount)}
-            hint={isolatedCount > 0 ? `${isolatedCount} 条记忆未建立关联` : "所有记忆已关联"}
-          />
-        </div>
+      <MemoryFilters
+        accountOptions={accountOptions}
+        branchOptions={branchOptions}
+        selectedAccountId={selectedAccountId}
+        selectedBranch={selectedBranch}
+        query={query}
+        loading={graph.loading || accounts.loading}
+        onAccountChange={setSelectedAccountId}
+        onBranchChange={setSelectedBranch}
+        onQueryChange={handleQueryChange}
+      />
 
-        <div className="h-px bg-line" />
+      {/* ===== Stats ===== */}
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="记忆节点"
+          englishLabel="Nodes"
+          value={formatCount(nodes.length)}
+          dotClassName="bg-account-ink"
+        >
+          <StatBreakdownItem dotClassName="bg-account-muted" label="事实" value={factCount} />
+          <StatBreakdownItem dotClassName="bg-account-success-dot" label="偏好" value={prefCount} />
+          <StatBreakdownItem dotClassName="bg-danger" label="决策" value={decCount} />
+        </StatCard>
 
-        <MemoryFilters
-          accountOptions={accountOptions}
-          branchOptions={branchOptions}
-          selectedAccountId={selectedAccountId}
-          selectedBranch={selectedBranch}
-          query={query}
-          loading={graph.loading || accounts.loading}
-          onAccountChange={setSelectedAccountId}
-          onBranchChange={setSelectedBranch}
-          onQueryChange={setQuery}
-          onRefresh={graph.refresh}
-        />
-      </Card>
+        <StatCard
+          label="关联边"
+          englishLabel="Edges"
+          value={formatCount(edges.length)}
+          dotClassName="bg-account-success-dot"
+        >
+          <StatMeta>
+            平均度 <b className="font-mono font-bold text-account-ink-soft">{avgDegree}</b> · 已连接{" "}
+            <b className="font-mono font-bold text-account-ink-soft">{connectedCount}</b> 节点
+          </StatMeta>
+        </StatCard>
+
+        <StatCard
+          label="前缀聚类组"
+          englishLabel="Groups"
+          value={formatCount(groups.length)}
+          dotClassName="bg-account-warning-dot"
+        >
+          <StatMeta>
+            按 <span className="font-mono text-account-ink-soft">key</span> 前缀自动聚类
+          </StatMeta>
+        </StatCard>
+
+        <StatCard
+          label="孤立节点"
+          englishLabel="Isolated"
+          value={formatCount(isolatedCount)}
+          dotClassName="bg-account-muted-faint"
+        >
+          <StatMeta>无任何关联边</StatMeta>
+        </StatCard>
+      </section>
 
       {graph.error ? (
-        <div className="rounded-lg border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
+        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
           加载记忆图失败：{graph.error}
         </div>
       ) : null}
 
-      {/* Main content: graph + sidebar */}
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-3">
-          <MemoryGraph
-            nodes={nodes}
-            edges={edges}
-            selectedNodeId={selectedNode?.id ?? null}
-            highlightedNodeIds={searchHighlightIds}
-            onNodeHover={setHoveredNode}
-            onNodeSelect={setSelectedNode}
-          />
-
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white/72 px-3.5 py-2">
-            <div className="flex items-center gap-2 text-base text-muted-strong">
-              <PulseIcon className="size-4 text-accent-strong" />
-              <span>{selectedAccountId ? `账号 ${selectedAccountId}` : "请选择账号"}</span>
+      {/* ===== Graph + sidebar ===== */}
+      <section className="grid gap-4 xl:grid-cols-[1fr_auto]">
+        <div className="overflow-hidden rounded-section border border-account-line bg-account-card shadow-account-card">
+          <div className="flex flex-wrap items-center justify-between gap-5 border-b border-account-line px-5 py-4">
+            <div className="flex items-center gap-4">
+              <span className="text-md font-semibold text-account-ink">关系图谱</span>
+              <span className="inline-flex items-center gap-1.5 text-base text-account-muted">
+                <span className="size-2.5 rounded-full bg-account-muted" />
+                事实
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-base text-account-muted">
+                <span className="size-2.5 rounded-full bg-account-success-dot" />
+                偏好
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-base text-account-muted">
+                <span className="size-2.5 rounded-full bg-danger" />
+                决策
+              </span>
             </div>
-            <div className="h-4 w-px bg-line" />
-            <span className="text-base text-muted">
-              分支 {selectedBranch} · 生成时间 {formatDateTime(graph.graph?.meta.generatedAt)}
+            <span className="text-base text-account-muted-faint">
+              点击节点高亮关联 · 点击空白取消
             </span>
+          </div>
+
+          <div className="relative min-h-96 bg-account-page">
+            <MemoryGraph
+              nodes={nodes}
+              edges={edges}
+              selectedNodeId={selectedNode?.id ?? null}
+              highlightedNodeIds={searchHighlightIds}
+              onNodeHover={setHoveredNode}
+              onNodeSelect={setSelectedNode}
+            />
           </div>
         </div>
 
-        {/* Right sidebar */}
-        <div className="space-y-3">
-          <MemoryTooltip node={activeNode} highlightedCount={highlightedCount} />
-
-          <Card className="space-y-3 p-4">
-            <div>
-              <p className="text-xs uppercase tracking-label-lg text-muted">Prefix Groups</p>
-              <h3 className="mt-1 text-xl text-ink">分组概览</h3>
-            </div>
-
-            {groups.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-line bg-white/60 px-4 py-4 text-center text-base leading-6 text-muted">
-                当前分支还没有可聚类的层级 key
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {groups.slice(0, 8).map((group) => (
-                  <div
-                    key={group.id}
-                    className="rounded-panel border border-line bg-white/72 px-3 py-2"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="truncate text-base font-medium text-ink">{group.label}</p>
-                      <span className="shrink-0 font-mono text-sm text-muted">
-                        {group.children.length}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                {groups.length > 8 ? (
-                  <p className="px-1 text-sm text-muted">还有 {groups.length - 8} 个分组…</p>
-                ) : null}
-              </div>
-            )}
-          </Card>
+        <div className="flex w-96 flex-col gap-4">
+          <MemoryTooltip
+            node={activeNode}
+            degree={activeDegree}
+            pinned={activePinned}
+            neighbors={activeNeighbors}
+            onSelectNeighbor={setSelectedNode}
+          />
+          <PrefixGroups groups={groups} nodes={nodes} visibleNodeIds={visibleNodeIds} />
         </div>
       </section>
+
+      {/* ===== Meta bar ===== */}
+      <div className="flex flex-wrap items-center gap-6 px-5 py-3.5 text-base text-account-muted-faint">
+        <span className="inline-flex items-center gap-2">
+          <RobotIcon className="size-4 text-account-muted-soft" />
+          账号{" "}
+          <span className="font-semibold text-account-ink-soft">
+            {selectedAccount?.display_name ?? selectedAccount?.alias ?? selectedAccountId}
+          </span>
+          <span className="font-mono text-account-muted-faint">{selectedAccountId}</span>
+        </span>
+
+        <span className="h-3 w-px bg-account-line-strong" />
+
+        <span className="inline-flex items-center gap-2">
+          <GitBranchIcon className="size-4 text-account-muted-soft" />
+          分支{" "}
+          <span className="font-mono font-semibold text-account-ink-soft">{selectedBranch}</span>
+          {selectedBranch === "__global__" ? (
+            <span className="rounded-full bg-account-success-bg px-1.5 py-0.5 text-xs font-semibold text-account-success-fg">
+              全局
+            </span>
+          ) : null}
+        </span>
+
+        <span className="h-3 w-px bg-account-line-strong" />
+
+        <span className="inline-flex items-center gap-2">
+          <ClockIcon className="size-4 text-account-muted-faint" />
+          生成于{" "}
+          <span className="font-mono font-semibold text-account-ink-soft">
+            {formatDateTime(graph.graph?.meta.generatedAt)}
+          </span>
+        </span>
+      </div>
     </div>
   );
 }

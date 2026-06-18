@@ -25,7 +25,7 @@
   }
 
   .cb-toggle-group--horizontal.cb-toggle-group--md {
-    height: var(--size-control-md)
+    height: var(--size-control-md);
   }
 
   .cb-toggle-group--segmented {

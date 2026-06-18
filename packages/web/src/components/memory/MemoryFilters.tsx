@@ -1,11 +1,10 @@
-import { Input } from "@clawbot/ui";
-import { Button } from "@clawbot/ui";
-import { Select } from "@clawbot/ui";
-import { RefreshIcon, SearchIcon } from "@clawbot/ui";
+import type { ReactNode } from "react";
+import { Badge, Card, GitBranchIcon, Input, RobotIcon, SearchIcon, Select } from "@clawbot/ui";
 
 interface Option {
   value: string;
   label: string;
+  suffix?: ReactNode;
 }
 
 export function MemoryFilters(props: {
@@ -18,62 +17,66 @@ export function MemoryFilters(props: {
   onAccountChange(accountId: string): void;
   onBranchChange(branch: string): void;
   onQueryChange(query: string): void;
-  onRefresh(): void;
 }) {
-  const disabled = props.loading || props.accountOptions.length === 0;
+  const disabled = props.accountOptions.length === 0;
 
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_auto] xl:items-end">
-      <div className="space-y-1.5">
-        <span className="text-xs uppercase tracking-caps-lg text-muted">账号</span>
-        <Select
-          size="sm"
-          value={props.selectedAccountId}
-          options={props.accountOptions}
-          onChange={props.onAccountChange}
-          placeholder="选择账号"
-          disabled={disabled}
-        />
-      </div>
+    <Card className="flex flex-col gap-3 border border-account-line bg-account-card p-3 shadow-account-card md:flex-row md:items-center">
+      <Select
+        size="sm"
+        variant="subtle"
+        value={props.selectedAccountId}
+        options={props.accountOptions}
+        onChange={props.onAccountChange}
+        placeholder="选择账号"
+        disabled={disabled}
+        fullWidth={false}
+        showIndicator={false}
+        prefix={
+          <>
+            <RobotIcon />
+            <span>账号</span>
+          </>
+        }
+        renderOption={(option) => option.label}
+      />
 
-      <div className="space-y-1.5">
-        <span className="text-xs uppercase tracking-caps-lg text-muted">分支</span>
-        <Select
-          size="sm"
-          value={props.selectedBranch}
-          options={props.branchOptions}
-          onChange={props.onBranchChange}
-          placeholder="选择分支"
-          disabled={disabled}
-        />
-      </div>
+      <Select
+        size="sm"
+        variant="subtle"
+        value={props.selectedBranch}
+        options={props.branchOptions}
+        onChange={props.onBranchChange}
+        placeholder="选择分支"
+        disabled={disabled}
+        fullWidth={false}
+        showIndicator={false}
+        prefix={
+          <>
+            <GitBranchIcon />
+            <span>分支</span>
+          </>
+        }
+        renderOption={(option) => option.label}
+      />
 
-      <label className="space-y-1.5">
-        <span className="text-xs uppercase tracking-caps-lg text-muted">搜索</span>
-        <div className="relative">
-          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
-          <Input
-            value={props.query}
-            disabled={disabled}
-            onChange={(event) => props.onQueryChange(event.target.value)}
-            placeholder="按 key、值或分支过滤"
-            className="pl-10"
-          />
-        </div>
-      </label>
+      <Input
+        value={props.query}
+        disabled={disabled}
+        onChange={(event) => props.onQueryChange(event.target.value)}
+        placeholder="搜索节点：姓名、偏好、决策、前缀..."
+        size="sm"
+        leftIcon={<SearchIcon />}
+        className="min-w-0 flex-1"
+      />
+    </Card>
+  );
+}
 
-      <div className="flex items-end xl:justify-end">
-        <Button
-          variant="secondary"
-          size="sm"
-          className="w-full justify-center gap-1.5 xl:min-w-[88px] xl:w-auto"
-          onClick={props.onRefresh}
-          disabled={disabled}
-        >
-          <RefreshIcon className="size-4" />
-          刷新
-        </Button>
-      </div>
-    </div>
+export function MemoryGlobalBadge() {
+  return (
+    <Badge bordered={false} showDot={false} size="sm" tone="online">
+      全局
+    </Badge>
   );
 }

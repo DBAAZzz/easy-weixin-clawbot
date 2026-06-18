@@ -57,10 +57,7 @@ export const TaskCenterPage = lazyNamedPage(
   () => import("../features/TaskCenter/index.js"),
   "TaskCenterPage",
 );
-export const SkillsPage = lazyNamedPage(
-  () => import("../features/Skills/index.js"),
-  "SkillsPage",
-);
+export const SkillsPage = lazyNamedPage(() => import("../features/Skills/index.js"), "SkillsPage");
 export const ToolsPage = lazyNamedPage(() => import("../features/Tools/index.js"), "ToolsPage");
 export const WebhookLogsPage = lazyNamedPage(
   () => import("../features/WebhookLogs/index.js"),

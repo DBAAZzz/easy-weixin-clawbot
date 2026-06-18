@@ -54,6 +54,7 @@ import HugeMcpServerIcon from "@hugeicons/core-free-icons/McpServerIcon";
 import HugeMemoryIcon from "@hugeicons/core-free-icons/Brain02Icon";
 import HugeToolsIcon from "@hugeicons/core-free-icons/ToolsIcon";
 import HugeCheckListIcon from "@hugeicons/core-free-icons/CheckListIcon";
+import HugeGitBranchIcon from "@hugeicons/core-free-icons/GitBranchIcon";
 import { createIcon } from "./create-icon.js";
 
 export type { IconProps } from "./create-icon.js";
@@ -66,6 +67,7 @@ export const McpServerIcon = createIcon(HugeMcpServerIcon, "McpServerIcon");
 export const MemoryIcon = createIcon(HugeMemoryIcon, "MemoryIcon");
 export const ToolsIcon = createIcon(HugeToolsIcon, "ToolsIcon");
 export const CheckListIcon = createIcon(HugeCheckListIcon, "CheckListIcon");
+export const GitBranchIcon = createIcon(HugeGitBranchIcon, "GitBranchIcon");
 export const BookIcon = createIcon(HugeBookIcon, "BookIcon");
 export const ChatIcon = createIcon(BubbleChatIcon, "ChatIcon");
 export const GridIcon = createIcon(HugeGridIcon, "GridIcon");

@@ -1,18 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import ForceGraph2D, {
-  type ForceGraphMethods,
-  type LinkObject,
-  type NodeObject,
-} from "react-force-graph-2d";
+import ForceGraph2D, { type ForceGraphMethods, type NodeObject } from "react-force-graph-2d";
 import type { TapeGraphEdge, TapeGraphNode } from "@clawbot/shared";
-import { MemoryLegend } from "./MemoryLegend.js";
 import { getInitialViewportAction } from "./viewport.js";
 
 const CATEGORY_COLORS: Record<TapeGraphNode["category"], string> = {
-  fact: "#3B82F6",
-  preference: "#10B981",
-  decision: "#F59E0B",
+  fact: "#69737b",
+  preference: "#4c9576",
+  decision: "#d2554f",
 };
+
+const ACCENT = "#d2554f";
 
 interface GraphLink extends Omit<TapeGraphEdge, "source" | "target"> {
   source: string | NodeObject<TapeGraphNode>;
@@ -65,7 +62,7 @@ function drawDotGrid(
   const startX = Math.floor(visibleLeft / spacing) * spacing;
   const startY = Math.floor(visibleTop / spacing) * spacing;
 
-  ctx.fillStyle = "rgba(148, 163, 184, 0.14)";
+  ctx.fillStyle = "#e7ebee";
   for (let x = startX; x < visibleRight; x += spacing) {
     for (let y = startY; y < visibleBottom; y += spacing) {
       ctx.beginPath();
@@ -74,59 +71,6 @@ function drawDotGrid(
     }
   }
 }
-
-/** Draw a small book/document icon (two horizontal lines) inside the node */
-function drawFactIcon(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
-  const s = r * 0.38;
-  ctx.strokeStyle = "rgba(255,255,255,0.9)";
-  ctx.lineWidth = Math.max(1, s * 0.28);
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(x - s, y - s * 0.35);
-  ctx.lineTo(x + s, y - s * 0.35);
-  ctx.moveTo(x - s, y + s * 0.35);
-  ctx.lineTo(x + s * 0.5, y + s * 0.35);
-  ctx.stroke();
-}
-
-/** Draw a small heart shape inside the node */
-function drawPreferenceIcon(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
-  const s = r * 0.32;
-  ctx.save();
-  ctx.translate(x, y + s * 0.15);
-  ctx.beginPath();
-  ctx.moveTo(0, s * 0.9);
-  ctx.bezierCurveTo(-s * 0.1, s * 0.7, -s * 1.2, s * 0.1, -s * 1.2, -s * 0.3);
-  ctx.bezierCurveTo(-s * 1.2, -s * 0.9, -s * 0.6, -s * 1.1, 0, -s * 0.5);
-  ctx.bezierCurveTo(s * 0.6, -s * 1.1, s * 1.2, -s * 0.9, s * 1.2, -s * 0.3);
-  ctx.bezierCurveTo(s * 1.2, s * 0.1, s * 0.1, s * 0.7, 0, s * 0.9);
-  ctx.closePath();
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
-  ctx.fill();
-  ctx.restore();
-}
-
-/** Draw a small diamond/rhombus inside the node */
-function drawDecisionIcon(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
-  const s = r * 0.36;
-  ctx.beginPath();
-  ctx.moveTo(x, y - s);
-  ctx.lineTo(x + s * 0.75, y);
-  ctx.lineTo(x, y + s);
-  ctx.lineTo(x - s * 0.75, y);
-  ctx.closePath();
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
-  ctx.fill();
-}
-
-const ICON_DRAWERS: Record<
-  TapeGraphNode["category"],
-  (ctx: CanvasRenderingContext2D, x: number, y: number, r: number) => void
-> = {
-  fact: drawFactIcon,
-  preference: drawPreferenceIcon,
-  decision: drawDecisionIcon,
-};
 
 function drawNode(
   ctx: CanvasRenderingContext2D,
@@ -138,26 +82,16 @@ function drawNode(
   globalScale: number,
 ) {
   const color = CATEGORY_COLORS[node.category];
-  const alpha = isHighlighted ? 0.92 : 0.28;
+  const alpha = isHighlighted ? 1 : 0.32;
 
-  // Outer glow for highlighted nodes
-  if (isHighlighted) {
-    ctx.beginPath();
-    ctx.arc(x, y, size + 3, 0, Math.PI * 2);
-    ctx.fillStyle = toCanvasColor(color, 0.12);
-    ctx.fill();
-  }
-
-  // Main circle
+  // Main circle with white border
   ctx.beginPath();
   ctx.arc(x, y, size, 0, Math.PI * 2);
   ctx.fillStyle = toCanvasColor(color, alpha);
   ctx.fill();
-
-  // Category icon inside (only when zoomed enough to see it)
-  if (globalScale > 0.5 && size > 5) {
-    ICON_DRAWERS[node.category](ctx, x, y, size);
-  }
+  ctx.lineWidth = 2 / globalScale;
+  ctx.strokeStyle = isHighlighted ? "#ffffff" : "rgba(255,255,255,0.6)";
+  ctx.stroke();
 }
 
 export function MemoryGraph(props: {
@@ -191,6 +125,23 @@ export function MemoryGraph(props: {
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+
+  // Spread nodes apart: stronger repulsion + longer links so nodes don't overlap
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph || props.nodes.length === 0) return;
+
+    const charge = graph.d3Force("charge") as
+      | { strength: (value: number) => unknown; distanceMax: (value: number) => unknown }
+      | undefined;
+    charge?.strength(-360);
+    charge?.distanceMax(620);
+
+    const link = graph.d3Force("link") as { distance: (value: number) => unknown } | undefined;
+    link?.distance(90);
+
+    graph.d3ReheatSimulation();
+  }, [props.nodes, props.edges, size.width]);
 
   // Initial viewport fit — only on data change, not on container resize
   useEffect(() => {
@@ -277,7 +228,7 @@ export function MemoryGraph(props: {
   return (
     <div
       ref={containerRef}
-      className="memory-graph-container relative h-[680px] min-h-[460px] overflow-hidden rounded-xl border border-slate-border-18 shadow-graph"
+      className="memory-graph-container relative h-[540px] min-h-[460px] overflow-hidden"
     >
       {size.width > 0 && props.nodes.length > 0 ? (
         <ForceGraph2D<TapeGraphNode, GraphLink>
@@ -301,8 +252,8 @@ export function MemoryGraph(props: {
             }
 
             return isHighlighted
-              ? `rgba(79,70,229,${Math.min(0.9, 0.22 + link.weight * 0.16)})`
-              : "rgba(99,102,241,0.08)";
+              ? `rgba(210,85,79,${Math.min(0.9, 0.4 + link.weight * 0.16)})`
+              : "rgba(205,212,218,0.45)";
           }}
           linkWidth={(link) => {
             const source = resolveNodeId(link.source);
@@ -327,7 +278,7 @@ export function MemoryGraph(props: {
           linkDirectionalParticleSpeed={0.006}
           linkDirectionalParticleColor={(link) => {
             if (link.type === "prefix_cluster") return "rgba(107,114,128,0.5)";
-            return "rgba(79,70,229,0.6)";
+            return "rgba(210,85,79,0.7)";
           }}
           onRenderFramePre={(ctx, globalScale) => {
             drawDotGrid(ctx, size.width, size.height, globalScale);
@@ -366,12 +317,10 @@ export function MemoryGraph(props: {
             // Selection ring
             if (isSelected) {
               ctx.beginPath();
-              ctx.arc(x, y, nodeSize + 4, 0, Math.PI * 2);
-              ctx.lineWidth = 1.5;
-              ctx.strokeStyle = "rgba(15,23,42,0.45)";
-              ctx.setLineDash([3, 2]);
+              ctx.arc(x, y, nodeSize + 5, 0, Math.PI * 2);
+              ctx.lineWidth = 2;
+              ctx.strokeStyle = toCanvasColor(ACCENT, 0.4);
               ctx.stroke();
-              ctx.setLineDash([]);
             }
 
             // Label
@@ -385,9 +334,9 @@ export function MemoryGraph(props: {
               const bgHeight = fontSize + 6;
               const labelY = y + nodeSize + 6;
 
-              // Label background pill
+              // Label background blends into the page color to mask edges behind text
               const bgX = x - bgWidth / 2;
-              ctx.fillStyle = isHighlighted ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.48)";
+              ctx.fillStyle = isHighlighted ? "rgba(245,247,249,0.95)" : "rgba(245,247,249,0.6)";
               ctx.beginPath();
               const radius = bgHeight / 2;
               ctx.moveTo(bgX + radius, labelY);
@@ -406,20 +355,7 @@ export function MemoryGraph(props: {
               ctx.closePath();
               ctx.fill();
 
-              // Confidence micro-bar under label
-              if (typeof node.confidence === "number" && globalScale > 0.7) {
-                const barWidth = bgWidth - 6;
-                const barX = x - barWidth / 2;
-                const barY = labelY + bgHeight + 2;
-                const barHeight = 2;
-                ctx.fillStyle = "rgba(148,163,184,0.15)";
-                ctx.fillRect(barX, barY, barWidth, barHeight);
-                const color = CATEGORY_COLORS[node.category];
-                ctx.fillStyle = toCanvasColor(color, isHighlighted ? 0.7 : 0.3);
-                ctx.fillRect(barX, barY, barWidth * node.confidence, barHeight);
-              }
-
-              ctx.fillStyle = isHighlighted ? "rgba(15,23,42,0.88)" : "rgba(100,116,139,0.7)";
+              ctx.fillStyle = isHighlighted ? "rgba(45,53,60,0.92)" : "rgba(105,115,123,0.7)";
               ctx.fillText(label, x, labelY + 3);
             }
           }}
@@ -430,9 +366,9 @@ export function MemoryGraph(props: {
             ctx.arc(node.x ?? 0, node.y ?? 0, nodeSize, 0, 2 * Math.PI, false);
             ctx.fill();
           }}
-          cooldownTicks={120}
-          warmupTicks={60}
-          d3VelocityDecay={0.22}
+          cooldownTicks={220}
+          warmupTicks={80}
+          d3VelocityDecay={0.28}
           autoPauseRedraw={false}
           onNodeHover={(node) => props.onNodeHover(node)}
           onNodeClick={(node) => props.onNodeSelect(node)}
@@ -445,8 +381,6 @@ export function MemoryGraph(props: {
           当前筛选条件下没有可展示的记忆节点。
         </div>
       ) : null}
-
-      {props.nodes.length > 0 ? <MemoryLegend variant="floating" /> : null}
     </div>
   );
 }

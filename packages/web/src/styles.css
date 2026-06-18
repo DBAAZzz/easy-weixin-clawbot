@@ -508,6 +508,18 @@ pre {
     minmax(104px, 1.1fr);
 }
 
+@utility mcp-server-table-grid {
+  grid-template-columns:
+    minmax(0, 2.6fr) minmax(92px, 0.8fr) minmax(88px, 0.8fr) minmax(92px, 0.8fr)
+    minmax(118px, 1fr);
+}
+
+@media (min-width: 768px) {
+  .mcp-editor-split {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  }
+}
+
 @utility bg-account-avatar {
   background: linear-gradient(180deg, rgba(243, 247, 248, 0.92), rgba(233, 238, 241, 0.88));
 }

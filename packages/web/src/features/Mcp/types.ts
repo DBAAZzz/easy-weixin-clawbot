@@ -1,10 +1,13 @@
 import type { McpServerInfo } from "@clawbot/shared";
+import type { AccountStat } from "../Dashboard/types.js";
 
 export type EditorState = { mode: "create" } | { mode: "edit"; serverId: string } | null;
 
 export type ServerDetailTab = "config" | "tools";
 
-export function statusTone(status: McpServerInfo["status"]): "online" | "offline" | "muted" {
+export type McpStat = AccountStat;
+
+export function statusTone(status: McpServerInfo["status"]): "online" | "offline" | "error" {
   if (status === "connected") {
     return "online";
   }
@@ -13,7 +16,7 @@ export function statusTone(status: McpServerInfo["status"]): "online" | "offline
     return "offline";
   }
 
-  return "muted";
+  return "error";
 }
 
 export function statusLabel(status: McpServerInfo["status"]) {

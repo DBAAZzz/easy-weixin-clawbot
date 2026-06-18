@@ -1,8 +1,7 @@
 import type { McpServerInfo } from "@clawbot/shared";
 import { Badge, CardToggle, PuzzleIcon, TerminalIcon } from "@clawbot/ui";
-import { cn } from "../../lib/cn.js";
-import { formatCount, formatRelativeTime } from "../../lib/format.js";
-import { ServerAvatar } from "./ServerAvatar.js";
+import { cn } from "@/lib/cn.js";
+import { formatCount, formatRelativeTime } from "@/lib/format.js";
 import { statusLabel, statusTone } from "./types.js";
 
 export function ServerCard(props: {
@@ -34,7 +33,6 @@ export function ServerCard(props: {
       )}
       style={{ animationDelay: `${props.index * 40}ms` }}
     >
-      <ServerAvatar status={props.server.status} />
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">

@@ -26,6 +26,7 @@ import {
   type McpServerWriteInput,
 } from "../db/mcp.js";
 import { createModuleLogger, getErrorFields } from "../logger.js";
+import { resolveLaunchSpec } from "./hubResolver.js";
 
 type RuntimeEntry = {
   client: StdioMcpClient;
@@ -113,10 +114,24 @@ export function createMcpManager(registry: ToolRegistry): McpManager {
       last_error: null,
     });
 
+    const launch = await resolveLaunchSpec(server);
+    if (launch.rewrittenFrom) {
+      mcpLogger.info(
+        {
+          serverId: server.id,
+          serverSlug: server.slug,
+          qualifiedName: launch.rewrittenFrom,
+          command: launch.command,
+          args: launch.args,
+        },
+        "已将 @mcp_hub_org/cli 配置解析为底层真实命令",
+      );
+    }
+
     const client = createStdioMcpClient({
-      command: server.command,
-      args: server.args,
-      env: server.env,
+      command: launch.command,
+      args: launch.args,
+      env: launch.env,
       cwd: server.cwd,
       onClose: (error) => {
         void runServerExclusive(server.id, async () => {

@@ -9,9 +9,15 @@ import type {
 import { toast } from "@clawbot/ui";
 import { useSkills } from "../../hooks/useSkills.js";
 import { fetchSkillSource } from "@/api/skills.js";
+import { formatCount } from "../../lib/format.js";
 import { queryKeys } from "../../lib/query-keys.js";
 import { isAutoProvisionableRuntime } from "./skills-runtime-labels.js";
-import { type SkillDetailTab } from "./types.js";
+import {
+  formatActivationLabel,
+  formatOriginLabel,
+  type SkillActivationFilter,
+  type SkillDetailTab,
+} from "./types.js";
 
 export function notifySkillInstallSuccess(skillName: string, notify: (message: string) => void) {
   notify(`技能 "${skillName}" 安装成功`);
@@ -31,6 +37,8 @@ export function useSkillsPage() {
     streamProvision,
   } = useSkills();
   const [query, setQuery] = useState("");
+  const [activationFilter, setActivationFilter] = useState<SkillActivationFilter>("all");
+  const [onlyEnabled, setOnlyEnabled] = useState(false);
   const [activeSkillName, setActiveSkillName] = useState<string | null>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<SkillDetailTab>("markdown");
   const [notice, setNotice] = useState<string | null>(null);
@@ -46,11 +54,17 @@ export function useSkillsPage() {
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const filteredSkills = skills.filter((skill) => {
+    if (onlyEnabled && !skill.enabled) return false;
+    if (activationFilter !== "all" && skill.activation !== activationFilter) return false;
     if (!normalizedQuery) return true;
 
-    return [skill.name, skill.summary, skill.activation, skill.origin, skill.author ?? ""].some(
-      (value) => value.toLowerCase().includes(normalizedQuery),
-    );
+    return [
+      skill.name,
+      skill.summary,
+      formatActivationLabel(skill.activation),
+      formatOriginLabel(skill.origin),
+      skill.author ?? "",
+    ].some((value) => value.toLowerCase().includes(normalizedQuery));
   });
   const activeSkill = skills.find((skill) => skill.name === activeSkillName) ?? null;
   const sourceQuery = useQuery({
@@ -121,6 +135,41 @@ export function useSkillsPage() {
   const enabledCount = skills.filter((skill) => skill.enabled).length;
   const alwaysOnCount = skills.filter((skill) => skill.activation === "always").length;
   const onDemandCount = skills.length - alwaysOnCount;
+  const tabCounts: Record<SkillActivationFilter, number> = {
+    all: skills.length,
+    always: alwaysOnCount,
+    "on-demand": onDemandCount,
+  };
+  const stats = [
+    {
+      label: "技能总数",
+      value: formatCount(skills.length),
+      meta: "已安装",
+      dotClassName: "bg-account-ink",
+      valueClassName: "text-account-ink",
+    },
+    {
+      label: "已启用",
+      value: formatCount(enabledCount),
+      meta: "运行中",
+      dotClassName: "bg-account-success-dot",
+      valueClassName: "text-account-success-fg",
+    },
+    {
+      label: "常驻 Always-On",
+      value: formatCount(alwaysOnCount),
+      meta: "持续监听",
+      dotClassName: "bg-danger",
+      valueClassName: "text-danger-strong",
+    },
+    {
+      label: "按需 On-Demand",
+      value: formatCount(onDemandCount),
+      meta: "触发调用",
+      dotClassName: "bg-account-warning-dot",
+      valueClassName: "text-account-warning-fg",
+    },
+  ];
 
   async function handleRefresh() {
     setNotice(null);
@@ -226,6 +275,10 @@ export function useSkillsPage() {
     refresh,
     query,
     setQuery,
+    activationFilter,
+    setActivationFilter,
+    onlyEnabled,
+    setOnlyEnabled,
     activeSkillName,
     setActiveSkillName,
     activeDetailTab,
@@ -246,6 +299,8 @@ export function useSkillsPage() {
     enabledCount,
     alwaysOnCount,
     onDemandCount,
+    tabCounts,
+    stats,
     handleRefresh,
     handleFileUpload,
     handleToggle,

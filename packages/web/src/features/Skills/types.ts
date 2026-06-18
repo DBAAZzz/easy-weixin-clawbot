@@ -1,6 +1,13 @@
 import type { SkillInfo } from "@clawbot/shared";
 
 export type SkillDetailTab = "markdown" | "runtime";
+export type SkillActivationFilter = "all" | SkillInfo["activation"];
+
+export const skillActivationTabs: Array<{ value: SkillActivationFilter; label: string }> = [
+  { value: "all", label: "全部" },
+  { value: "always", label: "常驻" },
+  { value: "on-demand", label: "按需" },
+];
 
 export type MarkdownBlock =
   | { type: "heading"; level: 1 | 2 | 3; text: string }

@@ -1,6 +1,7 @@
 import type { SkillInfo } from "@clawbot/shared";
-import { Badge, CardToggle } from "@clawbot/ui";
-import { formatActivationLabel, formatOriginLabel } from "./types.js";
+import { Badge, Card, CardToggle } from "@clawbot/ui";
+import { cn } from "../../lib/cn.js";
+import { formatOriginLabel } from "./types.js";
 import { SkillAvatar } from "./SkillAvatar.js";
 
 export function SkillCard(props: {
@@ -10,14 +11,11 @@ export function SkillCard(props: {
   onOpen: () => void;
   onToggle: () => void | Promise<void>;
 }) {
-  const metadata = [
-    `版本 ${props.skill.version}`,
-    formatActivationLabel(props.skill.activation),
-    formatOriginLabel(props.skill.origin),
-  ];
+  const originLabel = formatOriginLabel(props.skill.origin);
+  const isAlwaysOn = props.skill.activation === "always";
 
   return (
-    <div
+    <Card
       role="button"
       tabIndex={0}
       aria-haspopup="dialog"
@@ -29,45 +27,81 @@ export function SkillCard(props: {
           props.onOpen();
         }
       }}
-      className="reveal-up group flex min-h-[108px] cursor-pointer items-center gap-3 rounded-lg border border-card-line bg-card-bg px-3.5 py-3.5 transition duration-200 ease-expo hover:-translate-y-0.5 hover:border-notice-success-border hover:bg-card-hover focus-visible:outline-none focus-visible:shadow-focus-accent md:px-4"
+      className={cn(
+        "reveal-up group flex min-h-44 cursor-pointer flex-col rounded-section border-account-line bg-account-card px-5 py-4 shadow-account-card backdrop-blur-none transition duration-200 ease-expo hover:-translate-y-0.5 hover:border-account-control-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:shadow-focus-accent",
+        !props.skill.enabled && "border-account-line-soft opacity-75",
+      )}
       style={{ animationDelay: `${props.index * 40}ms` }}
     >
-      <SkillAvatar origin={props.skill.origin} />
+      <div className="flex w-full items-start gap-3">
+        <SkillAvatar origin={props.skill.origin} enabled={props.skill.enabled} />
 
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-lg font-semibold tracking-title text-ink">{props.skill.name}</h3>
-          <Badge
-            tone="muted"
-            className="border-transparent bg-accent-mist px-2 py-1 text-2xs tracking-tag text-accent-strong"
-          >
-            {formatActivationLabel(props.skill.activation)}
-          </Badge>
+        <div className="min-w-0 flex-1 pt-0.5">
+          <div className="flex min-w-0 items-center gap-2">
+            <h3 className="truncate text-lg font-bold leading-tight tracking-body text-account-ink">
+              {props.skill.name}
+            </h3>
+            <span className="shrink-0 font-mono text-xs font-semibold text-account-muted-faint">
+              v{props.skill.version.replace(/^v/u, "")}
+            </span>
+          </div>
+          <p className="mt-1 truncate text-sm text-account-muted-soft">
+            {props.skill.author ?? originLabel}
+          </p>
         </div>
 
-        <p className="mt-1 truncate text-base leading-5 text-muted-strong">{props.skill.summary}</p>
-
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-          {metadata.map((item, index) => (
-            <span key={item} className="flex items-center gap-2">
-              {index > 0 ? <span className="size-1 rounded-full bg-line-strong" /> : null}
-              <span>{item}</span>
-            </span>
-          ))}
+        <div className="flex shrink-0 flex-col items-end gap-1.5 pt-0.5">
+          <CardToggle
+            enabled={props.skill.enabled}
+            busy={props.busy}
+            label={props.skill.enabled ? "停用技能" : "启用技能"}
+            onToggle={props.onToggle}
+          />
         </div>
       </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-1.5">
-        <CardToggle
-          enabled={props.skill.enabled}
-          busy={props.busy}
-          label={props.skill.enabled ? "停用技能" : "启用技能"}
-          onToggle={props.onToggle}
-        />
-        <span className="text-xs font-medium text-muted">
+      <p className="mt-3 line-clamp-2 min-h-10 w-full text-md leading-5 text-account-ink-soft">
+        {props.skill.summary}
+      </p>
+
+      <div className="my-3 h-px w-full bg-account-line-soft" />
+
+      <div className="flex w-full flex-wrap items-center gap-2">
+        <Badge
+          tone={isAlwaysOn ? "error" : "warning"}
+          size="sm"
+          className={cn(
+            "gap-1.5 rounded-pill border-transparent px-2.5 py-1 text-xs font-semibold",
+            isAlwaysOn
+              ? "bg-notice-error-bg text-danger-strong"
+              : "bg-notice-warning-bg text-account-warning-fg",
+          )}
+        >
+          <span
+            className={cn(
+              "size-1.5 rounded-full",
+              isAlwaysOn ? "bg-danger" : "bg-account-warning-dot",
+            )}
+          />
+          {isAlwaysOn ? "常驻 Always-On" : "按需 On-Demand"}
+        </Badge>
+        <Badge
+          tone="muted"
+          size="sm"
+          className="rounded-pill border-transparent bg-account-filter-track px-2.5 py-1 text-xs font-semibold text-account-muted"
+        >
+          {originLabel}
+        </Badge>
+        <span className="flex-1" />
+        <span
+          className={cn(
+            "text-sm font-semibold",
+            props.skill.enabled ? "text-account-success-fg" : "text-account-muted-faint",
+          )}
+        >
           {props.skill.enabled ? "已启用" : "已停用"}
         </span>
       </div>
-    </div>
+    </Card>
   );
 }

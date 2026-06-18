@@ -4,17 +4,7 @@ import type {
   SkillProvisionLog,
   SkillProvisionPlan,
 } from "@clawbot/shared";
-import {
-  Button,
-  Dialog,
-  DialogBody,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogOverlay,
-  DialogPortal,
-  DialogTitle,
-} from "@clawbot/ui";
+import { Button, DialogFrame } from "@clawbot/ui";
 import { formatCount } from "../../lib/format.js";
 import { buildEnvironmentSnapshot, formatActivationLabel, formatOriginLabel } from "./types.js";
 import type { SkillDetailTab } from "./types.js";
@@ -83,154 +73,150 @@ export function SkillDetailModal(props: {
       : props.onProvision;
 
   return (
-    <Dialog open onOpenChange={(open) => !open && props.onClose()}>
-      <DialogPortal>
-        <DialogOverlay />
-        <DialogContent className="max-w-4xl rounded-section bg-glass-92">
-          <DialogClose
-            label="关闭 skill 详情"
-            className="absolute right-5 top-5 z-20 size-9 border-transparent bg-transparent text-muted hover:border-transparent hover:bg-transparent hover:text-ink"
-          />
+    <DialogFrame
+      open
+      title={props.skill.name}
+      closeLabel="关闭 skill 详情"
+      contentClassName="!max-w-6xl rounded-section bg-glass-92"
+      headerClassName="py-5"
+      bodyClassName="py-6"
+      onOpenChange={(open) => !open && props.onClose()}
+      description={
+        <>
+          <span>
+            当前状态：
+            <span className="font-medium text-ink">
+              {props.skill.enabled ? " 已启用" : " 已停用"}
+            </span>
+            {props.skill.provisionError ? (
+              <span className="text-red-700"> · 最近一次安装失败</span>
+            ) : null}
+          </span>
+          <ExpandableSummary text={props.skill.summary} />
+        </>
+      }
+    >
+      <div className="space-y-6">
+        <CompactMetaStrip items={overviewItems} />
 
-          <DialogHeader className="py-5">
-            <div className="pr-10">
-              <DialogTitle className="truncate">{props.skill.name}</DialogTitle>
-              <p className="mt-2 text-sm text-muted">
-                当前状态：
-                <span className="font-medium text-ink">
-                  {props.skill.enabled ? " 已启用" : " 已停用"}
-                </span>
-                {props.skill.provisionError ? (
-                  <span className="text-red-700"> · 最近一次安装失败</span>
-                ) : null}
-              </p>
-              <ExpandableSummary text={props.skill.summary} />
-            </div>
+        <div>
+          <div
+            role="tablist"
+            aria-label="Skill 详情视图"
+            className="flex flex-wrap items-center gap-6 border-b border-line"
+          >
+            <DetailTabButton
+              tab="markdown"
+              activeTab={props.activeTab}
+              label="文档"
+              onSelect={props.onTabChange}
+            />
+            <DetailTabButton
+              tab="runtime"
+              activeTab={props.activeTab}
+              label="环境配置"
+              onSelect={props.onTabChange}
+            />
+          </div>
 
-            <CompactMetaStrip items={overviewItems} />
-          </DialogHeader>
+          <div className="pt-6">
+            {props.activeTab === "markdown" ? (
+              <div id="skill-panel-markdown" role="tabpanel" aria-labelledby="skill-tab-markdown">
+                {props.source.loading ? (
+                  <div className="space-y-3">
+                    <div className="ui-skeleton h-5 rounded-lg" />
+                    <div className="ui-skeleton h-4 rounded-lg" />
+                    <div className="ui-skeleton h-4 rounded-lg" />
+                    <div className="ui-skeleton h-4 rounded-lg" />
+                    <div className="ui-skeleton h-28 rounded-section" />
+                  </div>
+                ) : props.source.error ? (
+                  <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
+                    加载源码失败：{props.source.error}
+                  </div>
+                ) : (
+                  <div className="rounded-panel bg-detail-bg px-6 py-7 md:px-7 md:py-8">
+                    <SkillMarkdownDocument markdown={markdownBody} />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div id="skill-panel-runtime" role="tabpanel" aria-labelledby="skill-tab-runtime">
+                <div className="space-y-6">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {!runtimeMessage ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={props.preflightBusy || props.provisionBusy}
+                        onClick={() => void props.onPreflight()}
+                      >
+                        {props.preflightBusy ? "检测中…" : "重新检测"}
+                      </Button>
+                    ) : null}
+                    {!runtimeMessage ? (
+                      <Button
+                        size="sm"
+                        disabled={props.preflightBusy || props.provisionBusy}
+                        onClick={() => void primaryInstallAction()}
+                      >
+                        {props.provisionBusy ? "安装中…" : "安装"}
+                      </Button>
+                    ) : null}
+                  </div>
 
-          <DialogBody className="py-6">
-            <div
-              role="tablist"
-              aria-label="Skill 详情视图"
-              className="flex flex-wrap items-center gap-6 border-b border-line"
-            >
-              <DetailTabButton
-                tab="markdown"
-                activeTab={props.activeTab}
-                label="文档"
-                onSelect={props.onTabChange}
-              />
-              <DetailTabButton
-                tab="runtime"
-                activeTab={props.activeTab}
-                label="环境配置"
-                onSelect={props.onTabChange}
-              />
-            </div>
+                  <div className="rounded-panel bg-detail-bg px-6 py-6 md:px-7 md:py-7">
+                    {runtimeMessage ? (
+                      <p className="text-base leading-7 text-muted-strong">{runtimeMessage}</p>
+                    ) : props.preflightBusy && !props.preflight ? (
+                      <div className="space-y-3">
+                        <div className="ui-skeleton h-4 rounded-lg" />
+                        <div className="ui-skeleton h-4 rounded-lg" />
+                        <div className="ui-skeleton h-28 rounded-panel" />
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {props.preflightError ? (
+                          <p className="text-sm leading-6 text-red-700">
+                            环境检测失败：{props.preflightError}
+                          </p>
+                        ) : null}
 
-            <div className="pt-6">
-              {props.activeTab === "markdown" ? (
-                <div id="skill-panel-markdown" role="tabpanel" aria-labelledby="skill-tab-markdown">
-                  {props.source.loading ? (
-                    <div className="space-y-3">
-                      <div className="ui-skeleton h-5 rounded-lg" />
-                      <div className="ui-skeleton h-4 rounded-lg" />
-                      <div className="ui-skeleton h-4 rounded-lg" />
-                      <div className="ui-skeleton h-4 rounded-lg" />
-                      <div className="ui-skeleton h-28 rounded-section" />
-                    </div>
-                  ) : props.source.error ? (
-                    <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-                      加载源码失败：{props.source.error}
-                    </div>
-                  ) : (
-                    <div className="rounded-panel bg-detail-bg px-6 py-7 md:px-7 md:py-8">
-                      <SkillMarkdownDocument markdown={markdownBody} />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div id="skill-panel-runtime" role="tabpanel" aria-labelledby="skill-tab-runtime">
-                  <div className="space-y-6">
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      {!runtimeMessage ? (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          disabled={props.preflightBusy || props.provisionBusy}
-                          onClick={() => void props.onPreflight()}
-                        >
-                          {props.preflightBusy ? "检测中…" : "重新检测"}
-                        </Button>
-                      ) : null}
-                      {!runtimeMessage ? (
-                        <Button
-                          size="sm"
-                          disabled={props.preflightBusy || props.provisionBusy}
-                          onClick={() => void primaryInstallAction()}
-                        >
-                          {props.provisionBusy ? "安装中…" : "安装"}
-                        </Button>
-                      ) : null}
-                    </div>
+                        {props.skill.provisionError ? (
+                          <p className="text-sm leading-6 text-red-700">
+                            最近一次安装失败：{props.skill.provisionError}
+                          </p>
+                        ) : null}
 
-                    <div className="rounded-panel bg-detail-bg px-6 py-6 md:px-7 md:py-7">
-                      {runtimeMessage ? (
-                        <p className="text-base leading-7 text-muted-strong">{runtimeMessage}</p>
-                      ) : props.preflightBusy && !props.preflight ? (
-                        <div className="space-y-3">
-                          <div className="ui-skeleton h-4 rounded-lg" />
-                          <div className="ui-skeleton h-4 rounded-lg" />
-                          <div className="ui-skeleton h-28 rounded-panel" />
+                        <div>
+                          <p className="text-xs tracking-label text-muted">环境数据</p>
+                          <pre className="mt-3 overflow-x-auto rounded-panel border border-line bg-white/78 px-4 py-4 text-sm leading-6 text-ink-soft">
+                            {environmentSnapshot}
+                          </pre>
                         </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {props.preflightError ? (
-                            <p className="text-sm leading-6 text-red-700">
-                              环境检测失败：{props.preflightError}
+
+                        <div className="border-t border-line pt-6">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <p className="text-xs tracking-label text-muted">安装日志</p>
+                            <p className="text-sm text-muted">
+                              {formatCount(props.logs.length)} 条
                             </p>
-                          ) : null}
-
-                          {props.skill.provisionError ? (
-                            <p className="text-sm leading-6 text-red-700">
-                              最近一次安装失败：{props.skill.provisionError}
-                            </p>
-                          ) : null}
-
-                          <div>
-                            <p className="text-xs tracking-label text-muted">环境数据</p>
-                            <pre className="mt-3 overflow-x-auto rounded-panel border border-line bg-white/78 px-4 py-4 text-sm leading-6 text-ink-soft">
-                              {environmentSnapshot}
-                            </pre>
                           </div>
-
-                          <div className="border-t border-line pt-6">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <p className="text-xs tracking-label text-muted">安装日志</p>
-                              <p className="text-sm text-muted">
-                                {formatCount(props.logs.length)} 条
-                              </p>
-                            </div>
-                            <pre className="mt-3 max-h-52 overflow-auto rounded-panel border border-line bg-white/78 px-4 py-4 text-sm leading-6 text-ink-soft">
-                              {props.logs.length > 0
-                                ? props.logs
-                                    .map((log) => `[${log.level}] ${log.message}`)
-                                    .join("\n")
-                                : "暂无日志"}
-                            </pre>
-                          </div>
+                          <pre className="mt-3 max-h-52 overflow-auto rounded-panel border border-line bg-white/78 px-4 py-4 text-sm leading-6 text-ink-soft">
+                            {props.logs.length > 0
+                              ? props.logs.map((log) => `[${log.level}] ${log.message}`).join("\n")
+                              : "暂无日志"}
+                          </pre>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
-          </DialogBody>
-        </DialogContent>
-      </DialogPortal>
-    </Dialog>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </DialogFrame>
   );
 }

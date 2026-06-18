@@ -33,7 +33,6 @@ export function ServerCard(props: {
       )}
       style={{ animationDelay: `${props.index * 40}ms` }}
     >
-
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-lg font-semibold tracking-title text-ink">{props.server.name}</h3>

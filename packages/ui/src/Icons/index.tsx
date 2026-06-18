@@ -55,6 +55,8 @@ import HugeMemoryIcon from "@hugeicons/core-free-icons/Brain02Icon";
 import HugeToolsIcon from "@hugeicons/core-free-icons/ToolsIcon";
 import HugeCheckListIcon from "@hugeicons/core-free-icons/CheckListIcon";
 import HugeGitBranchIcon from "@hugeicons/core-free-icons/GitBranchIcon";
+import HugePanelLeftOpenIcon from "@hugeicons/core-free-icons/SidebarLeft01Icon";
+import HugePanelLeftCloseIcon from "@hugeicons/core-free-icons/SidebarRight01Icon";
 import { createIcon } from "./create-icon.js";
 
 export type { IconProps } from "./create-icon.js";
@@ -66,6 +68,8 @@ export const BoltIcon = createIcon(HugeBoltIcon, "BoltIcon");
 export const McpServerIcon = createIcon(HugeMcpServerIcon, "McpServerIcon");
 export const MemoryIcon = createIcon(HugeMemoryIcon, "MemoryIcon");
 export const ToolsIcon = createIcon(HugeToolsIcon, "ToolsIcon");
+export const PanelLeftOpenIcon = createIcon(HugePanelLeftOpenIcon, "PanelLeftOpenIcon");
+export const PanelLeftCloseIcon = createIcon(HugePanelLeftCloseIcon, "PanelLeftCloseIcon");
 export const CheckListIcon = createIcon(HugeCheckListIcon, "CheckListIcon");
 export const GitBranchIcon = createIcon(HugeGitBranchIcon, "GitBranchIcon");
 export const BookIcon = createIcon(HugeBookIcon, "BookIcon");

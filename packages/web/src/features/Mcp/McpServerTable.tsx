@@ -9,8 +9,8 @@ import {
   PencilIcon,
   SearchIcon,
   McpServerIcon,
+  Switch,
   ToolsIcon,
-  Toggle,
   TrashIcon,
 } from "@clawbot/ui";
 import { cn } from "@/lib/cn.js";
@@ -114,16 +114,16 @@ function McpTableToolbar(props: {
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-sm text-account-muted">
-        <Toggle
-          value="enabled"
-          pressed={props.onlyEnabled}
-          onPressedChange={props.onOnlyEnabledChange}
-          size="sm"
-          tone="ink"
-          className="gap-2 px-3 text-md text-account-muted hover:text-account-ink-soft data-[pressed]:text-account-ink"
-        >
+        <label className="inline-flex items-center gap-2 text-md font-medium text-account-muted">
+          <Switch
+            checked={props.onlyEnabled}
+            label="仅看启用"
+            onCheckedChange={props.onOnlyEnabledChange}
+            size="sm"
+            tone="ink"
+          />
           仅看启用
-        </Toggle>
+        </label>
         <span className="hidden h-4 w-px bg-account-line-strong md:block" />
         <button
           type="button"
@@ -267,7 +267,9 @@ function ServerIdentity(props: { compact?: boolean; expanded: boolean; server: M
           <p className="truncate text-sm font-semibold leading-tight text-account-ink">
             {props.server.name}
           </p>
-          <Badge size="sm" bordered={false} showDot={false} tone={statusTone(props.server.status)}>{statusLabel(props.server.status)}</Badge>
+          <Badge size="sm" bordered={false} showDot={false} tone={statusTone(props.server.status)}>
+            {statusLabel(props.server.status)}
+          </Badge>
         </div>
         <p
           className="mt-0.5 truncate font-mono text-xs tracking-body text-account-muted-soft"

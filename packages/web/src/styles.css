@@ -510,8 +510,8 @@ pre {
 
 @utility mcp-server-table-grid {
   grid-template-columns:
-    minmax(0, 2.6fr) minmax(92px, 0.8fr) minmax(88px, 0.8fr) minmax(92px, 0.8fr)
-    minmax(118px, 1fr);
+    minmax(0, 3.8fr) minmax(80px, 0.6fr) minmax(72px, 0.55fr) minmax(72px, 0.55fr)
+    minmax(92px, 0.7fr);
 }
 
 @media (min-width: 768px) {

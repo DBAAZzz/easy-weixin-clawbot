@@ -33,6 +33,8 @@ export function AppShell() {
           healthLoading={health.loading}
           maxWidth={SIDEBAR_MAX_WIDTH}
           minWidth={SIDEBAR_MIN_WIDTH}
+          onCollapse={() => sidebarWidth.setWidth(SIDEBAR_MIN_WIDTH)}
+          onExpand={() => sidebarWidth.setWidth(SIDEBAR_MAX_WIDTH)}
           onOpenSettings={() => setSettingsOpen(true)}
           resizeHandleProps={sidebarWidth.resizeHandleProps}
           resizing={sidebarWidth.isResizing}

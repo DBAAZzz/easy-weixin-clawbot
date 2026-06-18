@@ -11,6 +11,8 @@ import {
   McpServerIcon,
   LogOutIcon,
   MemoryIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
   PuzzleIcon,
   ScanIcon,
   SettingsIcon,
@@ -18,6 +20,7 @@ import {
   CheckListIcon,
   ToolsIcon,
   WebhookIcon,
+  Button,
 } from "@clawbot/ui";
 import logoUrl from "../assets/images/logo.png";
 
@@ -60,7 +63,7 @@ function NavItem({ to, label, icon, badge, badgeVariant = "default", collapsed }
       {badge !== undefined && !collapsed && (
         <span
           className={cn(
-            "ml-auto rounded-full px-2 py-0.5 text-sm font-medium",
+            "ml-auto rounded-full shrink-0 px-2 py-0.5 text-sm font-medium",
             badgeStyles[badgeVariant],
           )}
         >
@@ -136,6 +139,8 @@ export function Sidebar(props: {
   healthLoading: boolean;
   maxWidth: number;
   minWidth: number;
+  onCollapse: () => void;
+  onExpand: () => void;
   onOpenSettings: () => void;
   resizeHandleProps: ResizeHandleProps;
   resizing: boolean;
@@ -144,10 +149,14 @@ export function Sidebar(props: {
   const navigate = useNavigate();
   const activeCount = props.accounts.filter((account) => !account.deprecated).length;
   const isOnline = props.health && !props.healthLoading;
+  const hideBrandText = props.width <= 188;
 
   return (
     <aside
-      className="bg-sidebar-shell relative h-dvh shrink-0 overflow-hidden border-r border-line"
+      className={cn(
+        "bg-sidebar-shell relative h-dvh shrink-0 overflow-hidden border-r border-line",
+        !props.resizing && "transition-[width] duration-200 ease-expo",
+      )}
       style={{
         maxWidth: props.maxWidth,
         minWidth: props.minWidth,
@@ -163,19 +172,46 @@ export function Sidebar(props: {
         {/* Logo */}
         <div
           className={cn(
-            "flex items-center rounded-section py-2.5",
-            props.collapsed ? "justify-center px-0" : "gap-3 px-3",
+            "flex rounded-section py-2.5",
+            props.collapsed ? "flex-col items-center gap-2 px-0" : "items-center gap-3 px-3",
           )}
         >
+          {props.collapsed && (
+            <Button
+              type="button"
+              size="sm"
+              aria-label="展开侧边栏"
+              title="展开侧边栏"
+              variant="ghost"
+              onClick={props.onExpand}
+            >
+              <PanelLeftCloseIcon className="!size-5" />
+            </Button>
+          )}
           <img
             src={logoUrl}
             alt="Clawbot"
             className="size-10 rounded-lg object-cover shadow-logo"
           />
-          <div className={cn("min-w-0", props.collapsed && "sr-only")}>
-            <p className="text-lg font-semibold text-ink">Clawbot</p>
-            <p className="mt-0.5 text-sm text-muted">运营控制台</p>
-          </div>
+          {!props.collapsed && (
+            <>
+              <div className={cn("min-w-0", hideBrandText && "sr-only")}>
+                <p className="text-lg font-semibold text-ink">Clawbot</p>
+                <p className="mt-0.5 text-sm text-muted">运营控制台</p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                aria-label="收起侧边栏"
+                title="收起侧边栏"
+                variant="ghost"
+                onClick={props.onCollapse}
+                className="ml-auto"
+              >
+                <PanelLeftOpenIcon className="!size-5" />
+              </Button>
+            </>
+          )}
         </div>
 
         {/* 资源管理 */}

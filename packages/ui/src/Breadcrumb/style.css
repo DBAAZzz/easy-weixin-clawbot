@@ -1,0 +1,93 @@
+/* Breadcrumb color contract. Consumers can re-theme these from :root. */
+:root {
+  --color-breadcrumb-fg: var(--color-ink, #1a2128);
+  --color-breadcrumb-muted: var(--color-muted, #8a949c);
+  --color-breadcrumb-hover: var(--color-ink-soft, #2d353c);
+  --color-breadcrumb-focus: var(--color-accent, #1d6e54);
+}
+
+@layer clawbot {
+  .cb-breadcrumb {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    gap: var(--spacing-4);
+    color: var(--color-breadcrumb-muted);
+    font-weight: 600;
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-body);
+  }
+
+  .cb-breadcrumb-back {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-breadcrumb-muted);
+    outline: none;
+    transition:
+      color 0.2s var(--ease-expo),
+      transform 0.2s var(--ease-expo);
+  }
+
+  .cb-breadcrumb-back svg {
+    width: var(--spacing-icon-md);
+    height: var(--spacing-icon-md);
+  }
+
+  .cb-breadcrumb-back:hover {
+    color: var(--color-breadcrumb-hover);
+    transform: translateX(calc(var(--spacing-1) * -1));
+  }
+
+  .cb-breadcrumb-back:focus-visible {
+    color: var(--color-breadcrumb-focus);
+  }
+
+  .cb-breadcrumb-list {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--spacing-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .cb-breadcrumb-item {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--spacing-4);
+  }
+
+  .cb-breadcrumb-link {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-breadcrumb-muted);
+    outline: none;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 0.2s var(--ease-expo);
+  }
+
+  .cb-breadcrumb-link:hover {
+    color: var(--color-breadcrumb-hover);
+  }
+
+  .cb-breadcrumb-link:focus-visible {
+    color: var(--color-breadcrumb-focus);
+  }
+
+  .cb-breadcrumb-link--current {
+    color: var(--color-breadcrumb-fg);
+    font-weight: 700;
+  }
+
+  .cb-breadcrumb-separator {
+    flex: 0 0 auto;
+    color: var(--color-breadcrumb-muted);
+    font-weight: 500;
+  }
+}

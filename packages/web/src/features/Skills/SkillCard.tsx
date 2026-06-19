@@ -38,7 +38,7 @@ export function SkillCard(props: {
 
         <div className="min-w-0 flex-1 pt-0.5">
           <div className="flex min-w-0 items-center gap-2">
-            <h3 className="truncate text-lg font-bold leading-tight tracking-body text-account-ink">
+            <h3 className="truncate text-base font-bold leading-tight tracking-body text-account-ink">
               {props.skill.name}
             </h3>
             <span className="shrink-0 font-mono text-xs font-semibold text-account-muted-faint">
@@ -60,7 +60,7 @@ export function SkillCard(props: {
         </div>
       </div>
 
-      <p className="mt-3 line-clamp-2 min-h-10 w-full text-md leading-5 text-account-ink-soft">
+      <p className="mt-3 line-clamp-2 min-h-10 w-full text-sm leading-5 text-account-muted">
         {props.skill.summary}
       </p>
 

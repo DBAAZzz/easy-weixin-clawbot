@@ -3,6 +3,7 @@ import "./style.css";
 export * from "./Accordion/index.js";
 export * from "./AdminCard/index.js";
 export * from "./Badge/index.js";
+export * from "./Breadcrumb/index.js";
 export * from "./Button/index.js";
 export * from "./Card/index.js";
 export * from "./Dialog/index.js";

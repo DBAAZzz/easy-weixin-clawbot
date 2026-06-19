@@ -5,7 +5,6 @@ import { AccountTableFooter } from "./AccountTableFooter.js";
 import { DashboardHeader } from "./DashboardHeader.js";
 import { StatsGrid } from "./StatsGrid.js";
 import { useAccountList } from "./useAccountList.js";
-import "./dashboard.css";
 
 export function DashboardPage() {
   const {

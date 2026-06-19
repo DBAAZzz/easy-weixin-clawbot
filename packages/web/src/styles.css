@@ -463,3 +463,49 @@ pre {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 250, 251, 0.94));
 }
 
+/* ── Table grid utilities (must live in the main CSS entry for Tailwind v4 @utility) ── */
+
+@utility account-table-grid {
+  grid-template-columns:
+    minmax(0, 2.6fr) minmax(96px, 1fr) minmax(84px, 0.9fr) minmax(132px, 1.2fr)
+    minmax(104px, 1.1fr);
+}
+
+@utility observability-trace-grid {
+  grid-template-columns:
+    minmax(190px, 1fr) minmax(72px, 0.45fr) minmax(280px, 1.1fr) minmax(128px, 0.75fr)
+    minmax(20px, 20px);
+  align-items: center;
+}
+
+@utility mcp-server-table-grid {
+  grid-template-columns:
+    minmax(0, 3.8fr) minmax(80px, 0.6fr) minmax(72px, 0.55fr) minmax(72px, 0.55fr)
+    minmax(92px, 0.7fr);
+}
+
+@utility tools-table-grid {
+  grid-template-columns:
+    minmax(0, 3fr) minmax(96px, 0.85fr) minmax(160px, 1.4fr) minmax(76px, 0.6fr)
+    minmax(92px, 0.7fr);
+}
+
+@utility bg-metric-gradient {
+  background: linear-gradient(90deg, rgba(21, 110, 99, 0.82), rgba(15, 118, 110, 0.42));
+}
+
+@utility qr-ascii {
+  display: inline-block;
+  background: #fff;
+  color: var(--color-ink-deep);
+  font-size: 8px;
+  line-height: 9px;
+  letter-spacing: 0;
+}
+
+@media (min-width: 768px) {
+  .mcp-editor-split {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  }
+}
+

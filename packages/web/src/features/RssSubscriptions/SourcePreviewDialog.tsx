@@ -13,6 +13,7 @@ import { SearchIcon, ArrowRightIcon } from "@clawbot/ui";
 import type { RssSourcePreviewDto } from "@/api/rss.js";
 import { formatDateTime } from "../../lib/format.js";
 import { stripHtmlToPlainText, sanitizePreviewHtml, buildPreviewExcerpt } from "./types.js";
+import "./rss-preview.css";
 
 export function SourcePreviewDialog(props: {
   open: boolean;
@@ -55,8 +56,8 @@ export function SourcePreviewDialog(props: {
         <DialogContent className="rss-preview-dialog rounded-dialog">
           <DialogHeader status={<DialogClose />}>
             <div className="min-w-0">
-              <DialogTitle className="text-4xl md:text-5xl">内容预览</DialogTitle>
-              <p className="mt-2 text-base leading-6 text-muted-strong">
+              <DialogTitle className="text-2xl md:text-4xl">内容预览</DialogTitle>
+              <p className="mt-1.5 text-sm leading-5 text-muted">
                 {props.preview?.source.name ?? "未选择订阅源"}
               </p>
             </div>
@@ -64,14 +65,14 @@ export function SourcePreviewDialog(props: {
 
           <DialogBody className="min-h-0 flex-1 overflow-hidden px-0 md:p-0">
             {!props.preview ? (
-              <div className="m-5 rounded-panel border border-line bg-pane-74 px-4 py-3 text-base text-muted-strong">
+              <div className="m-4 rounded-card border border-line bg-pane-74 px-4 py-3 text-sm text-muted-strong">
                 请选择一个订阅源进行预览。
               </div>
             ) : items.length === 0 ? (
-              <div className="m-5 rounded-panel border border-dashed border-line bg-glass-48 px-5 py-10 text-center">
-                <SearchIcon className="mx-auto size-8 text-muted" />
-                <p className="mt-3 text-xl font-medium text-ink">暂无内容</p>
-                <p className="mt-2 text-base leading-6 text-muted">
+              <div className="m-4 rounded-panel border border-dashed border-line bg-glass-48 px-5 py-8 text-center">
+                <SearchIcon className="mx-auto size-6 text-muted" />
+                <p className="mt-3 text-md font-semibold text-ink">暂无内容</p>
+                <p className="mt-1.5 text-sm leading-5 text-muted">
                   源已连通，但当前没有抓到可展示的新条目。
                 </p>
               </div>
@@ -89,7 +90,7 @@ export function SourcePreviewDialog(props: {
                         type="button"
                         onClick={() => setSelectedItemId(item.id)}
                         className={[
-                          "relative flex min-h-28 w-full min-w-0 flex-col overflow-hidden border-b border-line px-4 py-3 text-left transition last:border-b-0",
+                          "relative flex w-full min-w-0 flex-col overflow-hidden border-b border-line px-3 py-2.5 text-left transition last:border-b-0",
                           active
                             ? "bg-accent-subtle text-ink shadow-accent-xs"
                             : "text-muted-strong hover:bg-white/72 hover:text-ink",
@@ -98,33 +99,31 @@ export function SourcePreviewDialog(props: {
                         <span
                           aria-hidden="true"
                           className={[
-                            "absolute inset-y-3 left-0 w-1 rounded-r-full transition",
+                            "absolute inset-y-2.5 left-0 w-0.75 rounded-r-full transition",
                             active ? "bg-accent" : "bg-transparent",
                           ].join(" ")}
                         />
                         <div
                           className={[
-                            "line-clamp-1 min-w-0 text-base font-semibold leading-6 transition",
+                            "line-clamp-1 min-w-0 text-sm font-semibold transition",
                             active ? "text-accent-strong" : "text-ink",
                           ].join(" ")}
                         >
                           {title}
                         </div>
-                        <div className="mt-2 flex-1">
-                          {excerpt ? (
-                            <p
-                              className={[
-                                "line-clamp-2 text-sm leading-6 transition",
-                                active ? "text-muted-strong" : "text-muted",
-                              ].join(" ")}
-                            >
-                              {excerpt}
-                            </p>
-                          ) : null}
-                        </div>
+                        {excerpt ? (
+                          <p
+                            className={[
+                              "mt-1.5 line-clamp-2 text-xs transition",
+                              active ? "text-muted-strong" : "text-muted",
+                            ].join(" ")}
+                          >
+                            {excerpt}
+                          </p>
+                        ) : null}
                         <div
                           className={[
-                            "mt-auto pt-2 text-xs transition",
+                            "mt-auto pt-1.5 text-2xs transition",
                             active ? "text-accent-strong" : "text-muted",
                           ].join(" ")}
                         >
@@ -138,8 +137,8 @@ export function SourcePreviewDialog(props: {
 
                 <section className="rss-preview-detail bg-card-hover">
                   {selectedItem ? (
-                    <div className="min-w-0 px-5 py-5 md:px-6">
-                      <div className="text-sm text-muted">
+                    <div className="min-w-0 px-4 py-4">
+                      <div className="text-xs text-muted">
                         <span>{formatDateTime(selectedItem.published_at)}</span>
                         {selectedItem.author ? <span> · {selectedItem.author}</span> : null}
                       </div>
@@ -149,13 +148,13 @@ export function SourcePreviewDialog(props: {
                           href={selectedItem.link}
                           target="_blank"
                           rel="noreferrer"
-                          className="rss-preview-title mt-2 flex max-w-full items-start gap-1.5 text-4xl font-semibold leading-8 text-ink transition hover:text-accent-strong"
+                          className="rss-preview-title mt-2 flex max-w-full items-start gap-1.5 text-xl font-semibold leading-7 text-ink transition hover:text-accent-strong"
                         >
                           <span className="min-w-0 flex-1">{selectedTitle}</span>
-                          <ArrowRightIcon className="mt-1 size-4 shrink-0 -rotate-45" />
+                          <ArrowRightIcon className="mt-0.5 size-4 shrink-0 -rotate-45" />
                         </a>
                       ) : (
-                        <h4 className="rss-preview-title mt-2 text-4xl font-semibold leading-8 text-ink">
+                        <h4 className="rss-preview-title mt-2 text-xl font-semibold leading-7 text-ink">
                           {selectedTitle}
                         </h4>
                       )}
@@ -165,7 +164,7 @@ export function SourcePreviewDialog(props: {
                           href={selectedItem.link}
                           target="_blank"
                           rel="noreferrer"
-                          className="mt-3 inline-flex items-center gap-1.5 text-base font-medium text-accent transition hover:text-accent-strong"
+                          className="mt-2.5 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition hover:text-accent-strong"
                         >
                           <span>查看原文</span>
                           <ArrowRightIcon className="size-3.5 -rotate-45" />
@@ -173,7 +172,7 @@ export function SourcePreviewDialog(props: {
                       ) : null}
 
                       <div
-                        className="rss-preview-richtext mt-6"
+                        className="rss-preview-richtext mt-4"
                         dangerouslySetInnerHTML={{ __html: selectedDetailHtml }}
                       />
                     </div>

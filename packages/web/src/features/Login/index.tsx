@@ -5,6 +5,8 @@ import { QrCodeDisplay } from "../../components/QrCodeDisplay.js";
 import { Button } from "@clawbot/ui";
 import { ActivityIcon, ScanIcon } from "@clawbot/ui";
 import { cancelLogin, fetchLoginStatus, startLogin } from "@/api/wechat-login.js";
+import { cn } from "../../lib/cn.js";
+import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
 
 function statusMeta(state: LoginState) {
   switch (state.status) {
@@ -56,10 +58,10 @@ export function LoginPage() {
   const qrVisible = state.status === "qr_ready" || state.status === "scanning";
   const statusToneClassName =
     meta.tone === "online"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      ? "border-success-soft-border bg-success-soft text-success-soft-fg"
       : meta.tone === "offline"
-        ? "border-slate-200 bg-slate-100 text-slate-600"
-        : "border-line bg-white/72 text-muted-strong";
+        ? "border-notice-error-border bg-notice-error-bg text-danger"
+        : "border-line bg-glass-72 text-muted-strong";
 
   // 进入页面时只查状态，不自动触发登录
   useEffect(() => {
@@ -136,47 +138,55 @@ export function LoginPage() {
   const emptyMessage = state.status === "error" ? (error ?? state.message) : null;
   const emptyToneClassName =
     state.status === "error" || state.status === "expired"
-      ? "border-notice-error-border bg-notice-error-bg text-red-700"
-      : "border-dashed border-line bg-frost-72 text-muted";
+      ? "border-notice-error-border bg-notice-error-bg text-danger"
+      : "border-dashed border-line bg-frost-86 text-muted";
 
   return (
     <div className="flex min-h-full flex-col gap-2.5 md:gap-3">
-      <section className="space-y-2.5">
-        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-label-xl text-muted">Bind Clawbot</p>
-            <h2 className="mt-1.5 text-4xl text-ink">扫码绑定 Clawbot</h2>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
+      <DashboardHeader
+        eyebrow="Bind Clawbot"
+        title="扫码绑定 Clawbot"
+        description={meta.description}
+        actions={
+          <>
             <span
-              className={`inline-flex items-center border px-2.5 py-1 text-xs font-medium tracking-badge ${statusToneClassName}`}
+              className={cn(
+                "inline-flex items-center rounded-card border px-2.5 py-1 text-xs font-medium tracking-badge",
+                statusToneClassName,
+              )}
             >
               {meta.label}
             </span>
-            <Button size="sm" className="rounded-none" onClick={handleRestart}>
+            <Button size="sm" onClick={handleRestart}>
               <ScanIcon className="size-4" />
               {state.status === "idle" ? "生成二维码" : "重新生成"}
             </Button>
             {state.status !== "idle" && state.status !== "done" ? (
-              <Button size="sm" variant="secondary" className="rounded-none" onClick={handleCancel}>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="border-account-line-strong bg-account-card text-account-ink-soft shadow-account-control hover:border-account-control-hover hover:bg-account-table-head hover:text-account-ink-soft"
+                onClick={handleCancel}
+              >
                 <ActivityIcon className="size-4" />
                 取消
               </Button>
             ) : null}
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
 
       <section className="flex flex-1 items-center justify-center">
-        <div className="aspect-square w-full max-w-[540px] overflow-hidden rounded-lg border border-line-strong bg-panel">
-          {" "}
+        <div className="aspect-square w-full max-w-xl overflow-hidden rounded-section border border-line-strong bg-panel">
           {qrVisible ? (
             <QrCodeDisplay qrText={state.qr_text ?? ""} />
           ) : (
             <div className="bg-qr-shell-soft flex h-full items-center justify-center px-6 py-8">
               <div
-                className={`w-full max-w-[320px] border px-5 py-6 text-center ${emptyToneClassName}`}
+                className={cn(
+                  "w-full max-w-sm rounded-card border px-5 py-6 text-center",
+                  emptyToneClassName,
+                )}
               >
                 <p className="text-xl font-medium">{emptyTitle}</p>
                 {emptyMessage ? <p className="mt-2 text-base leading-6">{emptyMessage}</p> : null}

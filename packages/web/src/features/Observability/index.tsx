@@ -11,13 +11,14 @@ import {
 } from "../../lib/format.js";
 import { Card } from "@clawbot/ui";
 import { Badge } from "@clawbot/ui";
-import { Button, buttonClassName } from "@clawbot/ui";
+import { Button } from "@clawbot/ui";
 import { Input } from "@clawbot/ui";
-import { RefreshIcon, SearchIcon, TerminalIcon } from "@clawbot/ui";
+import { SearchIcon } from "@clawbot/ui";
 import { Select } from "@clawbot/ui";
 import { cn } from "../../lib/cn.js";
 import { buildTraceDetailPath, getTraceStatus } from "../../lib/observability.js";
 import { TraceFlagList } from "../../components/observability/TraceFlagList.js";
+import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
 import { FLAG_OPTIONS, STATUS_OPTIONS, MetricCard, ChartList } from "./components.jsx";
 
 export function ObservabilityPage() {
@@ -33,31 +34,18 @@ export function ObservabilityPage() {
   });
 
   return (
-    <div className="space-y-4 md:space-y-5">
+    <div className="mx-auto max-w-7xl space-y-5 text-account-ink">
+      <DashboardHeader
+        eyebrow="Agent Observability"
+        title="可观测性中心"
+        description="查看 Agent 请求、延迟、错误和 Trace"
+        primaryLabel="打开 /api/metrics"
+        refreshLabel="刷新"
+        onCreate={() => window.open("/api/metrics", "_blank", "noopener,noreferrer")}
+        onRefresh={observability.refresh}
+      />
+
       <section className="space-y-3">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-label-xl text-muted">Agent Observability</p>
-            <h2 className="mt-1.5 text-4xl text-ink">可观测性中心</h2>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <a
-              href="/api/metrics"
-              target="_blank"
-              rel="noreferrer"
-              className={buttonClassName({ variant: "secondary", size: "sm" })}
-            >
-              <TerminalIcon className="size-4" />
-              打开 /api/metrics
-            </a>
-            <Button size="sm" onClick={observability.refresh}>
-              <RefreshIcon className="size-4" />
-              刷新
-            </Button>
-          </div>
-        </div>
-
         {observability.error ? (
           <div className="rounded-lg border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
             加载可观测性数据失败：{observability.error}

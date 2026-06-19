@@ -18,7 +18,7 @@ export function DetailTabButton(props: {
       aria-controls={`skill-panel-${props.tab}`}
       onClick={() => props.onSelect(props.tab)}
       className={cn(
-        "inline-flex items-center border-b-2 px-0 pb-3 pt-1 text-base font-medium tracking-body transition duration-200 ease-expo",
+        "inline-flex items-center border-b-2 px-0 pb-2.5 pt-1 text-sm font-medium tracking-body transition duration-200 ease-expo",
         selected ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink",
       )}
     >

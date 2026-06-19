@@ -77,9 +77,8 @@ export function SkillDetailModal(props: {
       open
       title={props.skill.name}
       closeLabel="关闭 skill 详情"
-      contentClassName="!max-w-6xl rounded-section bg-glass-92"
-      headerClassName="py-5"
-      bodyClassName="py-6"
+      contentClassName="!max-w-4xl rounded-section bg-glass-92"
+      bodyClassName="py-4"
       onOpenChange={(open) => !open && props.onClose()}
       description={
         <>
@@ -89,21 +88,21 @@ export function SkillDetailModal(props: {
               {props.skill.enabled ? " 已启用" : " 已停用"}
             </span>
             {props.skill.provisionError ? (
-              <span className="text-red-700"> · 最近一次安装失败</span>
+              <span className="text-danger"> · 最近一次安装失败</span>
             ) : null}
           </span>
           <ExpandableSummary text={props.skill.summary} />
         </>
       }
     >
-      <div className="space-y-6">
+      <div className="space-y-5">
         <CompactMetaStrip items={overviewItems} />
 
         <div>
           <div
             role="tablist"
             aria-label="Skill 详情视图"
-            className="flex flex-wrap items-center gap-6 border-b border-line"
+            className="flex flex-wrap items-center gap-4 border-b border-line"
           >
             <DetailTabButton
               tab="markdown"
@@ -119,30 +118,30 @@ export function SkillDetailModal(props: {
             />
           </div>
 
-          <div className="pt-6">
+          <div className="pt-4">
             {props.activeTab === "markdown" ? (
               <div id="skill-panel-markdown" role="tabpanel" aria-labelledby="skill-tab-markdown">
                 {props.source.loading ? (
                   <div className="space-y-3">
-                    <div className="ui-skeleton h-5 rounded-lg" />
-                    <div className="ui-skeleton h-4 rounded-lg" />
-                    <div className="ui-skeleton h-4 rounded-lg" />
-                    <div className="ui-skeleton h-4 rounded-lg" />
-                    <div className="ui-skeleton h-28 rounded-section" />
+                    <div className="ui-skeleton h-5 rounded-card" />
+                    <div className="ui-skeleton h-4 rounded-card" />
+                    <div className="ui-skeleton h-4 rounded-card" />
+                    <div className="ui-skeleton h-4 rounded-card" />
+                    <div className="ui-skeleton h-28 rounded-card" />
                   </div>
                 ) : props.source.error ? (
-                  <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
+                  <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-sm leading-5 text-danger">
                     加载源码失败：{props.source.error}
                   </div>
                 ) : (
-                  <div className="rounded-panel bg-detail-bg px-6 py-7 md:px-7 md:py-8">
+                  <div className="rounded-panel bg-detail-bg px-4 py-5 md:px-5 md:py-5">
                     <SkillMarkdownDocument markdown={markdownBody} />
                   </div>
                 )}
               </div>
             ) : (
               <div id="skill-panel-runtime" role="tabpanel" aria-labelledby="skill-tab-runtime">
-                <div className="space-y-6">
+                <div className="space-y-5">
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     {!runtimeMessage ? (
                       <Button
@@ -165,44 +164,44 @@ export function SkillDetailModal(props: {
                     ) : null}
                   </div>
 
-                  <div className="rounded-panel bg-detail-bg px-6 py-6 md:px-7 md:py-7">
+                  <div className="rounded-panel bg-detail-bg px-4 py-5 md:px-5 md:py-5">
                     {runtimeMessage ? (
-                      <p className="text-base leading-7 text-muted-strong">{runtimeMessage}</p>
+                      <p className="text-sm leading-5 text-muted-strong">{runtimeMessage}</p>
                     ) : props.preflightBusy && !props.preflight ? (
                       <div className="space-y-3">
-                        <div className="ui-skeleton h-4 rounded-lg" />
-                        <div className="ui-skeleton h-4 rounded-lg" />
+                        <div className="ui-skeleton h-4 rounded-card" />
+                        <div className="ui-skeleton h-4 rounded-card" />
                         <div className="ui-skeleton h-28 rounded-panel" />
                       </div>
                     ) : (
-                      <div className="space-y-6">
+                      <div className="space-y-5">
                         {props.preflightError ? (
-                          <p className="text-sm leading-6 text-red-700">
+                          <p className="text-xs leading-5 text-danger">
                             环境检测失败：{props.preflightError}
                           </p>
                         ) : null}
 
                         {props.skill.provisionError ? (
-                          <p className="text-sm leading-6 text-red-700">
+                          <p className="text-xs leading-5 text-danger">
                             最近一次安装失败：{props.skill.provisionError}
                           </p>
                         ) : null}
 
                         <div>
                           <p className="text-xs tracking-label text-muted">环境数据</p>
-                          <pre className="mt-3 overflow-x-auto rounded-panel border border-line bg-white/78 px-4 py-4 text-sm leading-6 text-ink-soft">
+                          <pre className="mt-2.5 overflow-x-auto rounded-panel border border-line bg-white/78 px-4 py-3 text-xs leading-5 text-ink-soft">
                             {environmentSnapshot}
                           </pre>
                         </div>
 
-                        <div className="border-t border-line pt-6">
+                        <div className="border-t border-line pt-5">
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <p className="text-xs tracking-label text-muted">安装日志</p>
                             <p className="text-sm text-muted">
                               {formatCount(props.logs.length)} 条
                             </p>
                           </div>
-                          <pre className="mt-3 max-h-52 overflow-auto rounded-panel border border-line bg-white/78 px-4 py-4 text-sm leading-6 text-ink-soft">
+                          <pre className="mt-2.5 max-h-52 overflow-auto rounded-panel border border-line bg-white/78 px-4 py-3 text-xs leading-5 text-ink-soft">
                             {props.logs.length > 0
                               ? props.logs.map((log) => `[${log.level}] ${log.message}`).join("\n")
                               : "暂无日志"}

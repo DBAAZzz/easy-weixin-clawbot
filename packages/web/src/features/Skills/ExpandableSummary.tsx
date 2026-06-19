@@ -11,10 +11,10 @@ export function ExpandableSummary(props: { text: string }) {
   }
 
   return (
-    <div className="mt-4 max-w-3xl">
+    <div className="mt-2">
       <p
         className={cn(
-          "text-lg leading-7 text-muted-strong",
+          "text-sm leading-5 text-muted-strong",
           canExpand && !expanded && "line-clamp-2",
         )}
       >
@@ -24,7 +24,7 @@ export function ExpandableSummary(props: { text: string }) {
         <button
           type="button"
           onClick={() => setExpanded((current) => !current)}
-          className="mt-2 text-sm font-medium text-accent-strong transition hover:text-accent"
+          className="mt-1.5 text-xs font-medium text-accent-strong transition hover:text-accent"
         >
           {expanded ? "收起" : "...更多"}
         </button>

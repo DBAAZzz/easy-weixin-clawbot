@@ -1,5 +1,0 @@
-@utility account-table-grid {
-  grid-template-columns:
-    minmax(0, 2.6fr) minmax(96px, 1fr) minmax(84px, 0.9fr) minmax(132px, 1.2fr)
-    minmax(104px, 1.1fr);
-}

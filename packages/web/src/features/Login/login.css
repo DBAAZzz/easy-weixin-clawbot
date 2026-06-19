@@ -1,8 +1,0 @@
-@utility qr-ascii {
-  display: inline-block;
-  background: #fff;
-  color: var(--color-ink-deep);
-  font-size: 8px;
-  line-height: 9px;
-  letter-spacing: 0;
-}

@@ -169,12 +169,12 @@ export function RssSettingsPanel() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5">
+    <div className="mx-auto max-w-4xl space-y-5">
       <header>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 flex-col gap-1">
             <h3 className="text-2xl font-semibold text-ink">RSS</h3>
-            <p className="text-base leading-6 text-muted-strong">
+            <p className="text-sm leading-5 text-muted">
               管理 RSSHub 地址、认证方式和抓取超时。
             </p>
           </div>
@@ -189,35 +189,34 @@ export function RssSettingsPanel() {
         </div>
       </header>
 
-      <div className="flex flex-col gap-4">
-        {error ? (
-          <div className="rounded-panel border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-            加载 RSS 设置失败：{error}
-          </div>
-        ) : null}
+      {error ? (
+        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
+          加载 RSS 设置失败：{error}
+        </div>
+      ) : null}
 
-        {loading ? (
-          <div className="rounded-panel border border-line bg-pane-74 px-4 py-3 text-base text-muted-strong">
-            正在加载 RSS 设置…
-          </div>
-        ) : null}
+      {loading ? (
+        <div className="rounded-card border border-line bg-pane-74 px-4 py-3 text-base text-muted-strong">
+          正在加载 RSS 设置…
+        </div>
+      ) : null}
 
-        <section className="rounded-panel border border-line bg-panel px-4 py-4 shadow-card md:px-5 md:py-5">
-          <div className="flex flex-col gap-4">
+      <section className="rounded-panel border border-line bg-panel px-4 py-4 shadow-card md:px-5 md:py-5">
+        <div className="flex flex-col gap-5">
             <div className="flex items-center gap-3">
               <span className="flex size-10 items-center justify-center rounded-card border border-line bg-pane-95 text-accent shadow-btn-soft">
                 <LinkIcon className="size-4" />
               </span>
               <div>
-                <h4 className="text-2xl font-semibold text-ink">RSSHub 与抓取设置</h4>
-                <p className="text-base leading-6 text-muted-strong">
+                <h4 className="text-md font-semibold text-ink">RSSHub 与抓取设置</h4>
+                <p className="text-sm leading-5 text-muted-strong">
                   RSSHub 路由源会复用这里的统一配置。
                 </p>
               </div>
             </div>
 
             <div className="flex flex-col gap-2.5">
-              <label className="text-base font-medium text-muted-strong">RSSHub Base URL</label>
+              <label className="text-sm font-medium text-muted-strong">RSSHub Base URL</label>
               <Input
                 value={baseUrl}
                 onChange={(event) => setBaseUrl(event.target.value)}
@@ -227,7 +226,7 @@ export function RssSettingsPanel() {
 
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">认证方式</label>
+                <label className="text-sm font-medium text-muted-strong">认证方式</label>
                 <Select
                   size="sm"
                   value={authType}
@@ -237,7 +236,7 @@ export function RssSettingsPanel() {
               </div>
 
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">请求超时（毫秒）</label>
+                <label className="text-sm font-medium text-muted-strong">请求超时（毫秒）</label>
                 <Input
                   type="number"
                   value={timeoutMs}
@@ -250,7 +249,7 @@ export function RssSettingsPanel() {
             {authType === "basic" ? (
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-base font-medium text-muted-strong">用户名</label>
+                  <label className="text-sm font-medium text-muted-strong">用户名</label>
                   <Input
                     value={username}
                     onChange={(event) => setUsername(event.target.value)}
@@ -259,7 +258,7 @@ export function RssSettingsPanel() {
                 </div>
 
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-base font-medium text-muted-strong">密码</label>
+                  <label className="text-sm font-medium text-muted-strong">密码</label>
                   <Input
                     type="password"
                     value={password}
@@ -294,7 +293,7 @@ export function RssSettingsPanel() {
 
             {authType === "bearer" ? (
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">Bearer Token</label>
+                <label className="text-sm font-medium text-muted-strong">Bearer Token</label>
                 <Input
                   type="password"
                   value={bearerToken}
@@ -343,17 +342,17 @@ export function RssSettingsPanel() {
                 <Badge tone="muted">延迟 {testResult.latency_ms}ms</Badge>
               ) : null}
             </div>
-            <p className="mt-3 text-base leading-6 text-muted-strong">{testResult.message}</p>
+            <p className="mt-3 text-sm leading-5 text-muted-strong">{testResult.message}</p>
           </section>
         ) : null}
 
-        {saveError ? (
-          <div className="rounded-panel border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-            {saveError}
-          </div>
-        ) : null}
+      {saveError ? (
+        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
+          {saveError}
+        </div>
+      ) : null}
 
-        <div className="flex flex-wrap justify-end gap-2 pt-2">
+      <div className="flex flex-wrap justify-end gap-2 pt-2">
           <Button
             size="sm"
             variant="secondary"
@@ -380,7 +379,6 @@ export function RssSettingsPanel() {
             {saving ? "保存中..." : "保存"}
           </Button>
         </div>
-      </div>
     </div>
   );
 }

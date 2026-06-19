@@ -136,12 +136,12 @@ export function AssetStorageSettingsPanel() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5">
+    <div className="mx-auto max-w-4xl space-y-5">
       <header>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 flex-col gap-1">
             <h3 className="text-2xl font-semibold text-ink">资产存储</h3>
-            <p className="text-base leading-6 text-muted-strong">
+            <p className="text-sm leading-5 text-muted">
               配置图片、视频、音频和文件的长期保存位置。
             </p>
           </div>
@@ -157,28 +157,27 @@ export function AssetStorageSettingsPanel() {
         </div>
       </header>
 
-      <div className="flex flex-col gap-4">
-        {error ? (
-          <div className="rounded-panel border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-            加载资产存储设置失败：{error}
-          </div>
-        ) : null}
+      {error ? (
+        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
+          加载资产存储设置失败：{error}
+        </div>
+      ) : null}
 
-        {loading ? (
-          <div className="rounded-panel border border-line bg-pane-74 px-4 py-3 text-base text-muted-strong">
-            正在加载资产存储设置…
-          </div>
-        ) : null}
+      {loading ? (
+        <div className="rounded-card border border-line bg-pane-74 px-4 py-3 text-base text-muted-strong">
+          正在加载资产存储设置…
+        </div>
+      ) : null}
 
-        <section className="rounded-panel border border-line bg-panel px-4 py-4 shadow-card md:px-5 md:py-5">
-          <div className="flex flex-col gap-4">
+      <section className="rounded-panel border border-line bg-panel px-4 py-4 shadow-card md:px-5 md:py-5">
+          <div className="flex flex-col gap-5">
             <div className="flex items-center gap-3">
               <span className="flex size-10 items-center justify-center rounded-card border border-line bg-pane-95 text-accent shadow-btn-soft">
                 <StackIcon className="size-4" />
               </span>
               <div>
-                <h4 className="text-2xl font-semibold text-ink">存储后端</h4>
-                <p className="text-base leading-6 text-muted-strong">
+                <h4 className="text-md font-semibold text-ink">存储后端</h4>
+                <p className="text-sm leading-5 text-muted-strong">
                   保存后新收到的媒体会写入所选存储；旧资产仍按原记录读取。
                 </p>
               </div>
@@ -186,7 +185,7 @@ export function AssetStorageSettingsPanel() {
 
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">Provider</label>
+                <label className="text-sm font-medium text-muted-strong">Provider</label>
                 <Select
                   size="sm"
                   value={provider}
@@ -196,7 +195,7 @@ export function AssetStorageSettingsPanel() {
               </div>
 
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">本地目录（可选）</label>
+                <label className="text-sm font-medium text-muted-strong">本地目录（可选）</label>
                 <Input
                   value={localBaseDir}
                   onChange={(event) => setLocalBaseDir(event.target.value)}
@@ -209,10 +208,10 @@ export function AssetStorageSettingsPanel() {
 
         {provider === "s3-compatible" ? (
           <section className="rounded-panel border border-line bg-panel px-4 py-4 shadow-card md:px-5 md:py-5">
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-5">
               <div className="flex min-w-0 flex-col gap-1">
-                <h4 className="text-2xl font-semibold text-ink">Cloudflare R2</h4>
-                <p className="text-base leading-6 text-muted-strong">
+                <h4 className="text-md font-semibold text-ink">Cloudflare R2</h4>
+                <p className="text-sm leading-5 text-muted-strong">
                   R2 使用 S3-compatible API。Endpoint 通常形如
                   https://账号ID.r2.cloudflarestorage.com。
                 </p>
@@ -220,7 +219,7 @@ export function AssetStorageSettingsPanel() {
 
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-base font-medium text-muted-strong">名称</label>
+                  <label className="text-sm font-medium text-muted-strong">名称</label>
                   <Input
                     value={s3Name}
                     onChange={(event) => setS3Name(event.target.value)}
@@ -229,7 +228,7 @@ export function AssetStorageSettingsPanel() {
                 </div>
 
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-base font-medium text-muted-strong">Region</label>
+                  <label className="text-sm font-medium text-muted-strong">Region</label>
                   <Input
                     value={s3Region}
                     onChange={(event) => setS3Region(event.target.value)}
@@ -239,7 +238,7 @@ export function AssetStorageSettingsPanel() {
               </div>
 
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">Endpoint</label>
+                <label className="text-sm font-medium text-muted-strong">Endpoint</label>
                 <Input
                   value={s3Endpoint}
                   onChange={(event) => setS3Endpoint(event.target.value)}
@@ -249,7 +248,7 @@ export function AssetStorageSettingsPanel() {
 
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-base font-medium text-muted-strong">Bucket</label>
+                  <label className="text-sm font-medium text-muted-strong">Bucket</label>
                   <Input
                     value={s3Bucket}
                     onChange={(event) => setS3Bucket(event.target.value)}
@@ -258,7 +257,7 @@ export function AssetStorageSettingsPanel() {
                 </div>
 
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-base font-medium text-muted-strong">Access Key ID</label>
+                  <label className="text-sm font-medium text-muted-strong">Access Key ID</label>
                   <Input
                     value={s3AccessKeyId}
                     onChange={(event) => setS3AccessKeyId(event.target.value)}
@@ -268,7 +267,7 @@ export function AssetStorageSettingsPanel() {
               </div>
 
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">Secret Access Key</label>
+                <label className="text-sm font-medium text-muted-strong">Secret Access Key</label>
                 <Input
                   type="password"
                   value={s3SecretAccessKey}
@@ -308,7 +307,7 @@ export function AssetStorageSettingsPanel() {
               </div>
 
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">
+                <label className="text-sm font-medium text-muted-strong">
                   Public Base URL（可选）
                 </label>
                 <Input
@@ -316,7 +315,7 @@ export function AssetStorageSettingsPanel() {
                   onChange={(event) => setS3PublicBaseUrl(event.target.value)}
                   placeholder="https://assets.example.com"
                 />
-                <p className="text-sm leading-6 text-muted-strong">
+                <p className="text-xs leading-5 text-muted">
                   留空时后端会生成短期签名 URL；配置公开域名后可直接返回 CDN URL。
                 </p>
               </div>
@@ -324,13 +323,13 @@ export function AssetStorageSettingsPanel() {
           </section>
         ) : null}
 
-        {saveError ? (
-          <div className="rounded-panel border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-            {saveError}
-          </div>
-        ) : null}
+      {saveError ? (
+        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
+          {saveError}
+        </div>
+      ) : null}
 
-        <div className="flex flex-wrap justify-end gap-2 pt-2">
+      <div className="flex flex-wrap justify-end gap-2 pt-2">
           <Button
             size="sm"
             variant="secondary"
@@ -362,7 +361,6 @@ export function AssetStorageSettingsPanel() {
             {saving ? "保存中..." : "保存"}
           </Button>
         </div>
-      </div>
     </div>
   );
 }

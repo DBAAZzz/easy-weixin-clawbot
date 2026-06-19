@@ -142,12 +142,12 @@ export function NetworkSearchSettingsPanel() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5">
+    <div className="mx-auto max-w-4xl space-y-5">
       <header>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 flex-col gap-1">
             <h3 className="text-2xl font-semibold text-ink">网络搜索</h3>
-            <p className="text-base leading-6 text-muted-strong">填写 API Key 并启用后生效。</p>
+            <p className="text-sm leading-5 text-muted">填写 API Key 并启用后生效。</p>
           </div>
 
           <Badge tone={configuredCount > 0 ? "online" : "offline"}>
@@ -156,20 +156,19 @@ export function NetworkSearchSettingsPanel() {
         </div>
       </header>
 
-      <div className="flex flex-col gap-4">
-        {error ? (
-          <div className="rounded-panel border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-            加载网络搜索配置失败：{error}
-          </div>
-        ) : null}
+      {error ? (
+        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
+          加载网络搜索配置失败：{error}
+        </div>
+      ) : null}
 
-        {loading ? (
-          <div className="rounded-panel border border-line bg-pane-74 px-4 py-3 text-base text-muted-strong">
-            正在加载网络搜索配置…
-          </div>
-        ) : null}
+      {loading ? (
+        <div className="rounded-card border border-line bg-pane-74 px-4 py-3 text-base text-muted-strong">
+          正在加载网络搜索配置…
+        </div>
+      ) : null}
 
-        {NETWORK_SEARCH_PROVIDER_ORDER.map((providerType) => {
+      {NETWORK_SEARCH_PROVIDER_ORDER.map((providerType) => {
           const draft = drafts[providerType];
           const meta = PROVIDER_META[providerType];
           const Icon = meta.icon;
@@ -180,14 +179,14 @@ export function NetworkSearchSettingsPanel() {
               key={providerType}
               className="rounded-panel border border-line bg-panel px-4 py-4 shadow-card md:px-5 md:py-5"
             >
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-card border border-line bg-pane-95 text-accent shadow-btn-soft">
                       <Icon className="size-4" />
                     </span>
                     <div className="flex min-w-0 flex-col gap-1">
-                      <h4 className="text-2xl font-semibold text-ink">{meta.label}</h4>
+                      <h4 className="text-md font-semibold text-ink">{meta.label}</h4>
                       <Badge tone={draft.apiKeySet ? "online" : "offline"} className="w-fit">
                         {draft.apiKeySet ? "已配置" : "未配置"}
                       </Badge>
@@ -212,7 +211,7 @@ export function NetworkSearchSettingsPanel() {
                 </div>
 
                 <div className="flex flex-col gap-2.5">
-                  <label htmlFor={inputId} className="text-base font-medium text-muted-strong">
+                  <label htmlFor={inputId} className="text-sm font-medium text-muted-strong">
                     API Key
                   </label>
                   <Input
@@ -234,17 +233,16 @@ export function NetworkSearchSettingsPanel() {
           );
         })}
 
-        {saveError ? (
-          <div className="rounded-panel border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-            {saveError}
-          </div>
-        ) : null}
-
-        <div className="flex justify-end pt-2">
-          <Button size="sm" disabled={saving || loading} onClick={() => void handleSave()}>
-            {saving ? "保存中..." : "保存"}
-          </Button>
+      {saveError ? (
+        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
+          {saveError}
         </div>
+      ) : null}
+
+      <div className="flex justify-end pt-2">
+        <Button size="sm" disabled={saving || loading} onClick={() => void handleSave()}>
+          {saving ? "保存中..." : "保存"}
+        </Button>
       </div>
     </div>
   );

@@ -4,11 +4,17 @@
 @import "@clawbot/ui/sonner.css";
 
 /* =============================================================================
- * Web app — semantic theme layer.
+ * Web app — semantic theme layer + global infrastructure.
  *
  * UI component styles and component tokens come from @clawbot/ui/style.css.
- * This file owns only the app semantic theme, Tailwind compile-time tokens,
- * and web-specific tokens such as page layout, glass, and dashboard colors.
+ * This file owns only:
+ *   - App semantic theme (Tailwind @theme tokens)
+ *   - Global reset, base styles, keyframes
+ *   - Shared utility classes (.ui-skeleton, .reveal-up, .status-dot)
+ *   - App-shell layout utilities (bg-sidebar-shell, bg-main-shell, bg-qr-shell)
+ *
+ * Feature-specific styles live co-located with their feature directories
+ * and are imported by the consuming components.
  *
  * To re-theme: change semantic values here. Do not import UI package source
  * files or restate component spacing/color tokens in the web package.
@@ -441,31 +447,6 @@ pre {
   animation: statusPulse 2.4s ease-in-out infinite;
 }
 
-.observability-progress-fill {
-  transform-origin: left center;
-  animation: observabilityProgressX 0.72s var(--ease-expo) both;
-}
-
-.observability-bar-fill {
-  transform-origin: center bottom;
-  animation: observabilityProgressY 0.72s var(--ease-expo) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .observability-progress-fill,
-  .observability-bar-fill {
-    animation: none;
-  }
-}
-
-.memory-graph-container {
-  background:
-    radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.06), transparent 40%),
-    radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.05), transparent 40%),
-    radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 38%),
-    linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.9));
-}
-
 @utility bg-sidebar-shell {
   background: linear-gradient(180deg, rgba(247, 250, 251, 0.94), rgba(241, 245, 247, 0.98));
 }
@@ -482,54 +463,3 @@ pre {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 250, 251, 0.94));
 }
 
-@utility account-table-grid {
-  grid-template-columns:
-    minmax(0, 2.6fr) minmax(96px, 1fr) minmax(84px, 0.9fr) minmax(132px, 1.2fr)
-    minmax(104px, 1.1fr);
-}
-
-@utility observability-trace-grid {
-  grid-template-columns:
-    minmax(190px, 1fr) minmax(72px, 0.45fr) minmax(280px, 1.1fr) minmax(128px, 0.75fr)
-    minmax(20px, 20px);
-  align-items: center;
-}
-
-@utility mcp-server-table-grid {
-  grid-template-columns:
-    minmax(0, 3.8fr) minmax(80px, 0.6fr) minmax(72px, 0.55fr) minmax(72px, 0.55fr)
-    minmax(92px, 0.7fr);
-}
-
-@utility tools-table-grid {
-  grid-template-columns:
-    minmax(0, 3fr) minmax(96px, 0.85fr) minmax(160px, 1.4fr) minmax(76px, 0.6fr)
-    minmax(92px, 0.7fr);
-}
-
-@media (min-width: 768px) {
-  .mcp-editor-split {
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
-  }
-}
-
-@utility bg-account-avatar {
-  background: linear-gradient(180deg, rgba(243, 247, 248, 0.92), rgba(233, 238, 241, 0.88));
-}
-
-@utility bg-tooltip-value {
-  background: linear-gradient(180deg, rgba(247, 249, 251, 0.96), rgba(255, 255, 255, 0.86));
-}
-
-@utility bg-metric-gradient {
-  background: linear-gradient(90deg, rgba(21, 110, 99, 0.82), rgba(15, 118, 110, 0.42));
-}
-
-@utility qr-ascii {
-  display: inline-block;
-  background: #fff;
-  color: var(--color-ink-deep);
-  font-size: 8px;
-  line-height: 9px;
-  letter-spacing: 0;
-}

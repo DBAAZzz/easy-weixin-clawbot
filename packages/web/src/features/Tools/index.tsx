@@ -3,6 +3,7 @@ import { Card } from "@clawbot/ui";
 import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
 import { StatsGrid } from "../Dashboard/StatsGrid.js";
 import { useToolsPage } from "./useToolsPage.js";
+import "./tools.css";
 import { ToolDetailModal } from "./ToolDetailModal.js";
 import { ToolsTable } from "./ToolsTable.js";
 

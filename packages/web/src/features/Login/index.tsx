@@ -3,6 +3,7 @@ import type { LoginState } from "@clawbot/shared";
 import { useNavigate } from "react-router-dom";
 import { QrCodeDisplay } from "../../components/QrCodeDisplay.js";
 import { Button } from "@clawbot/ui";
+import "./login.css";
 import { ActivityIcon, ScanIcon } from "@clawbot/ui";
 import { cancelLogin, fetchLoginStatus, startLogin } from "@/api/wechat-login.js";
 import { cn } from "../../lib/cn.js";

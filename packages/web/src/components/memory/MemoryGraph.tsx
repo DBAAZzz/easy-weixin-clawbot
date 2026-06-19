@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { type ForceGraphMethods, type NodeObject } from "react-force-graph-2d";
 import type { TapeGraphEdge, TapeGraphNode } from "@clawbot/shared";
 import { getInitialViewportAction } from "./viewport.js";
+import "./memory-graph.css";
 
 const CATEGORY_COLORS: Record<TapeGraphNode["category"], string> = {
   fact: "#69737b",

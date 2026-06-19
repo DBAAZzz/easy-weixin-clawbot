@@ -1,4 +1,5 @@
 import type { ObservabilityTraceSummary, ObservabilityWindow } from "@clawbot/shared";
+import "./observability.css";
 import {
   Badge,
   Button,

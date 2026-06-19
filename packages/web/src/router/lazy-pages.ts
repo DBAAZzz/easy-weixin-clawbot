@@ -1,10 +1,10 @@
 import { lazy } from "react";
 import type { ComponentType } from "react";
 
-function lazyNamedPage<TModule extends Record<TExport, ComponentType>, TExport extends string>(
-  load: () => Promise<TModule>,
-  exportName: TExport,
-) {
+function lazyNamedPage<
+  TModule extends Record<TExport, ComponentType>,
+  TExport extends string,
+>(load: () => Promise<TModule>, exportName: TExport) {
   return lazy(async () => {
     const module = await load();
     return { default: module[exportName] };
@@ -23,8 +23,14 @@ export const DashboardPage = lazyNamedPage(
   () => import("../features/Dashboard/index.js"),
   "DashboardPage",
 );
-export const LoginPage = lazyNamedPage(() => import("../features/Login/index.js"), "LoginPage");
-export const McpPage = lazyNamedPage(() => import("../features/Mcp/index.js"), "McpPage");
+export const LoginPage = lazyNamedPage(
+  () => import("../features/Login/index.js"),
+  "LoginPage",
+);
+export const McpPage = lazyNamedPage(
+  () => import("../features/Mcp/index.js"),
+  "McpPage",
+);
 export const MemoryGraphPage = lazyNamedPage(
   () => import("../features/MemoryGraph/index.js"),
   "MemoryGraphPage",
@@ -57,8 +63,14 @@ export const TaskCenterPage = lazyNamedPage(
   () => import("../features/TaskCenter/index.js"),
   "TaskCenterPage",
 );
-export const SkillsPage = lazyNamedPage(() => import("../features/Skills/index.js"), "SkillsPage");
-export const ToolsPage = lazyNamedPage(() => import("../features/Tools/index.js"), "ToolsPage");
+export const SkillsPage = lazyNamedPage(
+  () => import("../features/Skills/index.js"),
+  "SkillsPage",
+);
+export const ToolsPage = lazyNamedPage(
+  () => import("../features/Tools/index.js"),
+  "ToolsPage",
+);
 export const WebhookLogsPage = lazyNamedPage(
   () => import("../features/WebhookLogs/index.js"),
   "WebhookLogsPage",
@@ -66,4 +78,20 @@ export const WebhookLogsPage = lazyNamedPage(
 export const WebhooksPage = lazyNamedPage(
   () => import("../features/Webhooks/index.js"),
   "WebhooksPage",
+);
+export const SettingsGeneralPage = lazyNamedPage(
+  () => import("../components/settings/GeneralSettingsPanel.js"),
+  "GeneralSettingsPanel",
+);
+export const SettingsRssPage = lazyNamedPage(
+  () => import("../components/settings/RssSettingsPanel.js"),
+  "RssSettingsPanel",
+);
+export const SettingsAssetStoragePage = lazyNamedPage(
+  () => import("../components/settings/AssetStorageSettingsPanel.js"),
+  "AssetStorageSettingsPanel",
+);
+export const SettingsNetworkSearchPage = lazyNamedPage(
+  () => import("../components/settings/NetworkSearchSettingsPanel.js"),
+  "NetworkSearchSettingsPanel",
 );

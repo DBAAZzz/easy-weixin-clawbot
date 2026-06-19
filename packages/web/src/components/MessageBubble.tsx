@@ -146,22 +146,22 @@ function ToolUsageList({ tools }: { tools: MessageRow[] }) {
             key={tool.id}
             title={
               <span className="flex min-w-0 items-center gap-2">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-card border border-line bg-white/80 text-muted-strong">
+                <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-card border border-line bg-glass-80 text-muted-strong">
                   <TerminalIcon className="size-3.5" />
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-ink">{toolName}</span>
-                  <span className="mt-0.5 block truncate text-xs font-normal tracking-normal text-muted">
+                  <span className="mt-0.5 block truncate text-xs font-normal text-muted">
                     {summarizeToolContent(toolContent)}
                   </span>
                 </span>
               </span>
             }
-            meta={<span className="font-mono tracking-normal">{formatToolStats(toolContent)}</span>}
+            meta={<span className="font-mono tracking-mono">{formatToolStats(toolContent)}</span>}
             className="rounded-card bg-pane-90 shadow-none"
-            contentClassName="bg-white/72"
+            contentClassName="bg-glass-72"
           >
-            <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words px-3 py-3 font-mono text-base leading-6 text-ink-soft">
+            <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words px-3 py-3 font-mono text-sm leading-6 text-ink-soft">
               {toolContent || "无文本输出"}
             </pre>
           </Accordion>
@@ -182,7 +182,7 @@ function formatThoughtDuration(messages: MessageRow[], finalMessage: MessageRow)
   }
 
   const seconds = Math.max(1, Math.round((endedAt - startedAt) / 1000));
-  return `Thought for ${seconds} seconds`;
+  return `思考过程 · ${seconds} 秒`;
 }
 
 function ThoughtPanel(props: {
@@ -195,7 +195,7 @@ function ThoughtPanel(props: {
   const thinking = thoughts.flatMap(getThinkingBlocks);
   const toolCalls = thoughts.flatMap(getToolCallBlocks);
   const hasProcess = thinking.length > 0 || toolCalls.length > 0 || tools.length > 0;
-  const label = formatThoughtDuration(thoughts, finalMessage) ?? "Thought process";
+  const label = formatThoughtDuration(thoughts, finalMessage) ?? "思考过程";
 
   if (!hasProcess) return null;
 
@@ -205,7 +205,7 @@ function ThoughtPanel(props: {
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full cursor-pointer items-center gap-2 text-left text-md font-medium text-muted-strong transition duration-200 ease-expo hover:text-ink focus-visible:outline-none focus-visible:shadow-focus-accent"
+        className="flex w-full cursor-pointer items-center gap-2 text-left text-sm font-medium text-muted-strong transition duration-200 ease-expo hover:text-ink focus-visible:outline-none focus-visible:shadow-focus-accent"
       >
         <PulseIcon className="size-4 shrink-0 text-accent" />
         <span className="min-w-0 flex-1 truncate">{label}</span>
@@ -234,7 +234,7 @@ function ThoughtPanel(props: {
                     <span>{toolCall.name}</span>
                   </div>
                   {Object.keys(toolCall.arguments).length > 0 ? (
-                    <pre className="mt-2 max-h-44 overflow-auto whitespace-pre-wrap break-words font-mono text-sm leading-5 text-muted-strong">
+                    <pre className="mt-2 max-h-44 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-5 text-muted-strong">
                       {JSON.stringify(toolCall.arguments, null, 2)}
                     </pre>
                   ) : null}
@@ -273,7 +273,7 @@ export function MessageBubble({
   return (
     <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
       <div className={cn("mb-1 flex max-w-[86%]", isUser ? "justify-end" : "justify-start")}>
-        <span className="font-mono text-xs tracking-normal text-muted">
+        <span className="font-mono text-xs tracking-mono text-muted">
           {formatFullDateTime(message.created_at)}
         </span>
       </div>
@@ -281,8 +281,8 @@ export function MessageBubble({
       {hasBubble ? (
         <div
           className={cn(
-            "max-w-[86%] rounded-lg border px-3.5 py-3 shadow-bubble",
-            isUser ? "border-accent bg-accent text-white" : "border-line bg-white/82 text-ink",
+            "max-w-[86%] rounded-panel border px-3.5 py-3 shadow-bubble",
+            isUser ? "border-accent bg-accent text-white" : "border-line bg-glass-82 text-ink",
           )}
         >
           {!isUser ? (
@@ -333,8 +333,8 @@ export function MessageBubble({
       {!hasBubble ? (
         <div
           className={cn(
-            "max-w-[86%] rounded-lg border px-3.5 py-3 text-base shadow-bubble",
-            isUser ? "border-accent bg-accent text-white" : "border-line bg-white/82 text-muted",
+            "max-w-[86%] rounded-panel border px-3.5 py-3 text-sm shadow-bubble",
+            isUser ? "border-accent bg-accent text-white" : "border-line bg-glass-82 text-muted",
           )}
         >
           非文本内容

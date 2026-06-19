@@ -5,3 +5,4 @@ dist
 .worktrees/
 *.tsbuildinfo
 /data
+opencode.json

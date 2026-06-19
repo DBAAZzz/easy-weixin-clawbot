@@ -12,6 +12,7 @@ export default function BadgePlayground() {
       value: "md",
     },
     bordered: true,
+    showDot: true,
     children: "运行中",
   });
 
@@ -19,6 +20,7 @@ export default function BadgePlayground() {
     <StoryBook>
       <Badge
         bordered={controls.bordered}
+        showDot={controls.showDot}
         size={controls.size as BadgeSize}
         tone={controls.tone as BadgeTone}
       >

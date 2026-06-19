@@ -43,8 +43,6 @@ import { createHeartbeatExecutor } from "./db/heartbeat-executor.impl.js";
 import { createModuleLogger, getErrorFields, log } from "./logger.js";
 import {
   DOWNLOADS_DIR,
-  SKILLS_BUILTIN_DIR,
-  SKILLS_USER_DIR,
 } from "./paths.js";
 import { sendProactiveMessage } from "./proactive-push.js";
 import { createWebToolService } from "./web-tools/service.js";

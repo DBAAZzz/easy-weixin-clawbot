@@ -1,8 +1,6 @@
-import type { ReactNode } from "react";
 import type { TapeGraphNode } from "@clawbot/shared";
-import { formatDateTime } from "../../lib/format.js";
 import { Card } from "@clawbot/ui";
-import { BookIcon, DiamondIcon, HeartIcon, SearchIcon } from "@clawbot/ui";
+import { cn } from "../../lib/cn.js";
 
 export function formatMemoryValue(value: unknown): string {
   if (typeof value === "string") return value;
@@ -16,149 +14,118 @@ export function formatMemoryValue(value: unknown): string {
 }
 
 const CATEGORY_LABELS: Record<TapeGraphNode["category"], string> = {
-  fact: "事实记忆",
-  preference: "偏好记忆",
-  decision: "决策记录",
+  fact: "事实",
+  preference: "偏好",
+  decision: "决策",
 };
 
-const CATEGORY_COLORS: Record<TapeGraphNode["category"], string> = {
-  fact: "#3B82F6",
-  preference: "#10B981",
-  decision: "#F59E0B",
+const CATEGORY_BADGE: Record<TapeGraphNode["category"], string> = {
+  fact: "bg-account-muted",
+  preference: "bg-account-success-dot",
+  decision: "bg-danger",
 };
 
-const CATEGORY_ICON_COMPONENTS: Record<
-  TapeGraphNode["category"],
-  (className: string) => ReactNode
-> = {
-  fact: (cls) => <BookIcon className={cls} />,
-  preference: (cls) => <HeartIcon className={cls} />,
-  decision: (cls) => <DiamondIcon className={cls} />,
+const CATEGORY_DOT: Record<TapeGraphNode["category"], string> = {
+  fact: "bg-account-muted",
+  preference: "bg-account-success-dot",
+  decision: "bg-danger",
 };
 
-function formatSourceEid(sourceEid: string) {
-  if (sourceEid.length <= 10) return sourceEid;
-  return `${sourceEid.slice(0, 4)}…${sourceEid.slice(-4)}`;
+interface MemoryTooltipProps {
+  node: TapeGraphNode | null;
+  degree: number;
+  pinned: boolean;
+  neighbors: TapeGraphNode[];
+  onSelectNeighbor(node: TapeGraphNode): void;
 }
 
-function ConfidenceBar(props: { value: number }) {
-  const percent = Math.round(props.value * 100);
-  const barColor = props.value >= 0.8 ? "#10B981" : props.value >= 0.5 ? "#F59E0B" : "#EF4444";
+export function MemoryTooltip(props: MemoryTooltipProps) {
+  const { node } = props;
 
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-caps-lg text-muted">Confidence</p>
-        <span className="font-mono text-md font-semibold" style={{ color: barColor }}>
-          {percent}%
-        </span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-wash">
-        <div
-          className="h-full rounded-full transition-all duration-500 ease-out"
-          style={{ width: `${percent}%`, backgroundColor: barColor }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function MetaCard(props: { label: string; value: string; mono?: boolean; title?: string }) {
-  return (
-    <div className="bg-pane-74 rounded-lg border border-slate-border px-3 py-2.5">
-      {" "}
-      <p className="text-2xs uppercase tracking-caps-lg text-muted">{props.label}</p>
-      <p
-        title={props.title}
-        className={[
-          "mt-1 truncate text-base leading-5 text-ink",
-          props.mono ? "font-mono" : "",
-        ].join(" ")}
-      >
-        {props.value}
-      </p>
-    </div>
-  );
-}
-
-export function MemoryTooltip(props: { node: TapeGraphNode | null; highlightedCount: number }) {
-  if (!props.node) {
+  if (!node) {
     return (
-      <Card className="space-y-3 p-4 md:p-5">
-        <div>
-          <p className="text-xs uppercase tracking-label-lg text-muted">Node Detail</p>
-          <h3 className="mt-1.5 text-2xl text-ink">节点详情</h3>
-        </div>
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-line bg-white/60 px-4 py-8 text-center">
-          <div className="flex size-10 items-center justify-center rounded-full bg-slate-wash-soft">
-            <SearchIcon className="size-5 text-muted" />
+      <Card className="min-h-[232px] rounded-section border-account-line bg-account-card p-[18px] shadow-account-card backdrop-blur-none">
+        <div className="flex h-[196px] flex-col items-center justify-center gap-3 text-center">
+          <span className="inline-flex size-11 items-center justify-center rounded-control border border-account-line bg-account-page">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-account-muted-faint"
+            >
+              <circle cx="6" cy="6" r="2.5" />
+              <circle cx="18" cy="6" r="2.5" />
+              <circle cx="12" cy="18" r="2.5" />
+              <path d="M7.8 7.6 10.4 16M16.2 7.6 13.6 16" />
+            </svg>
+          </span>
+          <div>
+            <div className="text-lg font-semibold text-account-ink-soft">悬停或点击任一节点</div>
+            <div className="mt-0.5 text-md text-account-muted-faint">查看记忆详情与关联关系</div>
           </div>
-          <p className="text-base leading-6 text-muted">悬停或点击图中的节点查看记忆详情</p>
         </div>
       </Card>
     );
   }
 
-  const node = props.node;
-  const color = CATEGORY_COLORS[node.category];
-
   return (
-    <Card className="space-y-4 p-4 md:p-5">
-      <div className="flex items-start gap-3">
-        <div
-          className="flex size-10 shrink-0 items-center justify-center rounded-lg"
-          style={{ backgroundColor: `${color}18` }}
+    <Card className="min-h-[232px] rounded-section border-account-line bg-account-card p-[18px] shadow-account-card backdrop-blur-none">
+      <div className="mb-3 flex items-center gap-2">
+        <span
+          className={cn(
+            "inline-flex h-6 items-center rounded-full px-2.5 text-base font-semibold text-white",
+            CATEGORY_BADGE[node.category],
+          )}
         >
-          {CATEGORY_ICON_COMPONENTS[node.category](`size-4.5`)}
-        </div>
-        <div className="min-w-0">
-          <h3 className="truncate text-2xl font-semibold text-ink">{node.label}</h3>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            <span
-              className="rounded-full px-2.5 py-1 text-xs font-medium uppercase tracking-caps"
-              style={{ backgroundColor: `${color}14`, color }}
-            >
-              {CATEGORY_LABELS[node.category]}
-            </span>
-            <span className="rounded-full bg-slate-wash px-2.5 py-1 text-xs font-medium uppercase tracking-caps text-muted-strong">
-              {node.scope === "global" ? "全局" : "会话"}
-            </span>
+          {CATEGORY_LABELS[node.category]}
+        </span>
+        {props.pinned ? (
+          <span className="inline-flex items-center rounded-full bg-notice-error-bg px-2 py-0.5 text-sm font-semibold text-danger-strong">
+            已选中
+          </span>
+        ) : null}
+        <span className="ml-auto text-base text-account-muted-soft">
+          关联 <b className="font-mono font-bold text-account-ink-soft">{props.degree}</b> 边
+        </span>
+      </div>
+
+      <div className="mb-1.5 text-2xl font-bold leading-snug tracking-body text-account-ink">
+        {node.label}
+      </div>
+      <div className="mb-3 break-all font-mono text-sm text-account-muted-soft">{node.key}</div>
+      <p className="mb-3.5 text-md leading-relaxed text-account-ink-soft">
+        {formatMemoryValue(node.value)}
+      </p>
+
+      <div className="mb-2 text-sm font-semibold uppercase tracking-label-lg text-account-muted-faint">
+        关联节点
+      </div>
+      <div className="flex flex-col gap-1">
+        {props.neighbors.length === 0 ? (
+          <div className="px-2 py-1.5 text-md text-account-muted-faint">
+            该节点为孤立记忆，暂无关联。
           </div>
-        </div>
+        ) : (
+          props.neighbors.map((neighbor) => (
+            <button
+              key={neighbor.id}
+              type="button"
+              onClick={() => props.onSelectNeighbor(neighbor)}
+              className="flex items-center gap-2 rounded-card px-2 py-1.5 text-left transition-colors duration-200 ease-expo hover:bg-account-page"
+            >
+              <span
+                className={cn("size-[7px] shrink-0 rounded-full", CATEGORY_DOT[neighbor.category])}
+              />
+              <span className="truncate text-md text-account-ink-soft">{neighbor.label}</span>
+            </button>
+          ))
+        )}
       </div>
-
-      <div className="bg-tooltip-value rounded-lg border border-slate-border-soft px-4 py-3.5">
-        {" "}
-        <p className="text-2xs uppercase tracking-label text-muted">Value</p>
-        <p className="mt-2 whitespace-pre-wrap break-all text-lg leading-6 text-ink">
-          {formatMemoryValue(node.value)}
-        </p>
-      </div>
-
-      {typeof node.confidence === "number" ? <ConfidenceBar value={node.confidence} /> : null}
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <MetaCard label="Key" value={node.key} mono title={node.key} />
-        <MetaCard label="Branch" value={node.branch} mono title={node.branch} />
-        <MetaCard
-          label="Source"
-          value={formatSourceEid(node.sourceEid)}
-          mono
-          title={node.sourceEid}
-        />
-        <MetaCard
-          label="Updated"
-          value={formatDateTime(node.updatedAt)}
-          title={formatDateTime(node.updatedAt)}
-        />
-      </div>
-
-      {props.highlightedCount > 0 ? (
-        <div className="bg-indigo-soft flex items-center gap-2 rounded-panel px-3 py-2 text-base text-muted-strong">
-          <span className="bg-indigo-medium inline-block size-1.5 rounded-full" /> 关联节点{" "}
-          {props.highlightedCount} 个
-        </div>
-      ) : null}
     </Card>
   );
 }

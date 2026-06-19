@@ -6,6 +6,7 @@ import { createApiApp } from "./api/index.js";
 import { mcpToolRegistry, skillInstaller, runtimeProvisioner, validateConfig } from "./ai.js";
 import { createLoginManager } from "./login/login-manager.js";
 import { createModuleLogger, getErrorFields } from "./logger.js";
+import { SKILLS_BUILTIN_DIR, SKILLS_USER_DIR } from "./paths.js";
 import { createMcpManager } from "./mcp/manager.js";
 import { observabilityService } from "./observability/service.js";
 import { createBotRuntime } from "./runtime.js";
@@ -23,6 +24,8 @@ await appSettingsService.bootstrap();
 
 const mcpManager = createMcpManager(mcpToolRegistry);
 await mcpManager.bootstrap();
+
+await skillInstaller.initialize(SKILLS_BUILTIN_DIR, SKILLS_USER_DIR);
 
 const runtime = createBotRuntime();
 await runtime.bootstrap();

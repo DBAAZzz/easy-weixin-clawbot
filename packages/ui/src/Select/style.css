@@ -1,14 +1,29 @@
+:root {
+  --color-select-trigger-bg: var(--color-panel-strong, rgba(255, 255, 255, 0.94));
+  --color-select-trigger-hover-bg: var(--color-claw-0, #ffffff);
+  --color-select-trigger-border: var(--color-line-strong, rgba(26, 33, 40, 0.16));
+  --color-select-trigger-hover-border: var(--color-accent, #1d6e54);
+  --color-select-trigger-subtle-bg: var(--color-surface, #f5f7f9);
+  --color-select-trigger-subtle-hover-bg: var(--color-surface-raised, #ffffff);
+  --color-select-trigger-subtle-border: var(--color-border-muted, #e3e7eb);
+  --color-select-trigger-subtle-hover-border: var(--color-control-border-strong, #d2d8dd);
+}
+
 @layer clawbot {
   .cb-select-trigger {
+    --cb-select-trigger-bg: var(--color-select-trigger-bg);
+    --cb-select-trigger-hover-bg: var(--color-select-trigger-hover-bg);
+    --cb-select-trigger-border: var(--color-select-trigger-border);
+    --cb-select-trigger-hover-border: var(--color-select-trigger-hover-border);
+
     display: inline-flex;
-    width: 100%;
     align-items: center;
     justify-content: space-between;
     gap: var(--spacing-4);
     box-sizing: border-box;
-    border: 1px solid var(--color-line-strong);
+    border: 1px solid var(--cb-select-trigger-border);
     border-radius: var(--radius-card);
-    background: var(--color-panel-strong);
+    background: var(--cb-select-trigger-bg);
     color: var(--color-ink);
     font-size: var(--text-base);
     outline: none;
@@ -18,17 +33,33 @@
       box-shadow 0.2s var(--ease-expo);
   }
 
-  .cb-select-trigger:hover {
-    border-color: var(--color-accent);
-    background: var(--color-claw-0);
+  .cb-select-trigger--full-width {
+    width: 100%;
   }
 
-  .cb-select-trigger--default {
+  .cb-select-trigger--fit-content {
+    width: max-content;
+    max-width: 100%;
+  }
+
+  .cb-select-trigger:hover {
+    border-color: var(--cb-select-trigger-hover-border);
+    background: var(--cb-select-trigger-hover-bg);
+  }
+
+  .cb-select-trigger-variant--subtle {
+    --cb-select-trigger-bg: var(--color-select-trigger-subtle-bg);
+    --cb-select-trigger-hover-bg: var(--color-select-trigger-subtle-hover-bg);
+    --cb-select-trigger-border: var(--color-select-trigger-subtle-border);
+    --cb-select-trigger-hover-border: var(--color-select-trigger-subtle-hover-border);
+  }
+
+  .cb-select-trigger-size--default {
     height: var(--size-control-md);
     padding-inline: var(--spacing-7);
   }
 
-  .cb-select-trigger--sm {
+  .cb-select-trigger-size--sm {
     height: var(--size-control-sm);
     padding-inline: var(--spacing-6);
   }
@@ -44,6 +75,23 @@
     color: var(--color-muted);
   }
 
+  .cb-select-trigger-content {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    gap: var(--spacing-5);
+  }
+
+  .cb-select-prefix {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--spacing-3);
+    color: var(--color-muted);
+    font-weight: 500;
+  }
+
   .cb-select-icon svg {
     transition: transform 0.2s var(--ease-expo);
   }
@@ -53,13 +101,37 @@
     transform: rotate(180deg);
   }
 
+  .cb-select-trigger-text {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .cb-select-value {
     display: flex;
+    min-width: 0;
     align-items: center;
     gap: var(--spacing-4);
   }
 
+  .cb-select-value-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cb-select-value-suffix,
+  .cb-select-item-suffix {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+  }
+
   .cb-select-value svg,
+  .cb-select-prefix svg,
   .cb-select-item-icon svg,
   .cb-select-indicator svg {
     width: var(--spacing-icon-sm);
@@ -115,6 +187,26 @@
   }
 
   .cb-select-item-text {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cb-select-item-custom {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .cb-select-option-content {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--spacing-4);
+  }
+
+  .cb-select-option-title {
     min-width: 0;
     flex: 1;
     overflow: hidden;

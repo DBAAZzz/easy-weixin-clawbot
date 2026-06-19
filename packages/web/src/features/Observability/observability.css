@@ -1,0 +1,27 @@
+.observability-progress-fill {
+  transform-origin: left center;
+  animation: observabilityProgressX 0.72s var(--ease-expo) both;
+}
+
+.observability-bar-fill {
+  transform-origin: center bottom;
+  animation: observabilityProgressY 0.72s var(--ease-expo) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .observability-progress-fill,
+  .observability-bar-fill {
+    animation: none;
+  }
+}
+
+@utility observability-trace-grid {
+  grid-template-columns:
+    minmax(190px, 1fr) minmax(72px, 0.45fr) minmax(280px, 1.1fr) minmax(128px, 0.75fr)
+    minmax(20px, 20px);
+  align-items: center;
+}
+
+@utility bg-metric-gradient {
+  background: linear-gradient(90deg, rgba(21, 110, 99, 0.82), rgba(15, 118, 110, 0.42));
+}

@@ -4,11 +4,17 @@
 @import "@clawbot/ui/sonner.css";
 
 /* =============================================================================
- * Web app — semantic theme layer.
+ * Web app — semantic theme layer + global infrastructure.
  *
  * UI component styles and component tokens come from @clawbot/ui/style.css.
- * This file owns only the app semantic theme, Tailwind compile-time tokens,
- * and web-specific tokens such as page layout, glass, and dashboard colors.
+ * This file owns only:
+ *   - App semantic theme (Tailwind @theme tokens)
+ *   - Global reset, base styles, keyframes
+ *   - Shared utility classes (.ui-skeleton, .reveal-up, .status-dot)
+ *   - App-shell layout utilities (bg-sidebar-shell, bg-main-shell, bg-qr-shell)
+ *
+ * Feature-specific styles live co-located with their feature directories
+ * and are imported by the consuming components.
  *
  * To re-theme: change semantic values here. Do not import UI package source
  * files or restate component spacing/color tokens in the web package.
@@ -218,6 +224,10 @@
   /* ── Page Layout ── */
   --spacing-account-search: 248px;
   --spacing-account-sort: 132px;
+  --spacing-observability-search: 280px;
+  --spacing-observability-flag: 140px;
+  --spacing-observability-chart: 130px;
+  --spacing-observability-bar: 26px;
 
   /* ── Easing ── */
   --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -389,6 +399,30 @@ pre {
   }
 }
 
+@keyframes observabilityProgressX {
+  0% {
+    opacity: 0.48;
+    transform: scaleX(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes observabilityProgressY {
+  0% {
+    opacity: 0.48;
+    transform: scaleY(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
 .ui-skeleton {
   position: relative;
   overflow: hidden;
@@ -413,79 +447,6 @@ pre {
   animation: statusPulse 2.4s ease-in-out infinite;
 }
 
-.memory-graph-container {
-  background:
-    radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.06), transparent 40%),
-    radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.05), transparent 40%),
-    radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 38%),
-    linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.9));
-}
-
-.rss-preview-richtext {
-  color: var(--color-ink-soft);
-  font-size: var(--text-2xl);
-  line-height: 2;
-}
-
-.rss-preview-richtext p {
-  margin: 0 0 1.1rem;
-}
-
-.rss-preview-richtext p:last-child {
-  margin-bottom: 0;
-}
-
-.rss-preview-richtext a {
-  color: var(--color-accent);
-  text-decoration: underline;
-  text-decoration-color: rgba(21, 110, 99, 0.24);
-  text-underline-offset: 0.18em;
-}
-
-.rss-preview-richtext strong,
-.rss-preview-richtext b {
-  color: var(--color-ink);
-  font-weight: 600;
-}
-
-.rss-preview-richtext em,
-.rss-preview-richtext i {
-  font-style: italic;
-}
-
-.rss-preview-richtext ul,
-.rss-preview-richtext ol {
-  margin: 0 0 1.1rem;
-  padding-left: 1.4rem;
-}
-
-.rss-preview-richtext li + li {
-  margin-top: 0.35rem;
-}
-
-.rss-preview-richtext blockquote {
-  margin: 0 0 1.1rem;
-  border-left: 2px solid var(--color-accent-border-strong);
-  padding-left: 1rem;
-  color: var(--color-muted-strong);
-}
-
-.rss-preview-richtext code,
-.rss-preview-richtext pre {
-  font-family: var(--font-mono);
-  font-size: var(--text-base);
-}
-
-.rss-preview-richtext pre {
-  margin: 0 0 1.1rem;
-  overflow-x: auto;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-card);
-  background: var(--color-pane-90);
-  padding: 0.85rem 1rem;
-  line-height: 1.8;
-}
-
 @utility bg-sidebar-shell {
   background: linear-gradient(180deg, rgba(247, 250, 251, 0.94), rgba(241, 245, 247, 0.98));
 }
@@ -502,29 +463,3 @@ pre {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 250, 251, 0.94));
 }
 
-@utility account-table-grid {
-  grid-template-columns:
-    minmax(0, 2.6fr) minmax(96px, 1fr) minmax(84px, 0.9fr) minmax(132px, 1.2fr)
-    minmax(104px, 1.1fr);
-}
-
-@utility bg-account-avatar {
-  background: linear-gradient(180deg, rgba(243, 247, 248, 0.92), rgba(233, 238, 241, 0.88));
-}
-
-@utility bg-tooltip-value {
-  background: linear-gradient(180deg, rgba(247, 249, 251, 0.96), rgba(255, 255, 255, 0.86));
-}
-
-@utility bg-metric-gradient {
-  background: linear-gradient(90deg, rgba(21, 110, 99, 0.82), rgba(15, 118, 110, 0.42));
-}
-
-@utility qr-ascii {
-  display: inline-block;
-  background: #fff;
-  color: var(--color-ink-deep);
-  font-size: 8px;
-  line-height: 9px;
-  letter-spacing: 0;
-}

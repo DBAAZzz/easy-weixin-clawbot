@@ -12,58 +12,74 @@ function lazyNamedPage<TModule extends Record<TExport, ComponentType>, TExport e
 }
 
 export const AuthLoginPage = lazyNamedPage(
-  () => import("../features/AuthLoginPage.js"),
+  () => import("../features/AuthLogin/index.js"),
   "AuthLoginPage",
 );
 export const ConversationPage = lazyNamedPage(
-  () => import("../features/ConversationPage.js"),
+  () => import("../features/Conversation/index.js"),
   "ConversationPage",
 );
 export const DashboardPage = lazyNamedPage(
   () => import("../features/Dashboard/index.js"),
   "DashboardPage",
 );
-export const LoginPage = lazyNamedPage(() => import("../features/LoginPage.js"), "LoginPage");
-export const McpPage = lazyNamedPage(() => import("../features/McpPage.js"), "McpPage");
+export const LoginPage = lazyNamedPage(() => import("../features/Login/index.js"), "LoginPage");
+export const McpPage = lazyNamedPage(() => import("../features/Mcp/index.js"), "McpPage");
 export const MemoryGraphPage = lazyNamedPage(
-  () => import("../features/MemoryGraphPage.js"),
+  () => import("../features/MemoryGraph/index.js"),
   "MemoryGraphPage",
 );
 export const ModelConfigPage = lazyNamedPage(
-  () => import("../features/ModelConfigPage.js"),
+  () => import("../features/ModelConfig/index.js"),
   "ModelConfigPage",
 );
 export const ObservabilityPage = lazyNamedPage(
-  () => import("../features/ObservabilityPage.js"),
+  () => import("../features/Observability/index.js"),
   "ObservabilityPage",
 );
 export const ObservabilityTracePage = lazyNamedPage(
-  () => import("../features/ObservabilityTracePage.js"),
+  () => import("../features/ObservabilityTrace/index.js"),
   "ObservabilityTracePage",
 );
 export const ProviderConfigPage = lazyNamedPage(
-  () => import("../features/ProviderConfigPage.js"),
+  () => import("../features/ProviderConfig/index.js"),
   "ProviderConfigPage",
 );
 export const RssSubscriptionsPage = lazyNamedPage(
-  () => import("../features/RssSubscriptionsPage.js"),
+  () => import("../features/RssSubscriptions/index.js"),
   "RssSubscriptionsPage",
 );
 export const ScheduledTasksPage = lazyNamedPage(
-  () => import("../features/ScheduledTasksPage.js"),
+  () => import("../features/ScheduledTasks/index.js"),
   "ScheduledTasksPage",
 );
 export const TaskCenterPage = lazyNamedPage(
-  () => import("../features/TaskCenterPage.js"),
+  () => import("../features/TaskCenter/index.js"),
   "TaskCenterPage",
 );
-export const SkillsPage = lazyNamedPage(() => import("../features/SkillsPage.js"), "SkillsPage");
-export const ToolsPage = lazyNamedPage(() => import("../features/ToolsPage.js"), "ToolsPage");
+export const SkillsPage = lazyNamedPage(() => import("../features/Skills/index.js"), "SkillsPage");
+export const ToolsPage = lazyNamedPage(() => import("../features/Tools/index.js"), "ToolsPage");
 export const WebhookLogsPage = lazyNamedPage(
-  () => import("../features/WebhookLogsPage.js"),
+  () => import("../features/WebhookLogs/index.js"),
   "WebhookLogsPage",
 );
 export const WebhooksPage = lazyNamedPage(
-  () => import("../features/WebhooksPage.js"),
+  () => import("../features/Webhooks/index.js"),
   "WebhooksPage",
+);
+export const SettingsGeneralPage = lazyNamedPage(
+  () => import("../features/Settings/GeneralSettingsPanel.js"),
+  "GeneralSettingsPanel",
+);
+export const SettingsRssPage = lazyNamedPage(
+  () => import("../features/Settings/RssSettingsPanel.js"),
+  "RssSettingsPanel",
+);
+export const SettingsAssetStoragePage = lazyNamedPage(
+  () => import("../features/Settings/AssetStorageSettingsPanel.js"),
+  "AssetStorageSettingsPanel",
+);
+export const SettingsNetworkSearchPage = lazyNamedPage(
+  () => import("../features/Settings/NetworkSearchSettingsPanel.js"),
+  "NetworkSearchSettingsPanel",
 );

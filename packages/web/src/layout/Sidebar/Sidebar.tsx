@@ -35,7 +35,7 @@ export function Sidebar(props: SidebarProps) {
     >
       <div
         className={cn(
-          "flex h-full flex-col overflow-x-hidden overflow-y-auto py-2 transition-[padding] duration-200 ease-expo md:py-5",
+          "flex h-full flex-col overflow-hidden py-2 transition-[padding] duration-200 ease-expo md:py-5",
           props.collapsed ? "px-2" : "px-3 md:px-4",
         )}
       >
@@ -46,7 +46,9 @@ export function Sidebar(props: SidebarProps) {
           onExpand={props.onExpand}
         />
 
-        <SidebarNav collapsed={props.collapsed} />
+        <div className="min-h-0 flex-1">
+          <SidebarNav collapsed={props.collapsed} />
+        </div>
 
         <SidebarFooter collapsed={props.collapsed} />
       </div>

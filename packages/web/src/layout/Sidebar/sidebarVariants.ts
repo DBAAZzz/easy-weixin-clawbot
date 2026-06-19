@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { matchPath } from "react-router-dom";
 import { protectedRoutes, type SidebarVariant } from "@/router/routes.js";
+import { ConversationSidebarNav } from "./ConversationSidebarNav.js";
 import { DefaultSidebarNav } from "./DefaultSidebarNav.js";
 import { SettingsSidebarNav } from "./SettingsSidebarNav.js";
 
@@ -17,20 +18,14 @@ export interface SidebarNavProps {
  *   2. Write `XxxSidebarNav.tsx` (takes `SidebarNavProps`, static content).
  *   3. Register it here, and set `sidebar: "xxx"` on the route(s) in `routes.ts`.
  */
-const SIDEBAR_NAV_VARIANTS: Record<
-  SidebarVariant,
-  ComponentType<SidebarNavProps>
-> = {
+const SIDEBAR_NAV_VARIANTS: Record<SidebarVariant, ComponentType<SidebarNavProps>> = {
   default: DefaultSidebarNav,
   settings: SettingsSidebarNav,
+  conversation: ConversationSidebarNav,
 };
 
 /** Resolve the nav component for the current pathname (route paths are exact, so one matches). */
-export function resolveSidebarNav(
-  pathname: string,
-): ComponentType<SidebarNavProps> {
-  const matched = protectedRoutes.find((route) =>
-    matchPath(route.path, pathname),
-  );
+export function resolveSidebarNav(pathname: string): ComponentType<SidebarNavProps> {
+  const matched = protectedRoutes.find((route) => matchPath(route.path, pathname));
   return SIDEBAR_NAV_VARIANTS[matched?.sidebar ?? "default"];
 }

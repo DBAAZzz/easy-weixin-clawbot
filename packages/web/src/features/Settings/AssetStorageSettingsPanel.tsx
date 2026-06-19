@@ -47,8 +47,7 @@ export function AssetStorageSettingsPanel() {
   }, [settings]);
 
   const accessKeyIdChanged =
-    Boolean(settings) &&
-    s3AccessKeyId.trim() !== (settings?.asset_s3_access_key_id ?? "");
+    Boolean(settings) && s3AccessKeyId.trim() !== (settings?.asset_s3_access_key_id ?? "");
   const hasUsableS3Secret =
     s3SecretAccessKey.trim().length > 0 ||
     (Boolean(settings?.asset_s3_secret_access_key_set) && !accessKeyIdChanged);
@@ -108,18 +107,11 @@ export function AssetStorageSettingsPanel() {
       const payload = {
         asset_storage_provider: provider,
         asset_local_base_dir: localBaseDir.trim() || null,
-        asset_s3_name:
-          provider === "s3-compatible"
-            ? s3Name.trim() || "cloudflare-r2"
-            : null,
-        asset_s3_endpoint:
-          provider === "s3-compatible" ? s3Endpoint.trim() || null : null,
-        asset_s3_region:
-          provider === "s3-compatible" ? s3Region.trim() || "auto" : null,
-        asset_s3_bucket:
-          provider === "s3-compatible" ? s3Bucket.trim() || null : null,
-        asset_s3_access_key_id:
-          provider === "s3-compatible" ? s3AccessKeyId.trim() || null : null,
+        asset_s3_name: provider === "s3-compatible" ? s3Name.trim() || "cloudflare-r2" : null,
+        asset_s3_endpoint: provider === "s3-compatible" ? s3Endpoint.trim() || null : null,
+        asset_s3_region: provider === "s3-compatible" ? s3Region.trim() || "auto" : null,
+        asset_s3_bucket: provider === "s3-compatible" ? s3Bucket.trim() || null : null,
+        asset_s3_access_key_id: provider === "s3-compatible" ? s3AccessKeyId.trim() || null : null,
         asset_s3_public_base_url:
           provider === "s3-compatible" ? s3PublicBaseUrl.trim() || null : null,
         ...(provider === "s3-compatible" && clearS3SecretAccessKey
@@ -135,8 +127,7 @@ export function AssetStorageSettingsPanel() {
       setClearS3SecretAccessKey(false);
       toast.success("资产存储设置已保存");
     } catch (saveIssue) {
-      const message =
-        saveIssue instanceof Error ? saveIssue.message : "保存失败";
+      const message = saveIssue instanceof Error ? saveIssue.message : "保存失败";
       setSaveError(message);
       toast.error(message);
     } finally {
@@ -195,23 +186,17 @@ export function AssetStorageSettingsPanel() {
 
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">
-                  Provider
-                </label>
+                <label className="text-base font-medium text-muted-strong">Provider</label>
                 <Select
                   size="sm"
                   value={provider}
-                  onChange={(value) =>
-                    setProvider(value as AssetStorageProvider)
-                  }
+                  onChange={(value) => setProvider(value as AssetStorageProvider)}
                   options={STORAGE_OPTIONS}
                 />
               </div>
 
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">
-                  本地目录（可选）
-                </label>
+                <label className="text-base font-medium text-muted-strong">本地目录（可选）</label>
                 <Input
                   value={localBaseDir}
                   onChange={(event) => setLocalBaseDir(event.target.value)}
@@ -226,9 +211,7 @@ export function AssetStorageSettingsPanel() {
           <section className="rounded-panel border border-line bg-panel px-4 py-4 shadow-card md:px-5 md:py-5">
             <div className="flex flex-col gap-4">
               <div className="flex min-w-0 flex-col gap-1">
-                <h4 className="text-2xl font-semibold text-ink">
-                  Cloudflare R2
-                </h4>
+                <h4 className="text-2xl font-semibold text-ink">Cloudflare R2</h4>
                 <p className="text-base leading-6 text-muted-strong">
                   R2 使用 S3-compatible API。Endpoint 通常形如
                   https://账号ID.r2.cloudflarestorage.com。
@@ -237,9 +220,7 @@ export function AssetStorageSettingsPanel() {
 
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-base font-medium text-muted-strong">
-                    名称
-                  </label>
+                  <label className="text-base font-medium text-muted-strong">名称</label>
                   <Input
                     value={s3Name}
                     onChange={(event) => setS3Name(event.target.value)}
@@ -248,9 +229,7 @@ export function AssetStorageSettingsPanel() {
                 </div>
 
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-base font-medium text-muted-strong">
-                    Region
-                  </label>
+                  <label className="text-base font-medium text-muted-strong">Region</label>
                   <Input
                     value={s3Region}
                     onChange={(event) => setS3Region(event.target.value)}
@@ -260,9 +239,7 @@ export function AssetStorageSettingsPanel() {
               </div>
 
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">
-                  Endpoint
-                </label>
+                <label className="text-base font-medium text-muted-strong">Endpoint</label>
                 <Input
                   value={s3Endpoint}
                   onChange={(event) => setS3Endpoint(event.target.value)}
@@ -272,9 +249,7 @@ export function AssetStorageSettingsPanel() {
 
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-base font-medium text-muted-strong">
-                    Bucket
-                  </label>
+                  <label className="text-base font-medium text-muted-strong">Bucket</label>
                   <Input
                     value={s3Bucket}
                     onChange={(event) => setS3Bucket(event.target.value)}
@@ -283,9 +258,7 @@ export function AssetStorageSettingsPanel() {
                 </div>
 
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-base font-medium text-muted-strong">
-                    Access Key ID
-                  </label>
+                  <label className="text-base font-medium text-muted-strong">Access Key ID</label>
                   <Input
                     value={s3AccessKeyId}
                     onChange={(event) => setS3AccessKeyId(event.target.value)}
@@ -295,9 +268,7 @@ export function AssetStorageSettingsPanel() {
               </div>
 
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">
-                  Secret Access Key
-                </label>
+                <label className="text-base font-medium text-muted-strong">Secret Access Key</label>
                 <Input
                   type="password"
                   value={s3SecretAccessKey}
@@ -346,8 +317,7 @@ export function AssetStorageSettingsPanel() {
                   placeholder="https://assets.example.com"
                 />
                 <p className="text-sm leading-6 text-muted-strong">
-                  留空时后端会生成短期签名 URL；配置公开域名后可直接返回 CDN
-                  URL。
+                  留空时后端会生成短期签名 URL；配置公开域名后可直接返回 CDN URL。
                 </p>
               </div>
             </div>

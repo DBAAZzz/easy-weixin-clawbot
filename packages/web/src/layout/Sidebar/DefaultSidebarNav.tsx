@@ -25,7 +25,7 @@ export function DefaultSidebarNav({ collapsed }: SidebarNavProps) {
   const isOnline = Boolean(health) && !healthLoading;
 
   return (
-    <>
+    <div className="h-full overflow-y-auto">
       {/* 资源管理 */}
       <MenuSection label="资源管理" collapsed={collapsed}>
         <NavItem
@@ -113,6 +113,6 @@ export function DefaultSidebarNav({ collapsed }: SidebarNavProps) {
           collapsed={collapsed}
         />
       </MenuSection>
-    </>
+    </div>
   );
 }

@@ -46,9 +46,7 @@ function createDraft(provider: WebSearchProviderDto | null): WebSearchDraft {
 function createDraftState(
   providers: WebSearchProviderDto[],
 ): Record<(typeof NETWORK_SEARCH_PROVIDER_ORDER)[number], WebSearchDraft> {
-  const byType = new Map(
-    providers.map((provider) => [provider.provider_type, provider]),
-  );
+  const byType = new Map(providers.map((provider) => [provider.provider_type, provider]));
 
   return {
     brave: createDraft(byType.get("brave") ?? null),
@@ -60,10 +58,7 @@ function hasExistingProvider(
   providers: WebSearchProviderDto[],
   providerType: WebSearchProviderDto["provider_type"],
 ): WebSearchProviderDto | null {
-  return (
-    providers.find((provider) => provider.provider_type === providerType) ??
-    null
-  );
+  return providers.find((provider) => provider.provider_type === providerType) ?? null;
 }
 
 export function NetworkSearchSettingsPanel() {
@@ -73,8 +68,7 @@ export function NetworkSearchSettingsPanel() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const { providers, loading, error, create, update, refresh } =
-    useWebSearchProviders();
+  const { providers, loading, error, create, update, refresh } = useWebSearchProviders();
 
   useEffect(() => {
     setSaveError(null);
@@ -109,9 +103,7 @@ export function NetworkSearchSettingsPanel() {
         if (!current) {
           if (!apiKey) {
             if (draft.enabled) {
-              throw new Error(
-                `${PROVIDER_META[providerType].label} 已启用，请先填写 API Key`,
-              );
+              throw new Error(`${PROVIDER_META[providerType].label} 已启用，请先填写 API Key`);
             }
             continue;
           }
@@ -141,8 +133,7 @@ export function NetworkSearchSettingsPanel() {
       await refresh();
       toast.success("网络搜索设置已保存");
     } catch (saveIssue) {
-      const message =
-        saveIssue instanceof Error ? saveIssue.message : "保存失败";
+      const message = saveIssue instanceof Error ? saveIssue.message : "保存失败";
       setSaveError(message);
       toast.error(message);
     } finally {
@@ -156,9 +147,7 @@ export function NetworkSearchSettingsPanel() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 flex-col gap-1">
             <h3 className="text-2xl font-semibold text-ink">网络搜索</h3>
-            <p className="text-base leading-6 text-muted-strong">
-              填写 API Key 并启用后生效。
-            </p>
+            <p className="text-base leading-6 text-muted-strong">填写 API Key 并启用后生效。</p>
           </div>
 
           <Badge tone={configuredCount > 0 ? "online" : "offline"}>
@@ -198,13 +187,8 @@ export function NetworkSearchSettingsPanel() {
                       <Icon className="size-4" />
                     </span>
                     <div className="flex min-w-0 flex-col gap-1">
-                      <h4 className="text-2xl font-semibold text-ink">
-                        {meta.label}
-                      </h4>
-                      <Badge
-                        tone={draft.apiKeySet ? "online" : "offline"}
-                        className="w-fit"
-                      >
+                      <h4 className="text-2xl font-semibold text-ink">{meta.label}</h4>
+                      <Badge tone={draft.apiKeySet ? "online" : "offline"} className="w-fit">
                         {draft.apiKeySet ? "已配置" : "未配置"}
                       </Badge>
                     </div>
@@ -216,11 +200,7 @@ export function NetworkSearchSettingsPanel() {
                     </span>
                     <CardToggle
                       enabled={draft.enabled}
-                      label={
-                        draft.enabled
-                          ? `停用 ${meta.label}`
-                          : `启用 ${meta.label}`
-                      }
+                      label={draft.enabled ? `停用 ${meta.label}` : `启用 ${meta.label}`}
                       onToggle={() =>
                         updateDraft(providerType, (current) => ({
                           ...current,
@@ -232,10 +212,7 @@ export function NetworkSearchSettingsPanel() {
                 </div>
 
                 <div className="flex flex-col gap-2.5">
-                  <label
-                    htmlFor={inputId}
-                    className="text-base font-medium text-muted-strong"
-                  >
+                  <label htmlFor={inputId} className="text-base font-medium text-muted-strong">
                     API Key
                   </label>
                   <Input
@@ -248,11 +225,7 @@ export function NetworkSearchSettingsPanel() {
                         apiKey: event.target.value,
                       }))
                     }
-                    placeholder={
-                      draft.apiKeySet
-                        ? "已设置，留空则不修改"
-                        : meta.inputPlaceholder
-                    }
+                    placeholder={draft.apiKeySet ? "已设置，留空则不修改" : meta.inputPlaceholder}
                     className="rounded-control"
                   />
                 </div>
@@ -268,11 +241,7 @@ export function NetworkSearchSettingsPanel() {
         ) : null}
 
         <div className="flex justify-end pt-2">
-          <Button
-            size="sm"
-            disabled={saving || loading}
-            onClick={() => void handleSave()}
-          >
+          <Button size="sm" disabled={saving || loading} onClick={() => void handleSave()}>
             {saving ? "保存中..." : "保存"}
           </Button>
         </div>

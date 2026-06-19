@@ -13,7 +13,7 @@ export function SidebarFooter({ collapsed }: SidebarFooterProps) {
   return (
     <div
       className={cn(
-        "mt-auto flex items-center px-1 pt-4",
+        "flex shrink-0 items-center px-1 pt-4",
         collapsed ? "flex-col gap-1" : "justify-between",
       )}
     >

@@ -32,10 +32,7 @@ export function GeneralSettingsPanel() {
   const trimmedDraft = normalRateDraft.trim();
   const parsedDraft = Number.parseFloat(trimmedDraft);
   const isValidDraft =
-    trimmedDraft.length > 0 &&
-    Number.isFinite(parsedDraft) &&
-    parsedDraft >= 0 &&
-    parsedDraft <= 1;
+    trimmedDraft.length > 0 && Number.isFinite(parsedDraft) && parsedDraft >= 0 && parsedDraft <= 1;
 
   const isDirty = useMemo(() => {
     if (!settings || !isValidDraft) {
@@ -61,8 +58,7 @@ export function GeneralSettingsPanel() {
       setNormalRateDraft(formatRateInput(result.normal_rate));
       toast.success("通用设置已保存");
     } catch (saveIssue) {
-      const message =
-        saveIssue instanceof Error ? saveIssue.message : "保存失败";
+      const message = saveIssue instanceof Error ? saveIssue.message : "保存失败";
       setSaveError(message);
       toast.error(message);
     } finally {
@@ -76,9 +72,7 @@ export function GeneralSettingsPanel() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 flex-col gap-1">
             <h3 className="text-2xl font-semibold text-ink">通用</h3>
-            <p className="text-base leading-6 text-muted-strong">
-              修改后立即生效。
-            </p>
+            <p className="text-base leading-6 text-muted-strong">修改后立即生效。</p>
           </div>
 
           <Badge tone="muted">当前 {formatRateLabel(previewRate)}</Badge>
@@ -109,9 +103,7 @@ export function GeneralSettingsPanel() {
 
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <label className="text-base font-medium text-muted-strong">
-                  采样率
-                </label>
+                <label className="text-base font-medium text-muted-strong">采样率</label>
                 <span className="text-base font-semibold text-accent">
                   {formatRateLabel(previewRate)}
                 </span>

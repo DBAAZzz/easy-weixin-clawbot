@@ -27,7 +27,7 @@ import {
  * Which sidebar menu a route shows. Add a key here, register its nav component
  * in `layout/Sidebar/sidebarVariants.ts`, then set `sidebar` on the route(s).
  */
-export type SidebarVariant = "default" | "settings";
+export type SidebarVariant = "default" | "settings" | "conversation";
 
 export interface RouteConfig {
   path: string;
@@ -37,16 +37,14 @@ export interface RouteConfig {
 }
 
 /** Routes rendered outside the auth guard (no AppShell layout). */
-export const publicRoutes: RouteConfig[] = [
-  { path: "/auth/login", Component: AuthLoginPage },
-];
+export const publicRoutes: RouteConfig[] = [{ path: "/auth/login", Component: AuthLoginPage }];
 
 /** Routes rendered inside ProtectedRoute + AppShell layout. */
 export const protectedRoutes: RouteConfig[] = [
   { path: "/", Component: DashboardPage },
   { path: "/observability", Component: ObservabilityPage },
   { path: "/observability/traces/:traceId", Component: ObservabilityTracePage },
-  { path: "/accounts/:accountId", Component: ConversationPage },
+  { path: "/accounts/:accountId", Component: ConversationPage, sidebar: "conversation" },
   { path: "/login", Component: LoginPage },
   { path: "/mcp", Component: McpPage },
   { path: "/memory-graph", Component: MemoryGraphPage },

@@ -50,8 +50,7 @@ export function RssSettingsPanel() {
   }, [settings]);
 
   const parsedTimeout = Number.parseInt(timeoutMs, 10);
-  const isValidTimeout =
-    Number.isInteger(parsedTimeout) && parsedTimeout >= 1000;
+  const isValidTimeout = Number.isInteger(parsedTimeout) && parsedTimeout >= 1000;
 
   const isDirty = useMemo(() => {
     if (!settings) {
@@ -140,8 +139,7 @@ export function RssSettingsPanel() {
       setClearBearerToken(false);
       toast.success("RSS 设置已保存");
     } catch (saveIssue) {
-      const message =
-        saveIssue instanceof Error ? saveIssue.message : "保存失败";
+      const message = saveIssue instanceof Error ? saveIssue.message : "保存失败";
       setSaveError(message);
       toast.error(message);
     } finally {
@@ -162,8 +160,7 @@ export function RssSettingsPanel() {
         toast.error(result.message);
       }
     } catch (testIssue) {
-      const message =
-        testIssue instanceof Error ? testIssue.message : "测试失败";
+      const message = testIssue instanceof Error ? testIssue.message : "测试失败";
       setSaveError(message);
       toast.error(message);
     } finally {
@@ -186,12 +183,8 @@ export function RssSettingsPanel() {
             <Badge tone={settings?.rsshub_base_url ? "online" : "offline"}>
               {settings?.rsshub_base_url ? "已配置 RSSHub" : "未配置 RSSHub"}
             </Badge>
-            {settings?.rsshub_password_set ? (
-              <Badge tone="muted">已保存密码</Badge>
-            ) : null}
-            {settings?.rsshub_bearer_token_set ? (
-              <Badge tone="muted">已保存 Token</Badge>
-            ) : null}
+            {settings?.rsshub_password_set ? <Badge tone="muted">已保存密码</Badge> : null}
+            {settings?.rsshub_bearer_token_set ? <Badge tone="muted">已保存 Token</Badge> : null}
           </div>
         </div>
       </header>
@@ -216,9 +209,7 @@ export function RssSettingsPanel() {
                 <LinkIcon className="size-4" />
               </span>
               <div>
-                <h4 className="text-2xl font-semibold text-ink">
-                  RSSHub 与抓取设置
-                </h4>
+                <h4 className="text-2xl font-semibold text-ink">RSSHub 与抓取设置</h4>
                 <p className="text-base leading-6 text-muted-strong">
                   RSSHub 路由源会复用这里的统一配置。
                 </p>
@@ -226,9 +217,7 @@ export function RssSettingsPanel() {
             </div>
 
             <div className="flex flex-col gap-2.5">
-              <label className="text-base font-medium text-muted-strong">
-                RSSHub Base URL
-              </label>
+              <label className="text-base font-medium text-muted-strong">RSSHub Base URL</label>
               <Input
                 value={baseUrl}
                 onChange={(event) => setBaseUrl(event.target.value)}
@@ -238,9 +227,7 @@ export function RssSettingsPanel() {
 
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">
-                  认证方式
-                </label>
+                <label className="text-base font-medium text-muted-strong">认证方式</label>
                 <Select
                   size="sm"
                   value={authType}
@@ -250,9 +237,7 @@ export function RssSettingsPanel() {
               </div>
 
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">
-                  请求超时（毫秒）
-                </label>
+                <label className="text-base font-medium text-muted-strong">请求超时（毫秒）</label>
                 <Input
                   type="number"
                   value={timeoutMs}
@@ -265,9 +250,7 @@ export function RssSettingsPanel() {
             {authType === "basic" ? (
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-base font-medium text-muted-strong">
-                    用户名
-                  </label>
+                  <label className="text-base font-medium text-muted-strong">用户名</label>
                   <Input
                     value={username}
                     onChange={(event) => setUsername(event.target.value)}
@@ -276,9 +259,7 @@ export function RssSettingsPanel() {
                 </div>
 
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-base font-medium text-muted-strong">
-                    密码
-                  </label>
+                  <label className="text-base font-medium text-muted-strong">密码</label>
                   <Input
                     type="password"
                     value={password}
@@ -289,18 +270,12 @@ export function RssSettingsPanel() {
                       }
                     }}
                     placeholder={
-                      settings?.rsshub_password_set
-                        ? "已设置，留空则不修改"
-                        : "Basic Auth 密码"
+                      settings?.rsshub_password_set ? "已设置，留空则不修改" : "Basic Auth 密码"
                     }
                   />
                   {settings?.rsshub_password_set ? (
                     <div className="flex items-center justify-between gap-3 text-sm text-muted-strong">
-                      <span>
-                        {clearPassword
-                          ? "保存后将清空已保存密码"
-                          : "当前已保存密码"}
-                      </span>
+                      <span>{clearPassword ? "保存后将清空已保存密码" : "当前已保存密码"}</span>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -319,9 +294,7 @@ export function RssSettingsPanel() {
 
             {authType === "bearer" ? (
               <div className="flex flex-col gap-2.5">
-                <label className="text-base font-medium text-muted-strong">
-                  Bearer Token
-                </label>
+                <label className="text-base font-medium text-muted-strong">Bearer Token</label>
                 <Input
                   type="password"
                   value={bearerToken}
@@ -332,17 +305,13 @@ export function RssSettingsPanel() {
                     }
                   }}
                   placeholder={
-                    settings?.rsshub_bearer_token_set
-                      ? "已设置，留空则不修改"
-                      : "Bearer Token"
+                    settings?.rsshub_bearer_token_set ? "已设置，留空则不修改" : "Bearer Token"
                   }
                 />
                 {settings?.rsshub_bearer_token_set ? (
                   <div className="flex items-center justify-between gap-3 text-sm text-muted-strong">
                     <span>
-                      {clearBearerToken
-                        ? "保存后将清空已保存 Token"
-                        : "当前已保存 Token"}
+                      {clearBearerToken ? "保存后将清空已保存 Token" : "当前已保存 Token"}
                     </span>
                     <Button
                       size="sm"
@@ -374,9 +343,7 @@ export function RssSettingsPanel() {
                 <Badge tone="muted">延迟 {testResult.latency_ms}ms</Badge>
               ) : null}
             </div>
-            <p className="mt-3 text-base leading-6 text-muted-strong">
-              {testResult.message}
-            </p>
+            <p className="mt-3 text-base leading-6 text-muted-strong">{testResult.message}</p>
           </section>
         ) : null}
 

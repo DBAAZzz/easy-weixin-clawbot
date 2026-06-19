@@ -4,7 +4,6 @@ import { cn } from "../lib/cn.js";
 import { formatCount, formatRelativeTime, formatTime } from "../lib/format.js";
 import { Input } from "@clawbot/ui";
 import { SearchIcon } from "@clawbot/ui";
-import { ScrollArea } from "@clawbot/ui";
 
 function conversationDisplayTitle(conversation: ConversationRow): string {
   return conversation.title?.trim() || "未命名会话";
@@ -35,25 +34,24 @@ export function ConversationList(props: {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-line px-4 py-3">
-        <label className="text-xs uppercase tracking-label-lg text-muted">搜索会话</label>
-        <div className="relative mt-2.5">
-          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜索会话标题"
-            className="h-9 rounded-lg pl-10"
-          />
-        </div>
-        <p className="mt-1.5 text-sm text-muted">
-          {formatCount(visibleConversations.length)} / {formatCount(props.conversations.length)}{" "}
-          条结果
-        </p>
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-x-hidden">
+      <div className="shrink-0 border-b border-line px-3 py-2.5">
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="搜索会话…"
+          leftIcon={<SearchIcon />}
+          size="sm"
+          inputClassName="rounded-control"
+        />
+        {normalized ? (
+          <p className="mt-2 text-xs text-muted">
+            {formatCount(visibleConversations.length)} 条匹配
+          </p>
+        ) : null}
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 px-2 py-2">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-2 py-1.5">
         {visibleConversations.map((conversation, index) => {
           const active = conversation.conversation_id === props.selectedConversationId;
 
@@ -63,48 +61,49 @@ export function ConversationList(props: {
               type="button"
               onClick={() => props.onSelect(conversation.conversation_id)}
               className={cn(
-                "reveal-up relative mb-1.5 w-full rounded-card px-3 py-2.5 text-left transition duration-200 ease-expo",
+                "reveal-up relative mb-1 w-full min-w-0 overflow-hidden rounded-card px-3 py-2.5 text-left transition duration-200 ease-expo",
                 active ? "bg-white shadow-convo-active" : "hover:bg-white/72",
               )}
               style={{ animationDelay: `${index * 40}ms` }}
             >
               {active ? (
-                <span className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-accent" />
+                <span className="absolute inset-y-2 left-0 w-0.75 rounded-full bg-accent" />
               ) : null}
 
-              <div className="flex items-center gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-mist text-base font-semibold text-accent-strong">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-mist text-sm font-semibold text-accent-strong">
                   {badgeForConversation(conversation)}
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-base font-medium text-ink">
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <p className="min-w-0 truncate text-md font-medium text-ink tracking-body">
                       {conversationDisplayTitle(conversation)}
                     </p>
-                    <span className="shrink-0 font-mono text-xs text-muted">
+                    <span className="shrink-0 font-mono text-2xs tracking-mono text-muted">
                       {conversation.last_message_at
                         ? formatTime(conversation.last_message_at)
                         : "--:--"}
                     </span>
                   </div>
-                </div>
-              </div>
 
-              <div className="mt-2 flex items-center justify-between gap-3 pl-12 text-xs text-muted">
-                <span>{formatCount(conversation.message_count)} 条消息</span>
-                <span>{formatRelativeTime(conversation.last_message_at)}</span>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {formatCount(conversation.message_count)} 条消息
+                    <span className="mx-1.5 text-muted/40">·</span>
+                    {formatRelativeTime(conversation.last_message_at)}
+                  </p>
+                </div>
               </div>
             </button>
           );
         })}
 
         {visibleConversations.length === 0 ? (
-          <div className="rounded-card border border-dashed border-line px-4 py-6 text-base leading-6 text-muted">
-            没有匹配到会话。可以尝试搜索标题片段。
-          </div>
+          <p className="px-1 py-8 text-center text-sm text-muted">
+            {normalized ? "无匹配会话" : "暂无会话"}
+          </p>
         ) : null}
-      </ScrollArea>
+      </div>
     </div>
   );
 }

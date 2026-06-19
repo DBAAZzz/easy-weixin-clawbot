@@ -1,6 +1,6 @@
 import { useParams, useSearchParams } from "react-router-dom";
 import type { ConversationRow } from "@clawbot/shared";
-import { ActivityIcon, Button, ChevronLeftIcon } from "@clawbot/ui";
+import { Button, ChevronLeftIcon, Tooltip } from "@clawbot/ui";
 import { cn } from "@/lib/cn.js";
 import { formatCount } from "@/lib/format.js";
 import { useConversations } from "@/hooks/useConversations.js";
@@ -38,21 +38,21 @@ export function ConversationSidebarNav({ collapsed }: SidebarNavProps) {
           const title = conversationTitle(conversation);
 
           return (
-            <button
-              key={conversation.id}
-              type="button"
-              title={title}
-              aria-label={title}
-              onClick={() => select(conversation.conversation_id)}
-              className={cn(
-                "flex size-9 shrink-0 items-center justify-center rounded-full text-base font-semibold transition duration-200 ease-expo",
-                active
-                  ? "bg-accent-mist text-accent-strong shadow-convo-active"
-                  : "text-muted-strong hover:bg-white/72 hover:text-ink",
-              )}
-            >
-              {conversationBadge(conversation)}
-            </button>
+            <Tooltip key={conversation.id} title={title} placement="right">
+              <button
+                type="button"
+                aria-label={title}
+                onClick={() => select(conversation.conversation_id)}
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-full text-base font-semibold transition duration-200 ease-expo",
+                  active
+                    ? "bg-accent-mist text-accent-strong shadow-convo-active"
+                    : "text-muted-strong hover:bg-white/72 hover:text-ink",
+                )}
+              >
+                {conversationBadge(conversation)}
+              </button>
+            </Tooltip>
           );
         })}
       </div>

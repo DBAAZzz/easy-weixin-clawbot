@@ -56,7 +56,7 @@ export function DialogFrame({
             {description ? <DialogDescription>{description}</DialogDescription> : null}
           </DialogHeader>
 
-          { children ? <DialogBody className={bodyClassName}>{children}</DialogBody> : null }
+          {children ? <DialogBody className={bodyClassName}>{children}</DialogBody> : null}
 
           {hasFooter ? (
             <DialogFooter

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
+import { Tooltip } from "@clawbot/ui";
 import { cn } from "@/lib/cn.js";
 import { navClassName } from "./navClassName.js";
 
@@ -29,12 +30,12 @@ export function NavItem({
   badgeVariant = "default",
   collapsed,
 }: NavItemProps) {
-  return (
+  const link = (
     <NavLink
       to={to}
       aria-label={collapsed ? label : undefined}
-      title={collapsed ? label : undefined}
       className={({ isActive }) => navClassName(isActive, collapsed)}
+      viewTransition
     >
       <span className="text-muted-strong transition group-hover:text-ink">{icon}</span>
       <span className={cn("truncate", collapsed && "sr-only")}>{label}</span>
@@ -50,4 +51,14 @@ export function NavItem({
       )}
     </NavLink>
   );
+
+  if (collapsed) {
+    return (
+      <Tooltip title={label} placement="right">
+        {link}
+      </Tooltip>
+    );
+  }
+
+  return link;
 }

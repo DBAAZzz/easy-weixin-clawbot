@@ -20,15 +20,15 @@ export function SidebarFooter({ collapsed }: SidebarFooterProps) {
       <SidebarActionIconButton
         label="设置"
         icon={<SettingsIcon className="size-4" />}
-        align="left"
+        placement="right"
         onClick={() => navigate("/settings/general")}
-        showTooltip={!collapsed}
+        showTooltip={collapsed}
       />
       <SidebarActionIconButton
         label="退出登录"
         icon={<LogOutIcon className="size-4" />}
-        align={collapsed ? "left" : "right"}
-        showTooltip={!collapsed}
+        placement={collapsed ? "right" : "left"}
+        showTooltip={collapsed}
         onClick={() => {
           localStorage.removeItem("auth_token");
           navigate("/auth/login", { replace: true });

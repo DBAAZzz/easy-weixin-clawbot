@@ -16,4 +16,5 @@ export * from "./Slider/index.js";
 export * from "./Sonner/index.js";
 export * from "./Switch/index.js";
 export * from "./ToggleGroup/index.js";
+export * from "./Tooltip/index.js";
 export * from "./Toggle/index.js";

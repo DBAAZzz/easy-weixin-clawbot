@@ -80,18 +80,18 @@ export const WebhooksPage = lazyNamedPage(
   "WebhooksPage",
 );
 export const SettingsGeneralPage = lazyNamedPage(
-  () => import("../components/settings/GeneralSettingsPanel.js"),
+  () => import("../features/Settings/GeneralSettingsPanel.js"),
   "GeneralSettingsPanel",
 );
 export const SettingsRssPage = lazyNamedPage(
-  () => import("../components/settings/RssSettingsPanel.js"),
+  () => import("../features/Settings/RssSettingsPanel.js"),
   "RssSettingsPanel",
 );
 export const SettingsAssetStoragePage = lazyNamedPage(
-  () => import("../components/settings/AssetStorageSettingsPanel.js"),
+  () => import("../features/Settings/AssetStorageSettingsPanel.js"),
   "AssetStorageSettingsPanel",
 );
 export const SettingsNetworkSearchPage = lazyNamedPage(
-  () => import("../components/settings/NetworkSearchSettingsPanel.js"),
+  () => import("../features/Settings/NetworkSearchSettingsPanel.js"),
   "NetworkSearchSettingsPanel",
 );

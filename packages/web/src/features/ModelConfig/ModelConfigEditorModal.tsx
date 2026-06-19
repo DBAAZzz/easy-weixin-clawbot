@@ -4,9 +4,19 @@ import type {
   ModelConfigDto,
   ModelProviderTemplateDto,
 } from "../../../../shared/src/types.js";
-import { Button, Input, Select, XIcon } from "@clawbot/ui";
-import { toast } from "@clawbot/ui";
-import type { SelectOption } from "@clawbot/ui";
+import {
+  Button,
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  Input,
+  Select,
+} from "@clawbot/ui";
 import { useConversations } from "../../hooks/useConversations.js";
 import { cn } from "../../lib/cn.js";
 import { upsertModelConfig } from "@/api/model-config.js";
@@ -169,277 +179,270 @@ export function ModelConfigEditorModal(props: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
-      <button
-        type="button"
-        aria-label="关闭模型绑定弹窗"
-        onClick={props.onClose}
-        className="bg-overlay-strong absolute inset-0 backdrop-blur-[8px]"
-      />
-
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-dialog border border-modal-border bg-card-hover shadow-modal"
-      >
-        <div className="border-b border-line px-5 py-4 md:px-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-label-xl text-muted">
-                {isEdit ? "Edit Binding" : "New Binding"}
-              </p>
-              <h3 className="mt-1.5 text-5xl font-semibold tracking-heading text-ink">
+    <Dialog open onOpenChange={() => props.onClose()}>
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogContent className="max-w-xl rounded-dialog">
+          <DialogHeader status={<DialogClose />}>
+            <div className="min-w-0">
+              <DialogTitle className="text-2xl md:text-4xl">
                 {isEdit ? "编辑使用配置" : "新建使用配置"}
-              </h3>
+              </DialogTitle>
+              <p className="mt-1.5 text-sm leading-5 text-muted">
+                为供应商模型指定使用范围和优先级
+              </p>
             </div>
+          </DialogHeader>
 
-            <button
-              type="button"
-              onClick={props.onClose}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-muted-strong transition hover:border-line-strong hover:text-ink"
+          <DialogBody className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-5">
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleSubmit();
+              }}
+              className="space-y-4"
             >
-              <XIcon className="size-4" />
-            </button>
-          </div>
-        </div>
-
-        <form
-          className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void handleSubmit();
-          }}
-        >
-          <div className="bg-pane-82-cool rounded-xl border border-line px-4 py-4">
-            {" "}
-            <p className="text-xs uppercase tracking-label-lg text-muted">Scope & Purpose</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {(["global", "account", "conversation"] as const).map((scope) => (
-                <button
-                  key={scope}
-                  type="button"
-                  onClick={() => setForm((current) => ({ ...current, scope }))}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-base transition",
-                    form.scope === scope
-                      ? "border-accent bg-accent-soft text-accent-strong"
-                      : "border-line text-muted-strong hover:bg-white",
-                  )}
-                >
-                  {SCOPE_LABELS[scope]}
-                </button>
-              ))}
-            </div>
-            {form.scope !== "global" ? (
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div className={cn(form.scope === "account" && "md:col-span-2")}>
-                  <label className="text-base text-muted-strong">账号 *</label>
-                  <Select
-                    size="sm"
-                    value={form.accountId}
-                    options={accountOptions}
-                    onChange={(value) =>
-                      setForm((current) => ({
-                        ...current,
-                        accountId: value,
-                        conversationId: current.accountId === value ? current.conversationId : "",
-                      }))
-                    }
-                    placeholder={accountOptions.length > 0 ? "选择一个账号" : "暂无可选账号"}
-                    className="mt-1"
-                    disabled={accountOptions.length === 0}
-                  />
+              <fieldset className="rounded-panel border border-line bg-pane-82-cool px-4 py-4">
+                <legend className="text-xs font-medium uppercase tracking-label text-muted">
+                  范围与用途
+                </legend>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(["global", "account", "conversation"] as const).map((scope) => (
+                    <button
+                      key={scope}
+                      type="button"
+                      onClick={() => setForm((current) => ({ ...current, scope }))}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-sm transition",
+                        form.scope === scope
+                          ? "border-accent bg-accent-soft text-accent-strong"
+                          : "border-line text-muted-strong hover:bg-white",
+                      )}
+                    >
+                      {SCOPE_LABELS[scope]}
+                    </button>
+                  ))}
                 </div>
+                {form.scope !== "global" ? (
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div className={cn(form.scope === "account" && "md:col-span-2")}>
+                      <label className="text-sm font-medium text-muted-strong">账号 *</label>
+                      <Select
+                        size="sm"
+                        value={form.accountId}
+                        options={accountOptions}
+                        onChange={(value) =>
+                          setForm((current) => ({
+                            ...current,
+                            accountId: value,
+                            conversationId:
+                              current.accountId === value ? current.conversationId : "",
+                          }))
+                        }
+                        placeholder={accountOptions.length > 0 ? "选择一个账号" : "暂无可选账号"}
+                        className="mt-1"
+                        disabled={accountOptions.length === 0}
+                      />
+                    </div>
 
-                {form.scope === "conversation" ? (
-                  <div>
-                    <label className="text-base text-muted-strong">会话 *</label>
-                    <Select
-                      size="sm"
-                      value={form.conversationId}
-                      options={conversationOptions}
-                      onChange={(value) =>
-                        setForm((current) => ({
-                          ...current,
-                          conversationId: value,
-                        }))
-                      }
-                      placeholder={
-                        !form.accountId
-                          ? "先选择账号"
-                          : conversationsLoading
-                            ? "加载会话中..."
-                            : conversationOptions.length > 0
-                              ? "选择一个会话"
-                              : "该账号下暂无会话"
-                      }
-                      className="mt-1"
-                      disabled={
-                        !form.accountId || conversationsLoading || conversationOptions.length === 0
-                      }
-                    />
-                    {conversationsError ? (
-                      <p className="mt-2 text-sm text-red-600">
-                        会话列表加载失败：{conversationsError}
-                      </p>
+                    {form.scope === "conversation" ? (
+                      <div>
+                        <label className="text-sm font-medium text-muted-strong">会话 *</label>
+                        <Select
+                          size="sm"
+                          value={form.conversationId}
+                          options={conversationOptions}
+                          onChange={(value) =>
+                            setForm((current) => ({
+                              ...current,
+                              conversationId: value,
+                            }))
+                          }
+                          placeholder={
+                            !form.accountId
+                              ? "先选择账号"
+                              : conversationsLoading
+                                ? "加载会话中..."
+                                : conversationOptions.length > 0
+                                  ? "选择一个会话"
+                                  : "该账号下暂无会话"
+                          }
+                          className="mt-1"
+                          disabled={
+                            !form.accountId ||
+                            conversationsLoading ||
+                            conversationOptions.length === 0
+                          }
+                        />
+                        {conversationsError ? (
+                          <p className="mt-1.5 text-xs text-danger">
+                            会话列表加载失败：{conversationsError}
+                          </p>
+                        ) : null}
+                      </div>
                     ) : null}
+
+                    <div className="md:col-span-2">
+                      <p className="text-xs text-muted">
+                        Scope Key：
+                        <span className="ml-1 font-mono text-muted-strong">
+                          {form.scopeKey || "请先完成选择"}
+                        </span>
+                      </p>
+                    </div>
                   </div>
                 ) : null}
-
-                <div className="md:col-span-2">
-                  <p className="text-sm text-muted">
-                    Scope Key 将自动生成：
-                    <span className="ml-1 font-mono text-muted-strong">
-                      {form.scopeKey || "请先完成选择"}
-                    </span>
-                  </p>
+                <div className="mt-3">
+                  <p className="text-sm font-medium text-muted-strong">用途</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(["*", "chat", "extraction", "vision"] as const).map((purpose) => (
+                      <button
+                        key={purpose}
+                        type="button"
+                        onClick={() => setForm((current) => ({ ...current, purpose }))}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-sm transition",
+                          form.purpose === purpose
+                            ? "border-accent bg-accent-soft text-accent-strong"
+                            : "border-line text-muted-strong hover:bg-white",
+                        )}
+                      >
+                        {PURPOSE_LABELS[purpose]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+              </fieldset>
+
+              <fieldset className="rounded-panel border border-line bg-white/70 px-4 py-4">
+                <legend className="text-xs font-medium uppercase tracking-label text-muted">
+                  模型配置
+                </legend>
+                <div className="mt-3 space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-strong">供应商配置 *</label>
+                    <Select
+                      size="sm"
+                      value={form.templateId}
+                      options={availableTemplates.map((template) => ({
+                        value: template.id,
+                        label: templateLabel(template),
+                      }))}
+                      onChange={(value) => {
+                        const nextTemplate =
+                          availableTemplates.find((template) => template.id === value) ?? null;
+                        setForm((current) => ({
+                          ...current,
+                          templateId: value,
+                          modelId: resolveNextSelectedModel(
+                            current.modelId,
+                            nextTemplate?.model_ids ?? [],
+                          ),
+                        }));
+                      }}
+                      placeholder="选择一个供应商配置"
+                      className="mt-1"
+                      disabled={availableTemplates.length === 0}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-muted-strong">Model ID *</label>
+                    <Select
+                      size="sm"
+                      value={form.modelId}
+                      options={modelOptions}
+                      onChange={(value) => setForm((current) => ({ ...current, modelId: value }))}
+                      placeholder={
+                        selectedTemplate ? "从供应商配置维护的 Model ID 中选择" : "先选择供应商配置"
+                      }
+                      className="mt-1"
+                      disabled={!selectedTemplate}
+                    />
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium text-muted-strong">视觉输入能力覆盖</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {(["default", "supported", "unsupported"] as const).map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() =>
+                            setForm((current) => ({
+                              ...current,
+                              supportsImageInputOverride: value,
+                            }))
+                          }
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-sm transition",
+                            form.supportsImageInputOverride === value
+                              ? "border-accent bg-accent-soft text-accent-strong"
+                              : "border-line text-muted-strong hover:bg-white",
+                          )}
+                        >
+                          {VISION_OVERRIDE_LABELS[value]}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-muted">
+                      仅在静态能力表无法判断自定义模型时手动覆盖。
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium text-muted-strong">优先级</label>
+                      <Input
+                        type="number"
+                        value={String(form.priority)}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            priority: Number(event.target.value) || 0,
+                          }))
+                        }
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="flex items-end pb-1">
+                      <label className="flex items-center gap-2 text-sm text-muted-strong">
+                        <input
+                          type="checkbox"
+                          checked={form.enabled}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              enabled: event.target.checked,
+                            }))
+                          }
+                          className="size-4 rounded accent-accent"
+                        />
+                        启用此使用配置
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              {error ? (
+                <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-sm leading-5 text-danger">
+                  {error}
+                </div>
+              ) : null}
+
+              <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-line bg-glass-92 px-1 pt-4">
+                <Button size="sm" type="button" variant="secondary" onClick={props.onClose}>
+                  取消
+                </Button>
+                <Button size="sm" disabled={busy || availableTemplates.length === 0} type="submit">
+                  {busy ? "保存中..." : isEdit ? "保存更改" : "创建绑定"}
+                </Button>
               </div>
-            ) : null}
-            <div className="mt-4">
-              <p className="text-sm text-muted">用途</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {(["*", "chat", "extraction", "vision"] as const).map((purpose) => (
-                  <button
-                    key={purpose}
-                    type="button"
-                    onClick={() => setForm((current) => ({ ...current, purpose }))}
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-base transition",
-                      form.purpose === purpose
-                        ? "border-accent bg-accent-soft text-accent-strong"
-                        : "border-line text-muted-strong hover:bg-white",
-                    )}
-                  >
-                    {PURPOSE_LABELS[purpose]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 rounded-xl border border-line bg-white/70 px-4 py-4">
-            <div>
-              <label className="text-base text-muted-strong">供应商配置 *</label>
-              <Select
-                size="sm"
-                value={form.templateId}
-                options={availableTemplates.map((template) => ({
-                  value: template.id,
-                  label: templateLabel(template),
-                }))}
-                onChange={(value) => {
-                  const nextTemplate =
-                    availableTemplates.find((template) => template.id === value) ?? null;
-                  setForm((current) => ({
-                    ...current,
-                    templateId: value,
-                    modelId: resolveNextSelectedModel(
-                      current.modelId,
-                      nextTemplate?.model_ids ?? [],
-                    ),
-                  }));
-                }}
-                placeholder="选择一个供应商配置"
-                className="mt-1"
-                disabled={availableTemplates.length === 0}
-              />
-            </div>
-
-            <div>
-              <label className="text-base text-muted-strong">Model ID *</label>
-              <Select
-                size="sm"
-                value={form.modelId}
-                options={modelOptions}
-                onChange={(value) => setForm((current) => ({ ...current, modelId: value }))}
-                placeholder={
-                  selectedTemplate ? "从供应商配置维护的 Model ID 中选择" : "先选择供应商配置"
-                }
-                className="mt-1"
-                disabled={!selectedTemplate}
-              />
-            </div>
-
-            <div>
-              <p className="text-sm text-muted">视觉输入能力覆盖</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {(["default", "supported", "unsupported"] as const).map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() =>
-                      setForm((current) => ({
-                        ...current,
-                        supportsImageInputOverride: value,
-                      }))
-                    }
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-base transition",
-                      form.supportsImageInputOverride === value
-                        ? "border-accent bg-accent-soft text-accent-strong"
-                        : "border-line text-muted-strong hover:bg-white",
-                    )}
-                  >
-                    {VISION_OVERRIDE_LABELS[value]}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-2 text-sm text-muted">
-                仅在静态能力表无法判断自定义模型时手动覆盖。
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-base text-muted-strong">优先级</label>
-                <Input
-                  type="number"
-                  value={String(form.priority)}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      priority: Number(event.target.value) || 0,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-              <div className="flex items-end pb-1">
-                <label className="flex items-center gap-2 text-base text-muted-strong">
-                  <input
-                    type="checkbox"
-                    checked={form.enabled}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        enabled: event.target.checked,
-                      }))
-                    }
-                    className="size-4 rounded accent-accent"
-                  />
-                  启用此使用配置
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {error ? (
-            <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-              {error}
-            </div>
-          ) : null}
-
-          <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-line bg-glass-92 px-1 pt-4">
-            <Button size="sm" type="button" variant="secondary" onClick={props.onClose}>
-              取消
-            </Button>
-            <Button size="sm" disabled={busy || availableTemplates.length === 0} type="submit">
-              {busy ? "保存中..." : isEdit ? "保存更改" : "创建绑定"}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+            </form>
+          </DialogBody>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   );
 }

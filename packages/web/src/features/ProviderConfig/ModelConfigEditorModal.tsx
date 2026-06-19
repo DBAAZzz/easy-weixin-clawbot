@@ -5,8 +5,6 @@ import type {
   ModelProviderTemplateDto,
 } from "../../../../shared/src/types.js";
 import { Button, Input, Select, XIcon } from "@clawbot/ui";
-import { toast } from "@clawbot/ui";
-import type { SelectOption } from "@clawbot/ui";
 import { useConversations } from "../../hooks/useConversations.js";
 import { cn } from "../../lib/cn.js";
 import { upsertModelConfig } from "@/api/model-config.js";

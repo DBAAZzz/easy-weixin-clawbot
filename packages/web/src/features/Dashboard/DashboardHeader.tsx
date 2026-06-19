@@ -47,7 +47,6 @@ export function DashboardHeader({
               size: "sm",
             })}
           >
-            <PlusIcon className="size-4" />
             {primaryLabel}
           </Button>
         ) : null}

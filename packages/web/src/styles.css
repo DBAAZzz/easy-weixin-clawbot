@@ -218,6 +218,10 @@
   /* ── Page Layout ── */
   --spacing-account-search: 248px;
   --spacing-account-sort: 132px;
+  --spacing-observability-search: 280px;
+  --spacing-observability-flag: 140px;
+  --spacing-observability-chart: 130px;
+  --spacing-observability-bar: 26px;
 
   /* ── Easing ── */
   --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -389,6 +393,30 @@ pre {
   }
 }
 
+@keyframes observabilityProgressX {
+  0% {
+    opacity: 0.48;
+    transform: scaleX(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes observabilityProgressY {
+  0% {
+    opacity: 0.48;
+    transform: scaleY(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
 .ui-skeleton {
   position: relative;
   overflow: hidden;
@@ -411,6 +439,23 @@ pre {
 
 .status-dot {
   animation: statusPulse 2.4s ease-in-out infinite;
+}
+
+.observability-progress-fill {
+  transform-origin: left center;
+  animation: observabilityProgressX 0.72s var(--ease-expo) both;
+}
+
+.observability-bar-fill {
+  transform-origin: center bottom;
+  animation: observabilityProgressY 0.72s var(--ease-expo) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .observability-progress-fill,
+  .observability-bar-fill {
+    animation: none;
+  }
 }
 
 .memory-graph-container {
@@ -547,6 +592,13 @@ pre {
   grid-template-columns:
     minmax(0, 2.6fr) minmax(96px, 1fr) minmax(84px, 0.9fr) minmax(132px, 1.2fr)
     minmax(104px, 1.1fr);
+}
+
+@utility observability-trace-grid {
+  grid-template-columns:
+    minmax(190px, 1fr) minmax(72px, 0.45fr) minmax(280px, 1.1fr) minmax(128px, 0.75fr)
+    minmax(20px, 20px);
+  align-items: center;
 }
 
 @utility mcp-server-table-grid {

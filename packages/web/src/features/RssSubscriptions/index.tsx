@@ -1,6 +1,8 @@
-import { Badge, Button, Input } from "@clawbot/ui";
-import { LinkIcon, PlusIcon, RefreshIcon, SearchIcon } from "@clawbot/ui";
+import { Input } from "@clawbot/ui";
+import { LinkIcon, SearchIcon } from "@clawbot/ui";
 import { formatCount } from "../../lib/format.js";
+import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { StatsGrid } from "../Dashboard/StatsGrid.js";
 import { createDraft, EMPTY_DRAFT } from "./types.js";
 import { useRssSubscriptions } from "./useRssSubscriptions.js";
 import { SourceCard } from "./SourceCard.js";
@@ -30,40 +32,55 @@ export function RssSubscriptionsPage() {
     handleToggle,
   } = useRssSubscriptions();
 
+  const rssStats = [
+    {
+      label: "订阅源",
+      value: formatCount(stats.total),
+      meta: "全部来源",
+      dotClassName: "bg-account-ink",
+      valueClassName: "text-account-ink",
+    },
+    {
+      label: "已启用",
+      value: formatCount(stats.active),
+      meta: "采集中",
+      dotClassName: "bg-account-success-dot",
+      valueClassName: "text-account-success-fg",
+    },
+    {
+      label: "异常",
+      value: formatCount(stats.error),
+      meta: "需处理",
+      dotClassName: "bg-danger",
+      valueClassName: "text-danger-strong",
+    },
+    {
+      label: "任务引用",
+      value: formatCount(stats.referenced),
+      meta: "累计",
+      dotClassName: "bg-account-warning-dot",
+      valueClassName: "text-account-ink",
+    },
+  ];
+
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-7xl space-y-5 text-account-ink">
+      <DashboardHeader
+        eyebrow="RSS Sources"
+        title="RSS 订阅"
+        description="管理 RSS 地址与 RSSHub 路由"
+        primaryLabel="新增订阅源"
+        refreshLabel="刷新"
+        onCreate={() => {
+          setDraft(EMPTY_DRAFT);
+          setEditorOpen(true);
+        }}
+        onRefresh={() => void refresh()}
+      />
+
+      <StatsGrid stats={rssStats} />
+
       <section className="space-y-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-label-xl text-muted">RSS Sources</p>
-            <h2 className="mt-1.5 text-6xl text-ink">RSS 订阅</h2>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={() => void refresh()}>
-              <RefreshIcon className="size-4" />
-              刷新
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                setDraft(EMPTY_DRAFT);
-                setEditorOpen(true);
-              }}
-            >
-              <PlusIcon className="size-4" />
-              新增订阅源
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-          <Badge tone="muted">总数 {formatCount(stats.total)}</Badge>
-          <Badge tone="online">启用 {formatCount(stats.active)}</Badge>
-          <Badge tone="error">异常 {formatCount(stats.error)}</Badge>
-          <Badge tone="muted">被任务引用 {formatCount(stats.referenced)}</Badge>
-        </div>
-
         <div className="flex items-center gap-2">
           <Input
             value={searchQuery}

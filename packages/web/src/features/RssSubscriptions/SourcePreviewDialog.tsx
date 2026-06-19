@@ -52,18 +52,17 @@ export function SourcePreviewDialog(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogPortal>
         <DialogOverlay />
-        <DialogContent className="h-160 max-w-6xl rounded-dialog md:h-180">
-          <DialogHeader className="flex flex-row items-center justify-between gap-4">
+        <DialogContent className="rss-preview-dialog rounded-dialog">
+          <DialogHeader status={<DialogClose />}>
             <div className="min-w-0">
               <DialogTitle className="text-4xl md:text-5xl">内容预览</DialogTitle>
               <p className="mt-2 text-base leading-6 text-muted-strong">
                 {props.preview?.source.name ?? "未选择订阅源"}
               </p>
             </div>
-            <DialogClose className="mt-0.5" />
           </DialogHeader>
 
-          <DialogBody className="min-h-0 overflow-hidden px-0 md:p-0">
+          <DialogBody className="min-h-0 flex-1 overflow-hidden px-0 md:p-0">
             {!props.preview ? (
               <div className="m-5 rounded-panel border border-line bg-pane-74 px-4 py-3 text-base text-muted-strong">
                 请选择一个订阅源进行预览。
@@ -77,8 +76,8 @@ export function SourcePreviewDialog(props: {
                 </p>
               </div>
             ) : (
-              <div className="flex h-full min-h-0 flex-col md:flex-row">
-                <aside className="max-h-56 shrink-0 overflow-y-auto border-b border-line bg-pane-74 md:max-h-none md:w-80 md:border-b-0 md:border-r">
+              <div className="rss-preview-layout">
+                <aside className="rss-preview-list border-b border-line bg-pane-74 md:border-b-0 md:border-r">
                   {items.map((item) => {
                     const excerpt = buildPreviewExcerpt(item, 88);
                     const title = stripHtmlToPlainText(item.title) || "未命名条目";
@@ -90,7 +89,7 @@ export function SourcePreviewDialog(props: {
                         type="button"
                         onClick={() => setSelectedItemId(item.id)}
                         className={[
-                          "relative flex min-h-28 w-full flex-col overflow-hidden border-b border-line px-4 py-3 text-left transition last:border-b-0",
+                          "relative flex min-h-28 w-full min-w-0 flex-col overflow-hidden border-b border-line px-4 py-3 text-left transition last:border-b-0",
                           active
                             ? "bg-accent-subtle text-ink shadow-accent-xs"
                             : "text-muted-strong hover:bg-white/72 hover:text-ink",
@@ -105,7 +104,7 @@ export function SourcePreviewDialog(props: {
                         />
                         <div
                           className={[
-                            "line-clamp-1 text-base font-semibold leading-6 transition",
+                            "line-clamp-1 min-w-0 text-base font-semibold leading-6 transition",
                             active ? "text-accent-strong" : "text-ink",
                           ].join(" ")}
                         >
@@ -137,9 +136,9 @@ export function SourcePreviewDialog(props: {
                   })}
                 </aside>
 
-                <section className="min-h-0 flex-1 overflow-y-auto bg-card-hover">
+                <section className="rss-preview-detail bg-card-hover">
                   {selectedItem ? (
-                    <div className="px-5 py-5 md:px-6">
+                    <div className="min-w-0 px-5 py-5 md:px-6">
                       <div className="text-sm text-muted">
                         <span>{formatDateTime(selectedItem.published_at)}</span>
                         {selectedItem.author ? <span> · {selectedItem.author}</span> : null}
@@ -150,13 +149,13 @@ export function SourcePreviewDialog(props: {
                           href={selectedItem.link}
                           target="_blank"
                           rel="noreferrer"
-                          className="mt-2 inline-flex items-start gap-1.5 text-4xl font-semibold leading-8 text-ink transition hover:text-accent-strong"
+                          className="rss-preview-title mt-2 flex max-w-full items-start gap-1.5 text-4xl font-semibold leading-8 text-ink transition hover:text-accent-strong"
                         >
-                          <span className="min-w-0">{selectedTitle}</span>
+                          <span className="min-w-0 flex-1">{selectedTitle}</span>
                           <ArrowRightIcon className="mt-1 size-4 shrink-0 -rotate-45" />
                         </a>
                       ) : (
-                        <h4 className="mt-2 text-4xl font-semibold leading-8 text-ink">
+                        <h4 className="rss-preview-title mt-2 text-4xl font-semibold leading-8 text-ink">
                           {selectedTitle}
                         </h4>
                       )}

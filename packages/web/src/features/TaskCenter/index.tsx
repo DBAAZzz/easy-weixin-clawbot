@@ -1,11 +1,12 @@
 import { toast } from "@clawbot/ui";
-import { Badge } from "@clawbot/ui";
 import { Button } from "@clawbot/ui";
 import { Input } from "@clawbot/ui";
 import { Select } from "@clawbot/ui";
-import { LinkIcon, PlusIcon, RefreshIcon, StackIcon } from "@clawbot/ui";
+import { LinkIcon, StackIcon } from "@clawbot/ui";
 import { toggleScheduledTask } from "@/api/scheduled-tasks.js";
 import { formatCount } from "../../lib/format.js";
+import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { StatsGrid } from "../Dashboard/StatsGrid.js";
 import { TaskCard } from "./TaskCard.js";
 import { TaskEditorDialog } from "./TaskEditorDialog.js";
 import { PreviewDialog } from "./PreviewDialog.js";
@@ -45,43 +46,59 @@ export function TaskCenterPage() {
     openPreview,
   } = useTaskCenter();
 
+  const taskStats = [
+    {
+      label: "RSS 任务",
+      value: formatCount(stats.total),
+      meta: "全部任务",
+      dotClassName: "bg-account-ink",
+      valueClassName: "text-account-ink",
+    },
+    {
+      label: "已启用",
+      value: formatCount(stats.enabled),
+      meta: "可调度",
+      dotClassName: "bg-account-success-dot",
+      valueClassName: "text-account-success-fg",
+    },
+    {
+      label: "运行中",
+      value: formatCount(stats.running),
+      meta: "执行中",
+      dotClassName: "bg-account-warning-dot",
+      valueClassName: "text-account-warning-fg",
+    },
+    {
+      label: "异常",
+      value: formatCount(stats.errors),
+      meta: "需处理",
+      dotClassName: "bg-danger",
+      valueClassName: "text-danger-strong",
+    },
+  ];
+
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-7xl space-y-5 text-account-ink">
+      <DashboardHeader
+        eyebrow="Task Center"
+        title="任务中心"
+        description="管理 RSS 快讯任务和摘要任务"
+        primaryLabel="新建任务"
+        refreshLabel="刷新"
+        onCreate={() => {
+          setEditingTask(null);
+          setDraft({
+            ...EMPTY_TASK_DRAFT,
+            accountId: accountIdFilter ?? accounts[0]?.id ?? "",
+          });
+          setEditorOpen(true);
+        }}
+        onRefresh={() => void refresh()}
+      />
+
+      <StatsGrid stats={taskStats} />
+
       <section className="space-y-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-label-xl text-muted">Task Center</p>
-            <h2 className="mt-1.5 text-6xl text-ink">任务中心</h2>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={() => void refresh()}>
-              <RefreshIcon className="size-4" />
-              刷新
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                setEditingTask(null);
-                setDraft({
-                  ...EMPTY_TASK_DRAFT,
-                  accountId: accountIdFilter ?? accounts[0]?.id ?? "",
-                });
-                setEditorOpen(true);
-              }}
-            >
-              <PlusIcon className="size-4" />
-              新建任务
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-          <Badge tone="muted">总数 {formatCount(stats.total)}</Badge>
-          <Badge tone="online">启用 {formatCount(stats.enabled)}</Badge>
-          <Badge tone="warning">运行中 {formatCount(stats.running)}</Badge>
-          <Badge tone="error">异常 {formatCount(stats.errors)}</Badge>
-        </div>
-
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_160px]">
           <Input
             value={searchQuery}

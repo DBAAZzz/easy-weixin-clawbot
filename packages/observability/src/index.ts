@@ -75,3 +75,7 @@ export type { SanitizeRule } from "./sanitize/index.js";
 // ── Quality ──
 export { buildFlags, defaultThresholds } from "./quality/index.js";
 export type { QualityFlag, QualityThresholds } from "./quality/index.js";
+
+// ── Logging ──
+export { createLogger } from "./logger/index.js";
+export type { Logger, LogFields, LogLevel } from "./logger/index.js";

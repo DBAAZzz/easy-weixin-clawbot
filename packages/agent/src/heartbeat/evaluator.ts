@@ -21,6 +21,8 @@ import { getPromptAssets } from "../prompts/port.js";
 import { renderTemplate } from "../prompts/assembler.js";
 import { PROMPT_PROFILES, PROMPT_TEMPLATES } from "../prompts/profiles.js";
 
+type TokenUpdates = Pick<PendingGoalRow, "totalInputTokens" | "totalOutputTokens">;
+
 // ── Verdict parsing ────────────────────────────────────────────────
 
 const VALID_VERDICTS = new Set<Verdict>(["act", "wait", "resolve", "abandon"]);
@@ -116,6 +118,109 @@ ${goal.resumeSignal ? `- 恢复信号: ${goal.resumeSignal}` : ""}
   return { verdict, reason, usage: result.usage };
 }
 
+// ── Transition builders ────────────────────────────────────────────
+
+function tokenUpdatesFrom(
+  goal: PendingGoalRow,
+  usage: { input: number; output: number },
+): TokenUpdates {
+  return {
+    totalInputTokens: goal.totalInputTokens + usage.input,
+    totalOutputTokens: goal.totalOutputTokens + usage.output,
+  };
+}
+
+export function pendingWithBackoff(
+  goal: PendingGoalRow,
+  now: Date,
+  lastCheckResult: string,
+  tokenUpdates?: TokenUpdates,
+): GoalTransition {
+  const backoffMs = nextBackoff(goal.backoffMs);
+  return {
+    goalId: goal.goalId,
+    newStatus: "pending",
+    updates: {
+      status: "pending",
+      lastCheckAt: now,
+      lastCheckResult,
+      checkCount: goal.checkCount + 1,
+      backoffMs,
+      nextCheckAt: new Date(now.getTime() + backoffMs),
+      resumeSignal: null,
+      ...(tokenUpdates ?? {}),
+    },
+  };
+}
+
+function resolved(
+  goal: PendingGoalRow,
+  now: Date,
+  reason: string,
+  tokenUpdates: TokenUpdates,
+): GoalTransition {
+  return {
+    goalId: goal.goalId,
+    newStatus: "resolved",
+    updates: {
+      status: "resolved",
+      lastCheckAt: now,
+      lastCheckResult: reason,
+      resolution: reason,
+      checkCount: goal.checkCount + 1,
+      resumeSignal: null,
+      ...tokenUpdates,
+    },
+    requestPush: {
+      accountId: goal.accountId,
+      conversationId: goal.sourceConversationId,
+      text: `✅ 待办完成：${goal.description}\n\n${reason}`,
+    },
+  };
+}
+
+function abandoned(
+  goal: PendingGoalRow,
+  now: Date,
+  lastCheckResult: string,
+  tokenUpdates?: TokenUpdates,
+  resolution = `abandoned: ${lastCheckResult}`,
+): GoalTransition {
+  return {
+    goalId: goal.goalId,
+    newStatus: "abandoned",
+    updates: {
+      status: "abandoned",
+      lastCheckAt: now,
+      lastCheckResult,
+      resolution,
+      checkCount: goal.checkCount + 1,
+      resumeSignal: null,
+      ...(tokenUpdates ?? {}),
+    },
+  };
+}
+
+function waitingUser(
+  goal: PendingGoalRow,
+  now: Date,
+  resultText: string,
+  tokenUpdates: TokenUpdates,
+): GoalTransition {
+  return {
+    goalId: goal.goalId,
+    newStatus: "waiting_user",
+    updates: {
+      status: "waiting_user",
+      lastCheckAt: now,
+      lastCheckResult: resultText.slice(0, 500),
+      checkCount: goal.checkCount + 1,
+      resumeSignal: null,
+      ...tokenUpdates,
+    },
+  };
+}
+
 // ── Core evaluator ─────────────────────────────────────────────────
 
 export async function evaluateGoal(goal: PendingGoalRow): Promise<GoalTransition> {
@@ -129,17 +234,13 @@ export async function evaluateGoal(goal: PendingGoalRow): Promise<GoalTransition
     // Token budget check
     const totalTokens = goal.totalInputTokens + goal.totalOutputTokens;
     if (totalTokens > LIMITS.maxTokensPerGoal) {
-      return {
-        goalId: goal.goalId,
-        newStatus: "abandoned",
-        updates: {
-          status: "abandoned",
-          lastCheckAt: now,
-          lastCheckResult: "token budget exceeded",
-          resolution: `abandoned: token budget exceeded (${totalTokens} tokens used)`,
-          checkCount: goal.checkCount + 1,
-        },
-      };
+      return abandoned(
+        goal,
+        now,
+        "token budget exceeded",
+        undefined,
+        `abandoned: token budget exceeded (${totalTokens} tokens used)`,
+      );
     }
 
     // Read incremental context from source conversation
@@ -154,30 +255,10 @@ export async function evaluateGoal(goal: PendingGoalRow): Promise<GoalTransition
     // ── Phase 1: lightweight evaluation ──
     const { verdict, reason, usage } = await phase1Evaluate(goal, recentContext);
 
-    const tokenUpdates = {
-      totalInputTokens: goal.totalInputTokens + usage.input,
-      totalOutputTokens: goal.totalOutputTokens + usage.output,
-    };
+    const tokenUpdates = tokenUpdatesFrom(goal, usage);
 
     if (verdict === "resolve") {
-      return {
-        goalId: goal.goalId,
-        newStatus: "resolved",
-        updates: {
-          status: "resolved",
-          lastCheckAt: now,
-          lastCheckResult: reason,
-          resolution: reason,
-          checkCount: goal.checkCount + 1,
-          resumeSignal: null,
-          ...tokenUpdates,
-        },
-        requestPush: {
-          accountId: goal.accountId,
-          conversationId: goal.sourceConversationId,
-          text: `✅ 待办完成：${goal.description}\n\n${reason}`,
-        },
-      };
+      return resolved(goal, now, reason, tokenUpdates);
     }
 
     if (verdict === "abandon" || goal.checkCount + 1 >= goal.maxChecks) {
@@ -185,37 +266,11 @@ export async function evaluateGoal(goal: PendingGoalRow): Promise<GoalTransition
         goal.checkCount + 1 >= goal.maxChecks
           ? `max checks reached (${goal.maxChecks})`
           : reason;
-      return {
-        goalId: goal.goalId,
-        newStatus: "abandoned",
-        updates: {
-          status: "abandoned",
-          lastCheckAt: now,
-          lastCheckResult: abandonReason,
-          resolution: `abandoned: ${abandonReason}`,
-          checkCount: goal.checkCount + 1,
-          resumeSignal: null,
-          ...tokenUpdates,
-        },
-      };
+      return abandoned(goal, now, abandonReason, tokenUpdates);
     }
 
     if (verdict === "wait") {
-      const newBackoff = nextBackoff(goal.backoffMs);
-      return {
-        goalId: goal.goalId,
-        newStatus: "pending",
-        updates: {
-          status: "pending",
-          lastCheckAt: now,
-          lastCheckResult: reason,
-          checkCount: goal.checkCount + 1,
-          backoffMs: newBackoff,
-          nextCheckAt: new Date(now.getTime() + newBackoff),
-          resumeSignal: null,
-          ...tokenUpdates,
-        },
-      };
+      return pendingWithBackoff(goal, now, reason, tokenUpdates);
     }
 
     // ── Phase 2: verdict === "act" → full execution ──
@@ -238,21 +293,7 @@ export async function evaluateGoal(goal: PendingGoalRow): Promise<GoalTransition
     });
 
     if (execResult.status === "error") {
-      const newBackoff = nextBackoff(goal.backoffMs);
-      return {
-        goalId: goal.goalId,
-        newStatus: "pending",
-        updates: {
-          status: "pending",
-          lastCheckAt: now,
-          lastCheckResult: `phase2 error: ${execResult.error}`,
-          checkCount: goal.checkCount + 1,
-          backoffMs: newBackoff,
-          nextCheckAt: new Date(now.getTime() + newBackoff),
-          resumeSignal: null,
-          ...tokenUpdates,
-        },
-      };
+      return pendingWithBackoff(goal, now, `phase2 error: ${execResult.error}`, tokenUpdates);
     }
 
     // Analyze Phase 2 result to determine next state
@@ -261,51 +302,12 @@ export async function evaluateGoal(goal: PendingGoalRow): Promise<GoalTransition
       /需要.*确认|请.*回复|等待.*输入|请告诉我|请提供/.test(resultText);
 
     if (needsUser) {
-      return {
-        goalId: goal.goalId,
-        newStatus: "waiting_user",
-        updates: {
-          status: "waiting_user",
-          lastCheckAt: now,
-          lastCheckResult: resultText.slice(0, 500),
-          checkCount: goal.checkCount + 1,
-          resumeSignal: null,
-          ...tokenUpdates,
-        },
-      };
+      return waitingUser(goal, now, resultText, tokenUpdates);
     }
 
     // Phase 2 completed an action — defer to next check to see if goal is done
-    const newBackoff = nextBackoff(goal.backoffMs);
-    return {
-      goalId: goal.goalId,
-      newStatus: "pending",
-      updates: {
-        status: "pending",
-        lastCheckAt: now,
-        lastCheckResult: resultText.slice(0, 500),
-        checkCount: goal.checkCount + 1,
-        backoffMs: newBackoff,
-        nextCheckAt: new Date(now.getTime() + newBackoff),
-        resumeSignal: null,
-        ...tokenUpdates,
-      },
-    };
+    return pendingWithBackoff(goal, now, resultText.slice(0, 500), tokenUpdates);
   } catch (err) {
-    // Exception → back to pending with backoff
-    const newBackoff = nextBackoff(goal.backoffMs);
-    return {
-      goalId: goal.goalId,
-      newStatus: "pending",
-      updates: {
-        status: "pending",
-        lastCheckAt: now,
-        lastCheckResult: `error: ${(err as Error).message}`,
-        checkCount: goal.checkCount + 1,
-        backoffMs: newBackoff,
-        nextCheckAt: new Date(now.getTime() + newBackoff),
-        resumeSignal: null,
-      },
-    };
+    return pendingWithBackoff(goal, now, `error: ${(err as Error).message}`);
   }
 }

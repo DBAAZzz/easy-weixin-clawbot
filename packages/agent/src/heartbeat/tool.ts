@@ -6,15 +6,12 @@
  */
 
 import { z } from "zod";
-import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import { createToolRegistry } from "../tools/registry.js";
-import type { ToolSnapshotItem, ToolContent } from "../tools/types.js";
+import type { ToolSnapshotItem } from "../tools/types.js";
+import { defineTool, textResult } from "../tools/define-tool.js";
+import { createToolContextSlot, type AgentToolContext } from "../runtime/agent-tool-context.js";
 import { getHeartbeatStore } from "../ports/heartbeat-store.js";
 import { LIMITS, INITIAL_BACKOFF_MS } from "./types.js";
-
-function textResult(text: string): ToolContent[] {
-  return [{ type: MESSAGE_CONTENT_TYPE.TEXT, text }];
-}
 
 // ── Heartbeat context detection ────────────────────────────────────
 
@@ -28,26 +25,17 @@ export function isHeartbeatContext(): boolean {
   return _heartbeatContext;
 }
 
-// ── Context injection (same pattern as scheduler) ──────────────────
+// ── Context injection ──────────────────────────────────────────────
 
-interface HeartbeatToolContext {
-  accountId: string;
-  conversationId: string;
-}
+const heartbeatToolContext = createToolContextSlot();
 
-let _currentContext: HeartbeatToolContext | null = null;
-
-export function setHeartbeatToolContext(ctx: HeartbeatToolContext | null): void {
-  _currentContext = ctx;
-}
-
-function getCurrentContext(): HeartbeatToolContext | null {
-  return _currentContext;
+export function setHeartbeatToolContext(ctx: AgentToolContext | null): void {
+  heartbeatToolContext.set(ctx);
 }
 
 // ── Tool definitions ───────────────────────────────────────────────
 
-const createPendingGoalTool: ToolSnapshotItem = {
+const createPendingGoalTool = defineTool({
   name: "create_pending_goal",
   description:
     "当你发现当前对话中有需要后续跟进的事项时调用。" +
@@ -65,12 +53,7 @@ const createPendingGoalTool: ToolSnapshotItem = {
       context,
       delay_minutes: delayMinutes,
       max_checks: maxChecks,
-    } = args as {
-      description: string;
-      context: string;
-      delay_minutes?: number;
-      max_checks?: number;
-    };
+    } = args;
 
     // Block recursive creation from heartbeat Phase 2
     if (isHeartbeatContext()) {
@@ -79,8 +62,7 @@ const createPendingGoalTool: ToolSnapshotItem = {
       );
     }
 
-    const ctx = getCurrentContext();
-    if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
+    const ctx = heartbeatToolContext.require();
 
     const store = getHeartbeatStore();
 
@@ -118,9 +100,9 @@ const createPendingGoalTool: ToolSnapshotItem = {
         `🔢 ID: ${goal.goalId}`,
     );
   },
-};
+});
 
-const resolvePendingGoalTool: ToolSnapshotItem = {
+const resolvePendingGoalTool = defineTool({
   name: "resolve_pending_goal",
   description: "当你在对话中得知某个待跟进目标已经完成时调用。",
   parameters: z.object({
@@ -128,7 +110,7 @@ const resolvePendingGoalTool: ToolSnapshotItem = {
     resolution: z.string().describe("完成说明"),
   }),
   async execute(args) {
-    const { goal_id: goalId, resolution } = args as { goal_id: string; resolution: string };
+    const { goal_id: goalId, resolution } = args;
 
     const store = getHeartbeatStore();
     const goal = await store.getByGoalId(goalId);
@@ -147,15 +129,14 @@ const resolvePendingGoalTool: ToolSnapshotItem = {
 
     return textResult(`✅ 目标已标记完成: ${goal.description}`);
   },
-};
+});
 
-const listPendingGoalsTool: ToolSnapshotItem = {
+const listPendingGoalsTool = defineTool({
   name: "list_pending_goals",
   description: "列出当前账号的所有活跃待跟进目标。",
   parameters: z.object({}),
   async execute() {
-    const ctx = getCurrentContext();
-    if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
+    const ctx = heartbeatToolContext.require();
 
     const store = getHeartbeatStore();
     const goals = await store.listGoals(ctx.accountId, false);
@@ -177,7 +158,7 @@ const listPendingGoalsTool: ToolSnapshotItem = {
 
     return textResult(`📋 活跃目标 (${goals.length}):\n\n${lines.join("\n\n")}`);
   },
-};
+});
 
 // ── Registry ───────────────────────────────────────────────────────
 

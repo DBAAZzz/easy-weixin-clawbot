@@ -102,4 +102,9 @@ export interface ModelMeta {
    * false or undefined means image content must not be sent directly.
    */
   supportsImageInput?: boolean;
+  /**
+   * true means historical assistant tool calls without reasoning content must
+   * be stripped before sending messages to the model.
+   */
+  requiresReasonedToolHistory?: boolean;
 }

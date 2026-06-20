@@ -26,7 +26,12 @@ const PROVIDER_DEFAULTS: Record<string, ModelMeta> = {
   "kimi-coding": { contextWindow: 128_000, maxOutputTokens: 4096 },
   xiaomi: { contextWindow: 128_000, maxOutputTokens: 4096 },
   "xiaomi-anthropic": { contextWindow: 128_000, maxOutputTokens: 4096 },
-  deepseek: { contextWindow: 1_000_000, maxOutputTokens: 384_000, supportsImageInput: false },
+  deepseek: {
+    contextWindow: 1_000_000,
+    maxOutputTokens: 384_000,
+    supportsImageInput: false,
+    requiresReasonedToolHistory: true,
+  },
   openrouter: { contextWindow: 128_000, maxOutputTokens: 4096 },
   xai: { contextWindow: 128_000, maxOutputTokens: 4096 },
   groq: { contextWindow: 128_000, maxOutputTokens: 4096 },

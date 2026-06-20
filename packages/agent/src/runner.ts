@@ -17,6 +17,7 @@ import type {
 } from "./llm/types.js";
 import {
   agentToModelMessages,
+  mapModelResultToAssistantMessage,
   replaceImagesWithTextPlaceholders,
   stripUnreasonedToolCallHistory,
 } from "./llm/messages.js";
@@ -107,13 +108,6 @@ function toErrorText(error: unknown): string {
   return String(error);
 }
 
-function normalizeToolArguments(raw: unknown): Record<string, unknown> {
-  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-    return raw as Record<string, unknown>;
-  }
-  return {};
-}
-
 function serializeMessage(message: AgentMessage): unknown {
   if (message.role === MESSAGE_ROLE.USER) {
     return {
@@ -185,18 +179,6 @@ function snapshotAssistantMessage(message: AssistantMessage): string {
       null,
       2,
     ),
-  );
-}
-
-function isDeepSeekModel(model: LanguageModel, modelId: string): boolean {
-  const provider =
-    typeof model === "object" && model !== null
-      ? (model as { provider?: unknown }).provider
-      : undefined;
-
-  return (
-    modelId.toLowerCase().includes("deepseek") ||
-    (typeof provider === "string" && provider.toLowerCase().includes("deepseek"))
   );
 }
 
@@ -288,8 +270,7 @@ export function createAgentRunner(
       const fixedOverheadTokens = estimateTextTokens(fullSystemPrompt) + estimateTextTokens(toolsSchemaText);
 
       const promptHistory = (() => {
-        // DeepSeek 对“未推理的历史 tool-call”兼容性较弱，进入模型前先做 provider-specific 清理。
-        let history = isDeepSeekModel(effectiveModel, effectiveModelId)
+        let history = effectiveMeta.requiresReasonedToolHistory
           ? stripUnreasonedToolCallHistory(workingHistory)
           : workingHistory;
 
@@ -350,59 +331,12 @@ export function createAgentRunner(
               abortSignal: signal,
             });
 
-            // Map finishReason → stopReason
-            // AI SDK 的 finishReason 是 provider 层概念；项目内部统一成 AssistantMessage.stopReason。
-            const stopReason = mapFinishReason(result.finishReason);
-            const modelId = result.response?.modelId ?? effectiveModelId;
-
-            // Build AssistantMessage from result
-            // 把 AI SDK content part 转成项目内部 AgentMessage。
-            // 后续持久化、上下文裁剪、tool-result 回灌都只认这个内部消息格式。
-            const assistantContent: AssistantMessage["content"] = [];
-            for (const part of result.content) {
-            if ((part as any).type === "text") {
-              const textPart = part as { type: "text"; text: string };
-              if (textPart.text) {
-                  assistantContent.push({ type: MESSAGE_CONTENT_TYPE.TEXT, text: textPart.text });
-              }
-            } else if ((part as any).type === "reasoning") {
-              const reasonPart = part as { type: "reasoning"; text: string };
-              if (reasonPart.text) {
-                  assistantContent.push({ type: MESSAGE_CONTENT_TYPE.THINKING, thinking: reasonPart.text });
-              }
-              } else if ((part as any).type === "tool-call") {
-                const tcPart = part as unknown as {
-                  type: "tool-call";
-                  toolCallId: string;
-                  toolName: string;
-                  input?: unknown;
-                  args?: unknown;
-                };
-                assistantContent.push({
-                  type: MESSAGE_CONTENT_TYPE.TOOL_CALL,
-                  id: tcPart.toolCallId,
-                  name: tcPart.toolName,
-                  arguments: normalizeToolArguments(tcPart.input ?? tcPart.args),
-                });
-              }
-            }
-
-            const assistantMsg: AssistantMessage = {
-              role: MESSAGE_ROLE.ASSISTANT,
-              content: assistantContent,
-              timestamp: Date.now(),
-              model: modelId,
-              stopReason,
-              usage: {
-                input: result.usage.inputTokens ?? 0,
-                output: result.usage.outputTokens ?? 0,
-              },
-            };
+            const assistantMsg = mapModelResultToAssistantMessage(result, effectiveModelId);
 
             span.addAttributes({
               inputTokens: result.usage.inputTokens ?? 0,
               outputTokens: result.usage.outputTokens ?? 0,
-              stopReason,
+              stopReason: assistantMsg.stopReason ?? MESSAGE_STOP_REASON.STOP,
               contextTrimLevel: trimResult.trimLevel,
               contextOriginalTokens: trimResult.originalTokens,
               contextTrimmedTokens: trimResult.trimmedTokens,
@@ -522,17 +456,6 @@ export function createAgentRunner(
   }
 
   return { run };
-}
-
-function mapFinishReason(finishReason: string): string {
-  switch (finishReason) {
-    case "stop": return MESSAGE_STOP_REASON.STOP;
-    case "length": return "length";
-    case "tool-calls": return MESSAGE_STOP_REASON.TOOL_USE;
-    case "error": return "error";
-    case "content-filter": return "error";
-    default: return MESSAGE_STOP_REASON.STOP;
-  }
 }
 
 function createToolContext(

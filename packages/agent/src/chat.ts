@@ -17,7 +17,6 @@ import {
   MESSAGE_STOP_REASON,
 } from "@clawbot/shared";
 import { withSpan } from "@clawbot/observability";
-import { readFileSync } from "node:fs";
 import type { AgentRunner } from "./runner.js";
 import { resolveConfiguredModel, resolveModel } from "./model-resolver.js";
 import type { ChatResponse, ChatMedia } from "./types.js";
@@ -34,18 +33,10 @@ import {
 import { extractMediaFromText } from "./media.js";
 import { assembleUserContext } from "./prompts/assembler.js";
 import { PROMPT_PROFILES } from "./prompts/profiles.js";
-import { modelSupportsVision } from "./llm/model-meta.js";
+import { prepareUserVisualContent } from "./vision.js";
 import {
-  createImagePlaceholder,
-  describeImageWithVisionModel,
-  formatVisualContextForPrompt,
-} from "./vision.js";
-import {
-  detectImageMime,
   extractAssistantText,
   extractToolResultText,
-  getChatModelVisionFallbackReason,
-  getVisionFailureReason,
   isEmptyAssistantMessage,
 } from "./utils/chat-utils.js";
 
@@ -135,60 +126,16 @@ export async function chat(
         { type: MESSAGE_CONTENT_TYPE.TEXT, text: assembledText },
       ];
       const visualContexts: VisualContext[] = [];
-      let imagePromptReplacementText: string | undefined;
 
       if (media?.type === "image") {
-        const buf = readFileSync(media.filePath);
-        const mimeType = detectImageMime(buf) ?? media.mimeType;
-        const data = buf.toString("base64");
-        if (mimeType !== media.mimeType) {
-          console.log(`[chat] image mimeType corrected: ${media.mimeType} → ${mimeType}`);
-        }
-
-        if (!modelSupportsVision(chatModel.meta)) {
-          const fallbackReason = getChatModelVisionFallbackReason(chatModel.meta);
-          const visionModel = await resolveConfiguredModel(accountId, conversationId, "vision");
-          if (visionModel) {
-            if (!modelSupportsVision(visionModel.meta)) {
-              userContent.push(createImagePlaceholder("no_vision_model_configured"));
-              imagePromptReplacementText = "[图片原始文件已保存；vision 模型未声明支持图片输入。]";
-              console.warn(
-                `[vision] configured vision model does not support image input: ${visionModel.modelId}`,
-              );
-            } else {
-              try {
-                const visualContext = await describeImageWithVisionModel({
-                  model: visionModel.model,
-                  modelId: visionModel.modelId,
-                  imageData: data,
-                  mimeType,
-                  imageBytes: buf.byteLength,
-                  fallbackReason,
-                });
-                visualContexts.push(visualContext);
-                userContent.push(formatVisualContextForPrompt(visualContext));
-                imagePromptReplacementText = "[图片原始文件已保存；图片内容见上方 visual_context。]";
-              } catch (error) {
-                const reason = getVisionFailureReason(error);
-                console.warn("[vision] describe image failed, using placeholder:", error);
-                userContent.push(createImagePlaceholder(reason));
-                imagePromptReplacementText = "[图片原始文件已保存；图片内容识别失败。]";
-              }
-            }
-          } else {
-            userContent.push(createImagePlaceholder("no_vision_model_configured"));
-            imagePromptReplacementText = "[图片原始文件已保存；未配置 vision 模型。]";
-            console.warn("[vision] no vision model configured; image will be replaced with placeholder");
-          }
-        }
-
-        userContent.push({
-          type: MESSAGE_CONTENT_TYPE.IMAGE,
-          data,
-          mimeType: mimeType as ImageContent["mimeType"],
-          ...(media.assetId ? { assetId: media.assetId } : {}),
-          ...(imagePromptReplacementText ? { promptReplacementText: imagePromptReplacementText } : {}),
+        const prepared = await prepareUserVisualContent({
+          media,
+          chatModel,
+          accountId,
+          conversationId,
         });
+        userContent.push(...prepared.content);
+        visualContexts.push(...prepared.visualContexts);
       }
 
       const userMessage: AgentMessage = {

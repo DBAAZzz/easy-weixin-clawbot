@@ -15,6 +15,7 @@ import type {
 import {
   MESSAGE_CONTENT_TYPE,
   MESSAGE_ROLE,
+  MESSAGE_STOP_REASON,
 } from "@clawbot/shared";
 import type {
   AgentMessage,
@@ -35,6 +36,64 @@ function normalizeToolArguments(value: unknown): Record<string, unknown> {
     return value as Record<string, unknown>;
   }
   return {};
+}
+
+function mapFinishReason(finishReason: string): string {
+  switch (finishReason) {
+    case "stop": return MESSAGE_STOP_REASON.STOP;
+    case "length": return "length";
+    case "tool-calls": return MESSAGE_STOP_REASON.TOOL_USE;
+    case "error": return "error";
+    case "content-filter": return "error";
+    default: return MESSAGE_STOP_REASON.STOP;
+  }
+}
+
+export function mapModelResultToAssistantMessage(
+  result: {
+    content: unknown[];
+    finishReason: string;
+    usage: { inputTokens?: number; outputTokens?: number };
+    response?: { modelId?: string };
+  },
+  fallbackModelId: string,
+): AssistantMessage {
+  const content: AssistantMessage["content"] = [];
+  for (const part of result.content) {
+    const p = part as {
+      type: string;
+      text?: string;
+      toolCallId?: string;
+      toolName?: string;
+      input?: unknown;
+      args?: unknown;
+    };
+
+    if (p.type === "text" && p.text) {
+      content.push({ type: MESSAGE_CONTENT_TYPE.TEXT, text: p.text });
+    } else if (p.type === "reasoning" && p.text) {
+      content.push({ type: MESSAGE_CONTENT_TYPE.THINKING, thinking: p.text });
+    } else if (p.type === "tool-call") {
+      content.push({
+        type: MESSAGE_CONTENT_TYPE.TOOL_CALL,
+        id: p.toolCallId ?? "",
+        name: p.toolName ?? "",
+        arguments: normalizeToolArguments(p.input ?? p.args),
+      });
+    }
+  }
+
+  return {
+    role: MESSAGE_ROLE.ASSISTANT,
+    content,
+    timestamp: Date.now(),
+    model: result.response?.modelId ?? fallbackModelId,
+    stopReason: mapFinishReason(result.finishReason),
+    usage: {
+      input: result.usage.inputTokens ?? 0,
+      output: result.usage.outputTokens ?? 0,
+    },
+  };
 }
 
 function userToModel(msg: UserMessage): UserModelMessage {

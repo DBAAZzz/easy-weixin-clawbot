@@ -1,5 +1,6 @@
 import { getTapeStore } from "../ports/tape-store.js";
 import { recall } from "./service.js";
+import { GLOBAL_BRANCH, isGlobalBranch } from "./constants.js";
 import type { TapeEntryRow } from "../ports/tape-store.js";
 import type { TapeState } from "./types.js";
 
@@ -62,7 +63,7 @@ interface BuildTapeGraphSnapshotInput {
 const CO_OCCURRENCE_WINDOW_MS = 2_000;
 
 function toScope(branch: string): GraphScope {
-  return branch === "__global__" ? "global" : "session";
+  return isGlobalBranch(branch) ? "global" : "session";
 }
 
 function createMemoryNodeId(branch: string, category: GraphCategory, key: string) {
@@ -300,10 +301,10 @@ export function buildTapeGraphSnapshot(input: BuildTapeGraphSnapshotInput): Tape
 
 export async function generateTapeGraph(
   accountId: string,
-  requestedBranch = "__global__",
+  requestedBranch = GLOBAL_BRANCH,
 ): Promise<TapeGraphResponse> {
   const store = getTapeStore();
-  const branch = requestedBranch || "__global__";
+  const branch = requestedBranch || GLOBAL_BRANCH;
   const branches =
     branch === "*"
       ? await store.listBranches(accountId)

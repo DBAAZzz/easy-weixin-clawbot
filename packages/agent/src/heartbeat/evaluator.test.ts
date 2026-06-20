@@ -1,7 +1,33 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { pendingWithBackoff } from "./evaluator.js";
+import { parseEvalResult, pendingWithBackoff } from "./evaluator.js";
 import type { PendingGoalRow } from "./types.js";
+
+test("parseEvalResult reads a plain JSON verdict", () => {
+  assert.deepEqual(parseEvalResult('{"verdict":"act","reason":"go"}'), {
+    verdict: "act",
+    reason: "go",
+  });
+});
+
+test("parseEvalResult reads a fenced JSON verdict", () => {
+  const result = parseEvalResult('```json\n{"verdict":"resolve","reason":"done"}\n```');
+  assert.equal(result.verdict, "resolve");
+  assert.equal(result.reason, "done");
+});
+
+test("parseEvalResult reads a verdict embedded in prose", () => {
+  const result = parseEvalResult('My call: {"verdict":"wait","reason":"later"}.');
+  assert.equal(result.verdict, "wait");
+});
+
+test("parseEvalResult falls back to keyword match", () => {
+  assert.equal(parseEvalResult("我认为目标已经完成了").verdict, "resolve");
+});
+
+test("parseEvalResult defaults to wait when unparseable", () => {
+  assert.deepEqual(parseEvalResult("???"), { verdict: "wait", reason: "parse_failed" });
+});
 
 function createGoal(overrides: Partial<PendingGoalRow> = {}): PendingGoalRow {
   const now = new Date("2026-06-20T00:00:00.000Z");

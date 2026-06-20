@@ -20,6 +20,7 @@ import {
 import { getPromptAssets } from "../prompts/port.js";
 import { renderTemplate } from "../prompts/assembler.js";
 import { PROMPT_PROFILES, PROMPT_TEMPLATES } from "../prompts/profiles.js";
+import { extractJsonBlock } from "../utils/json.js";
 
 type TokenUpdates = Pick<PendingGoalRow, "totalInputTokens" | "totalOutputTokens">;
 
@@ -38,11 +39,11 @@ export function parseEvalResult(text: string): { verdict: Verdict; reason: strin
     if (isValidVerdict(parsed.verdict)) return parsed;
   } catch {}
 
-  // 2. Try extracting from markdown code block
-  const jsonMatch = text.match(/\{[\s\S]*?\}/);
-  if (jsonMatch) {
+  // 2. Try extracting a JSON block (markdown fence or brace span)
+  const jsonBlock = extractJsonBlock(text);
+  if (jsonBlock) {
     try {
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonBlock);
       if (isValidVerdict(parsed.verdict)) return parsed;
     } catch {}
   }

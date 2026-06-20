@@ -20,6 +20,7 @@ import {
   getChatModelVisionFallbackReason,
   getVisionFailureReason,
 } from "./utils/chat-utils.js";
+import { extractJsonBlock } from "./utils/json.js";
 
 const VISION_TIMEOUT_MS = 120_000;
 const VISION_MAX_OUTPUT_TOKENS = 2000;
@@ -71,20 +72,6 @@ function asStringArray(value: unknown): string[] {
     .map((item) => String(item).trim())
     .filter(Boolean)
     .map((item) => item.slice(0, MAX_ITEM_CHARS));
-}
-
-function extractJsonText(text: string): string | null {
-  const fenced = /```(?:json)?\s*([\s\S]*?)\s*```/i.exec(text);
-  if (fenced?.[1]) {
-    return fenced[1].trim();
-  }
-
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start < 0 || end <= start) {
-    return null;
-  }
-  return text.slice(start, end + 1);
 }
 
 function parseJsonStringLiteral(value: string): string | null {
@@ -338,7 +325,7 @@ export async function describeImageWithVisionModel(
           maxOutputTokens: VISION_MAX_OUTPUT_TOKENS,
           abortSignal: AbortSignal.timeout(VISION_TIMEOUT_MS),
           async experimental_repairText({ text }) {
-            return extractJsonText(text);
+            return extractJsonBlock(text);
           },
         });
       } catch (error) {

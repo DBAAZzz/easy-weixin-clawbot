@@ -17,6 +17,7 @@ import { withSpan } from "@clawbot/observability";
 import { z } from "zod";
 import { recall } from "./service.js";
 import { queueRecordEntry } from "./queue.js";
+import { GLOBAL_BRANCH } from "./constants.js";
 import type { RecordParams, Fragment, TapeState } from "./types.js";
 import { getPromptAssets } from "../prompts/port.js";
 import { renderTemplate } from "../prompts/assembler.js";
@@ -183,7 +184,7 @@ export function fireExtractAndRecord(
       try {
         // Load existing memory state to avoid duplicate extraction
         const [globalState, sessionState] = await Promise.all([
-          recall(accountId, "__global__").catch(() => ({ facts: new Map(), preferences: new Map(), decisions: [], version: 0 } as TapeState)),
+          recall(accountId, GLOBAL_BRANCH).catch(() => ({ facts: new Map(), preferences: new Map(), decisions: [], version: 0 } as TapeState)),
           recall(accountId, sessionBranch).catch(() => ({ facts: new Map(), preferences: new Map(), decisions: [], version: 0 } as TapeState)),
         ]);
         const existingKeys = formatExistingKeys(globalState, sessionState);
@@ -200,7 +201,7 @@ export function fireExtractAndRecord(
         const records = toRecordParams(memories, actor);
 
         for (const { scope, params } of records) {
-          const branch = scope === "global" ? "__global__" : sessionBranch;
+          const branch = scope === "global" ? GLOBAL_BRANCH : sessionBranch;
           queueRecordEntry(accountId, branch, params);
         }
 

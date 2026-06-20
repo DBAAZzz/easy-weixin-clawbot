@@ -6,7 +6,7 @@ import { dirname, join, relative } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
 import { z } from "zod";
-import { createSkillRuntimeToolSnapshot } from "./runtime-tools.js";
+import { createSkillRuntimeToolSnapshot, validateRunRequest } from "./runtime-tools.js";
 import type { InstalledSkill, SkillInstaller } from "./types.js";
 import type { RuntimeProvisioner, ProvisionLog, ProvisionPlan } from "./runtime-provisioner.js";
 
@@ -168,6 +168,71 @@ function createStubProvisioner(): RuntimeProvisioner {
     healthCheck: async () => true,
   };
 }
+
+function createScriptSetInstalledSkill(): InstalledSkill {
+  const rootDir = "/tmp/demo-script-set";
+  return {
+    skill: {
+      source: {
+        name: "script-set-skill",
+        version: "0.0.0",
+        type: "skill",
+        summary: "demo",
+        activation: "on-demand",
+        body: "# Demo",
+        filePath: join(rootDir, "SKILL.md"),
+      },
+      packageIndex: {
+        rootDir,
+        skillMdPath: join(rootDir, "SKILL.md"),
+        referenceFiles: [],
+        scriptFiles: ["scripts/a.py", "scripts/b.py"],
+        rootScriptFiles: [],
+      },
+      detectedRuntime: {
+        kind: "python-script-set",
+        preferredInstaller: "pip",
+        scriptSet: ["scripts/a.py", "scripts/b.py"],
+        dependencies: [],
+        issues: [],
+        evidence: ["scripts/a.py", "scripts/b.py"],
+      },
+    },
+    origin: "user",
+    enabled: true,
+    installedAt: new Date().toISOString(),
+    provisionStatus: "ready",
+  };
+}
+
+test("validateRunRequest requires script_path for script-set skills", () => {
+  assert.throws(
+    () => validateRunRequest({}, createScriptSetInstalledSkill()),
+    /must provide script_path/,
+  );
+});
+
+test("validateRunRequest rejects paths escaping the skill directory", () => {
+  assert.throws(
+    () => validateRunRequest({ script_path: "../outside.py" }, createScriptSetInstalledSkill()),
+    /escapes the skill directory/,
+  );
+});
+
+test("validateRunRequest clamps timeout and parses args", () => {
+  const request = validateRunRequest(
+    {
+      script_path: "scripts/a.py",
+      timeout_ms: 999_999,
+      args: "--name 'Ada Lovelace'",
+    },
+    createScriptSetInstalledSkill(),
+  );
+
+  assert.equal(request.requestedScript, "scripts/a.py");
+  assert.equal(request.timeoutMs, 120_000);
+  assert.deepEqual(request.scriptArgs, ["--name", "Ada Lovelace"]);
+});
 
 test("run_skill_script transparently serializes python date objects without modifying the skill", async () => {
   const fixture = await createPythonSkillFixture([

@@ -4,6 +4,8 @@
  * Implemented by server (Prisma) and injected at startup.
  */
 
+import { createPortSlot } from "./slot.js";
+
 export interface TapeEntryRow {
   eid: string;
   branch: string;
@@ -73,13 +75,5 @@ export interface TapeStore {
   purgeCompacted(retentionDays: number): Promise<number>;
 }
 
-let store: TapeStore | null = null;
-
-export function setTapeStore(impl: TapeStore): void {
-  store = impl;
-}
-
-export function getTapeStore(): TapeStore {
-  if (!store) throw new Error("TapeStore not initialized — call setTapeStore() at startup");
-  return store;
-}
+export const { set: setTapeStore, get: getTapeStore } =
+  createPortSlot<TapeStore>("TapeStore", "setTapeStore");

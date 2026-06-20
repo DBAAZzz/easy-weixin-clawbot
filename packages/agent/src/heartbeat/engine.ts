@@ -11,7 +11,6 @@ import { getHeartbeatStore } from "../ports/heartbeat-store.js";
 import { getPushService } from "../ports/push-service.js";
 import { evaluateGoal } from "./evaluator.js";
 import type { GoalTransition } from "./types.js";
-import { getHeartbeatExecutor } from "../ports/heartbeat-executor.js";
 
 const TICK_INTERVAL_MS = 60_000;
 

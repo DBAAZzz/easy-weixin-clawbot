@@ -1,18 +1,10 @@
 import { readdir, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { isFile } from "./fs-utils.js";
 import type { SkillPackageIndex } from "./types.js";
 
 function toPosixPath(path: string): string {
   return path.split("\\").join("/");
-}
-
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    const info = await stat(filePath);
-    return info.isFile();
-  } catch {
-    return false;
-  }
 }
 
 async function collectFiles(dirPath: string): Promise<string[]> {
@@ -46,7 +38,7 @@ function isScriptFile(fileName: string): boolean {
 
 export async function scanSkillPackage(rootDir: string): Promise<SkillPackageIndex> {
   const skillMdPath = join(rootDir, "SKILL.md");
-  const metaJsonPath = (await fileExists(join(rootDir, "_meta.json"))) ? join(rootDir, "_meta.json") : undefined;
+  const metaJsonPath = (await isFile(join(rootDir, "_meta.json"))) ? join(rootDir, "_meta.json") : undefined;
   const referencesDir = join(rootDir, "references");
   const scriptsDir = join(rootDir, "scripts");
 
@@ -71,7 +63,7 @@ export async function scanSkillPackage(rootDir: string): Promise<SkillPackageInd
     // Ignore read errors
   }
 
-  const requirementsTxtPath = (await fileExists(join(rootDir, "requirements.txt")))
+  const requirementsTxtPath = (await isFile(join(rootDir, "requirements.txt")))
     ? join(rootDir, "requirements.txt")
     : undefined;
 

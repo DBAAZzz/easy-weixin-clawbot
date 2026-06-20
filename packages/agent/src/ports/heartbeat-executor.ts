@@ -7,6 +7,7 @@
  */
 
 import type { HeartbeatExecutionRequest, HeartbeatExecutionResult } from "../heartbeat/types.js";
+import { createPortSlot } from "./slot.js";
 
 export type { HeartbeatExecutionRequest, HeartbeatExecutionResult };
 
@@ -19,14 +20,5 @@ export interface HeartbeatExecutorPort {
   execute(req: HeartbeatExecutionRequest): Promise<HeartbeatExecutionResult>;
 }
 
-let executor: HeartbeatExecutorPort | null = null;
-
-export function setHeartbeatExecutor(impl: HeartbeatExecutorPort): void {
-  executor = impl;
-}
-
-export function getHeartbeatExecutor(): HeartbeatExecutorPort {
-  if (!executor)
-    throw new Error("HeartbeatExecutorPort not initialized — call setHeartbeatExecutor() at startup");
-  return executor;
-}
+export const { set: setHeartbeatExecutor, get: getHeartbeatExecutor } =
+  createPortSlot<HeartbeatExecutorPort>("HeartbeatExecutorPort", "setHeartbeatExecutor");

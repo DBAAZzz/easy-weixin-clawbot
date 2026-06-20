@@ -5,6 +5,7 @@
  */
 
 import type { AgentMessage } from "../llm/types.js";
+import { createPortSlot } from "./slot.js";
 
 export interface RestoredHistory {
   messages: AgentMessage[];
@@ -39,13 +40,5 @@ export interface MessageStore {
   ): Promise<MessagesSinceRow[]>;
 }
 
-let store: MessageStore | null = null;
-
-export function setMessageStore(impl: MessageStore): void {
-  store = impl;
-}
-
-export function getMessageStore(): MessageStore {
-  if (!store) throw new Error("MessageStore not initialized — call setMessageStore() at startup");
-  return store;
-}
+export const { set: setMessageStore, get: getMessageStore } =
+  createPortSlot<MessageStore>("MessageStore", "setMessageStore");

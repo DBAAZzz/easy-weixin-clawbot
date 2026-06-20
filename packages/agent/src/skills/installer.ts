@@ -1,7 +1,9 @@
-import { cp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { parseMdContent } from "../utils/parser.js";
 import { compileSkill, createSkillSource } from "./compiler.js";
+import { isProvisionableKind } from "./types.js";
+import { isFile, pathExists } from "./fs-utils.js";
 import { loadSkillsFromDirectory } from "./loader.js";
 import { scanSkillPackage } from "./package-scanner.js";
 import { detectSkillRuntime } from "./runtime-detector.js";
@@ -37,18 +39,6 @@ async function ensureDir(dirPath: string): Promise<void> {
   await mkdir(dirPath, { recursive: true });
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await stat(filePath);
-    return true;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return false;
-    }
-    throw error;
-  }
-}
-
 async function readState(statePath: string): Promise<InstallerState> {
   try {
     const raw = await readFile(statePath, "utf8");
@@ -68,7 +58,7 @@ async function writeState(statePath: string, state: InstallerState): Promise<voi
 }
 
 function shouldTrackProvisionStatus(runtime: DetectedSkillRuntime | undefined): boolean {
-  return runtime?.kind === "python-script" || runtime?.kind === "python-script-set" || runtime?.kind === "node-script" || runtime?.kind === "node-script-set";
+  return isProvisionableKind(runtime?.kind);
 }
 
 function toCatalogItem(installed: InstalledSkill): SkillCatalogItem {
@@ -241,7 +231,7 @@ export function createSkillInstaller(registry: SkillRegistry): SkillInstaller {
   async function installFromDirectory(sourceDir: string): Promise<SkillCatalogItem> {
     await ensureDir(userDir);
     const skillMdPath = join(sourceDir, "SKILL.md");
-    if (!(await fileExists(skillMdPath))) {
+    if (!(await isFile(skillMdPath))) {
       throw new Error("SKILL.md not found in the uploaded directory");
     }
     const markdown = await readFile(skillMdPath, "utf8");
@@ -249,7 +239,7 @@ export function createSkillInstaller(registry: SkillRegistry): SkillInstaller {
     const name = compiled.source.name;
 
     const targetDir = join(userDir, name);
-    if (await fileExists(targetDir)) {
+    if (await pathExists(targetDir)) {
       await rm(targetDir, { recursive: true });
     }
     await cp(sourceDir, targetDir, { recursive: true });
@@ -333,7 +323,7 @@ export function createSkillInstaller(registry: SkillRegistry): SkillInstaller {
       }
 
       const skillDir = join(userDir, name);
-      if (await fileExists(skillDir)) {
+      if (await pathExists(skillDir)) {
         await rm(skillDir, { recursive: true });
       }
 

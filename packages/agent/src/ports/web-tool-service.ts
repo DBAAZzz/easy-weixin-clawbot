@@ -1,3 +1,5 @@
+import { createPortSlot } from "./slot.js";
+
 export interface WebSearchResult {
   title: string;
   url: string;
@@ -31,15 +33,5 @@ export interface WebToolService {
   fetch(request: WebFetchRequest): Promise<WebFetchResponse>;
 }
 
-let service: WebToolService | null = null;
-
-export function setWebToolService(impl: WebToolService): void {
-  service = impl;
-}
-
-export function getWebToolService(): WebToolService {
-  if (!service) {
-    throw new Error("WebToolService not initialized — call setWebToolService() at startup");
-  }
-  return service;
-}
+export const { set: setWebToolService, get: getWebToolService } =
+  createPortSlot<WebToolService>("WebToolService", "setWebToolService");

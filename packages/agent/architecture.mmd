@@ -1,0 +1,68 @@
+flowchart LR
+  server["服务端包 / server package\n微信运行时、Web 后台、适配器\nWeChat runtime, Web admin, adapters"]
+  compose["启动装配 / startup composition\n注入 Port 实现\nset Port implementations\n装配 ChatDeps\nsetChatDeps(runner, log)"]
+
+  chat["会话编排 / chat.ts\n加载历史、记忆、模型并生成响应\nconversation orchestration\nhistory + memory + model + response"]
+  runner["AgentRunner / runner.ts\nLLM 工具调用循环\nLLM tool-use loop"]
+
+  model["模型层 / model layer\nresolveModel()\n会话 -> 账号 -> 全局\nconversation -> account -> global\nAI SDK 模型工厂\ncreateLanguageModel()"]
+  prompt["提示词层 / prompt layer\n组装用户上下文和系统提示词\nassembleUserContext() / assembleSystemPrompt()\nProfile 资产、Tape 记忆、已加载技能\nprofile assets + Tape memory + loaded skills"]
+  history["对话历史 / conversation layer\n内存历史、上下文裁剪\nin-memory history + context-window trimming\n标题生成和回滚辅助\ntitle and rollback helpers"]
+  tape["Tape 记忆 / Tape memory\n召回、折叠、提取、记录\nrecall + fold + extract + record\n压缩锚点、会话和全局分支\ncompact anchors + session/global branches"]
+  vision["媒体与视觉 / media and vision\n准备图片内容\nprepare image content\n非视觉模型降级\nfallback for non-vision models"]
+
+  tools["工具暴露面 / tool surface\nCompositeToolRegistry\n内置、MCP、定时、Heartbeat 工具\nbuiltin + MCP + scheduler + heartbeat tools\n内建 use_skill\nuse_skill built-in"]
+  skills["技能系统 / skill system\nMarkdown 加载和编译\nMarkdown loader/compiler\nSkillRegistry + 对话技能运行时\nconversation skill runtime\n按需注入指令\non-demand instruction injection"]
+  mcp["MCP 集成 / MCP integration\nstdio 客户端\nstdio client\n远程工具绑定和适配\nremote tool bindings + adapter"]
+  scheduler["定时任务 / scheduler\ncron 管理器\ncron manager\n计划命令和任务执行\nschedule command + task executor"]
+  heartbeat["Heartbeat\n等待目标扫描\nwaiting goal scan\nPhase1 评估，Phase2 执行\nPhase1 evaluate + Phase2 execute\n通过 chat bridge 执行\nthrough chat bridge"]
+
+  ports["Port 接口边界 / Port interfaces only\nMessageStore / TapeStore\nModelConfigStore / SchedulerStore\nHeartbeatStore / HeartbeatExecutorPort\nWebToolService / PushService"]
+  observability["可观测性 / observability\nwithSpan()\nLLM 和工具指标\nLLM/tool metrics\n脱敏 prompt 快照\nsanitized prompt snapshots"]
+  shared["@clawbot/shared\n消息角色、内容类型、停止原因\nmessage roles, content types, stop reasons"]
+
+  server --> compose
+  compose --> chat
+  compose --> runner
+  compose --> ports
+
+  chat --> history
+  chat --> tape
+  chat --> model
+  chat --> prompt
+  chat --> vision
+  chat --> runner
+
+  runner --> prompt
+  runner --> model
+  runner --> tools
+  runner --> history
+
+  tools --> skills
+  tools --> mcp
+  tools --> scheduler
+  tools --> heartbeat
+
+  chat --> ports
+  model --> ports
+  tape --> ports
+  tools --> ports
+
+  chat --> observability
+  runner --> observability
+  chat --> shared
+  runner --> shared
+
+  classDef external fill:#f8fafc,stroke:#64748b,color:#0f172a
+  classDef core fill:#eff6ff,stroke:#2563eb,color:#172554
+  classDef memory fill:#f0fdf4,stroke:#16a34a,color:#14532d
+  classDef extension fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+  classDef boundary fill:#fdf2f8,stroke:#db2777,color:#831843
+  classDef support fill:#f5f3ff,stroke:#7c3aed,color:#3b0764
+
+  class server,compose external
+  class chat,runner,model,prompt,vision core
+  class history,tape memory
+  class tools,skills,mcp,scheduler,heartbeat extension
+  class ports boundary
+  class observability,shared support

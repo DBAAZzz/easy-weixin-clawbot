@@ -16,12 +16,33 @@ const store = new Map<string, AgentMessage[]>();
 const seqCounters = new Map<string, number>();
 const loading = new Map<string, Promise<AgentMessage[]>>();
 const waitQueues = new Map<string, Array<() => void>>();
+/** LRU access-order list (front = most recently used). */
+const lruOrder: string[] = [];
+const MAX_CACHED_CONVERSATIONS = 500;
 
 function key(accountId: string, conversationId: string) {
   return `${accountId}::${conversationId}`;
 }
 
-async function acquireConversationLock(lockKey: string): Promise<() => void> {
+function touchLru(conversationKey: string): void {
+  const idx = lruOrder.indexOf(conversationKey);
+  if (idx !== -1) lruOrder.splice(idx, 1);
+  lruOrder.unshift(conversationKey);
+}
+
+function evictLru(): void {
+  while (lruOrder.length > MAX_CACHED_CONVERSATIONS) {
+    const oldest = lruOrder.pop()!;
+    store.delete(oldest);
+    seqCounters.delete(oldest);
+    loading.delete(oldest);
+  }
+}
+
+async function acquireConversationLock(
+  lockKey: string,
+  timeoutMs = 30_000,
+): Promise<() => void> {
   const queue = waitQueues.get(lockKey);
 
   if (!queue) {
@@ -37,8 +58,16 @@ async function acquireConversationLock(lockKey: string): Promise<() => void> {
     };
   }
 
-  return new Promise((resolve) => {
-    queue.push(() => {
+  return new Promise<() => void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      // Remove this waiter from the queue so stale entries don't accumulate
+      const idx = queue.indexOf(onAcquire);
+      if (idx !== -1) queue.splice(idx, 1);
+      reject(new Error("Timed out waiting for conversation lock"));
+    }, timeoutMs);
+
+    function onAcquire() {
+      clearTimeout(timer);
       resolve(() => {
         const nextQueue = waitQueues.get(lockKey);
         const next = nextQueue?.shift();
@@ -48,7 +77,9 @@ async function acquireConversationLock(lockKey: string): Promise<() => void> {
         }
         waitQueues.delete(lockKey);
       });
-    });
+    }
+
+    queue.push(onAcquire);
   });
 }
 
@@ -74,6 +105,7 @@ export async function ensureHistoryLoaded(
   const conversationKey = key(accountId, conversationId);
 
   if (store.has(conversationKey)) {
+    touchLru(conversationKey);
     return store.get(conversationKey)!;
   }
 
@@ -86,6 +118,8 @@ export async function ensureHistoryLoaded(
           store.set(conversationKey, messages);
           seqCounters.set(conversationKey, maxSeq);
           loading.delete(conversationKey);
+          touchLru(conversationKey);
+          evictLru();
           return messages;
         })
         .catch((error) => {
@@ -106,6 +140,7 @@ export function getHistory(accountId: string, conversationId: string): AgentMess
       `ensureHistoryLoaded() must be awaited before calling getHistory().`
     );
   }
+  touchLru(k);
   return store.get(k)!;
 }
 
@@ -133,6 +168,8 @@ export function evictConversation(accountId: string, conversationId: string): vo
   store.delete(conversationKey);
   seqCounters.delete(conversationKey);
   loading.delete(conversationKey);
+  const lruIdx = lruOrder.indexOf(conversationKey);
+  if (lruIdx !== -1) lruOrder.splice(lruIdx, 1);
 }
 
 export function clearConversation(accountId: string, conversationId: string): void {
@@ -140,6 +177,8 @@ export function clearConversation(accountId: string, conversationId: string): vo
   store.delete(conversationKey);
   seqCounters.delete(conversationKey);
   loading.delete(conversationKey);
+  const lruIdx = lruOrder.indexOf(conversationKey);
+  if (lruIdx !== -1) lruOrder.splice(lruIdx, 1);
 
   // Also clear from DB so corrupted messages don't get reloaded
   const messageStore = getMessageStore();

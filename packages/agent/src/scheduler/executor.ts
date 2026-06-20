@@ -1,4 +1,5 @@
 import { chat } from "../chat.js";
+import { TimeoutError } from "../errors.js";
 import { getPushService } from "../ports/push-service.js";
 import { getScheduledTaskHandler } from "../ports/scheduled-task-handler.js";
 import {
@@ -37,7 +38,7 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
       const handlerResult = await Promise.race([
         getScheduledTaskHandler().execute(task),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Execution timeout")), EXECUTION_TIMEOUT_MS),
+          setTimeout(() => reject(new TimeoutError()), EXECUTION_TIMEOUT_MS),
         ),
       ]);
 
@@ -54,7 +55,7 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
       const chatResult = await Promise.race([
         chat(task.accountId, executionConvId, task.prompt),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Execution timeout")), EXECUTION_TIMEOUT_MS),
+          setTimeout(() => reject(new TimeoutError()), EXECUTION_TIMEOUT_MS),
         ),
       ]);
 
@@ -76,7 +77,7 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
   } catch (err) {
     const msg = (err as Error).message;
     error = msg;
-    status = msg === "Execution timeout" ? "timeout" : "error";
+    status = err instanceof TimeoutError ? "timeout" : "error";
     console.error(`[scheduler] task #${task.seq} (${task.accountId}) failed: ${msg}`);
   }
 

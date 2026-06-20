@@ -118,7 +118,7 @@ export function startHeartbeat(): void {
   }, TICK_INTERVAL_MS);
 
   // unref so this timer doesn't prevent process exit
-  tickTimer.unref?.();
+  tickTimer.unref();
 
   logger.info("started", { tickIntervalSeconds: TICK_INTERVAL_MS / 1000 });
 }

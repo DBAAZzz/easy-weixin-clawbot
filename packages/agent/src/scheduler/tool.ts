@@ -11,19 +11,42 @@ import { createLogger } from "@clawbot/observability";
 
 const logger = createLogger({ component: "scheduler.tool" });
 
-/** Minimum interval: 30 minutes. Rejects cron expressions with intervals < 30min. */
+// Conservative minimum-interval guard for AI-generated cron expressions.
+//
+// The model may produce cron patterns that fire more frequently than the
+// 30-minute minimum.  This is *not* a full cron parser — it rejects these
+// common high-frequency patterns:
+//
+//  • Bare wildcard ("*") in the minute field (fires every minute)
+//  • Step < 30 patterns like "*/5" in the minute field
+//  • Range  ("0-5")  — can fire every minute
+//  • Range + step syntax like "0-59/1" — can fire every minute
+//  • Comma-separated minutes with inter-minute gap < 30
+//
+// Legitimate patterns like "*/30" or "*/45" are allowed.
+// Expressions that fall through to `true` are already validated by
+// `node-cron`'s `validate()` call, so blatantly malformed strings are
+// caught upstream.
 function validateMinInterval(cronExpr: string): boolean {
   const parts = cronExpr.trim().split(/\s+/);
-  // Reject 6-part (seconds) cron
   if (parts.length > 5) return false;
 
   const minutePart = parts[0];
 
-  // */N where N < 30
-  const stepMatch = minutePart.match(/^\*\/(\d+)$/);
-  if (stepMatch && Number.parseInt(stepMatch[1], 10) < 30) return false;
+  // Bare wildcard → fires every minute
+  if (minutePart === "*") return false;
 
-  // Comma-separated minutes with gap < 30
+  // Step syntax: "*/N" or "A-B/N"
+  const stepMatch = minutePart.match(/^(?:\*|\d+-\d+)\/(\d+)$/);
+  if (stepMatch) {
+    if (Number.parseInt(stepMatch[1], 10) < 30) return false;
+    return true; // step >= 30 → safe
+  }
+
+  // Range syntax: "A-B" or "A-B/N" (the latter caught above)
+  if (/^\d+-\d+$/.test(minutePart) || /^\d+-\d+\/\d+$/.test(minutePart)) return false;
+
+  // Comma-separated discrete minutes: reject if any相邻gap < 30
   if (minutePart.includes(",")) {
     const minutes = minutePart.split(",").map(Number).sort((a, b) => a - b);
     for (let i = 1; i < minutes.length; i++) {

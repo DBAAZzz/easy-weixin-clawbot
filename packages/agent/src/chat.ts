@@ -221,9 +221,11 @@ export async function chat(
             );
             await rollbackMessages(accountId, conversationId, messagesAddedInRun);
           } else {
-            // Tape: fire-and-forget LLM-based memory extraction
-            // Resolve extraction model (may differ from chat model for cost savings)
-            resolveConfiguredModel(accountId, conversationId, "extraction")
+            // Tape: fire-and-forget LLM-based memory extraction.
+            // The following .then() chain runs asynchronously *after* the
+            // `return finalizeReply(...)` below — it must not block the
+            // user-facing response path.
+            void resolveConfiguredModel(accountId, conversationId, "extraction")
               .then((extractionModel) => {
                 const effectiveExtractionModel = extractionModel ?? chatModel;
                 const extractionSource = extractionModel ? "configured-extraction" : "chat-fallback";

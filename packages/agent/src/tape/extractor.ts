@@ -22,6 +22,17 @@ import { getPromptAssets } from "../prompts/port.js";
 import { renderTemplate } from "../prompts/assembler.js";
 import { PROMPT_PROFILES } from "../prompts/profiles.js";
 
+/**
+ * Adapt the project's LanguageModel to the narrower type expected by
+ * `wrapLanguageModel`.  The two types are structurally compatible (they share
+ * the same underlying AI SDK model object), but the generic constraint on
+ * `wrapLanguageModel` is stricter.  This wrapper centralizes the assertion
+ * so SDK version bumps only need a single touch point.
+ */
+function toWrappableModel(model: LanguageModel): Parameters<typeof wrapLanguageModel>[0]["model"] {
+  return model as Parameters<typeof wrapLanguageModel>[0]["model"];
+}
+
 interface ConversationTurn {
   userText: string;
   assistantText: string;
@@ -88,7 +99,7 @@ async function callExtractor(
   try {
     const result = await generateText({
       model: wrapLanguageModel({
-        model: model as Parameters<typeof wrapLanguageModel>[0]["model"],
+        model: toWrappableModel(model),
         middleware: extractJsonMiddleware(),
       }),
       system: prompt,

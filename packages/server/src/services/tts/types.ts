@@ -1,9 +1,6 @@
 /** Provider-agnostic TTS interface. */
 export interface TTSProvider {
-  /** Synthesize text to audio. */
   synthesize(text: string, options?: TTSOptions): Promise<TTSResult>;
-
-  /** List available voices, optionally filtered by language. */
   getVoices(language?: string): Promise<TTSVoice[]>;
 }
 
@@ -21,7 +18,6 @@ export interface TTSOptions {
 }
 
 export interface TTSResult {
-  /** Raw audio data */
   audio: Buffer;
   /** File extension without dot, e.g. 'mp3' */
   format: string;
@@ -30,9 +26,7 @@ export interface TTSResult {
 }
 
 export interface TTSVoice {
-  /** Full voice identifier */
   id: string;
-  /** Human-readable name */
   name: string;
   /** Locale, e.g. 'zh-CN' */
   language: string;

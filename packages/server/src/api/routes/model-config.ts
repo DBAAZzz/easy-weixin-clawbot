@@ -3,6 +3,7 @@ import { getModelConfigStore } from "@clawbot/agent";
 import { invalidateModelCache } from "@clawbot/agent/model-resolver";
 import type { ModelConfigRow } from "@clawbot/agent";
 import type { ModelConfigDto } from "@clawbot/shared";
+import { parsePositiveBigIntParam } from "../params.js";
 
 function toDto(row: ModelConfigRow): ModelConfigDto {
   return {
@@ -24,17 +25,14 @@ function toDto(row: ModelConfigRow): ModelConfigDto {
 export function registerModelConfigRoutes(app: Hono) {
   const store = () => getModelConfigStore();
 
-  // List all configs
   app.get("/api/model-configs", async (c) => {
     const configs = await store().listAllConfigs();
     return c.json({ data: configs.map(toDto) });
   });
 
-  // Upsert a config
   app.put("/api/model-configs", async (c) => {
     const body = await c.req.json();
 
-    // Validate required fields
     const { scope, scope_key, purpose, template_id, model_id } = body;
     if (!scope || !scope_key || !purpose || !template_id || !model_id) {
       return c.json(
@@ -65,7 +63,11 @@ export function registerModelConfigRoutes(app: Hono) {
       );
     }
 
-    const templateId = BigInt(template_id);
+    const templateId = parsePositiveBigIntParam(String(template_id));
+    if (templateId === null) {
+      return c.json({ error: "template_id must be a positive integer" }, 400);
+    }
+
     const template = await store().getTemplateById(templateId);
     if (!template) {
       return c.json({ error: "selected template not found" }, 400);
@@ -89,9 +91,12 @@ export function registerModelConfigRoutes(app: Hono) {
     return c.json({ data: toDto(row) });
   });
 
-  // Delete a config
   app.delete("/api/model-configs/:id", async (c) => {
-    const id = BigInt(c.req.param("id"));
+    const id = parsePositiveBigIntParam(c.req.param("id"));
+    if (id === null) {
+      return c.json({ error: "id must be a positive integer" }, 400);
+    }
+
     const ok = await store().deleteConfig(id);
     if (!ok) {
       return c.json({ error: "not found" }, 404);

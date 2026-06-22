@@ -14,7 +14,6 @@ webhookRoutes.post("/", handleWebhook);
 
 // ── Token 管理接口（使用 JWT 认证，由上层 middleware 处理） ──
 
-// 创建 Token
 webhookRoutes.post("/tokens", async (c) => {
   const body = await c.req.json();
   const { source, description, accountIds } = body;
@@ -47,7 +46,6 @@ webhookRoutes.post("/tokens", async (c) => {
   return c.json({ token, source, accountIds, enabled: true, createdAt: new Date().toISOString() });
 });
 
-// 列出所有 Tokens
 webhookRoutes.get("/tokens", async (c) => {
   const tokens = await getPrisma().webhookToken.findMany({
     include: { permissions: { select: { accountId: true } } },
@@ -67,7 +65,6 @@ webhookRoutes.get("/tokens", async (c) => {
   });
 });
 
-// 禁用/启用 Token
 webhookRoutes.patch("/tokens/:source", async (c) => {
   const source = c.req.param("source");
   const body = await c.req.json();
@@ -85,7 +82,6 @@ webhookRoutes.patch("/tokens/:source", async (c) => {
   return c.json({ success: true });
 });
 
-// 更新账号授权
 webhookRoutes.patch("/tokens/:source/accounts", async (c) => {
   const source = c.req.param("source");
   const body = await c.req.json();
@@ -117,7 +113,6 @@ webhookRoutes.patch("/tokens/:source/accounts", async (c) => {
   return c.json({ success: true, accountIds: updated.map((p) => p.accountId) });
 });
 
-// 轮换 Token
 webhookRoutes.post("/tokens/:source/rotate", async (c) => {
   const source = c.req.param("source");
 
@@ -146,7 +141,6 @@ webhookRoutes.post("/tokens/:source/rotate", async (c) => {
   });
 });
 
-// 删除 Token
 webhookRoutes.delete("/tokens/:source", async (c) => {
   const source = c.req.param("source");
 

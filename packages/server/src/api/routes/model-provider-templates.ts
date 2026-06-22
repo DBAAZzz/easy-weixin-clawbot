@@ -6,6 +6,7 @@ import type {
   ModelProviderTemplateDto,
   ModelProviderTemplatePingDto,
 } from "@clawbot/shared";
+import { parsePositiveBigIntParam } from "../params.js";
 
 function normalizeModelIds(values: unknown): string[] {
   const normalized = Array.isArray(values)
@@ -186,7 +187,11 @@ export function registerModelProviderTemplateRoutes(app: Hono) {
 
   app.patch("/api/model-provider-templates/:id", async (c) => {
     const body = await c.req.json();
-    const id = BigInt(c.req.param("id"));
+    const id = parsePositiveBigIntParam(c.req.param("id"));
+    if (id === null) {
+      return c.json({ error: "id must be a positive integer" }, 400);
+    }
+
     const modelIds = normalizeModelIds(body.model_ids);
     const clearApiKey = body.clear_api_key === true;
     const hasApiKey = Object.prototype.hasOwnProperty.call(body, "api_key");
@@ -220,7 +225,11 @@ export function registerModelProviderTemplateRoutes(app: Hono) {
   });
 
   app.post("/api/model-provider-templates/:id/ping", async (c) => {
-    const id = BigInt(c.req.param("id"));
+    const id = parsePositiveBigIntParam(c.req.param("id"));
+    if (id === null) {
+      return c.json({ error: "id must be a positive integer" }, 400);
+    }
+
     const row = await store().getTemplateById(id);
     if (!row) {
       return c.json({ error: "not found" }, 404);
@@ -296,7 +305,11 @@ export function registerModelProviderTemplateRoutes(app: Hono) {
   });
 
   app.delete("/api/model-provider-templates/:id", async (c) => {
-    const id = BigInt(c.req.param("id"));
+    const id = parsePositiveBigIntParam(c.req.param("id"));
+    if (id === null) {
+      return c.json({ error: "id must be a positive integer" }, 400);
+    }
+
     const usageCount = await store().countConfigsForTemplate(id);
     if (usageCount > 0) {
       return c.json({ error: "template is still referenced by model configs" }, 409);

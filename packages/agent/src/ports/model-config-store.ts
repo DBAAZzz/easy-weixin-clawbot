@@ -4,6 +4,8 @@
  * Implemented by server (Prisma) and injected at startup.
  */
 
+import { createPortSlot } from "./slot.js";
+
 export type ModelPurpose = "chat" | "extraction" | "vision";
 export type ModelVisionOverride = "default" | "supported" | "unsupported";
 export type ModelScope = "global" | "account" | "conversation";
@@ -90,16 +92,5 @@ export interface ModelConfigStore {
   deleteConfig(id: bigint): Promise<boolean>;
 }
 
-let store: ModelConfigStore | null = null;
-
-export function setModelConfigStore(impl: ModelConfigStore): void {
-  store = impl;
-}
-
-export function getModelConfigStore(): ModelConfigStore {
-  if (!store)
-    throw new Error(
-      "ModelConfigStore not initialized — call setModelConfigStore() at startup",
-    );
-  return store;
-}
+export const { set: setModelConfigStore, get: getModelConfigStore } =
+  createPortSlot<ModelConfigStore>("ModelConfigStore", "setModelConfigStore");

@@ -243,3 +243,6 @@ export {
   getPromptAssets,
 } from "./prompts/index.js";
 export { extractMediaFromText, resolveFilePath } from "./media.js";
+
+// ── Errors ──────────────────────────────────────────────────────────
+export { AgentError, TimeoutError, ModelResolutionError, SkillProvisionError } from "./errors.js";

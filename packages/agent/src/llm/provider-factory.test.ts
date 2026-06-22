@@ -70,6 +70,15 @@ test("deepseek provider uses openai-compatible chat transport", () => {
   assert.equal(meta.contextWindow, 1_000_000);
   assert.equal(meta.maxOutputTokens, 384_000);
   assert.equal(meta.supportsImageInput, false);
+  assert.equal(meta.requiresReasonedToolHistory, true);
+});
+
+test("non-deepseek model metadata does not require reasoned tool history", () => {
+  const { meta } = createLanguageModel("openai", "gpt-4o", {
+    apiKey: "test-key",
+  });
+
+  assert.equal(meta.requiresReasonedToolHistory, undefined);
 });
 
 test("model capability table marks known vision models", () => {

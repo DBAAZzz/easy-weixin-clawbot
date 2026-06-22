@@ -1,6 +1,9 @@
 import { schedule, validate, type ScheduledTask as CronTask } from "node-cron";
+import { createLogger } from "@clawbot/observability";
 import { getSchedulerStore, type ScheduledTaskRow } from "../ports/scheduler-store.js";
 import { executeTask } from "./executor.js";
+
+const logger = createLogger({ component: "scheduler.manager" });
 
 /** Missed-tick recovery window: only compensate if within this many ms. */
 const MISSED_TICK_WINDOW_MS = 30 * 60 * 1000;
@@ -23,7 +26,7 @@ export function activate(task: ScheduledTaskRow): void {
   deactivate(task.id);
 
   if (!validate(task.cron)) {
-    console.error(`[scheduler] invalid cron expression for task #${task.seq}: "${task.cron}"`);
+    logger.error("invalid cron expression", { seq: task.seq, cron: task.cron });
     return;
   }
 
@@ -33,7 +36,7 @@ export function activate(task: ScheduledTaskRow): void {
     task.cron,
     async () => {
       if (entry.running) {
-        console.log(`[scheduler] task #${task.seq} still running, skipping tick`);
+        logger.info("task still running, skipping tick", { seq: task.seq });
         return;
       }
 
@@ -47,7 +50,7 @@ export function activate(task: ScheduledTaskRow): void {
         }
         await executeTask(current);
       } catch (err) {
-        console.error(`[scheduler] unexpected error in task #${task.seq}:`, err);
+        logger.error("unexpected task error", { seq: task.seq, error: err });
       } finally {
         entry.running = false;
       }
@@ -58,7 +61,7 @@ export function activate(task: ScheduledTaskRow): void {
   );
 
   activeJobs.set(key, entry);
-  console.log(`[scheduler] activated task #${task.seq} "${task.name}" [${task.cron}]`);
+  logger.info("activated task", { seq: task.seq, name: task.name, cron: task.cron });
 }
 
 /** Deactivate a task's cron job. */
@@ -80,7 +83,7 @@ export async function bootstrap(): Promise<void> {
   const tasks = await store.listEnabledTasks();
 
   if (tasks.length === 0) {
-    console.log("[scheduler] no enabled tasks found");
+    logger.info("no enabled tasks found");
     return;
   }
 
@@ -98,22 +101,24 @@ export async function bootstrap(): Promise<void> {
       if (nextRunTime < now && lastRunTime < nextRunTime) {
         const missedBy = now - nextRunTime;
         if (missedBy <= MISSED_TICK_WINDOW_MS) {
-          console.log(
-            `[scheduler] compensating missed tick for task #${task.seq} (missed by ${Math.round(missedBy / 1000)}s)`,
-          );
+          logger.info("compensating missed tick", {
+            seq: task.seq,
+            missedBySeconds: Math.round(missedBy / 1000),
+          });
           void executeTask(task).catch((err) =>
-            console.error(`[scheduler] compensation execution failed for task #${task.seq}:`, err),
+            logger.error("compensation execution failed", { seq: task.seq, error: err }),
           );
         } else {
-          console.log(
-            `[scheduler] skipping missed tick for task #${task.seq} (missed by ${Math.round(missedBy / 60000)}min, beyond window)`,
-          );
+          logger.info("skipping missed tick beyond recovery window", {
+            seq: task.seq,
+            missedByMinutes: Math.round(missedBy / 60000),
+          });
         }
       }
     }
   }
 
-  console.log(`[scheduler] bootstrapped ${tasks.length} task(s)`);
+  logger.info("bootstrapped tasks", { count: tasks.length });
 }
 
 /** Shutdown: stop all cron jobs and wait for running tasks to finish. */
@@ -132,7 +137,7 @@ export async function shutdown(): Promise<void> {
   }
 
   activeJobs.clear();
-  console.log("[scheduler] shutdown complete");
+  logger.info("shutdown complete");
 }
 
 export const schedulerManager = {

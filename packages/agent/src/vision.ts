@@ -1,15 +1,26 @@
+import { readFileSync } from "node:fs";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { sanitize, withSpan } from "@clawbot/observability";
 import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import type {
+  ImageContent,
   LanguageModel,
   TextContent,
   VisionFallbackReason,
   VisualContext,
 } from "./llm/types.js";
+import { modelSupportsVision } from "./llm/model-meta.js";
+import { resolveConfiguredModel, type ResolvedModel } from "./model-resolver.js";
 import { getPromptAssets } from "./prompts/port.js";
 import { PROMPT_PROFILES } from "./prompts/profiles.js";
+import type { ChatMedia } from "./types.js";
+import {
+  detectImageMime,
+  getChatModelVisionFallbackReason,
+  getVisionFailureReason,
+} from "./utils/chat-utils.js";
+import { extractJsonBlock } from "./utils/json.js";
 
 const VISION_TIMEOUT_MS = 120_000;
 const VISION_MAX_OUTPUT_TOKENS = 2000;
@@ -41,6 +52,11 @@ export interface DescribeImageInput {
   fallbackReason?: VisionFallbackReason;
 }
 
+export interface PreparedVisualContent {
+  content: (TextContent | ImageContent)[];
+  visualContexts: VisualContext[];
+}
+
 interface RawVisualContext {
   summary?: unknown;
   ocr_text?: unknown;
@@ -56,20 +72,6 @@ function asStringArray(value: unknown): string[] {
     .map((item) => String(item).trim())
     .filter(Boolean)
     .map((item) => item.slice(0, MAX_ITEM_CHARS));
-}
-
-function extractJsonText(text: string): string | null {
-  const fenced = /```(?:json)?\s*([\s\S]*?)\s*```/i.exec(text);
-  if (fenced?.[1]) {
-    return fenced[1].trim();
-  }
-
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start < 0 || end <= start) {
-    return null;
-  }
-  return text.slice(start, end + 1);
 }
 
 function parseJsonStringLiteral(value: string): string | null {
@@ -218,6 +220,72 @@ export function createImagePlaceholder(reason: VisionFallbackReason): TextConten
   return { type: MESSAGE_CONTENT_TYPE.TEXT, text };
 }
 
+export async function prepareUserVisualContent(args: {
+  media: ChatMedia;
+  chatModel: ResolvedModel;
+  accountId: string;
+  conversationId: string;
+}): Promise<PreparedVisualContent> {
+  const { media, chatModel, accountId, conversationId } = args;
+  const content: (TextContent | ImageContent)[] = [];
+  const visualContexts: VisualContext[] = [];
+  let imagePromptReplacementText: string | undefined;
+
+  const buf = readFileSync(media.filePath);
+  const mimeType = detectImageMime(buf) ?? media.mimeType;
+  const data = buf.toString("base64");
+  if (mimeType !== media.mimeType) {
+    console.log(`[chat] image mimeType corrected: ${media.mimeType} → ${mimeType}`);
+  }
+
+  if (!modelSupportsVision(chatModel.meta)) {
+    const fallbackReason = getChatModelVisionFallbackReason(chatModel.meta);
+    const visionModel = await resolveConfiguredModel(accountId, conversationId, "vision");
+    if (visionModel) {
+      if (!modelSupportsVision(visionModel.meta)) {
+        content.push(createImagePlaceholder("no_vision_model_configured"));
+        imagePromptReplacementText = "[图片原始文件已保存；vision 模型未声明支持图片输入。]";
+        console.warn(
+          `[vision] configured vision model does not support image input: ${visionModel.modelId}`,
+        );
+      } else {
+        try {
+          const visualContext = await describeImageWithVisionModel({
+            model: visionModel.model,
+            modelId: visionModel.modelId,
+            imageData: data,
+            mimeType,
+            imageBytes: buf.byteLength,
+            fallbackReason,
+          });
+          visualContexts.push(visualContext);
+          content.push(formatVisualContextForPrompt(visualContext));
+          imagePromptReplacementText = "[图片原始文件已保存；图片内容见上方 visual_context。]";
+        } catch (error) {
+          const reason = getVisionFailureReason(error);
+          console.warn("[vision] describe image failed, using placeholder:", error);
+          content.push(createImagePlaceholder(reason));
+          imagePromptReplacementText = "[图片原始文件已保存；图片内容识别失败。]";
+        }
+      }
+    } else {
+      content.push(createImagePlaceholder("no_vision_model_configured"));
+      imagePromptReplacementText = "[图片原始文件已保存；未配置 vision 模型。]";
+      console.warn("[vision] no vision model configured; image will be replaced with placeholder");
+    }
+  }
+
+  content.push({
+    type: MESSAGE_CONTENT_TYPE.IMAGE,
+    data,
+    mimeType: mimeType as ImageContent["mimeType"],
+    ...(media.assetId ? { assetId: media.assetId } : {}),
+    ...(imagePromptReplacementText ? { promptReplacementText: imagePromptReplacementText } : {}),
+  });
+
+  return { content, visualContexts };
+}
+
 export async function describeImageWithVisionModel(
   input: DescribeImageInput,
 ): Promise<VisualContext> {
@@ -257,7 +325,7 @@ export async function describeImageWithVisionModel(
           maxOutputTokens: VISION_MAX_OUTPUT_TOKENS,
           abortSignal: AbortSignal.timeout(VISION_TIMEOUT_MS),
           async experimental_repairText({ text }) {
-            return extractJsonText(text);
+            return extractJsonBlock(text);
           },
         });
       } catch (error) {

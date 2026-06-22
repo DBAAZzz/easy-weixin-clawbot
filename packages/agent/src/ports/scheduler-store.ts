@@ -4,6 +4,8 @@
  * Implemented by server (Prisma) and injected at startup.
  */
 
+import { createPortSlot } from "./slot.js";
+
 export interface ScheduledTaskRow {
   id: bigint;
   accountId: string;
@@ -99,13 +101,5 @@ export interface SchedulerStore {
   markRunPushed(id: bigint): Promise<void>;
 }
 
-let store: SchedulerStore | null = null;
-
-export function setSchedulerStore(impl: SchedulerStore): void {
-  store = impl;
-}
-
-export function getSchedulerStore(): SchedulerStore {
-  if (!store) throw new Error("SchedulerStore not initialized — call setSchedulerStore() at startup");
-  return store;
-}
+export const { set: setSchedulerStore, get: getSchedulerStore } =
+  createPortSlot<SchedulerStore>("SchedulerStore", "setSchedulerStore");

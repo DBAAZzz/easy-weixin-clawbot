@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   agentToModelMessages,
   legacyPayloadToAgentMessage,
+  mapModelResultToAssistantMessage,
   replaceImagesWithTextPlaceholders,
   stripUnreasonedToolCallHistory,
   TEXT_ONLY_IMAGE_PLACEHOLDER,
@@ -26,6 +27,72 @@ test("agentToModelMessages normalizes malformed toolCall arguments to object inp
   const [message] = agentToModelMessages([assistant]);
   assert.equal(message.role, "assistant");
   assert.deepEqual((message.content as Array<Record<string, unknown>>)[0]?.input, {});
+});
+
+test("mapModelResultToAssistantMessage converts text, reasoning, and tool calls", () => {
+  const message = mapModelResultToAssistantMessage(
+    {
+      content: [
+        { type: "text", text: "I will check." },
+        { type: "reasoning", text: "Need one tool call." },
+        {
+          type: "tool-call",
+          toolCallId: "call_1",
+          toolName: "web_search",
+          input: { query: "today news" },
+        },
+      ],
+      finishReason: "tool-calls",
+      usage: { inputTokens: 12, outputTokens: 34 },
+      response: { modelId: "provider-model" },
+    },
+    "fallback-model",
+  );
+
+  assert.equal(message.role, "assistant");
+  assert.equal(message.model, "provider-model");
+  assert.equal(message.stopReason, "toolUse");
+  assert.deepEqual(message.usage, { input: 12, output: 34 });
+  assert.deepEqual(message.content, [
+    { type: "text", text: "I will check." },
+    { type: "thinking", thinking: "Need one tool call." },
+    {
+      type: "toolCall",
+      id: "call_1",
+      name: "web_search",
+      arguments: { query: "today news" },
+    },
+  ]);
+});
+
+test("mapModelResultToAssistantMessage falls back to model id and normalizes args", () => {
+  const message = mapModelResultToAssistantMessage(
+    {
+      content: [
+        {
+          type: "tool-call",
+          toolCallId: "call_1",
+          toolName: "web_search",
+          args: "invalid",
+        },
+      ],
+      finishReason: "stop",
+      usage: {},
+    },
+    "fallback-model",
+  );
+
+  assert.equal(message.model, "fallback-model");
+  assert.equal(message.stopReason, "stop");
+  assert.deepEqual(message.usage, { input: 0, output: 0 });
+  assert.deepEqual(message.content, [
+    {
+      type: "toolCall",
+      id: "call_1",
+      name: "web_search",
+      arguments: {},
+    },
+  ]);
 });
 
 test("legacyPayloadToAgentMessage accepts toolCall input field from stored payload", () => {

@@ -17,10 +17,22 @@ import { withSpan } from "@clawbot/observability";
 import { z } from "zod";
 import { recall } from "./service.js";
 import { queueRecordEntry } from "./queue.js";
+import { GLOBAL_BRANCH } from "./constants.js";
 import type { RecordParams, Fragment, TapeState } from "./types.js";
 import { getPromptAssets } from "../prompts/port.js";
 import { renderTemplate } from "../prompts/assembler.js";
 import { PROMPT_PROFILES } from "../prompts/profiles.js";
+
+/**
+ * Adapt the project's LanguageModel to the narrower type expected by
+ * `wrapLanguageModel`.  The two types are structurally compatible (they share
+ * the same underlying AI SDK model object), but the generic constraint on
+ * `wrapLanguageModel` is stricter.  This wrapper centralizes the assertion
+ * so SDK version bumps only need a single touch point.
+ */
+function toWrappableModel(model: LanguageModel): Parameters<typeof wrapLanguageModel>[0]["model"] {
+  return model as Parameters<typeof wrapLanguageModel>[0]["model"];
+}
 
 interface ConversationTurn {
   userText: string;
@@ -88,7 +100,7 @@ async function callExtractor(
   try {
     const result = await generateText({
       model: wrapLanguageModel({
-        model: model as Parameters<typeof wrapLanguageModel>[0]["model"],
+        model: toWrappableModel(model),
         middleware: extractJsonMiddleware(),
       }),
       system: prompt,
@@ -172,7 +184,7 @@ export function fireExtractAndRecord(
       try {
         // Load existing memory state to avoid duplicate extraction
         const [globalState, sessionState] = await Promise.all([
-          recall(accountId, "__global__").catch(() => ({ facts: new Map(), preferences: new Map(), decisions: [], version: 0 } as TapeState)),
+          recall(accountId, GLOBAL_BRANCH).catch(() => ({ facts: new Map(), preferences: new Map(), decisions: [], version: 0 } as TapeState)),
           recall(accountId, sessionBranch).catch(() => ({ facts: new Map(), preferences: new Map(), decisions: [], version: 0 } as TapeState)),
         ]);
         const existingKeys = formatExistingKeys(globalState, sessionState);
@@ -189,7 +201,7 @@ export function fireExtractAndRecord(
         const records = toRecordParams(memories, actor);
 
         for (const { scope, params } of records) {
-          const branch = scope === "global" ? "__global__" : sessionBranch;
+          const branch = scope === "global" ? GLOBAL_BRANCH : sessionBranch;
           queueRecordEntry(accountId, branch, params);
         }
 

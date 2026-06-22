@@ -10,6 +10,8 @@ export type {
 
 export { emptyState, fold, serializeState, deserializeState } from "./fold.js";
 
+export { GLOBAL_BRANCH, isGlobalBranch } from "./constants.js";
+
 export {
   record,
   recall,

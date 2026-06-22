@@ -1,25 +1,52 @@
 import { z } from "zod";
-import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import { createToolRegistry } from "../tools/registry.js";
-import type { ToolSnapshotItem, ToolContent } from "../tools/types.js";
+import type { ToolSnapshotItem } from "../tools/types.js";
+import { defineTool, textResult } from "../tools/define-tool.js";
+import { createToolContextSlot, type AgentToolContext } from "../runtime/agent-tool-context.js";
 import { validate } from "node-cron";
 import { getSchedulerStore } from "../ports/scheduler-store.js";
 import { activate, deactivate } from "./manager.js";
 import { executeTask } from "./executor.js";
+import { createLogger } from "@clawbot/observability";
 
-/** Minimum interval: 30 minutes. Rejects cron expressions with intervals < 30min. */
+const logger = createLogger({ component: "scheduler.tool" });
+
+// Conservative minimum-interval guard for AI-generated cron expressions.
+//
+// The model may produce cron patterns that fire more frequently than the
+// 30-minute minimum.  This is *not* a full cron parser — it rejects these
+// common high-frequency patterns:
+//
+//  • Bare wildcard ("*") in the minute field (fires every minute)
+//  • Step < 30 patterns like "*/5" in the minute field
+//  • Range  ("0-5")  — can fire every minute
+//  • Range + step syntax like "0-59/1" — can fire every minute
+//  • Comma-separated minutes with inter-minute gap < 30
+//
+// Legitimate patterns like "*/30" or "*/45" are allowed.
+// Expressions that fall through to `true` are already validated by
+// `node-cron`'s `validate()` call, so blatantly malformed strings are
+// caught upstream.
 function validateMinInterval(cronExpr: string): boolean {
   const parts = cronExpr.trim().split(/\s+/);
-  // Reject 6-part (seconds) cron
   if (parts.length > 5) return false;
 
   const minutePart = parts[0];
 
-  // */N where N < 30
-  const stepMatch = minutePart.match(/^\*\/(\d+)$/);
-  if (stepMatch && Number.parseInt(stepMatch[1], 10) < 30) return false;
+  // Bare wildcard → fires every minute
+  if (minutePart === "*") return false;
 
-  // Comma-separated minutes with gap < 30
+  // Step syntax: "*/N" or "A-B/N"
+  const stepMatch = minutePart.match(/^(?:\*|\d+-\d+)\/(\d+)$/);
+  if (stepMatch) {
+    if (Number.parseInt(stepMatch[1], 10) < 30) return false;
+    return true; // step >= 30 → safe
+  }
+
+  // Range syntax: "A-B" or "A-B/N" (the latter caught above)
+  if (/^\d+-\d+$/.test(minutePart) || /^\d+-\d+\/\d+$/.test(minutePart)) return false;
+
+  // Comma-separated discrete minutes: reject if any相邻gap < 30
   if (minutePart.includes(",")) {
     const minutes = minutePart.split(",").map(Number).sort((a, b) => a - b);
     for (let i = 1; i < minutes.length; i++) {
@@ -30,34 +57,21 @@ function validateMinInterval(cronExpr: string): boolean {
   return true;
 }
 
-function textResult(text: string): ToolContent[] {
-  return [{ type: MESSAGE_CONTENT_TYPE.TEXT, text }];
-}
-
 // ── Context injection ──────────────────────────────────────────────
 
-interface SchedulerContext {
-  accountId: string;
-  conversationId: string;
-}
-
-let _currentContext: SchedulerContext | null = null;
-
-function getCurrentSchedulerContext(): SchedulerContext | null {
-  return _currentContext;
-}
+const schedulerContext = createToolContextSlot();
 
 /**
  * Set the scheduler context before tool execution.
  * Called by the agent layer to inject accountId/conversationId.
  */
-export function setSchedulerContext(ctx: SchedulerContext | null): void {
-  _currentContext = ctx;
+export function setSchedulerContext(ctx: AgentToolContext | null): void {
+  schedulerContext.set(ctx);
 }
 
 // ── Tool definitions ───────────────────────────────────────────────
 
-const createScheduledTaskTool: ToolSnapshotItem = {
+const createScheduledTaskTool = defineTool({
   name: "create_scheduled_task",
   description:
     "创建一个定时任务。到时间后自动执行 AI Prompt 并将结果推送到当前会话。" +
@@ -72,9 +86,7 @@ const createScheduledTaskTool: ToolSnapshotItem = {
     timezone: z.string().describe("时区，默认 Asia/Shanghai").optional(),
   }),
   async execute(args) {
-    const { name, type, cron: cronExpr, prompt, timezone } = args as {
-      name: string; type?: "once" | "recurring"; cron: string; prompt: string; timezone?: string;
-    };
+    const { name, type, cron: cronExpr, prompt, timezone } = args;
 
     if (!validate(cronExpr)) {
       return textResult(`❌ 无效的 cron 表达式: "${cronExpr}"`);
@@ -83,8 +95,7 @@ const createScheduledTaskTool: ToolSnapshotItem = {
       return textResult("❌ 执行频率过高，最小间隔为 30 分钟。");
     }
 
-    const ctx = getCurrentSchedulerContext();
-    if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
+    const ctx = schedulerContext.require();
 
     const store = getSchedulerStore();
     const taskType = type ?? "recurring";
@@ -110,9 +121,9 @@ const createScheduledTaskTool: ToolSnapshotItem = {
       `🔢 编号：#${task.seq}`,
     );
   },
-};
+});
 
-const updateScheduledTaskTool: ToolSnapshotItem = {
+const updateScheduledTaskTool = defineTool({
   name: "update_scheduled_task",
   description: "修改已有的定时任务。可修改名称、cron 表达式、prompt、时区或启用/禁用状态。",
   parameters: z.object({
@@ -124,12 +135,8 @@ const updateScheduledTaskTool: ToolSnapshotItem = {
     enabled: z.boolean().describe("是否启用").optional(),
   }),
   async execute(args) {
-    const { seq, name, cron: cronExpr, prompt, timezone, enabled } = args as {
-      seq: number; name?: string; cron?: string; prompt?: string; timezone?: string; enabled?: boolean;
-    };
-
-    const ctx = getCurrentSchedulerContext();
-    if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
+    const { seq, name, cron: cronExpr, prompt, timezone, enabled } = args;
+    const ctx = schedulerContext.require();
 
     if (cronExpr) {
       if (!validate(cronExpr)) {
@@ -156,18 +163,17 @@ const updateScheduledTaskTool: ToolSnapshotItem = {
 
     return textResult(`✅ 任务 #${seq} 已更新`);
   },
-};
+});
 
-const deleteScheduledTaskTool: ToolSnapshotItem = {
+const deleteScheduledTaskTool = defineTool({
   name: "delete_scheduled_task",
   description: "删除一个定时任务。",
   parameters: z.object({
     seq: z.number().int().describe("任务编号"),
   }),
   async execute(args) {
-    const { seq } = args as { seq: number };
-    const ctx = getCurrentSchedulerContext();
-    if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
+    const { seq } = args;
+    const ctx = schedulerContext.require();
 
     const store = getSchedulerStore();
     const task = await store.getTaskBySeq(ctx.accountId, seq);
@@ -177,15 +183,14 @@ const deleteScheduledTaskTool: ToolSnapshotItem = {
     await store.deleteTask(ctx.accountId, seq);
     return textResult(`✅ 任务 #${seq}「${task.name}」已删除`);
   },
-};
+});
 
-const listScheduledTasksTool: ToolSnapshotItem = {
+const listScheduledTasksTool = defineTool({
   name: "list_scheduled_tasks",
   description: "列出当前账号的所有定时任务。",
   parameters: z.object({}),
   async execute() {
-    const ctx = getCurrentSchedulerContext();
-    if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
+    const ctx = schedulerContext.require();
 
     const store = getSchedulerStore();
     const tasks = await store.listTasks(ctx.accountId);
@@ -200,18 +205,17 @@ const listScheduledTasksTool: ToolSnapshotItem = {
     });
     return textResult("📋 定时任务列表：\n" + lines.join("\n"));
   },
-};
+});
 
-const runScheduledTaskTool: ToolSnapshotItem = {
+const runScheduledTaskTool = defineTool({
   name: "run_scheduled_task",
   description: "手动触发一次定时任务执行（不影响定时计划）。",
   parameters: z.object({
     seq: z.number().int().describe("任务编号"),
   }),
   async execute(args) {
-    const { seq } = args as { seq: number };
-    const ctx = getCurrentSchedulerContext();
-    if (!ctx) return textResult("❌ 内部错误：缺少上下文信息");
+    const { seq } = args;
+    const ctx = schedulerContext.require();
 
     const store = getSchedulerStore();
     const task = await store.getTaskBySeq(ctx.accountId, seq);
@@ -219,12 +223,12 @@ const runScheduledTaskTool: ToolSnapshotItem = {
 
     // Fire-and-forget execution
     void executeTask(task).catch((err) =>
-      console.error(`[scheduler] manual run failed for task #${seq}:`, err),
+      logger.error("manual run failed", { seq, error: err }),
     );
 
     return textResult(`⏳ 任务 #${seq}「${task.name}」已触发执行，结果将稍后推送。`);
   },
-};
+});
 
 // ── Registry ───────────────────────────────────────────────────────
 

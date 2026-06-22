@@ -1,11 +1,12 @@
-import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, normalize, relative, resolve } from "node:path";
 import { z } from "zod";
 import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import type { ToolSnapshot } from "../tools/types.js";
-import type { SkillInstaller } from "./types.js";
+import { execPromise, isFile } from "./fs-utils.js";
+import type { DetectedSkillRuntime, InstalledSkill, SkillInstaller } from "./types.js";
+import { isProvisionableKind, isPythonKind } from "./types.js";
 import type { RuntimeProvisioner } from "./runtime-provisioner.js";
 
 const DEFAULT_MAX_FILE_CHARS = 12_000;
@@ -139,15 +140,6 @@ function truncateText(text: string, maxChars: number): string {
   return `${text.slice(0, maxChars)}\n... (truncated, ${text.length} total chars)`;
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    const info = await stat(filePath);
-    return info.isFile();
-  } catch {
-    return false;
-  }
-}
-
 async function createPythonJsonShim(): Promise<{ shimDir: string; shimPath: string }> {
   const shimDir = await mkdtemp(join(tmpdir(), "clawbot-skill-shim-"));
   const shimPath = join(shimDir, "python-json-shim.py");
@@ -196,7 +188,7 @@ function isReadableSkillFile(relativePath: string, rootScriptFiles?: string[]): 
 async function ensureReadyRuntime(skillName: string, installer: SkillInstaller, provisioner: RuntimeProvisioner): Promise<string> {
   const { installed } = resolveSkillRoot(skillName, installer);
   const kind = installed.skill.detectedRuntime?.kind;
-  if (kind !== "python-script" && kind !== "python-script-set" && kind !== "node-script" && kind !== "node-script-set") {
+  if (!isProvisionableKind(kind)) {
     throw new Error(`Skill "${skillName}" does not have an auto-provisionable runtime.`);
   }
 
@@ -212,6 +204,81 @@ async function ensureReadyRuntime(skillName: string, installer: SkillInstaller, 
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await installer.setProvisionStatus(skillName, "failed", message);
+    throw error;
+  }
+}
+
+export function validateRunRequest(
+  args: Record<string, unknown>,
+  installed: InstalledSkill,
+): { requestedScript: string; timeoutMs: number; scriptArgs: string[] } {
+  const skillName = installed.skill.source.name;
+  const detected = installed.skill.detectedRuntime;
+  if (!isProvisionableKind(detected?.kind)) {
+    throw new Error(`Skill "${skillName}" is not a runnable script skill.`);
+  }
+
+  if (!detected.entrypoint && !(typeof args.script_path === "string" && args.script_path.trim())) {
+    throw new Error(`Skill "${skillName}" is a script-set skill. You must provide script_path.`);
+  }
+
+  const rootDir = resolve(dirname(installed.skill.source.filePath));
+  const requestedScript =
+    typeof args.script_path === "string" && args.script_path.trim()
+      ? resolveRelativeSkillPath(rootDir, args.script_path.trim())
+      : detected.entrypoint!.path;
+
+  const allScriptFiles = [
+    ...(installed.skill.packageIndex?.scriptFiles ?? []),
+    ...(installed.skill.packageIndex?.rootScriptFiles ?? []),
+  ];
+  if (!allScriptFiles.includes(requestedScript)) {
+    throw new Error(`Script is not part of the installed skill package: ${requestedScript}`);
+  }
+
+  const timeoutMs = Math.min(
+    MAX_SCRIPT_TIMEOUT_MS,
+    Math.max(
+      1_000,
+      typeof args.timeout_ms === "number" && Number.isFinite(args.timeout_ms)
+        ? Math.trunc(args.timeout_ms)
+        : DEFAULT_SCRIPT_TIMEOUT_MS,
+    ),
+  );
+
+  const scriptArgs = typeof args.args === "string" && args.args.trim() ? splitArgs(args.args.trim()) : [];
+  return { requestedScript, timeoutMs, scriptArgs };
+}
+
+function resolveExecutable(
+  detected: DetectedSkillRuntime,
+  rootDir: string,
+): { executable: string; needsShim: boolean } {
+  return isPythonKind(detected.kind)
+    ? { executable: join(rootDir, ".venv", "bin", "python"), needsShim: true }
+    : { executable: process.execPath, needsShim: false };
+}
+
+async function runChildProcess(
+  executable: string,
+  commandArgs: string[],
+  options: { cwd: string; timeoutMs: number },
+  signal: AbortSignal,
+): Promise<string> {
+  try {
+    const { stdout, stderr } = await execPromise(executable, commandArgs, {
+      cwd: options.cwd,
+      timeout: options.timeoutMs,
+      maxBuffer: 1024 * 1024,
+      env: sanitizeEnv(),
+      signal,
+      rejectOnError: "when-empty-output",
+    });
+    return (stdout || stderr || "(no output)").trim();
+  } catch (error) {
+    if (signal.aborted) {
+      throw new DOMException("Aborted", "AbortError");
+    }
     throw error;
   }
 }
@@ -250,7 +317,7 @@ export function createSkillRuntimeToolSnapshot(
           }
 
           const filePath = join(rootDir, relativePath);
-          if (!(await fileExists(filePath))) {
+          if (!(await isFile(filePath))) {
             throw new Error(`File not found in skill package: ${relativePath}`);
           }
 
@@ -293,79 +360,33 @@ export function createSkillRuntimeToolSnapshot(
 
           const { installed, rootDir } = resolveSkillRoot(skillName, installer);
           const detected = installed.skill.detectedRuntime;
-          if (!detected || (detected.kind !== "python-script" && detected.kind !== "python-script-set" && detected.kind !== "node-script" && detected.kind !== "node-script-set")) {
+          if (!isProvisionableKind(detected?.kind)) {
             throw new Error(`Skill "${skillName}" is not a runnable script skill.`);
-          }
-          // script-set skills require explicit script_path since there's no default entrypoint
-          if (!detected.entrypoint && !(typeof args.script_path === "string" && args.script_path.trim())) {
-            throw new Error(`Skill "${skillName}" is a script-set skill. You must provide script_path.`);
           }
           if (installed.provisionStatus !== "ready" || !(await provisioner.healthCheck(installed))) {
             throw new Error(`Skill "${skillName}" runtime is not ready. Call prepare_skill_runtime first.`);
           }
 
-          const requestedScript =
-            typeof args.script_path === "string" && args.script_path.trim()
-              ? resolveRelativeSkillPath(rootDir, args.script_path.trim())
-              : detected.entrypoint!.path;
-
-          const allScriptFiles = [
-            ...(installed.skill.packageIndex?.scriptFiles ?? []),
-            ...(installed.skill.packageIndex?.rootScriptFiles ?? []),
-          ];
-          if (!allScriptFiles.includes(requestedScript)) {
-            throw new Error(`Script is not part of the installed skill package: ${requestedScript}`);
-          }
-
-          const timeoutMs = Math.min(
-            MAX_SCRIPT_TIMEOUT_MS,
-            Math.max(
-              1_000,
-              typeof args.timeout_ms === "number" && Number.isFinite(args.timeout_ms)
-                ? Math.trunc(args.timeout_ms)
-                : DEFAULT_SCRIPT_TIMEOUT_MS,
-            ),
-          );
-
-          const scriptArgs = typeof args.args === "string" && args.args.trim() ? splitArgs(args.args.trim()) : [];
-          const isPython = detected.kind === "python-script" || detected.kind === "python-script-set";
-          const executable = isPython ? join(rootDir, ".venv", "bin", "python") : process.execPath;
-          if (!(await fileExists(executable)) && isPython) {
+          const { requestedScript, timeoutMs, scriptArgs } = validateRunRequest(args, installed);
+          const { executable, needsShim } = resolveExecutable(detected, rootDir);
+          if (needsShim && !(await isFile(executable))) {
             throw new Error(`Python runtime missing for skill "${skillName}". Call prepare_skill_runtime first.`);
           }
+
           const targetScriptPath = join(rootDir, requestedScript);
-          const shim = isPython ? await createPythonJsonShim() : null;
+          const shim = needsShim ? await createPythonJsonShim() : null;
           const commandArgs =
-            isPython && shim
+            needsShim && shim
               ? [shim.shimPath, targetScriptPath, ...scriptArgs]
               : [targetScriptPath, ...scriptArgs];
 
           try {
-            const output = await new Promise<string>((resolvePromise, reject) => {
-              const child = execFile(
-                executable,
-                commandArgs,
-                {
-                  cwd: rootDir,
-                  timeout: timeoutMs,
-                  maxBuffer: 1024 * 1024,
-                  env: sanitizeEnv(),
-                },
-                (error, stdout, stderr) => {
-                  if (ctx.signal.aborted) {
-                    reject(new DOMException("Aborted", "AbortError"));
-                    return;
-                  }
-                  if (error && !stdout && !stderr) {
-                    reject(new Error(error.message));
-                    return;
-                  }
-                  resolvePromise((stdout || stderr || error?.message || "(no output)").trim());
-                },
-              );
-              ctx.signal.addEventListener("abort", () => child.kill("SIGTERM"), { once: true });
-            });
-
+            const output = await runChildProcess(
+              executable,
+              commandArgs,
+              { cwd: rootDir, timeoutMs },
+              ctx.signal,
+            );
             return [{
               type: MESSAGE_CONTENT_TYPE.TEXT,
               text: truncateText(output, DEFAULT_MAX_FILE_CHARS),

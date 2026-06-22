@@ -1,4 +1,6 @@
 import { chat } from "../chat.js";
+import { TimeoutError } from "../errors.js";
+import { withTimeout } from "../utils/async.js";
 import { getPushService } from "../ports/push-service.js";
 import { getScheduledTaskHandler } from "../ports/scheduled-task-handler.js";
 import {
@@ -6,6 +8,7 @@ import {
   type RunStatus,
   type ScheduledTaskRow,
 } from "../ports/scheduler-store.js";
+import { PROMPT_TASK_KIND, schedulerConversationId } from "./constants.js";
 
 const EXECUTION_TIMEOUT_MS = 60_000;
 const MAX_FAIL_STREAK = 3;
@@ -24,7 +27,7 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
   await store.setTaskStatus(task.id, "running");
 
   // Use isolated conversation context: "scheduler:{seq}"
-  const executionConvId = `scheduler:${task.seq}`;
+  const executionConvId = schedulerConversationId(task.seq);
 
   let result: string | undefined;
   let error: string | undefined;
@@ -33,13 +36,11 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
 
   try {
     // 走RRS订阅定时任务
-    if (task.taskKind !== "prompt") {
-      const handlerResult = await Promise.race([
+    if (task.taskKind !== PROMPT_TASK_KIND) {
+      const handlerResult = await withTimeout(
         getScheduledTaskHandler().execute(task),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Execution timeout")), EXECUTION_TIMEOUT_MS),
-        ),
-      ]);
+        EXECUTION_TIMEOUT_MS,
+      );
 
       if (!handlerResult) {
         throw new Error(`No scheduled task handler for kind ${task.taskKind}`);
@@ -51,12 +52,10 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
       pushed = handlerResult.pushed;
     } else {
       // Execute AI chat with timeout
-      const chatResult = await Promise.race([
+      const chatResult = await withTimeout(
         chat(task.accountId, executionConvId, task.prompt),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Execution timeout")), EXECUTION_TIMEOUT_MS),
-        ),
-      ]);
+        EXECUTION_TIMEOUT_MS,
+      );
 
       result = chatResult.text ?? undefined;
 
@@ -76,7 +75,7 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
   } catch (err) {
     const msg = (err as Error).message;
     error = msg;
-    status = msg === "Execution timeout" ? "timeout" : "error";
+    status = err instanceof TimeoutError ? "timeout" : "error";
     console.error(`[scheduler] task #${task.seq} (${task.accountId}) failed: ${msg}`);
   }
 

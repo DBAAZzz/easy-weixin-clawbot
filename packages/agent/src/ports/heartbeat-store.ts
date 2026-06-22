@@ -10,6 +10,7 @@ import type {
   CreateGoalInput,
   UpdateGoalInput,
 } from "../heartbeat/types.js";
+import { createPortSlot } from "./slot.js";
 
 export interface HeartbeatStore {
   // ── CRUD ──
@@ -40,13 +41,5 @@ export interface HeartbeatStore {
   abandonExpired(now: Date): Promise<number>;
 }
 
-let store: HeartbeatStore | null = null;
-
-export function setHeartbeatStore(impl: HeartbeatStore): void {
-  store = impl;
-}
-
-export function getHeartbeatStore(): HeartbeatStore {
-  if (!store) throw new Error("HeartbeatStore not initialized — call setHeartbeatStore() at startup");
-  return store;
-}
+export const { set: setHeartbeatStore, get: getHeartbeatStore } =
+  createPortSlot<HeartbeatStore>("HeartbeatStore", "setHeartbeatStore");

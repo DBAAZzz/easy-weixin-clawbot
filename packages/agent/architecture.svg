@@ -1,0 +1,191 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2091.794 1210.9466666666667" width="2091.794" height="1210.9466666666667" style="--bg:#ffffff;--fg:#0f172a;--line:#64748b;--accent:#2563eb;--muted:#475569;--surface:#f8fafc;--border:#cbd5e1;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter%2C%20PingFang%20SC%2C%20Hiragino%20Sans%20GB%2C%20Microsoft%20YaHei%2C%20Noto%20Sans%20CJK%20SC%2C%20system-ui%2C%20sans-serif:wght@400;500;600;700&amp;display=swap');
+  text { font-family: 'Inter, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif', system-ui, sans-serif; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="arrowhead" markerWidth="8" markerHeight="5" refX="7" refY="2.5" orient="auto">
+    <polygon points="0 0, 8 2.5, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+  <marker id="arrowhead-start" markerWidth="8" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+    <polygon points="8 0, 0 2.5, 8 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+</defs>
+<polyline class="edge" data-from="server" data-to="compose" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="294.32199999999995,709.83 358.32199999999995,709.83" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="compose" data-to="chat" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="581.0759999999999,709.83 593.0759999999999,709.83 593.0759999999999,320.7616666666667 605.0759999999999,320.7616666666667" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="compose" data-to="runner" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="581.0759999999999,709.83 593.0759999999999,709.83 593.0759999999999,786.7833333333334 1173.857,786.7833333333334" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="compose" data-to="ports" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="581.0759999999999,709.83 593.0759999999999,709.83 593.0759999999999,222.20000000000005 1783.4649999999997,222.20000000000005" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="chat" data-to="history" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="869.3259999999999,320.7616666666667 899.3259999999999,320.7616666666667 899.3259999999999,535.6500000000001 1416.6109999999999,535.6500000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="chat" data-to="tape" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="869.3259999999999,320.7616666666667 899.3259999999999,320.7616666666667 899.3259999999999,88.25 1416.3809999999999,88.25" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="chat" data-to="model" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="869.3259999999999,320.7616666666667 899.3259999999999,320.7616666666667 899.3259999999999,222.2 1478.855,222.2" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="chat" data-to="prompt" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="869.3259999999999,320.7616666666667 899.3259999999999,320.7616666666667 899.3259999999999,383.15 1416.3809999999999,383.15" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="chat" data-to="vision" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="869.3259999999999,320.7616666666667 899.3259999999999,320.7616666666667 899.3259999999999,581.4833333333333 929.3259999999999,581.4833333333333" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="chat" data-to="runner" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="869.3259999999999,320.7616666666667 899.3259999999999,320.7616666666667 899.3259999999999,786.7833333333334 1173.857,786.7833333333334" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="runner" data-to="prompt" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1357.338,786.7833333333334 1386.8595,786.7833333333334 1386.8595,383.15 1416.3809999999999,383.15" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="runner" data-to="model" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1357.338,786.7833333333334 1386.8595,786.7833333333334 1386.8595,222.2 1478.855,222.2" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="runner" data-to="tools" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1357.338,786.7833333333334 1386.8595,786.7833333333334 1386.8595,866.0000000000001 1416.3809999999999,866.0000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="runner" data-to="history" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1357.338,786.7833333333334 1386.8595,786.7833333333334 1386.8595,535.6500000000001 1416.6109999999999,535.6500000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="tools" data-to="skills" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1704.3429999999998,866.0000000000001 1743.9039999999998,866.0000000000001 1743.9039999999998,614.4966666666667 1783.4649999999997,614.4966666666667" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="tools" data-to="mcp" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1704.3429999999998,866.0000000000001 1743.9039999999998,866.0000000000001 1743.9039999999998,783.8966666666668 1783.4649999999997,783.8966666666668" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="tools" data-to="scheduler" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1704.3429999999998,866.0000000000001 1743.9039999999998,866.0000000000001 1743.9039999999998,936.3966666666668 1783.4649999999997,936.3966666666668" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="tools" data-to="heartbeat" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1704.3429999999998,866.0000000000001 1743.9039999999998,866.0000000000001 1743.9039999999998,1105.7966666666669 1783.4649999999997,1105.7966666666669" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="chat" data-to="ports" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="869.3259999999999,320.7616666666667 899.3259999999999,320.7616666666667 899.3259999999999,222.20000000000005 1783.4649999999997,222.20000000000005" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="model" data-to="ports" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1713.465,222.2 1750.9434999999999,222.2 1750.9434999999999,222.20000000000005 1783.4649999999997,222.20000000000005" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="tape" data-to="ports" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1718.4219999999998,88.25 1750.9434999999999,88.25 1750.9434999999999,222.20000000000005 1783.4649999999997,222.20000000000005" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="tools" data-to="ports" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1704.3429999999998,866.0000000000001 1743.9039999999998,866.0000000000001 1743.9039999999998,222.20000000000005 1783.4649999999997,222.20000000000005" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="chat" data-to="observability" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="869.3259999999999,320.7616666666667 899.3259999999999,320.7616666666667 899.3259999999999,696.6000000000001 1511.4589999999998,696.6000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="runner" data-to="observability" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1357.338,786.7833333333334 1386.8595,786.7833333333334 1386.8595,696.6000000000001 1511.4589999999998,696.6000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="chat" data-to="shared" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="869.3259999999999,320.7616666666667 899.3259999999999,320.7616666666667 899.3259999999999,1010.0500000000001 1416.3809999999999,1010.0500000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="runner" data-to="shared" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1357.338,786.7833333333334 1386.8595,786.7833333333334 1386.8595,1010.0500000000001 1416.3809999999999,1010.0500000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<g class="node" data-id="server" data-label="服务端包 / server package
+微信运行时、Web 后台、适配器
+WeChat runtime, Web admin, adapters" data-shape="rectangle">
+  <rect x="36" y="674.48" width="258.32199999999995" height="70.7" rx="0" ry="0" fill="#f8fafc" stroke="#64748b" stroke-width="0.75" />
+  <text x="165.16099999999997" y="709.83" text-anchor="middle" font-size="13" font-weight="500" fill="#0f172a"><tspan x="165.16099999999997" dy="-12.350000000000001">服务端包 / server package</tspan><tspan x="165.16099999999997" dy="16.900000000000002">微信运行时、Web 后台、适配器</tspan><tspan x="165.16099999999997" dy="16.900000000000002">WeChat runtime, Web admin, adapters</tspan></text>
+</g>
+<g class="node" data-id="compose" data-label="启动装配 / startup composition
+注入 Port 实现
+set Port implementations
+装配 ChatDeps
+setChatDeps(runner, log)" data-shape="rectangle">
+  <rect x="358.32199999999995" y="657.58" width="222.75399999999996" height="104.50000000000001" rx="0" ry="0" fill="#f8fafc" stroke="#64748b" stroke-width="0.75" />
+  <text x="469.69899999999996" y="709.83" text-anchor="middle" font-size="13" font-weight="500" fill="#0f172a"><tspan x="469.69899999999996" dy="-29.250000000000004">启动装配 / startup composition</tspan><tspan x="469.69899999999996" dy="16.900000000000002">注入 Port 实现</tspan><tspan x="469.69899999999996" dy="16.900000000000002">set Port implementations</tspan><tspan x="469.69899999999996" dy="16.900000000000002">装配 ChatDeps</tspan><tspan x="469.69899999999996" dy="16.900000000000002">setChatDeps(runner, log)</tspan></text>
+</g>
+<g class="node" data-id="chat" data-label="会话编排 / chat.ts
+加载历史、记忆、模型并生成响应
+conversation orchestration
+history + memory + model + response" data-shape="rectangle">
+  <rect x="605.0759999999999" y="276.9616666666667" width="264.25" height="87.60000000000001" rx="0" ry="0" fill="#eff6ff" stroke="#2563eb" stroke-width="0.75" />
+  <text x="737.2009999999999" y="320.7616666666667" text-anchor="middle" font-size="13" font-weight="500" fill="#172554"><tspan x="737.2009999999999" dy="-20.8">会话编排 / chat.ts</tspan><tspan x="737.2009999999999" dy="16.900000000000002">加载历史、记忆、模型并生成响应</tspan><tspan x="737.2009999999999" dy="16.900000000000002">conversation orchestration</tspan><tspan x="737.2009999999999" dy="16.900000000000002">history + memory + model + response</tspan></text>
+</g>
+<g class="node" data-id="runner" data-label="AgentRunner / runner.ts
+LLM 工具调用循环
+LLM tool-use loop" data-shape="rectangle">
+  <rect x="1173.857" y="751.4333333333334" width="183.481" height="70.7" rx="0" ry="0" fill="#eff6ff" stroke="#2563eb" stroke-width="0.75" />
+  <text x="1265.5974999999999" y="786.7833333333334" text-anchor="middle" font-size="13" font-weight="500" fill="#172554"><tspan x="1265.5974999999999" dy="-12.350000000000001">AgentRunner / runner.ts</tspan><tspan x="1265.5974999999999" dy="16.900000000000002">LLM 工具调用循环</tspan><tspan x="1265.5974999999999" dy="16.900000000000002">LLM tool-use loop</tspan></text>
+</g>
+<g class="node" data-id="model" data-label="模型层 / model layer
+resolveModel()
+会话 -&gt; 账号 -&gt; 全局
+conversation -&gt; account -&gt; global
+AI SDK 模型工厂
+createLanguageModel()" data-shape="rectangle">
+  <rect x="1478.855" y="161.5" width="234.60999999999999" height="121.4" rx="0" ry="0" fill="#eff6ff" stroke="#2563eb" stroke-width="0.75" />
+  <text x="1596.16" y="222.2" text-anchor="middle" font-size="13" font-weight="500" fill="#172554"><tspan x="1596.16" dy="-37.70000000000001">模型层 / model layer</tspan><tspan x="1596.16" dy="16.900000000000002">resolveModel()</tspan><tspan x="1596.16" dy="16.900000000000002">会话 -&gt; 账号 -&gt; 全局</tspan><tspan x="1596.16" dy="16.900000000000002">conversation -&gt; account -&gt; global</tspan><tspan x="1596.16" dy="16.900000000000002">AI SDK 模型工厂</tspan><tspan x="1596.16" dy="16.900000000000002">createLanguageModel()</tspan></text>
+</g>
+<g class="node" data-id="prompt" data-label="提示词层 / prompt layer
+组装用户上下文和系统提示词
+assembleUserContext() / assembleSystemPrompt()
+Profile 资产、Tape 记忆、已加载技能
+profile assets + Tape memory + loaded skills" data-shape="rectangle">
+  <rect x="1416.3809999999999" y="330.9" width="336.12699999999995" height="104.50000000000001" rx="0" ry="0" fill="#eff6ff" stroke="#2563eb" stroke-width="0.75" />
+  <text x="1584.4444999999998" y="383.15" text-anchor="middle" font-size="13" font-weight="500" fill="#172554"><tspan x="1584.4444999999998" dy="-29.250000000000004">提示词层 / prompt layer</tspan><tspan x="1584.4444999999998" dy="16.900000000000002">组装用户上下文和系统提示词</tspan><tspan x="1584.4444999999998" dy="16.900000000000002">assembleUserContext() / assembleSystemPrompt()</tspan><tspan x="1584.4444999999998" dy="16.900000000000002">Profile 资产、Tape 记忆、已加载技能</tspan><tspan x="1584.4444999999998" dy="16.900000000000002">profile assets + Tape memory + loaded skills</tspan></text>
+</g>
+<g class="node" data-id="history" data-label="对话历史 / conversation layer
+内存历史、上下文裁剪
+in-memory history + context-window trimming
+标题生成和回滚辅助
+title and rollback helpers" data-shape="rectangle">
+  <rect x="1416.6109999999999" y="483.40000000000003" width="296.8539999999999" height="104.50000000000001" rx="0" ry="0" fill="#f0fdf4" stroke="#16a34a" stroke-width="0.75" />
+  <text x="1565.0379999999998" y="535.6500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="#14532d"><tspan x="1565.0379999999998" dy="-29.250000000000004">对话历史 / conversation layer</tspan><tspan x="1565.0379999999998" dy="16.900000000000002">内存历史、上下文裁剪</tspan><tspan x="1565.0379999999998" dy="16.900000000000002">in-memory history + context-window trimming</tspan><tspan x="1565.0379999999998" dy="16.900000000000002">标题生成和回滚辅助</tspan><tspan x="1565.0379999999998" dy="16.900000000000002">title and rollback helpers</tspan></text>
+</g>
+<g class="node" data-id="tape" data-label="Tape 记忆 / Tape memory
+召回、折叠、提取、记录
+recall + fold + extract + record
+压缩锚点、会话和全局分支
+compact anchors + session/global branches" data-shape="rectangle">
+  <rect x="1416.3809999999999" y="36" width="302.041" height="104.50000000000001" rx="0" ry="0" fill="#f0fdf4" stroke="#16a34a" stroke-width="0.75" />
+  <text x="1567.4015" y="88.25" text-anchor="middle" font-size="13" font-weight="500" fill="#14532d"><tspan x="1567.4015" dy="-29.250000000000004">Tape 记忆 / Tape memory</tspan><tspan x="1567.4015" dy="16.900000000000002">召回、折叠、提取、记录</tspan><tspan x="1567.4015" dy="16.900000000000002">recall + fold + extract + record</tspan><tspan x="1567.4015" dy="16.900000000000002">压缩锚点、会话和全局分支</tspan><tspan x="1567.4015" dy="16.900000000000002">compact anchors + session/global branches</tspan></text>
+</g>
+<g class="node" data-id="vision" data-label="媒体与视觉 / media and vision
+准备图片内容
+prepare image content
+非视觉模型降级
+fallback for non-vision models" data-shape="rectangle">
+  <rect x="929.3259999999999" y="529.2333333333333" width="220.53099999999995" height="104.50000000000001" rx="0" ry="0" fill="#eff6ff" stroke="#2563eb" stroke-width="0.75" />
+  <text x="1039.5915" y="581.4833333333333" text-anchor="middle" font-size="13" font-weight="500" fill="#172554"><tspan x="1039.5915" dy="-29.250000000000004">媒体与视觉 / media and vision</tspan><tspan x="1039.5915" dy="16.900000000000002">准备图片内容</tspan><tspan x="1039.5915" dy="16.900000000000002">prepare image content</tspan><tspan x="1039.5915" dy="16.900000000000002">非视觉模型降级</tspan><tspan x="1039.5915" dy="16.900000000000002">fallback for non-vision models</tspan></text>
+</g>
+<g class="node" data-id="tools" data-label="工具暴露面 / tool surface
+CompositeToolRegistry
+内置、MCP、定时、Heartbeat 工具
+builtin + MCP + scheduler + heartbeat tools
+内建 use_skill
+use_skill built-in" data-shape="rectangle">
+  <rect x="1416.3809999999999" y="805.3000000000001" width="287.962" height="121.4" rx="0" ry="0" fill="#fff7ed" stroke="#ea580c" stroke-width="0.75" />
+  <text x="1560.3619999999999" y="866.0000000000001" text-anchor="middle" font-size="13" font-weight="500" fill="#7c2d12"><tspan x="1560.3619999999999" dy="-37.70000000000001">工具暴露面 / tool surface</tspan><tspan x="1560.3619999999999" dy="16.900000000000002">CompositeToolRegistry</tspan><tspan x="1560.3619999999999" dy="16.900000000000002">内置、MCP、定时、Heartbeat 工具</tspan><tspan x="1560.3619999999999" dy="16.900000000000002">builtin + MCP + scheduler + heartbeat tools</tspan><tspan x="1560.3619999999999" dy="16.900000000000002">内建 use_skill</tspan><tspan x="1560.3619999999999" dy="16.900000000000002">use_skill built-in</tspan></text>
+</g>
+<g class="node" data-id="skills" data-label="技能系统 / skill system
+Markdown 加载和编译
+Markdown loader/compiler
+SkillRegistry + 对话技能运行时
+conversation skill runtime
+按需注入指令
+on-demand instruction injection" data-shape="rectangle">
+  <rect x="1783.4649999999997" y="545.3466666666667" width="233.128" height="138.3" rx="0" ry="0" fill="#fff7ed" stroke="#ea580c" stroke-width="0.75" />
+  <text x="1900.0289999999998" y="614.4966666666667" text-anchor="middle" font-size="13" font-weight="500" fill="#7c2d12"><tspan x="1900.0289999999998" dy="-46.150000000000006">技能系统 / skill system</tspan><tspan x="1900.0289999999998" dy="16.900000000000002">Markdown 加载和编译</tspan><tspan x="1900.0289999999998" dy="16.900000000000002">Markdown loader/compiler</tspan><tspan x="1900.0289999999998" dy="16.900000000000002">SkillRegistry + 对话技能运行时</tspan><tspan x="1900.0289999999998" dy="16.900000000000002">conversation skill runtime</tspan><tspan x="1900.0289999999998" dy="16.900000000000002">按需注入指令</tspan><tspan x="1900.0289999999998" dy="16.900000000000002">on-demand instruction injection</tspan></text>
+</g>
+<g class="node" data-id="mcp" data-label="MCP 集成 / MCP integration
+stdio 客户端
+stdio client
+远程工具绑定和适配
+remote tool bindings + adapter" data-shape="rectangle">
+  <rect x="1783.4649999999997" y="731.6466666666668" width="215.344" height="104.50000000000001" rx="0" ry="0" fill="#fff7ed" stroke="#ea580c" stroke-width="0.75" />
+  <text x="1891.1369999999997" y="783.8966666666668" text-anchor="middle" font-size="13" font-weight="500" fill="#7c2d12"><tspan x="1891.1369999999997" dy="-29.250000000000004">MCP 集成 / MCP integration</tspan><tspan x="1891.1369999999997" dy="16.900000000000002">stdio 客户端</tspan><tspan x="1891.1369999999997" dy="16.900000000000002">stdio client</tspan><tspan x="1891.1369999999997" dy="16.900000000000002">远程工具绑定和适配</tspan><tspan x="1891.1369999999997" dy="16.900000000000002">remote tool bindings + adapter</tspan></text>
+</g>
+<g class="node" data-id="scheduler" data-label="定时任务 / scheduler
+cron 管理器
+cron manager
+计划命令和任务执行
+schedule command + task executor" data-shape="rectangle">
+  <rect x="1783.4649999999997" y="884.1466666666668" width="246.46599999999995" height="104.50000000000001" rx="0" ry="0" fill="#fff7ed" stroke="#ea580c" stroke-width="0.75" />
+  <text x="1906.6979999999996" y="936.3966666666668" text-anchor="middle" font-size="13" font-weight="500" fill="#7c2d12"><tspan x="1906.6979999999996" dy="-29.250000000000004">定时任务 / scheduler</tspan><tspan x="1906.6979999999996" dy="16.900000000000002">cron 管理器</tspan><tspan x="1906.6979999999996" dy="16.900000000000002">cron manager</tspan><tspan x="1906.6979999999996" dy="16.900000000000002">计划命令和任务执行</tspan><tspan x="1906.6979999999996" dy="16.900000000000002">schedule command + task executor</tspan></text>
+</g>
+<g class="node" data-id="heartbeat" data-label="Heartbeat
+等待目标扫描
+waiting goal scan
+Phase1 评估，Phase2 执行
+Phase1 evaluate + Phase2 execute
+通过 chat bridge 执行
+through chat bridge" data-shape="rectangle">
+  <rect x="1783.4649999999997" y="1036.6466666666668" width="243.50199999999995" height="138.3" rx="0" ry="0" fill="#fff7ed" stroke="#ea580c" stroke-width="0.75" />
+  <text x="1905.2159999999997" y="1105.7966666666669" text-anchor="middle" font-size="13" font-weight="500" fill="#7c2d12"><tspan x="1905.2159999999997" dy="-46.150000000000006">Heartbeat</tspan><tspan x="1905.2159999999997" dy="16.900000000000002">等待目标扫描</tspan><tspan x="1905.2159999999997" dy="16.900000000000002">waiting goal scan</tspan><tspan x="1905.2159999999997" dy="16.900000000000002">Phase1 评估，Phase2 执行</tspan><tspan x="1905.2159999999997" dy="16.900000000000002">Phase1 evaluate + Phase2 execute</tspan><tspan x="1905.2159999999997" dy="16.900000000000002">通过 chat bridge 执行</tspan><tspan x="1905.2159999999997" dy="16.900000000000002">through chat bridge</tspan></text>
+</g>
+<g class="node" data-id="ports" data-label="Port 接口边界 / Port interfaces only
+MessageStore / TapeStore
+ModelConfigStore / SchedulerStore
+HeartbeatStore / HeartbeatExecutorPort
+WebToolService / PushService" data-shape="rectangle">
+  <rect x="1783.4649999999997" y="169.95000000000005" width="278.32899999999995" height="104.50000000000001" rx="0" ry="0" fill="#fdf2f8" stroke="#db2777" stroke-width="0.75" />
+  <text x="1922.6294999999996" y="222.20000000000005" text-anchor="middle" font-size="13" font-weight="500" fill="#831843"><tspan x="1922.6294999999996" dy="-29.250000000000004">Port 接口边界 / Port interfaces only</tspan><tspan x="1922.6294999999996" dy="16.900000000000002">MessageStore / TapeStore</tspan><tspan x="1922.6294999999996" dy="16.900000000000002">ModelConfigStore / SchedulerStore</tspan><tspan x="1922.6294999999996" dy="16.900000000000002">HeartbeatStore / HeartbeatExecutorPort</tspan><tspan x="1922.6294999999996" dy="16.900000000000002">WebToolService / PushService</tspan></text>
+</g>
+<g class="node" data-id="observability" data-label="可观测性 / observability
+withSpan()
+LLM 和工具指标
+LLM/tool metrics
+脱敏 prompt 快照
+sanitized prompt snapshots" data-shape="rectangle">
+  <rect x="1511.4589999999998" y="635.9000000000001" width="202.00599999999997" height="121.4" rx="0" ry="0" fill="#f5f3ff" stroke="#7c3aed" stroke-width="0.75" />
+  <text x="1612.4619999999998" y="696.6000000000001" text-anchor="middle" font-size="13" font-weight="500" fill="#3b0764"><tspan x="1612.4619999999998" dy="-37.70000000000001">可观测性 / observability</tspan><tspan x="1612.4619999999998" dy="16.900000000000002">withSpan()</tspan><tspan x="1612.4619999999998" dy="16.900000000000002">LLM 和工具指标</tspan><tspan x="1612.4619999999998" dy="16.900000000000002">LLM/tool metrics</tspan><tspan x="1612.4619999999998" dy="16.900000000000002">脱敏 prompt 快照</tspan><tspan x="1612.4619999999998" dy="16.900000000000002">sanitized prompt snapshots</tspan></text>
+</g>
+<g class="node" data-id="shared" data-label="@clawbot/shared
+消息角色、内容类型、停止原因
+message roles, content types, stop reasons" data-shape="rectangle">
+  <rect x="1416.3809999999999" y="974.7" width="294.631" height="70.7" rx="0" ry="0" fill="#f5f3ff" stroke="#7c3aed" stroke-width="0.75" />
+  <text x="1563.6964999999998" y="1010.0500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="#3b0764"><tspan x="1563.6964999999998" dy="-12.350000000000001">@clawbot/shared</tspan><tspan x="1563.6964999999998" dy="16.900000000000002">消息角色、内容类型、停止原因</tspan><tspan x="1563.6964999999998" dy="16.900000000000002">message roles, content types, stop reasons</tspan></text>
+</g>
+</svg>

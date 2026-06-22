@@ -140,3 +140,28 @@ export interface SkillInstaller {
   getInstalled(name: string): InstalledSkill | null;
   setProvisionStatus(name: string, status: ProvisionStatus, error?: string): Promise<void>;
 }
+
+export type ProvisionableKind =
+  | "python-script"
+  | "python-script-set"
+  | "node-script"
+  | "node-script-set";
+
+const PROVISIONABLE_KINDS: ReadonlySet<DetectedSkillKind> = new Set([
+  "python-script",
+  "python-script-set",
+  "node-script",
+  "node-script-set",
+]);
+
+export function isProvisionableKind(kind?: DetectedSkillKind): kind is ProvisionableKind {
+  return kind !== undefined && PROVISIONABLE_KINDS.has(kind);
+}
+
+export function runtimeOfKind(kind: ProvisionableKind): SkillRuntime {
+  return kind.startsWith("python") ? "python" : "node";
+}
+
+export function isPythonKind(kind?: DetectedSkillKind): boolean {
+  return kind === "python-script" || kind === "python-script-set";
+}

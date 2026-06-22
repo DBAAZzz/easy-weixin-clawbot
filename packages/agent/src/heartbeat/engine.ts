@@ -7,11 +7,13 @@
  *   Layer 3: withConversationLock — Phase 2 execution via HeartbeatExecutorPort (server layer)
  */
 
+import { createLogger } from "@clawbot/observability";
 import { getHeartbeatStore } from "../ports/heartbeat-store.js";
 import { getPushService } from "../ports/push-service.js";
 import { evaluateGoal } from "./evaluator.js";
 import type { GoalTransition } from "./types.js";
-import { getHeartbeatExecutor } from "../ports/heartbeat-executor.js";
+
+const logger = createLogger({ component: "heartbeat.engine" });
 
 const TICK_INTERVAL_MS = 60_000;
 
@@ -28,7 +30,7 @@ function enqueueForAccount(accountId: string, fn: () => Promise<void>): void {
   const next = current
     .then(fn)
     .catch((err) => {
-      console.error(`[heartbeat] account ${accountId} queue error:`, err);
+      logger.error("account queue error", { accountId, error: err });
     })
     .finally(() => {
       // Clean up empty queue references
@@ -58,9 +60,7 @@ async function applyTransition(transition: GoalTransition): Promise<void> {
       );
     } catch (err) {
       // Push failure does NOT affect goal state
-      console.warn(
-        `[heartbeat] push failed for goal ${transition.goalId}: ${(err as Error).message}`,
-      );
+      logger.warn("push failed", { goalId: transition.goalId, error: err });
     }
   }
 }
@@ -74,13 +74,13 @@ async function tick(): Promise<void> {
   // 1. Expire overdue goals
   const abandonedCount = await store.abandonExpired(now);
   if (abandonedCount > 0) {
-    console.log(`[heartbeat] abandoned ${abandonedCount} expired goal(s)`);
+    logger.info("abandoned expired goals", { count: abandonedCount });
   }
 
   // 2. Process resume signals (waiting_user → pending where resumeSignal is set)
   const resumedCount = await store.processResumeSignals(now);
   if (resumedCount > 0) {
-    console.log(`[heartbeat] resumed ${resumedCount} goal(s) from user replies`);
+    logger.info("resumed goals from user replies", { count: resumedCount });
   }
 
   // 3. Find due goals
@@ -94,14 +94,13 @@ async function tick(): Promise<void> {
       try {
         const transition = await evaluateGoal(goal);
         await applyTransition(transition);
-        console.log(
-          `[heartbeat] goal ${goal.goalId} → ${transition.newStatus}` +
-            (transition.updates.lastCheckResult
-              ? ` (${transition.updates.lastCheckResult.slice(0, 80)})`
-              : ""),
-        );
+        logger.info("goal transitioned", {
+          goalId: goal.goalId,
+          status: transition.newStatus,
+          lastCheckResult: transition.updates.lastCheckResult?.slice(0, 80),
+        });
       } catch (err) {
-        console.error(`[heartbeat] unhandled error for goal ${goal.goalId}:`, err);
+        logger.error("unhandled goal error", { goalId: goal.goalId, error: err });
       } finally {
         inflight.delete(goal.goalId);
       }
@@ -115,20 +114,20 @@ export function startHeartbeat(): void {
   if (tickTimer) return;
 
   tickTimer = setInterval(() => {
-    tick().catch((err) => console.error("[heartbeat] tick error:", err));
+    tick().catch((err) => logger.error("tick error", { error: err }));
   }, TICK_INTERVAL_MS);
 
   // unref so this timer doesn't prevent process exit
-  tickTimer.unref?.();
+  tickTimer.unref();
 
-  console.log(`[heartbeat] started, tick every ${TICK_INTERVAL_MS / 1000}s`);
+  logger.info("started", { tickIntervalSeconds: TICK_INTERVAL_MS / 1000 });
 }
 
 export function stopHeartbeat(): void {
   if (tickTimer) {
     clearInterval(tickTimer);
     tickTimer = null;
-    console.log("[heartbeat] stopped");
+    logger.info("stopped");
   }
 }
 
@@ -147,9 +146,11 @@ export async function checkWaitingGoalsAsync(
 
   if (waiting.length === 0) return;
   if (waiting.length > 1) {
-    console.warn(
-      `[heartbeat] ambiguous waiting_user resume skipped for ${accountId}/${conversationId}: ${waiting.length} active goals`,
-    );
+    logger.warn("ambiguous waiting_user resume skipped", {
+      accountId,
+      conversationId,
+      count: waiting.length,
+    });
     return;
   }
 

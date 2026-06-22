@@ -96,7 +96,8 @@ export async function compactIfNeeded(
       predecessors: latestAnchor ? [latestAnchor.aid] : [],
       lastEntryEid: lastEntry.eid,
     },
-    // We pass eids and let the store impl handle the bigint conversion
+    // entryEids are strings; the store implementation accepts bigint[] (DB IDs).
+    // We let the store impl handle the conversion at the boundary.
     entryEids as unknown as bigint[],
   );
 

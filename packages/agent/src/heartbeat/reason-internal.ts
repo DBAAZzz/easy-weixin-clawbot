@@ -11,7 +11,7 @@
 
 import { generateText } from "ai";
 import { resolveModel } from "../model-resolver.js";
-import { recall, emptyState, formatMemoryForPrompt } from "../tape/index.js";
+import { recall, emptyState, formatMemoryForPrompt, GLOBAL_BRANCH } from "../tape/index.js";
 import { assembleUserContext } from "../prompts/assembler.js";
 import type { PromptProfile } from "../prompts/types.js";
 
@@ -47,7 +47,7 @@ export async function reasonInternal(
   if (profile.injectTapeMemory) {
     const [sessionMemory, globalMemory] = await Promise.all([
       recall(accountId, sourceConversationId).catch(() => emptyState()),
-      recall(accountId, "__global__").catch(() => emptyState()),
+      recall(accountId, GLOBAL_BRANCH).catch(() => emptyState()),
     ]);
     memoryContext = formatMemoryForPrompt(globalMemory, sessionMemory);
   }

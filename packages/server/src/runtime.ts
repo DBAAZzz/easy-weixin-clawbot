@@ -107,13 +107,13 @@ export function createBotRuntime(): BotRuntime {
   }
 
   async function shutdown(): Promise<void> {
-    await drainMessageQueue();
-
     const startPromises = [...running.values()].map((entry) => entry.startPromise);
     for (const id of [...running.keys()]) {
       stopAccount(id);
     }
     await Promise.allSettled(startPromises);
+
+    await drainMessageQueue();
   }
 
   return {

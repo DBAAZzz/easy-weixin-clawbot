@@ -3,6 +3,7 @@ import { getSchedulerStore } from "@clawbot/agent/ports";
 import type { ScheduledTaskRow, ScheduledTaskRunRow } from "@clawbot/agent/ports";
 import { schedulerManager } from "@clawbot/agent";
 import { createModuleLogger, getErrorFields } from "../../logger.js";
+import { parseLimitParam, parsePositiveIntParam } from "../params.js";
 
 export interface ScheduledTaskDto {
   id: string;
@@ -80,7 +81,6 @@ function toRunDto(run: ScheduledTaskRunRow): ScheduledTaskRunDto {
 }
 
 export function registerScheduledTaskRoutes(app: Hono) {
-  // List scheduled tasks (with optional account/task kind filters)
   app.get("/api/scheduled-tasks", async (c) => {
     const accountId = c.req.query("accountId");
     const taskKind = c.req.query("taskKind");
@@ -118,12 +118,11 @@ export function registerScheduledTaskRoutes(app: Hono) {
     }
   });
 
-  // Get a single task by account + seq
   app.get("/api/scheduled-tasks/:accountId/:seq", async (c) => {
     const accountId = c.req.param("accountId");
-    const seq = parseInt(c.req.param("seq"), 10);
+    const seq = parsePositiveIntParam(c.req.param("seq"));
 
-    if (Number.isNaN(seq)) {
+    if (seq === null) {
       return c.json({ error: "Invalid seq parameter" }, 400);
     }
 
@@ -144,12 +143,11 @@ export function registerScheduledTaskRoutes(app: Hono) {
     }
   });
 
-  // Toggle task enabled state
   app.patch("/api/scheduled-tasks/:accountId/:seq", async (c) => {
     const accountId = c.req.param("accountId");
-    const seq = parseInt(c.req.param("seq"), 10);
+    const seq = parsePositiveIntParam(c.req.param("seq"));
 
-    if (Number.isNaN(seq)) {
+    if (seq === null) {
       return c.json({ error: "Invalid seq parameter" }, 400);
     }
 
@@ -186,13 +184,12 @@ export function registerScheduledTaskRoutes(app: Hono) {
     }
   });
 
-  // List runs for a task
   app.get("/api/scheduled-tasks/:accountId/:seq/runs", async (c) => {
     const accountId = c.req.param("accountId");
-    const seq = parseInt(c.req.param("seq"), 10);
-    const limit = parseInt(c.req.query("limit") ?? "20", 10);
+    const seq = parsePositiveIntParam(c.req.param("seq"));
+    const limit = parseLimitParam(c.req.query("limit"));
 
-    if (Number.isNaN(seq)) {
+    if (seq === null) {
       return c.json({ error: "Invalid seq parameter" }, 400);
     }
 

@@ -27,9 +27,6 @@ export type SaveCredentialInput = {
  * All tokens are stored AES-256-GCM encrypted; decryption happens only on read.
  */
 export const credentialStore = {
-  /**
-   * Save or update credentials for an account (encrypts the token).
-   */
   async save(input: SaveCredentialInput): Promise<void> {
     const masterKey = getMasterKey();
     const encrypted = encryptToken(input.token, input.accountId, masterKey);
@@ -65,10 +62,7 @@ export const credentialStore = {
     });
   },
 
-  /**
-   * Retrieve and decrypt a credential by account ID.
-   * Returns null if no credential exists.
-   */
+  /** Returns null if no credential exists. */
   async getDecrypted(accountId: string): Promise<DecryptedCredential | null> {
     const row = await getPrisma().weixinAccountCredential.findUnique({
       where: { accountId },
@@ -99,9 +93,6 @@ export const credentialStore = {
     };
   },
 
-  /**
-   * Update the credential status (e.g. mark as relogin_required on disconnect).
-   */
   async updateStatus(
     accountId: string,
     status: CredentialStatus,
@@ -117,9 +108,6 @@ export const credentialStore = {
     });
   },
 
-  /**
-   * Get all account IDs that have an active credential.
-   */
   async getActiveAccountIds(): Promise<string[]> {
     const rows = await getPrisma().weixinAccountCredential.findMany({
       where: { status: "active" },
@@ -128,9 +116,6 @@ export const credentialStore = {
     return rows.map((r) => r.accountId);
   },
 
-  /**
-   * Check if a credential exists and is active.
-   */
   async isActive(accountId: string): Promise<boolean> {
     const row = await getPrisma().weixinAccountCredential.findUnique({
       where: { accountId },
@@ -139,9 +124,6 @@ export const credentialStore = {
     return row?.status === "active";
   },
 
-  /**
-   * Delete a credential.
-   */
   async delete(accountId: string): Promise<void> {
     await getPrisma().weixinAccountCredential.deleteMany({
       where: { accountId },
@@ -153,9 +135,6 @@ export const credentialStore = {
  * WeixinAllowFromStore — manages per-account authorized user lists.
  */
 export const allowFromStore = {
-  /**
-   * Add a user to the allow-from list for an account.
-   */
   async addUser(accountId: string, wechatUserId: string): Promise<boolean> {
     const trimmed = wechatUserId.trim();
     if (!trimmed) return false;
@@ -174,9 +153,6 @@ export const allowFromStore = {
     }
   },
 
-  /**
-   * List all authorized user IDs for an account.
-   */
   async listUsers(accountId: string): Promise<string[]> {
     const rows = await getPrisma().weixinAccountAllowFrom.findMany({
       where: { accountId },
@@ -185,9 +161,6 @@ export const allowFromStore = {
     return rows.map((r) => r.wechatUserId);
   },
 
-  /**
-   * Check if a user is authorized for an account.
-   */
   async isAuthorized(accountId: string, wechatUserId: string): Promise<boolean> {
     const row = await getPrisma().weixinAccountAllowFrom.findUnique({
       where: {
@@ -202,9 +175,6 @@ export const allowFromStore = {
  * WeixinSyncStateStore — manages the long-poll sync buffer per account.
  */
 export const syncStateStore = {
-  /**
-   * Load the sync buf for an account.
-   */
   async load(accountId: string): Promise<string | undefined> {
     const row = await getPrisma().weixinSyncState.findUnique({
       where: { accountId },
@@ -213,10 +183,7 @@ export const syncStateStore = {
     return row?.syncBuf ?? undefined;
   },
 
-  /**
-   * Save or update the sync buf for an account.
-   * Uses raw SQL for performance since this is called on every long-poll response.
-   */
+  /** Uses raw SQL for performance since this is called on every long-poll response. */
   async save(accountId: string, syncBuf: string): Promise<void> {
     await getPrisma().$executeRaw`
       INSERT INTO weixin_sync_state (account_id, sync_buf, updated_at)

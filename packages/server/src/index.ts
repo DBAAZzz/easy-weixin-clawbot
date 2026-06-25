@@ -4,6 +4,7 @@ import { schedulerManager, startHeartbeat, stopHeartbeat } from "@clawbot/agent"
 import { purgeCompacted } from "@clawbot/agent/tape";
 import { createApiApp } from "./api/index.js";
 import { mcpToolRegistry, skillInstaller, runtimeProvisioner, validateConfig } from "./ai.js";
+import { disconnectPrisma } from "./db/prisma.js";
 import { createLoginManager } from "./login/login-manager.js";
 import { createModuleLogger, getErrorFields } from "./logger.js";
 import { SKILLS_BUILTIN_DIR, SKILLS_USER_DIR } from "./paths.js";
@@ -87,8 +88,8 @@ const maintenanceTimer = setInterval(() => {
         "定时清理 Tape 记录失败",
       );
     });
-  }, MAINTENANCE_INTERVAL_MS);
-  maintenanceTimer.unref?.();
+}, MAINTENANCE_INTERVAL_MS);
+maintenanceTimer.unref?.();
 
 const loginManager = createLoginManager({
   onSuccess: async (accountId) => {
@@ -116,25 +117,48 @@ bootstrapLogger.info({ port }, "HTTP API 服务已启动");
 
 let shuttingDown = false;
 
+async function closeHttpServer(): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
+async function runShutdownStep(name: string, step: () => Promise<void> | void): Promise<void> {
+  try {
+    await step();
+  } catch (error) {
+    bootstrapLogger.warn(
+      { ...getErrorFields(error), subsystem: name },
+      "关闭阶段步骤失败",
+    );
+  }
+}
+
 async function shutdown(signal: string) {
   if (shuttingDown) return;
   shuttingDown = true;
 
   bootstrapLogger.info({ signal }, "收到关闭信号，准备停止服务");
-  stopHeartbeat();
-  await schedulerManager.shutdown();
-  await mcpManager.shutdown();
-  await runtime.shutdown();
-  await observabilityService.flush().catch((error) => {
-    bootstrapLogger.warn(
-      { ...getErrorFields(error), subsystem: "observability" },
-      "关闭阶段刷新可观测数据失败",
-    );
-  });
+
   clearInterval(rssCollectionTimer);
   clearInterval(maintenanceTimer);
-  server.close();
-  process.exit(0);
+  stopHeartbeat();
+
+  await runShutdownStep("http", closeHttpServer);
+  await runShutdownStep("scheduler", () => schedulerManager.shutdown());
+  await runShutdownStep("mcp", () => mcpManager.shutdown());
+  await runShutdownStep("runtime", () => runtime.shutdown());
+  await runShutdownStep("observability", () => observabilityService.flush());
+  await runShutdownStep("prisma", () => disconnectPrisma());
+
+  process.exitCode = 0;
 }
 
 process.on("SIGINT", () => {

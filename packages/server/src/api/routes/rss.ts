@@ -6,6 +6,7 @@ import {
   createRssScheduledTaskHandler,
   rssService,
 } from "../../rss/service.js";
+import { parsePositiveIntParam } from "../params.js";
 
 function toErrorResponse(error: unknown) {
   if (error instanceof RssValidationError) {
@@ -97,8 +98,8 @@ export function registerRssRoutes(app: Hono) {
 
   app.patch("/api/rss/tasks/:accountId/:seq", async (c) => {
     const accountId = c.req.param("accountId");
-    const seq = Number.parseInt(c.req.param("seq"), 10);
-    if (Number.isNaN(seq)) {
+    const seq = parsePositiveIntParam(c.req.param("seq"));
+    if (seq === null) {
       return c.json({ error: "Invalid seq parameter" }, 400);
     }
 
@@ -121,8 +122,8 @@ export function registerRssRoutes(app: Hono) {
 
   app.delete("/api/rss/tasks/:accountId/:seq", async (c) => {
     const accountId = c.req.param("accountId");
-    const seq = Number.parseInt(c.req.param("seq"), 10);
-    if (Number.isNaN(seq)) {
+    const seq = parsePositiveIntParam(c.req.param("seq"));
+    if (seq === null) {
       return c.json({ error: "Invalid seq parameter" }, 400);
     }
 
@@ -138,8 +139,8 @@ export function registerRssRoutes(app: Hono) {
   });
 
   app.get("/api/rss/tasks/:accountId/:seq/preview", async (c) => {
-    const seq = Number.parseInt(c.req.param("seq"), 10);
-    if (Number.isNaN(seq)) {
+    const seq = parsePositiveIntParam(c.req.param("seq"));
+    if (seq === null) {
       return c.json({ error: "Invalid seq parameter" }, 400);
     }
 
@@ -153,8 +154,8 @@ export function registerRssRoutes(app: Hono) {
 
   app.post("/api/rss/tasks/:accountId/:seq/run", async (c) => {
     const accountId = c.req.param("accountId");
-    const seq = Number.parseInt(c.req.param("seq"), 10);
-    if (Number.isNaN(seq)) {
+    const seq = parsePositiveIntParam(c.req.param("seq"));
+    if (seq === null) {
       return c.json({ error: "Invalid seq parameter" }, 400);
     }
 

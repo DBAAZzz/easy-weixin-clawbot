@@ -487,4 +487,8 @@ export async function drainMessageQueue(timeoutMs = 5_000): Promise<void> {
       await delay(100);
     }
   }
+
+  if (queue.length > 0) {
+    throw new Error(`Timed out draining message queue; pending=${queue.length}`);
+  }
 }

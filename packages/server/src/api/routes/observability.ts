@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import type { ObservabilityWindow } from "@clawbot/shared";
 import type { ObservabilityRouteService } from "../../observability/service.js";
+import { parseLimitParam, parsePositiveIntParam } from "../params.js";
 
 function parseWindow(value: string | undefined): ObservabilityWindow {
   if (value === "7d" || value === "30d") return value;
@@ -14,19 +15,23 @@ export function registerObservabilityRoutes(app: Hono, observability: Observabil
   });
 
   app.get("/api/observability/traces", async (c) => {
-    const limitParam = Number.parseInt(c.req.query("limit") ?? "20", 10);
     const cursorParam = c.req.query("cursor");
-    const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 100) : 20;
-    const cursor = cursorParam ? Number.parseInt(cursorParam, 10) : undefined;
+    const cursor = cursorParam ? parsePositiveIntParam(cursorParam) : undefined;
     const statusParam = c.req.query("status");
     const status =
       statusParam === "ok" || statusParam === "error" ? statusParam : undefined;
 
+    if (cursorParam && cursor === null) {
+      return c.json({ error: "cursor must be a positive integer" }, 400);
+    }
+
+    const cursorId = cursor ?? undefined;
+
     return c.json(
       await observability.listTraces({
         window: parseWindow(c.req.query("window")),
-        limit,
-        cursor: Number.isFinite(cursor) ? cursor : undefined,
+        limit: parseLimitParam(c.req.query("limit")),
+        cursor: cursorId,
         accountId: c.req.query("accountId") ?? undefined,
         conversationId: c.req.query("conversationId") ?? undefined,
         flag: c.req.query("flag") ?? undefined,

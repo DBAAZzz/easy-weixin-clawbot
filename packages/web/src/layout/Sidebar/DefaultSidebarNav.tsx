@@ -1,4 +1,5 @@
 import {
+  ChartAnalysisIcon,
   ClockIcon,
   CpuIcon,
   GaugeIcon,
@@ -102,6 +103,12 @@ export function DefaultSidebarNav({ collapsed }: SidebarNavProps) {
           to="/observability"
           label="运行监控"
           icon={<GaugeIcon className="size-4" />}
+          collapsed={collapsed}
+        />
+        <NavItem
+          to="/usage"
+          label="使用分析"
+          icon={<ChartAnalysisIcon className="size-4" />}
           collapsed={collapsed}
         />
         <NavItem

@@ -19,6 +19,7 @@ import {
   SkillsPage,
   TaskCenterPage,
   ToolsPage,
+  UsagePage,
   WebhookLogsPage,
   WebhooksPage,
 } from "./lazy-pages.js";
@@ -44,6 +45,7 @@ export const protectedRoutes: RouteConfig[] = [
   { path: "/", Component: DashboardPage },
   { path: "/observability", Component: ObservabilityPage },
   { path: "/observability/traces/:traceId", Component: ObservabilityTracePage },
+  { path: "/usage", Component: UsagePage },
   { path: "/accounts/:accountId", Component: ConversationPage, sidebar: "conversation" },
   { path: "/login", Component: LoginPage },
   { path: "/mcp", Component: McpPage },

@@ -235,6 +235,26 @@ model TraceSpan {
   @@map("trace_spans")
 }
 
+// ─── Usage metering ───────────────────────────────────────────────────
+// 全量计量事实表，每次模型调用一行，与 observability 采样链路解耦。
+
+model UsageEvent {
+  id             BigInt   @id @default(autoincrement())
+  accountId      String   @map("account_id") @db.Text
+  conversationId String   @map("conversation_id") @db.Text
+  requestId      String   @map("request_id") @db.Text
+  model          String   @db.Text
+  provider       String?  @db.Text
+  inputTokens    Int      @map("input_tokens")
+  outputTokens   Int      @map("output_tokens")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([createdAt(sort: Desc)], map: "idx_usage_events_created")
+  @@index([model, createdAt(sort: Desc)], map: "idx_usage_events_model_created")
+  @@index([accountId, createdAt(sort: Desc)], map: "idx_usage_events_account_created")
+  @@map("usage_events")
+}
+
 // ─── Scheduler ────────────────────────────────────────────────────────
 
 model ScheduledTask {

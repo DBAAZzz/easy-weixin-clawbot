@@ -45,4 +45,6 @@ export const queryKeys = {
     query?: string;
   }) => ["observabilityTraces", filters] as const,
   observabilityTrace: (traceId: string) => ["observabilityTrace", traceId] as const,
+
+  usageOverview: (accountId?: string) => ["usageOverview", accountId] as const,
 } as const;

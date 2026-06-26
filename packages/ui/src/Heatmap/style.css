@@ -1,0 +1,61 @@
+/* Heatmap intensity ramp.
+ * Kept as tokens (consumers re-theme these) and defined on :root outside the
+ * cascade layer so consumer overrides win, mirroring Badge. */
+:root {
+  --color-heatmap-0: var(--color-surface-sunken, #eef1f4);
+  --color-heatmap-1: var(--color-accent-soft, #e9f5ef);
+  --color-heatmap-2: var(--color-accent-soft-border, #a9d5c1);
+  --color-heatmap-3: var(--color-accent, #1d6e54);
+  --color-heatmap-4: var(--color-accent-deep, #13483a);
+}
+
+@layer clawbot {
+  .cb-heatmap {
+    display: inline-flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+  }
+
+  .cb-heatmap-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(7, var(--spacing-7));
+    grid-auto-columns: var(--spacing-7);
+    gap: var(--spacing-2);
+  }
+
+  .cb-heatmap-months {
+    display: grid;
+    gap: var(--spacing-2);
+  }
+
+  .cb-heatmap-month {
+    grid-row: 1;
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    color: var(--color-muted);
+  }
+
+  .cb-heatmap-cell {
+    width: var(--spacing-7);
+    height: var(--spacing-7);
+    border-radius: var(--radius-xs);
+    background: var(--color-heatmap-0);
+  }
+
+  .cb-heatmap-cell--l1 {
+    background: var(--color-heatmap-1);
+  }
+
+  .cb-heatmap-cell--l2 {
+    background: var(--color-heatmap-2);
+  }
+
+  .cb-heatmap-cell--l3 {
+    background: var(--color-heatmap-3);
+  }
+
+  .cb-heatmap-cell--l4 {
+    background: var(--color-heatmap-4);
+  }
+}

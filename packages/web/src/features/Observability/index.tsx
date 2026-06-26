@@ -7,6 +7,7 @@ import {
   ChevronRightIcon,
   Input,
   SearchIcon,
+  Select,
   Toggle,
   ToggleGroup,
 } from "@clawbot/ui";
@@ -314,17 +315,13 @@ function TraceList({
             ))}
           </ToggleGroup>
 
-          <select
+          <Select
             value={flag}
-            onChange={(event) => onFlagChange(event.target.value)}
+            options={FLAG_OPTIONS}
+            onChange={onFlagChange}
+            size="sm"
             className="h-9 w-full rounded-card border border-account-line-strong bg-account-card px-3 text-md font-medium text-account-ink-soft shadow-account-control outline-none transition duration-200 ease-expo hover:border-account-control-hover hover:bg-account-table-head focus:border-account-control-hover focus:shadow-focus-accent md:w-observability-flag"
-          >
-            {FLAG_OPTIONS.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </select>
+          />
         </div>
       </div>
 

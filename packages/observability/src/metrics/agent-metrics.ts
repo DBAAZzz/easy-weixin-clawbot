@@ -59,6 +59,12 @@ export const llmErrorsTotal = registry.createCounter({
   labelNames: ["error_type"],
 });
 
+export const llmRetriesTotal = registry.createCounter({
+  name: "agent_llm_retries_total",
+  help: "LLM retryable failures (each triggers a backoff retry unless the retry budget is exhausted)",
+  labelNames: ["provider", "status"],
+});
+
 // ── 工具指标 ──
 
 export const toolCallsTotal = registry.createCounter({

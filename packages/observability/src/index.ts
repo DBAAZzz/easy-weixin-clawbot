@@ -42,6 +42,7 @@ export {
   llmTokensOutput,
   llmLatencyMs,
   llmErrorsTotal,
+  llmRetriesTotal,
   toolCallsTotal,
   toolLatencyMs,
   contextTrimTotal,

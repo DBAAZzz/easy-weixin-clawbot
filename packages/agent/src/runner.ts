@@ -37,7 +37,8 @@ import {
 import { fitToContextWindow, type TrimResult } from "./conversation/context-window.js";
 import { estimateTextTokens } from "./conversation/token-estimator.js";
 import type { SkillRegistry } from "./skills/types.js";
-import type { ToolRegistry, ToolContent } from "./tools/types.js";
+import type { ToolRegistry, ToolContent, ToolContext } from "./tools/types.js";
+import type { AgentToolContext } from "./runtime/agent-tool-context.js";
 import {
   collectLoadedSkillNames,
   createConversationSkillRuntime,
@@ -89,6 +90,7 @@ export interface AgentRunner {
     callbacks: RunCallbacks,
     signal?: AbortSignal,
     modelOverride?: ModelOverride,
+    toolContext?: AgentToolContext,
   ): Promise<RunResult>;
 }
 
@@ -333,9 +335,10 @@ async function executeToolCall(
     skillRuntime: ConversationSkillRuntime;
     signal: AbortSignal | undefined;
     timeoutMs: number;
+    toolContext?: AgentToolContext;
   },
 ): Promise<ToolResultMessage> {
-  const { tools, skillRuntime, signal, timeoutMs } = deps;
+  const { tools, skillRuntime, signal, timeoutMs, toolContext } = deps;
   const toolStartedAt = Date.now();
   try {
     const content = await withSpan(
@@ -353,7 +356,7 @@ async function executeToolCall(
             : await tools.execute(
                 toolCall.name,
                 toolCall.arguments,
-                createToolContext(signal, timeoutMs),
+                createToolContext(signal, timeoutMs, toolContext),
               );
 
         span.addAttributes({
@@ -404,6 +407,7 @@ export function createAgentRunner(
     callbacks: RunCallbacks,
     signal?: AbortSignal,
     modelOverride?: ModelOverride,
+    toolContext?: AgentToolContext,
   ): Promise<RunResult> {
     const { model: effectiveModel, meta: effectiveMeta, modelId: effectiveModelId } =
       resolveEffectiveModel(config, modelOverride);
@@ -488,7 +492,7 @@ export function createAgentRunner(
       // 每个结果都会被包装成 toolResult message，再追加回 workingHistory 供下一轮 LLM 继续推理。
       const toolResults = await Promise.all(
         toolCalls.map((toolCall) =>
-          executeToolCall(toolCall, { tools, skillRuntime, signal, timeoutMs }),
+          executeToolCall(toolCall, { tools, skillRuntime, signal, timeoutMs, toolContext }),
         ),
       );
 
@@ -520,8 +524,10 @@ export function createAgentRunner(
 function createToolContext(
   parentSignal: AbortSignal | undefined,
   timeoutMs: number,
-): { signal: AbortSignal } {
+  toolContext?: AgentToolContext,
+): ToolContext {
   return {
     signal: createToolSignal(parentSignal, timeoutMs),
+    ...toolContext,
   };
 }

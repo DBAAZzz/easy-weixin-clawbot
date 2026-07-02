@@ -6,9 +6,6 @@ export {
 
 export {
   heartbeatToolRegistry,
-  setHeartbeatToolContext,
-  setHeartbeatContext,
-  isHeartbeatContext,
 } from "./tool.js";
 
 export { evaluateGoal } from "./evaluator.js";

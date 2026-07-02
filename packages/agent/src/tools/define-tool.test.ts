@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { z } from "zod";
-import { createToolContextSlot } from "../runtime/agent-tool-context.js";
+import { requireAgentToolContext } from "../runtime/agent-tool-context.js";
 import { defineTool } from "./define-tool.js";
 
 const abortSignal = new AbortController().signal;
@@ -42,13 +42,12 @@ test("defineTool converts invalid args to a text result", async () => {
 });
 
 test("defineTool converts missing tool context to the legacy text result", async () => {
-  const slot = createToolContextSlot();
   const tool = defineTool({
     name: "demo",
     description: "demo",
     parameters: z.object({}),
-    async execute() {
-      slot.require();
+    async execute(_args, ctx) {
+      requireAgentToolContext(ctx);
       return [{ type: "text", text: "unreachable" }];
     },
   });

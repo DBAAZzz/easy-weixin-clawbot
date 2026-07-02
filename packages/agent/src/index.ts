@@ -198,7 +198,6 @@ export type { Command, CommandContext } from "./commands/types.js";
 export {
   schedulerManager,
   schedulerToolRegistry,
-  setSchedulerContext,
   scheduleCommand,
   executeTask,
 } from "./scheduler/index.js";
@@ -209,9 +208,6 @@ export {
   stopHeartbeat,
   checkWaitingGoalsAsync,
   heartbeatToolRegistry,
-  setHeartbeatToolContext,
-  setHeartbeatContext,
-  isHeartbeatContext,
 } from "./heartbeat/index.js";
 export type {
   GoalStatus,

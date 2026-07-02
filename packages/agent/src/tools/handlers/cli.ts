@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import type { NativeHandler } from "../types.js";
 
-const BINARY_ALLOWLIST = new Set(["opencli", "gh", "docker", "curl"]);
+const BINARY_ALLOWLIST = new Set(["opencli"]);
 const FORBIDDEN_SHELL_PATTERN = /(\|\||&&|[|;`]|[$][(]|\r|\n)/;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_TIMEOUT_MS = 120_000;

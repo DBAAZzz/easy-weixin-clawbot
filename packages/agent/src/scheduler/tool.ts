@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createToolRegistry } from "../tools/registry.js";
 import type { ToolSnapshotItem } from "../tools/types.js";
 import { defineTool, textResult } from "../tools/define-tool.js";
-import { createToolContextSlot, type AgentToolContext } from "../runtime/agent-tool-context.js";
+import { requireAgentToolContext } from "../runtime/agent-tool-context.js";
 import { validate } from "node-cron";
 import { getSchedulerStore } from "../ports/scheduler-store.js";
 import { activate, deactivate } from "./manager.js";
@@ -57,18 +57,6 @@ function validateMinInterval(cronExpr: string): boolean {
   return true;
 }
 
-// ── Context injection ──────────────────────────────────────────────
-
-const schedulerContext = createToolContextSlot();
-
-/**
- * Set the scheduler context before tool execution.
- * Called by the agent layer to inject accountId/conversationId.
- */
-export function setSchedulerContext(ctx: AgentToolContext | null): void {
-  schedulerContext.set(ctx);
-}
-
 // ── Tool definitions ───────────────────────────────────────────────
 
 const createScheduledTaskTool = defineTool({
@@ -85,7 +73,7 @@ const createScheduledTaskTool = defineTool({
     prompt: z.string().describe("每次执行时发送给 AI 的 prompt"),
     timezone: z.string().describe("时区，默认 Asia/Shanghai").optional(),
   }),
-  async execute(args) {
+  async execute(args, toolCtx) {
     const { name, type, cron: cronExpr, prompt, timezone } = args;
 
     if (!validate(cronExpr)) {
@@ -95,13 +83,13 @@ const createScheduledTaskTool = defineTool({
       return textResult("❌ 执行频率过高，最小间隔为 30 分钟。");
     }
 
-    const ctx = schedulerContext.require();
+    const ctx = requireAgentToolContext(toolCtx);
 
     const store = getSchedulerStore();
     const taskType = type ?? "recurring";
     const task = await store.createTask({
       accountId: ctx.accountId,
-      conversationId: ctx.conversationId,
+      conversationId: ctx.targetConversationId ?? ctx.conversationId,
       name,
       prompt,
       type: taskType,
@@ -134,9 +122,9 @@ const updateScheduledTaskTool = defineTool({
     timezone: z.string().describe("新的时区").optional(),
     enabled: z.boolean().describe("是否启用").optional(),
   }),
-  async execute(args) {
+  async execute(args, toolCtx) {
     const { seq, name, cron: cronExpr, prompt, timezone, enabled } = args;
-    const ctx = schedulerContext.require();
+    const ctx = requireAgentToolContext(toolCtx);
 
     if (cronExpr) {
       if (!validate(cronExpr)) {
@@ -171,9 +159,9 @@ const deleteScheduledTaskTool = defineTool({
   parameters: z.object({
     seq: z.number().int().describe("任务编号"),
   }),
-  async execute(args) {
+  async execute(args, toolCtx) {
     const { seq } = args;
-    const ctx = schedulerContext.require();
+    const ctx = requireAgentToolContext(toolCtx);
 
     const store = getSchedulerStore();
     const task = await store.getTaskBySeq(ctx.accountId, seq);
@@ -189,8 +177,8 @@ const listScheduledTasksTool = defineTool({
   name: "list_scheduled_tasks",
   description: "列出当前账号的所有定时任务。",
   parameters: z.object({}),
-  async execute() {
-    const ctx = schedulerContext.require();
+  async execute(_args, toolCtx) {
+    const ctx = requireAgentToolContext(toolCtx);
 
     const store = getSchedulerStore();
     const tasks = await store.listTasks(ctx.accountId);
@@ -213,9 +201,9 @@ const runScheduledTaskTool = defineTool({
   parameters: z.object({
     seq: z.number().int().describe("任务编号"),
   }),
-  async execute(args) {
+  async execute(args, toolCtx) {
     const { seq } = args;
-    const ctx = schedulerContext.require();
+    const ctx = requireAgentToolContext(toolCtx);
 
     const store = getSchedulerStore();
     const task = await store.getTaskBySeq(ctx.accountId, seq);

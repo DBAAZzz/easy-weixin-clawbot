@@ -9,29 +9,9 @@ import { z } from "zod";
 import { createToolRegistry } from "../tools/registry.js";
 import type { ToolSnapshotItem } from "../tools/types.js";
 import { defineTool, textResult } from "../tools/define-tool.js";
-import { createToolContextSlot, type AgentToolContext } from "../runtime/agent-tool-context.js";
+import { requireAgentToolContext } from "../runtime/agent-tool-context.js";
 import { getHeartbeatStore } from "../ports/heartbeat-store.js";
 import { LIMITS, INITIAL_BACKOFF_MS } from "./types.js";
-
-// ── Heartbeat context detection ────────────────────────────────────
-
-let _heartbeatContext = false;
-
-export function setHeartbeatContext(active: boolean): void {
-  _heartbeatContext = active;
-}
-
-export function isHeartbeatContext(): boolean {
-  return _heartbeatContext;
-}
-
-// ── Context injection ──────────────────────────────────────────────
-
-const heartbeatToolContext = createToolContextSlot();
-
-export function setHeartbeatToolContext(ctx: AgentToolContext | null): void {
-  heartbeatToolContext.set(ctx);
-}
 
 // ── Tool definitions ───────────────────────────────────────────────
 
@@ -47,7 +27,7 @@ const createPendingGoalTool = defineTool({
     delay_minutes: z.number().min(1).max(1440).describe("首次检查延迟分钟数，默认 5").optional(),
     max_checks: z.number().min(1).max(20).describe("最大检查次数，默认 10").optional(),
   }),
-  async execute(args) {
+  async execute(args, toolCtx) {
     const {
       description,
       context,
@@ -55,14 +35,15 @@ const createPendingGoalTool = defineTool({
       max_checks: maxChecks,
     } = args;
 
-    // Block recursive creation from heartbeat Phase 2
-    if (isHeartbeatContext()) {
+    // Heartbeat Phase 2 and scheduler runs do not have a live user delivery path
+    // for new goals; keep follow-up instructions in the current result instead.
+    if (toolCtx.runKind === "heartbeat" || toolCtx.runKind === "scheduler") {
       return textResult(
-        "拒绝：heartbeat 执行中不能创建新的 pending goal。请在结论中说明需要后续跟进的事项。",
+        "拒绝：当前后台执行中不能创建新的 pending goal。请直接在本次结果里说明需要后续跟进的事项。",
       );
     }
 
-    const ctx = heartbeatToolContext.require();
+    const ctx = requireAgentToolContext(toolCtx);
 
     const store = getHeartbeatStore();
 
@@ -135,8 +116,8 @@ const listPendingGoalsTool = defineTool({
   name: "list_pending_goals",
   description: "列出当前账号的所有活跃待跟进目标。",
   parameters: z.object({}),
-  async execute() {
-    const ctx = heartbeatToolContext.require();
+  async execute(_args, toolCtx) {
+    const ctx = requireAgentToolContext(toolCtx);
 
     const store = getHeartbeatStore();
     const goals = await store.listGoals(ctx.accountId, false);

@@ -25,6 +25,7 @@ import {
   type ResolvedModel,
 } from "./model-resolver.js";
 import type { ChatResponse, ChatMedia } from "./types.js";
+import type { AgentToolContext } from "./runtime/agent-tool-context.js";
 import { isDebugEnabled } from "./commands/debug.js";
 import { ensureHistoryLoaded, getHistory, nextSeq, rollbackMessages } from "./conversation/index.js";
 import { getMessageStore } from "./ports/message-store.js";
@@ -73,6 +74,11 @@ export interface ChatDeps {
     tool(name: string, args: Record<string, unknown>, result: string): void;
     done(accountId: string, rounds: number, ms: number): void;
   };
+}
+
+export interface ChatOptions {
+  signal?: AbortSignal;
+  toolContext?: AgentToolContext;
 }
 
 let _deps: ChatDeps | null = null;
@@ -341,6 +347,7 @@ export async function chat(
   text: string,
   media?: ChatMedia,
   startedAt = Date.now(),
+  options: ChatOptions = {},
 ): Promise<ChatResponse> {
   const { runner, log } = getDeps();
 
@@ -371,10 +378,16 @@ export async function chat(
         createUsageRequestId(),
       );
 
-      const result = await runner.run(history, tracker.callbacks, undefined, {
-        model: chatModel.model,
-        meta: chatModel.meta,
-      });
+      const result = await runner.run(
+        history,
+        tracker.callbacks,
+        options.signal,
+        {
+          model: chatModel.model,
+          meta: chatModel.meta,
+        },
+        options.toolContext ?? { accountId, conversationId, runKind: "chat" },
+      );
 
       if (result.status !== "aborted") {
         log.done(accountId, tracker.state.rounds, Date.now() - startedAt);

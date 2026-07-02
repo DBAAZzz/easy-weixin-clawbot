@@ -1,6 +1,7 @@
 import { chat } from "../chat.js";
 import { TimeoutError } from "../errors.js";
 import { withTimeout } from "../utils/async.js";
+import { withConversationLock } from "../conversation/history.js";
 import { getPushService } from "../ports/push-service.js";
 import { getScheduledTaskHandler } from "../ports/scheduled-task-handler.js";
 import {
@@ -12,6 +13,41 @@ import { PROMPT_TASK_KIND, schedulerConversationId } from "./constants.js";
 
 const EXECUTION_TIMEOUT_MS = 60_000;
 const MAX_FAIL_STREAK = 3;
+
+async function runChatTaskWithTimeout(
+  task: ScheduledTaskRow,
+  executionConvId: string,
+): Promise<string | undefined> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    const chatPromise = withConversationLock(task.accountId, executionConvId, () =>
+      chat(task.accountId, executionConvId, task.prompt, undefined, Date.now(), {
+        signal: controller.signal,
+        toolContext: {
+          accountId: task.accountId,
+          conversationId: executionConvId,
+          targetConversationId: task.conversationId,
+          runKind: "scheduler",
+        },
+      }),
+    );
+    void chatPromise.catch(() => {});
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(new TimeoutError(`Scheduled task #${task.seq} timed out`));
+      }, EXECUTION_TIMEOUT_MS);
+    });
+    const chatResult = await Promise.race([chatPromise, timeoutPromise]);
+
+    return chatResult.text ?? undefined;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 /**
  * Execute a scheduled task:
@@ -52,12 +88,7 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
       pushed = handlerResult.pushed;
     } else {
       // Execute AI chat with timeout
-      const chatResult = await withTimeout(
-        chat(task.accountId, executionConvId, task.prompt),
-        EXECUTION_TIMEOUT_MS,
-      );
-
-      result = chatResult.text ?? undefined;
+      result = await runChatTaskWithTimeout(task, executionConvId);
 
       // Try to push the result
       if (result) {

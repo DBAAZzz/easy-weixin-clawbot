@@ -1,6 +1,10 @@
+import type { RunKind, ToolContext } from "../tools/types.js";
+
 export interface AgentToolContext {
   accountId: string;
   conversationId: string;
+  targetConversationId?: string;
+  runKind?: RunKind;
 }
 
 export class ToolContextMissingError extends Error {
@@ -14,29 +18,15 @@ export function isToolContextMissingError(error: unknown): error is ToolContextM
   return error instanceof ToolContextMissingError;
 }
 
-/**
- * Creates an isolated per-tool-family context slot.
- *
- * The server sets this around a chat execution and must clear it afterwards;
- * callers that run tools outside that window should expect require() to throw.
- */
-export function createToolContextSlot(): {
-  set(ctx: AgentToolContext | null): void;
-  get(): AgentToolContext | null;
-  require(): AgentToolContext;
-} {
-  let current: AgentToolContext | null = null;
+export function requireAgentToolContext(ctx: ToolContext): AgentToolContext {
+  if (!ctx.accountId || !ctx.conversationId) {
+    throw new ToolContextMissingError();
+  }
 
   return {
-    set(ctx) {
-      current = ctx;
-    },
-    get() {
-      return current;
-    },
-    require() {
-      if (!current) throw new ToolContextMissingError();
-      return current;
-    },
+    accountId: ctx.accountId,
+    conversationId: ctx.conversationId,
+    targetConversationId: ctx.targetConversationId,
+    runKind: ctx.runKind,
   };
 }

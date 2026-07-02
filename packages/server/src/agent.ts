@@ -13,7 +13,6 @@ import {
   CommandRegistry,
   builtinCommands,
   scheduleCommand,
-  setSchedulerContext,
   clearConversation,
   evictConversation,
   withConversationLock,
@@ -21,7 +20,6 @@ import {
   checkWaitingGoalsAsync,
   currentSeq,
   generateConversationTitle,
-  setHeartbeatToolContext,
   isLLMProviderNotConfiguredError,
 } from "@clawbot/agent";
 import type { ChatMedia as AgentChatMedia } from "@clawbot/agent";
@@ -299,23 +297,21 @@ export function createAgent(accountId: string): Agent {
             );
           }
 
-          // Inject scheduler + heartbeat context so tools know the active account/conversation
-          setSchedulerContext({ accountId, conversationId: req.conversationId });
-          setHeartbeatToolContext({ accountId, conversationId: effectiveConvId });
-          let reply: ChatResponse;
-          try {
-            const media = await withSpan("asset.ingest", { hasMedia: Boolean(req.media) }, () =>
-              attachAssetIdToMedia(accountId, effectiveConvId, req.media),
-            );
-            reply = await withSpan("conversation.lock", {}, async () =>
-              withConversationLock(accountId, effectiveConvId, async () =>
-                chat(accountId, effectiveConvId, req.text, media, startedAt),
-              ),
-            );
-          } finally {
-            setSchedulerContext(null);
-            setHeartbeatToolContext(null);
-          }
+          const media = await withSpan("asset.ingest", { hasMedia: Boolean(req.media) }, () =>
+            attachAssetIdToMedia(accountId, effectiveConvId, req.media),
+          );
+          const reply = await withSpan("conversation.lock", {}, async () =>
+            withConversationLock(accountId, effectiveConvId, async () =>
+              chat(accountId, effectiveConvId, req.text, media, startedAt, {
+                toolContext: {
+                  accountId,
+                  conversationId: effectiveConvId,
+                  targetConversationId: req.conversationId,
+                  runKind: "chat",
+                },
+              }),
+            ),
+          );
 
           if (reply.text?.trim()) {
             void generateTitleIfNeeded(accountId, effectiveConvId, {

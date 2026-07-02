@@ -84,9 +84,6 @@ export function createApiApp(dependencies: ApiDependencies) {
     registerAuthRoutes(app, authConfig);
   }
 
-  // Register webhook routes (use their own Bearer token auth, not JWT)
-  registerWebhookRoutes(app);
-
   // Apply JWT middleware to all API routes except webhook delivery endpoint
   if (authConfig) {
     app.use("/api/*", async (c, next) => {
@@ -116,6 +113,9 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerModelProviderTemplateRoutes(app);
   registerModelConfigRoutes(app);
   registerSettingsRoutes(app);
+  // Webhook delivery uses its own Bearer token auth; token management routes
+  // are protected by the JWT middleware registered above.
+  registerWebhookRoutes(app);
   registerRssRoutes(app);
   registerWebSearchProviderRoutes(app);
   registerObservabilityRoutes(app, observability);

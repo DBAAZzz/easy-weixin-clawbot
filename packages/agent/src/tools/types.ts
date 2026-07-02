@@ -1,6 +1,8 @@
 import type { ZodTypeAny } from "zod";
 import type { TextContent, ImageContent } from "../llm/types.js";
 
+export type RunKind = "chat" | "scheduler" | "heartbeat";
+
 export interface NativeToolDefinition {
   name: string;
   handler: string;
@@ -12,6 +14,10 @@ export interface NativeToolDefinition {
 
 export interface ToolContext {
   signal: AbortSignal;
+  accountId?: string;
+  conversationId?: string;
+  targetConversationId?: string;
+  runKind?: RunKind;
 }
 
 export type ToolContent = TextContent | ImageContent;

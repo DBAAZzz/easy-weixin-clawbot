@@ -54,8 +54,8 @@
 
 ## 继续阅读
 
-- [docs/memory-system-architecture.md](../memory-system-architecture.md)
-- [docs/tape-memory-storage.md](../tape-memory-storage.md)
-- [docs/markdown-skill-system.md](../markdown-skill-system.md)
-- [docs/scheduler-design.md](../scheduler-design.md)
-- [docs/superpowers/specs/2026-04-22-rss-subscriptions-and-task-center-design.md](../superpowers/specs/2026-04-22-rss-subscriptions-and-task-center-design.md)
+- [docs/2026-04-07_16_37_memory-system-architecture.md](../2026-04-07_16_37_memory-system-architecture.md)
+- [docs/2026-04-04_20_03_tape-memory-storage.md](../2026-04-04_20_03_tape-memory-storage.md)
+- [docs/2026-04-17_18_52_markdown-skill-system.md](../2026-04-17_18_52_markdown-skill-system.md)
+- [docs/2026-04-23_19_23_scheduler-design.md](../2026-04-23_19_23_scheduler-design.md)
+- [docs/superpowers/specs/2026-04-23_19_23_2026-04-22-rss-subscriptions-and-task-center-design.md](../superpowers/specs/2026-04-23_19_23_2026-04-22-rss-subscriptions-and-task-center-design.md)

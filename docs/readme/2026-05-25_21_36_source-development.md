@@ -49,11 +49,11 @@ pnpm test:agent
 
 本地开发默认把长期资产写入 `data/assets`。如需改成本机其他目录或 S3-compatible 对象存储，启动后在后台 `设置 -> 资产存储` 中配置。
 
-本地迁移脚本会读取 `.env` 中的 `ASSET_S3_*` 配置，详见 [静态资源与资产存储](./asset-storage.md)。
+本地迁移脚本会读取 `.env` 中的 `ASSET_S3_*` 配置，详见 [静态资源与资产存储](./2026-05-25_21_36_asset-storage.md)。
 
 ## 继续阅读
 
-- [docs/agent-architecture.md](../agent-architecture.md)
-- [docs/web-architecture.md](../web-architecture.md)
-- [docs/jwt-authentication.md](../jwt-authentication.md)
-- [静态资源与资产存储](./asset-storage.md)
+- [docs/2026-04-01_17_39_agent-architecture.md](../2026-04-01_17_39_agent-architecture.md)
+- [docs/2026-04-23_19_23_web-architecture.md](../2026-04-23_19_23_web-architecture.md)
+- [docs/2026-04-21_00_11_jwt-authentication.md](../2026-04-21_00_11_jwt-authentication.md)
+- [静态资源与资产存储](./2026-05-25_21_36_asset-storage.md)

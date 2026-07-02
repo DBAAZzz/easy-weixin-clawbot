@@ -1,7 +1,7 @@
 # @clawbot/agent 技术架构交叉 CR
 
 > 评审对象：`packages/agent/`
-> 交叉验证对象：`docs/agent-package-architecture-review.md`
+> 交叉验证对象：`docs/2026-06-20_10_27_agent-package-architecture-review.md`
 > 评审日期：2026-06-20
 > 最后修订：2026-06-20（核实 server 调用方后翻案"会话锁"P1）
 
@@ -9,7 +9,7 @@
 
 `@clawbot/agent` 的架构方向是正确的：Port/Adapter 边界清晰，LLM 适配层基本收敛，Tape 记忆、context window 裁剪、MCP stdio client 等子系统有较好的工程完整度。
 
-**本次交叉 CR 最重要的修正**：第一份 `agent-package-architecture-review.md` 把"`chat()` 缺少会话锁、存在并发写历史竞态"列为头号 P1，本份初稿也沿用了这个判断。但在核实 server 侧调用方后，**该 P1 不成立**——会话锁在 server 适配层已被一致施加，且是 agent 包显式表达的 Port 契约（详见下文）。两份评审此前共享了同一个盲点：都只看了 agent 包内部，没读 caller。
+**本次交叉 CR 最重要的修正**：第一份 `2026-06-20_10_27_agent-package-architecture-review.md` 把"`chat()` 缺少会话锁、存在并发写历史竞态"列为头号 P1，本份初稿也沿用了这个判断。但在核实 server 侧调用方后，**该 P1 不成立**——会话锁在 server 适配层已被一致施加，且是 agent 包显式表达的 Port 契约（详见下文）。两份评审此前共享了同一个盲点：都只看了 agent 包内部，没读 caller。
 
 更正后，这个包没有**当前可触发的并发正确性缺陷**。真正的技术债集中在两点：**可测试性（进程级全局状态难以隔离）** 与 **`chat.ts` / `runner.ts` 两个核心编排文件职责过重**。
 
@@ -93,7 +93,7 @@
 
 ### 已验证成立
 
-现有 `agent-package-architecture-review.md` 的这些判断与源码一致：
+现有 `2026-06-20_10_27_agent-package-architecture-review.md` 的这些判断与源码一致：
 
 - Port/Adapter 边界总体严格，未发现 `agent` 导入 `server`、Prisma、Hono。
 - 模块级可变单例状态广泛存在。

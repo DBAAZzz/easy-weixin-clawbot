@@ -527,7 +527,7 @@ components/ui/
 
 在 `@import "tailwindcss"` 之后、`:root` 之前，添加 @theme 块。
 
-参考 docs/web-tailwind-theme-first-token-plan.md 中 5.1.1 节的完整 @theme 字典，
+参考 docs/2026-04-13_12_12_web-tailwind-theme-first-token-plan.md 中 5.1.1 节的完整 @theme 字典，
 包含：颜色 token（--color-ink, --color-accent 等）、圆角（--radius-*）、
 阴影（--shadow-*）、字体（--font-*）、字号（--text-*）、缓动（--ease-expo）、
 时长（--duration-*）、动画（--animate-*）。

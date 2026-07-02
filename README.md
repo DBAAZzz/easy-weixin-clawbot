@@ -93,7 +93,7 @@ docker compose ps
 docker compose down
 ```
 
-更完整的部署说明见 [docs/readme/docker-deployment.md](./docs/readme/docker-deployment.md)。
+更完整的部署说明见 [docs/readme/2026-05-25_21_36_docker-deployment.md](./docs/readme/2026-05-25_21_36_docker-deployment.md)。
 
 ## 配置约定
 
@@ -140,17 +140,17 @@ pnpm dev
 
 默认存储位置是 `data/assets`。如果需要对象存储，可以在后台 `设置 -> 资产存储` 中切换到 Cloudflare R2、MinIO 或其他 S3-compatible 服务，并配置 Endpoint、Bucket、Access Key 和可选 Public Base URL。
 
-更完整的说明见 [docs/readme/asset-storage.md](./docs/readme/asset-storage.md)。
+更完整的说明见 [docs/readme/2026-05-25_21_36_asset-storage.md](./docs/readme/2026-05-25_21_36_asset-storage.md)。
 
 ## 文档
 
-- [Docker 部署](./docs/readme/docker-deployment.md)
-- [多账号与微信登录](./docs/readme/multi-account-and-login.md)
-- [静态资源与资产存储](./docs/readme/asset-storage.md)
-- [记忆、工具、技能、RSS 与任务](./docs/readme/memory-tools-and-automation.md)
-- [Webhook、MCP、可观测性](./docs/readme/integrations-and-observability.md)
-- [本地源码开发](./docs/readme/source-development.md)
-- [RSS 订阅与任务中心设计](./docs/superpowers/specs/2026-04-22-rss-subscriptions-and-task-center-design.md)
+- [Docker 部署](./docs/readme/2026-05-25_21_36_docker-deployment.md)
+- [多账号与微信登录](./docs/readme/2026-04-20_00_09_multi-account-and-login.md)
+- [静态资源与资产存储](./docs/readme/2026-05-25_21_36_asset-storage.md)
+- [记忆、工具、技能、RSS 与任务](./docs/readme/2026-04-23_19_23_memory-tools-and-automation.md)
+- [Webhook、MCP、可观测性](./docs/readme/2026-04-20_00_09_integrations-and-observability.md)
+- [本地源码开发](./docs/readme/2026-05-25_21_36_source-development.md)
+- [RSS 订阅与任务中心设计](./docs/superpowers/specs/2026-04-23_19_23_2026-04-22-rss-subscriptions-and-task-center-design.md)
 - [更多架构文档](./docs/)
 
 ## License

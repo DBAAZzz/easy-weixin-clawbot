@@ -253,7 +253,7 @@ api/
 
 ```txt
 请在 packages/web 执行 API 拆分重构：
-1) 将 src/lib/api.ts 拆分到 src/lib/api/ 目录，按路由域分文件（见文档 docs/web-api-migration-by-page.md）。
+1) 将 src/lib/api.ts 拆分到 src/lib/api/ 目录，按路由域分文件（见文档 docs/2026-04-12_21_17_web-api-migration-by-page.md）。
 2) 提取请求底座到 src/lib/api/core/client.ts 与 core/query.ts。
 3) 保持行为不变，不改接口签名，不改 query key，不改页面逻辑。
 4) 分阶段迁移 imports，确保每阶段都能通过 npm run build 和 npm run fmt:check。

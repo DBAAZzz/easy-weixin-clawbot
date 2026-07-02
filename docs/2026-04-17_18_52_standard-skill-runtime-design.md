@@ -4,7 +4,7 @@
 >  
 > 本文档用于替代“把外部 Skill 强行改写成内部 companion tool 配置”的方向，并收敛出一套面向标准 Skill 包的正确实现。  
 >  
-> 本设计在“可执行 Skill”方向上，**覆盖并取代** [docs/skill-heuristic-adaptation-runtime-design.md](/Users/mac/Documents/DBAA/easy-weixin-clawbot/docs/skill-heuristic-adaptation-runtime-design.md) 中过宽的运行时探测方案，以及 [docs/markdown-skill-system.md](/Users/mac/Documents/DBAA/easy-weixin-clawbot/docs/markdown-skill-system.md) 中“外部 Skill 需要声明 `handler/inputSchema/runtime` 才能运行”的隐含方向。
+> 本设计在“可执行 Skill”方向上，**覆盖并取代** [docs/2026-04-17_18_52_skill-heuristic-adaptation-runtime-design.md](/Users/mac/Documents/DBAA/easy-weixin-clawbot/docs/2026-04-17_18_52_skill-heuristic-adaptation-runtime-design.md) 中过宽的运行时探测方案，以及 [docs/2026-04-17_18_52_markdown-skill-system.md](/Users/mac/Documents/DBAA/easy-weixin-clawbot/docs/2026-04-17_18_52_markdown-skill-system.md) 中“外部 Skill 需要声明 `handler/inputSchema/runtime` 才能运行”的隐含方向。
 
 ## 1. 背景
 

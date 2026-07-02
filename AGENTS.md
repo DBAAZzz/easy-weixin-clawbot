@@ -228,15 +228,15 @@ activation: on-demand    # always-on | on-demand
 
 | 主题 | 路径 |
 |------|------|
-| 架构总览 | [docs/agent-architecture.md](docs/agent-architecture.md) |
-| MCP 架构 | [docs/mcp-architecture.md](docs/mcp-architecture.md) |
-| Web 架构 | [docs/web-architecture.md](docs/web-architecture.md) |
-| 记忆系统 | [docs/memory-system-architecture.md](docs/memory-system-architecture.md) |
-| Tape 存储 | [docs/tape-memory-storage.md](docs/tape-memory-storage.md) |
-| 工具/技能系统 | [docs/markdown-skill-system.md](docs/markdown-skill-system.md) |
-| 内置命令 | [docs/builtin-commands.md](docs/builtin-commands.md) |
-| 页面设计规范 | [docs/页面设计规范_v2.md](docs/页面设计规范_v2.md) |
-| 上下文窗口管理 | [docs/context-window-management.md](docs/context-window-management.md) |
-| 定时任务 | [docs/scheduler-design.md](docs/scheduler-design.md) |
-| Webhook | [docs/webhook-integration.md](docs/webhook-integration.md) |
-| JWT 认证 | [docs/jwt-authentication.md](docs/jwt-authentication.md) |
+| 架构总览 | [docs/2026-04-01_17_39_agent-architecture.md](docs/2026-04-01_17_39_agent-architecture.md) |
+| MCP 架构 | [docs/2026-04-01_17_39_mcp-architecture.md](docs/2026-04-01_17_39_mcp-architecture.md) |
+| Web 架构 | [docs/2026-04-23_19_23_web-architecture.md](docs/2026-04-23_19_23_web-architecture.md) |
+| 记忆系统 | [docs/2026-04-07_16_37_memory-system-architecture.md](docs/2026-04-07_16_37_memory-system-architecture.md) |
+| Tape 存储 | [docs/2026-04-04_20_03_tape-memory-storage.md](docs/2026-04-04_20_03_tape-memory-storage.md) |
+| 工具/技能系统 | [docs/2026-04-17_18_52_markdown-skill-system.md](docs/2026-04-17_18_52_markdown-skill-system.md) |
+| 内置命令 | [docs/2026-04-02_20_58_builtin-commands.md](docs/2026-04-02_20_58_builtin-commands.md) |
+| 页面设计规范 | [docs/2026-04-11_16_39_页面设计规范_v2.md](docs/2026-04-11_16_39_页面设计规范_v2.md) |
+| 上下文窗口管理 | [docs/2026-04-08_15_29_context-window-management.md](docs/2026-04-08_15_29_context-window-management.md) |
+| 定时任务 | [docs/2026-04-23_19_23_scheduler-design.md](docs/2026-04-23_19_23_scheduler-design.md) |
+| Webhook | [docs/2026-04-21_00_11_webhook-integration.md](docs/2026-04-21_00_11_webhook-integration.md) |
+| JWT 认证 | [docs/2026-04-21_00_11_jwt-authentication.md](docs/2026-04-21_00_11_jwt-authentication.md) |

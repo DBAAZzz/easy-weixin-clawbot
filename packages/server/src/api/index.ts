@@ -28,6 +28,7 @@ import { registerSettingsRoutes } from "./routes/settings.js";
 import { registerSkillRoutes } from "./routes/skills.js";
 import { registerTapeRoutes } from "./routes/tape.js";
 import { registerToolRoutes } from "./routes/tools.js";
+import { registerUsageRoutes } from "./routes/usage.js";
 import { registerWebSearchProviderRoutes } from "./routes/web-search-providers.js";
 import { registerWebhookRoutes } from "./routes/webhooks.js";
 
@@ -120,6 +121,7 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerObservabilityRoutes(app, observability);
   registerScheduledTaskRoutes(app);
   registerTapeRoutes(app);
+  registerUsageRoutes(app);
 
   app.onError((error, c) => {
     apiLogger.error(

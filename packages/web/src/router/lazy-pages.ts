@@ -37,6 +37,7 @@ export const ObservabilityPage = lazyNamedPage(
   () => import("../features/Observability/index.js"),
   "ObservabilityPage",
 );
+export const UsagePage = lazyNamedPage(() => import("../features/Usage/index.js"), "UsagePage");
 export const ObservabilityTracePage = lazyNamedPage(
   () => import("../features/ObservabilityTrace/index.js"),
   "ObservabilityTracePage",

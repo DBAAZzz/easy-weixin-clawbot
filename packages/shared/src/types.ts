@@ -200,6 +200,37 @@ export interface HealthStatus {
   running_accounts: string[];
   pending_message_writes: number;
   pending_trace_writes: number;
+  pending_usage_writes: number;
+}
+
+export interface UsageOverview {
+  window: "30d";
+  totals: {
+    requests: number;
+    token_total: number;
+    avg_daily_requests: number;
+    avg_daily_tokens: number;
+  };
+  activity_days: Array<{
+    date: string;
+    request_count: number;
+    token_total: number;
+    level: 0 | 1 | 2 | 3 | 4;
+  }>;
+  token_series: Array<{
+    date: string;
+    model: string;
+    input_tokens: number;
+    output_tokens: number;
+    total_tokens: number;
+  }>;
+  model_totals: Array<{
+    model: string;
+    input_tokens: number;
+    output_tokens: number;
+    total_tokens: number;
+    ratio: number;
+  }>;
 }
 
 export type ObservabilityWindow = "24h" | "7d" | "30d";

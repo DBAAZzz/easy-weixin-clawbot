@@ -98,6 +98,7 @@
   --color-icon-muted: var(--color-claw-500);
   --color-modal-border: rgba(26, 33, 40, 0.1);
 
+  --radius-xs: 3px;
   --radius-card: 10px;
   --radius-panel: 12px;
   --radius-dialog: 24px;

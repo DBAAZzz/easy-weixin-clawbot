@@ -47,6 +47,14 @@ import { assembleSystemPrompt } from "./prompts/assembler.js";
 import { getPromptAssets } from "./prompts/port.js";
 import { PROMPT_PROFILES } from "./prompts/profiles.js";
 
+/**
+ * Per-LLM-call 重试次数（不含首次）。AI SDK 在此基础上做指数退避
+ * （初始 2s → 4s …），且只对可重试错误（429/408/5xx/网络）重试，并尊重
+ * 响应头里的 `Retry-After`。聊天场景下用户在线等待，调大会显著拉长尾延迟，
+ * 故默认与 SDK 一致取 2；批处理/后台任务可按需调高。
+ */
+const DEFAULT_LLM_MAX_RETRIES = 2;
+
 export interface AgentConfig {
   model?: LanguageModel;
   meta?: ModelMeta;
@@ -55,6 +63,8 @@ export interface AgentConfig {
   maxRounds?: number;
   toolTimeoutMs?: number;
   maxOnDemandSkills?: number;
+  /** 单次模型调用的重试次数（不含首次）。默认 {@link DEFAULT_LLM_MAX_RETRIES}。 */
+  maxRetries?: number;
 }
 
 export interface ModelOverride {
@@ -276,8 +286,9 @@ async function callModel(params: {
   signal: AbortSignal | undefined;
   round: number;
   trimResult: TrimResult;
+  maxRetries: number;
 }): Promise<AssistantMessage> {
-  const { model, modelId, system, messages, tools, signal, round, trimResult } = params;
+  const { model, modelId, system, messages, tools, signal, round, trimResult, maxRetries } = params;
 
   return withSpan("llm.call", { model: modelId, round }, async (span) => {
     const result = await generateText({
@@ -286,6 +297,7 @@ async function callModel(params: {
       messages,
       tools,
       abortSignal: signal,
+      maxRetries,
     });
 
     const assistantMsg = mapModelResultToAssistantMessage(result, modelId);
@@ -397,6 +409,7 @@ export function createAgentRunner(
       resolveEffectiveModel(config, modelOverride);
     const maxRounds = config.maxRounds ?? 10;
     const timeoutMs = config.toolTimeoutMs ?? 30_000;
+    const maxRetries = config.maxRetries ?? DEFAULT_LLM_MAX_RETRIES;
     const workingHistory = [...messages];
     // 每次 run 都创建一个"本次对话作用域"的 skill runtime。
     // 它会从历史里恢复已经 use_skill 加载过的技能，避免多轮工具调用后丢失已加载技能上下文。
@@ -445,6 +458,7 @@ export function createAgentRunner(
           signal,
           round,
           trimResult,
+          maxRetries,
         });
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {

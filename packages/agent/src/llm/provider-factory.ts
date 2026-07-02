@@ -4,7 +4,13 @@
  * Replaces pi-ai's `getModel()` global registry.
  */
 
-import type { LanguageModel } from "ai";
+import {
+  APICallError,
+  wrapLanguageModel,
+  type LanguageModel,
+  type LanguageModelMiddleware,
+} from "ai";
+import { llmRetriesTotal } from "@clawbot/observability";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createAnthropic } from "@ai-sdk/anthropic";
@@ -118,6 +124,48 @@ function normalizeGoogleBaseURL(baseURL: string | undefined): string | undefined
   return `${trimmed}/v1beta`;
 }
 
+// ── Retry observability ────────────────────────────────────────────
+
+/**
+ * AI SDK 在 `generateText`/`generateObject` 里对每次模型调用做重试（指数退避，
+ * 仅限 429/408/5xx/网络等可重试错误）。重试发生在 `doGenerate` 之外，因此每次
+ * 重试都会重新调用被包裹模型的 `doGenerate` —— 中间件的 `wrapGenerate` 也就会
+ * 被逐次调用。我们在这里捕获可重试错误、记一次 `llmRetriesTotal` 后原样抛回，
+ * 让 SDK 继续它的退避逻辑。这样原本静默的重试在指标里就可见了。
+ *
+ * 注意：计数的是「可重试失败」，包含重试预算耗尽时的最后一次失败 —— 即
+ * 「命中可重试错误的次数」，而非「成功挽回的次数」。
+ */
+function recordRetryableFailure(provider: string, error: unknown): void {
+  if (APICallError.isInstance(error) && error.isRetryable) {
+    const status = String(error.statusCode ?? 0);
+    llmRetriesTotal.inc({ provider, status });
+    console.warn(`[llm-retry] provider=${provider} status=${status} ${error.message}`);
+  }
+}
+
+function createRetryObservabilityMiddleware(provider: string): LanguageModelMiddleware {
+  return {
+    specificationVersion: "v3",
+    wrapGenerate: async ({ doGenerate }) => {
+      try {
+        return await doGenerate();
+      } catch (error) {
+        recordRetryableFailure(provider, error);
+        throw error;
+      }
+    },
+    wrapStream: async ({ doStream }) => {
+      try {
+        return await doStream();
+      } catch (error) {
+        recordRetryableFailure(provider, error);
+        throw error;
+      }
+    },
+  };
+}
+
 // ── Public API ─────────────────────────────────────────────────────
 
 export interface CreateModelResult {
@@ -128,6 +176,10 @@ export interface CreateModelResult {
 /**
  * Create a LanguageModel + metadata from provider name and modelId.
  * API key is baked into the model via the provider factory.
+ *
+ * The returned model is wrapped with retry-observability middleware, so every
+ * `generateText`/`generateObject` call site (runner, vision, title, tape,
+ * heartbeat) emits `llmRetriesTotal` on retryable failures for free.
  */
 export function createLanguageModel(
   provider: string,
@@ -137,7 +189,11 @@ export function createLanguageModel(
     baseUrl?: string | null;
   },
 ): CreateModelResult {
-  const model = buildProviderModel(provider, modelId, options);
+  const rawModel = buildProviderModel(provider, modelId, options);
+  const model = wrapLanguageModel({
+    model: rawModel as Parameters<typeof wrapLanguageModel>[0]["model"],
+    middleware: createRetryObservabilityMiddleware(provider),
+  });
   const providerMeta = PROVIDER_DEFAULTS[provider] ?? FALLBACK_META;
   const modelMeta = MODEL_CAPABILITIES[`${provider}:${modelId}`] ?? {};
   const meta: ModelMeta = { ...providerMeta, ...modelMeta };

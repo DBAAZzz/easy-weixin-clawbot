@@ -1,0 +1,70 @@
+@layer clawbot {
+  .cb-line-chart {
+    position: relative;
+    width: 100%;
+    /* 图表高度脱离 spacing 刻度，按可读性取整；调用方可用 className 覆盖。 */
+    height: 220px;
+  }
+
+  .cb-line-chart-grid line {
+    stroke: var(--color-line);
+  }
+
+  .cb-line-chart-axis line,
+  .cb-line-chart-axis path {
+    stroke: var(--color-line);
+  }
+
+  .cb-line-chart-axis text {
+    fill: var(--color-muted);
+    font-size: var(--text-xs);
+  }
+
+  .cb-line-chart-guide {
+    stroke: var(--color-line-strong);
+  }
+
+  .cb-line-chart-tooltip {
+    position: absolute;
+    pointer-events: none;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-panel-strong);
+    box-shadow: var(--shadow-card);
+    padding: var(--spacing-4) var(--spacing-5);
+    font-size: var(--text-sm);
+    color: var(--color-ink);
+  }
+
+  .cb-line-chart-tooltip-date {
+    margin-bottom: var(--spacing-3);
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+  }
+
+  .cb-line-chart-tooltip-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+  }
+
+  .cb-line-chart-tooltip-row + .cb-line-chart-tooltip-row {
+    margin-top: var(--spacing-2);
+  }
+
+  .cb-line-chart-tooltip-dot {
+    width: var(--spacing-3);
+    height: var(--spacing-3);
+    border-radius: 999px;
+  }
+
+  .cb-line-chart-tooltip-name {
+    color: var(--color-muted-strong);
+  }
+
+  .cb-line-chart-tooltip-value {
+    margin-left: var(--spacing-7);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}

@@ -101,6 +101,8 @@ export { createMcpToolSnapshotItem } from "./mcp/tool-adapter.js";
 export {
   setMessageStore,
   getMessageStore,
+  setUsageStore,
+  getUsageStore,
   setTapeStore,
   getTapeStore,
   setSchedulerStore,

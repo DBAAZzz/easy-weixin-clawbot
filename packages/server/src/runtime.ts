@@ -3,6 +3,7 @@ import { createAgent } from "./agent.js";
 import { credentialStore, syncStateStore } from "./credentials/index.js";
 import { getActiveAccountIds as getNonDeprecatedAccountIds, upsertAccount } from "./db/accounts.js";
 import { drainMessageQueue } from "./db/messages.js";
+import { drainUsageQueue } from "./db/usage.js";
 import { createModuleLogger, log } from "./logger.js";
 
 type RunningAccount = {
@@ -114,6 +115,7 @@ export function createBotRuntime(): BotRuntime {
     await Promise.allSettled(startPromises);
 
     await drainMessageQueue();
+    await drainUsageQueue();
   }
 
   return {

@@ -15,6 +15,7 @@ import {
   createToolRegistry,
   createRuntimeProvisioner,
   setMessageStore,
+  setUsageStore,
   setTapeStore,
   setSchedulerStore,
   setScheduledTaskHandler,
@@ -35,6 +36,7 @@ import { setChatDeps } from "@clawbot/agent/chat";
 import { mkdirSync } from "node:fs";
 import { ensurePrismaUrls } from "./db/prisma-env.js";
 import { PrismaMessageStore } from "./db/message-store.impl.js";
+import { queueRecordUsage } from "./db/usage.js";
 import { PrismaTapeStore } from "./db/tape-store.impl.js";
 import { PrismaSchedulerStore } from "./db/scheduler-store.impl.js";
 import { PrismaModelConfigStore } from "./db/model-config-store.impl.js";
@@ -146,6 +148,7 @@ const runner = createAgentRunner(
 // ── Port injection ─────────────────────────────────────────────────
 
 setMessageStore(new PrismaMessageStore());
+setUsageStore({ queueRecord: queueRecordUsage });
 setTapeStore(new PrismaTapeStore());
 setSchedulerStore(new PrismaSchedulerStore());
 setScheduledTaskHandler(rssTaskHandler);

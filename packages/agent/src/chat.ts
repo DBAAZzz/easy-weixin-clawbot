@@ -11,12 +11,13 @@ import type {
   TextContent,
   VisualContext,
 } from "./llm/types.js";
+import { randomUUID } from "node:crypto";
 import {
   MESSAGE_CONTENT_TYPE,
   MESSAGE_ROLE,
   MESSAGE_STOP_REASON,
 } from "@clawbot/shared";
-import { withSpan } from "@clawbot/observability";
+import { withSpan, getTraceId } from "@clawbot/observability";
 import type { AgentRunner, RunCallbacks, RunResult } from "./runner.js";
 import {
   resolveConfiguredModel,
@@ -27,6 +28,7 @@ import type { ChatResponse, ChatMedia } from "./types.js";
 import { isDebugEnabled } from "./commands/debug.js";
 import { ensureHistoryLoaded, getHistory, nextSeq, rollbackMessages } from "./conversation/index.js";
 import { getMessageStore } from "./ports/message-store.js";
+import { getUsageStore } from "./ports/usage-store.js";
 import {
   emptyState,
   recall,
@@ -82,6 +84,11 @@ export function setChatDeps(deps: ChatDeps): void {
 function getDeps(): ChatDeps {
   if (!_deps) throw new Error("ChatDeps not initialized — call setChatDeps() at startup");
   return _deps;
+}
+
+function createUsageRequestId(): string {
+  const traceId = getTraceId();
+  return traceId === "no-trace" ? `chat:${randomUUID()}` : traceId;
 }
 
 /**
@@ -182,6 +189,7 @@ function createMessageTracker(
   conversationId: string,
   history: AgentMessage[],
   log: ChatDeps["log"],
+  usageRequestId: string,
 ): RunTracker {
   const messageStore = getMessageStore();
   const pendingToolArgs = new Map<string, Record<string, unknown>>();
@@ -210,6 +218,17 @@ function createMessageTracker(
       }
 
       if (message.role === MESSAGE_ROLE.ASSISTANT) {
+        if (!isEmptyAssistant && message.usage) {
+          getUsageStore().queueRecord({
+            accountId,
+            conversationId,
+            requestId: usageRequestId,
+            model: message.model ?? "unknown",
+            provider: message.provider,
+            inputTokens: message.usage.input,
+            outputTokens: message.usage.output,
+          });
+        }
         for (const block of message.content) {
           if (block.type === MESSAGE_CONTENT_TYPE.TOOL_CALL) {
             pendingToolArgs.set(block.id, block.arguments);
@@ -344,7 +363,13 @@ export async function chat(
       });
       appendMessage(accountId, conversationId, history, userMessage);
 
-      const tracker = createMessageTracker(accountId, conversationId, history, log);
+      const tracker = createMessageTracker(
+        accountId,
+        conversationId,
+        history,
+        log,
+        createUsageRequestId(),
+      );
 
       const result = await runner.run(history, tracker.callbacks, undefined, {
         model: chatModel.model,

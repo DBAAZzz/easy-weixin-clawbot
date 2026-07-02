@@ -19,6 +19,11 @@ export class CommandRegistry {
     }));
   }
 
+  /**
+   * 尝试把文本解析为已注册命令。非 `/` 开头、或命令名未注册时返回 `null`
+   * （不抛错）——调用方据此决定放行给 LLM。返回的 `args` 为命令名之后的
+   * 原文（仅首尾 trim，内部空白保留）。
+   */
   tryDispatch(text: string): { command: Command; args: string } | null {
     const trimmed = text.trim();
     if (!trimmed.startsWith("/")) return null;

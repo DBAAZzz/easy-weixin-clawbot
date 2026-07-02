@@ -21,6 +21,7 @@ export type {
   ObservabilityTraceSpan,
   ObservabilityTraceSummary,
   ObservabilityWindow,
+  UsageOverview,
   TapeGraphEdge,
   TapeGraphGroup,
   TapeGraphNode,

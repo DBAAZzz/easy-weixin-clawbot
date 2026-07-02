@@ -220,7 +220,7 @@ export function createPortSlot<T>(name: string): {
 
 ## 不在本清单（与 skills 无关或已决策）
 
-- runner/chat 编排：上一轮 `agent-pragmatic-refactor-tasks.md` 已处理。
+- runner/chat 编排：上一轮 `2026-06-20_10_27_agent-pragmatic-refactor-tasks.md` 已处理。
 - 模块级单例 / AgentContext / reset 基建：已否决（见 `agent-module-state-refactor-plan.md`）。
 - scheduler/heartbeat 裸 `console` → logger：真实但属另一个子系统，单独立项，别夹带进 skills 重构。
 

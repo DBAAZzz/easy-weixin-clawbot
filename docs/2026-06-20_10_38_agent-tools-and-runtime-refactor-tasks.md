@@ -2,7 +2,7 @@
 
 > 日期：2026-06-20
 > 范围：代码层 CR 的**第二批**——`scheduler/` 与 `heartbeat/` 两个 agent-tool 子系统的整套复制、`heartbeat/evaluator` 的 god function、以及若干横切债。
-> 配套：`skills/` 子系统见 `docs/agent-skills-refactor-tasks.md`（第一批，结构债最重）；本清单是它的补全。
+> 配套：`skills/` 子系统见 `docs/2026-06-20_10_38_agent-skills-refactor-tasks.md`（第一批，结构债最重）；本清单是它的补全。
 > 每个任务独立成 PR、可单独发布。
 
 ## 背景：为什么不只是 skills
@@ -171,7 +171,7 @@ function pendingWithBackoff(
 
 ## 复用第一批已定义的横切项（不要重复造）
 
-以下在 `agent-skills-refactor-tasks.md` 已给方案，本清单**直接复用**，不重复列任务：
+以下在 `2026-06-20_10_38_agent-skills-refactor-tasks.md` 已给方案，本清单**直接复用**，不重复列任务：
 
 - `ports/` 9× set/get 样板 → `createPortSlot<T>(name)`（skills 文档任务 5）。任务 1 的 `createToolContextSlot` 与它同源，落地时可考虑共用一个底层 slot 实现。
 - `fileExists` / `execFile` 收敛（skills 文档任务 3）。

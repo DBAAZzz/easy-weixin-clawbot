@@ -28,7 +28,7 @@ clawbot 的对话存储是 **会话级别的线性日志**：
 
 1. **无跨会话记忆** — `/reset` 后旧会话的知识完全丢失，Agent 无法回忆"上次聊过什么"
 2. **无结构化状态** — 所有历史都是扁平的 `Message[]` 数组，没有摘要、没有关键事实提取
-3. **无上下文压缩** — `agent-architecture.md` 明确标注 "Context 管理 / overflow 处理" 和 "Checkpoint / epoch 存储" 留待后续
+3. **无上下文压缩** — `2026-04-01_17_39_agent-architecture.md` 明确标注 "Context 管理 / overflow 处理" 和 "Checkpoint / epoch 存储" 留待后续
 4. **单向追加** — 虽然有 `rollbackMessages()` 做错误回滚，但没有正向的 compact / fold 能力
 
 ### 2.2 Tape 架构要解决什么

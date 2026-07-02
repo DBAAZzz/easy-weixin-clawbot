@@ -4,7 +4,7 @@
 >
 > 本文档描述的是已经废弃的方向：把 Skill 的可执行能力建立在 `handler/inputSchema/runtime`、启发式 AI 适配和 `companionTool` 上。
 > 当前实现已经改为“标准 Skill 包 + 精简确定性运行时检测 + 通用运行工具”模型。
-> 请以 [docs/standard-skill-runtime-design.md](/Users/mac/Documents/DBAA/easy-weixin-clawbot/docs/standard-skill-runtime-design.md) 为准。
+> 请以 [docs/2026-04-17_18_52_standard-skill-runtime-design.md](/Users/mac/Documents/DBAA/easy-weixin-clawbot/docs/2026-04-17_18_52_standard-skill-runtime-design.md) 为准。
 
 ## 1. 背景与问题
 

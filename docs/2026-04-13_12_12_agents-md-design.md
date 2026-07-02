@@ -129,11 +129,11 @@ AI 阅读规范时遵循**就近原则 + 向上追溯**：
 ```
 AGENTS.md（快速参考，≤300 行）
     │
-    ├── 引用 → docs/agent-architecture.md        （深度架构）
-    ├── 引用 → docs/mcp-architecture.md           （MCP 详细设计）
-    ├── 引用 → docs/memory-system-architecture.md （记忆系统）
-    ├── 引用 → docs/页面设计规范_v2.md             （完整设计规范）
-    ├── 引用 → docs/markdown-skill-system.md      （工具/技能详细设计）
+    ├── 引用 → docs/2026-04-01_17_39_agent-architecture.md        （深度架构）
+    ├── 引用 → docs/2026-04-01_17_39_mcp-architecture.md           （MCP 详细设计）
+    ├── 引用 → docs/2026-04-07_16_37_memory-system-architecture.md （记忆系统）
+    ├── 引用 → docs/2026-04-11_16_39_页面设计规范_v2.md             （完整设计规范）
+    ├── 引用 → docs/2026-04-17_18_52_markdown-skill-system.md      （工具/技能详细设计）
     └── ...12 篇文档
 
 README.md（人类入口）

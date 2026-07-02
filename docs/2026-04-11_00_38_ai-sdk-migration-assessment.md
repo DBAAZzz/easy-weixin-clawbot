@@ -173,7 +173,7 @@ conversation config → account config → global config → env-var default
 
 ### 3.2 消息持久化格式
 
-当前 `MessageStore.queuePersistMessage()` 将 pi-ai `Message` 对象序列化为 JSON 存入 Supabase `payload` 字段（见 `docs/web-architecture.md` L97-105）。
+当前 `MessageStore.queuePersistMessage()` 将 pi-ai `Message` 对象序列化为 JSON 存入 Supabase `payload` 字段（见 `docs/2026-04-23_19_23_web-architecture.md` L97-105）。
 
 **要求**：
 - 迁移后新消息的 `payload` 格式独立于 SDK 类型，或提供 backwards-compatible 序列化

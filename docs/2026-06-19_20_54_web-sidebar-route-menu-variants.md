@@ -21,7 +21,7 @@
 
 若菜单内容依赖**运行时数据**，按数据来源再分两种：
 
-- **能从 URL 重建**（path/search 参数 + 共享 React Query hook 取数）：仍走本方案的注册表——变体组件内部 `useParams` + hook 自取数据即可，无需新机制。见 [web-sidebar-conversation-variant.md](./web-sidebar-conversation-variant.md)（账号会话列表）。
+- **能从 URL 重建**（path/search 参数 + 共享 React Query hook 取数）：仍走本方案的注册表——变体组件内部 `useParams` + hook 自取数据即可，无需新机制。见 [2026-06-19_20_54_web-sidebar-conversation-variant.md](./2026-06-19_20_54_web-sidebar-conversation-variant.md)（账号会话列表）。
 - **依赖 URL 之外的页面本地状态**（未保存编辑、向导步骤、非 URL 参数的请求结果）：才需要在注册表之上叠一个轻量 context slot，让页面把菜单节点推给侧边栏——当前未实现，按需扩展。
 
 ## 整体结构

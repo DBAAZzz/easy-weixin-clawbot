@@ -463,7 +463,7 @@ postgres healthy -> server healthy -> nginx
 
 ## 相关文档
 
-- [微信登录态与账号凭据存储改造方案](./weixin-login-state-storage-design.md)
-- [Web 架构](./web-architecture.md)
-- [JWT 认证](./jwt-authentication.md)
-- [Agent 架构](./agent-architecture.md)
+- [微信登录态与账号凭据存储改造方案](./2026-06-14_12_39_weixin-login-state-storage-design.md)
+- [Web 架构](./2026-04-23_19_23_web-architecture.md)
+- [JWT 认证](./2026-04-21_00_11_jwt-authentication.md)
+- [Agent 架构](./2026-04-01_17_39_agent-architecture.md)

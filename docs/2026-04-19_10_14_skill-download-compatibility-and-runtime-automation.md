@@ -23,7 +23,7 @@
 
 ## 2. 讨论上下文
 
-当前仓库已经实现了一套“标准 Skill 包 + 精简运行时检测”的机制，核心假设见 [standard-skill-runtime-design.md](./standard-skill-runtime-design.md)。
+当前仓库已经实现了一套“标准 Skill 包 + 精简运行时检测”的机制，核心假设见 [2026-04-17_18_52_standard-skill-runtime-design.md](./2026-04-17_18_52_standard-skill-runtime-design.md)。
 
 现有方案的主假设是：
 
@@ -497,7 +497,7 @@
 
 ## 10. 对现有设计文档的修正关系
 
-当前 [standard-skill-runtime-design.md](./standard-skill-runtime-design.md) 的价值仍然成立：
+当前 [2026-04-17_18_52_standard-skill-runtime-design.md](./2026-04-17_18_52_standard-skill-runtime-design.md) 的价值仍然成立：
 
 - 标准 Skill 包是正确主路径
 - 不能要求外部生态迁就私有 DSL

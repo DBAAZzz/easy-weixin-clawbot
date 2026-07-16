@@ -7,13 +7,14 @@ import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import type { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
+import { ValidationError } from "../errors.js";
 
 const execFileAsync = promisify(execFile);
 
 async function readMarkdownPayload(request: Request): Promise<string> {
   const body = (await request.json().catch(() => null)) as { markdown?: unknown } | null;
   if (!body || typeof body.markdown !== "string" || body.markdown.trim() === "") {
-    throw new Error("markdown is required");
+    throw new ValidationError("markdown is required");
   }
   return body.markdown;
 }
@@ -132,7 +133,7 @@ async function extractZipToTemp(zipBuffer: ArrayBuffer): Promise<{ extractDir: s
 
   // Clean up on failure
   await rm(tempRoot, { recursive: true }).catch(() => {});
-  throw new Error("SKILL.md not found in ZIP archive — expected at root or inside a single directory");
+  throw new ValidationError("SKILL.md not found in ZIP archive — expected at root or inside a single directory");
 }
 
 export function registerSkillRoutes(

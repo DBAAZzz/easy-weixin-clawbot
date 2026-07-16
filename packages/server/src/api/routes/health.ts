@@ -11,7 +11,7 @@ export function registerHealthRoutes(app: Hono, dependencies: ApiDependencies) {
       status: "ok",
       uptime_ms: dependencies.runtime.getUptimeMs(),
       started_at: dependencies.startedAt.toISOString(),
-      running_accounts: dependencies.runtime.getRunningAccountIds(),
+      running_account_count: dependencies.runtime.getRunningAccountIds().length,
       pending_message_writes: getPendingMessageWriteCount(),
       pending_trace_writes: observabilityService.getPendingWriteCount(),
       pending_usage_writes: getPendingUsageWriteCount(),

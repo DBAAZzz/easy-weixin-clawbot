@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import type { MessageRow } from "@clawbot/shared";
 import { buildMessageTimeline } from "../lib/message-timeline.js";
 import { MessageBubble } from "./MessageBubble.js";
@@ -21,7 +21,7 @@ export function MessageList(props: {
   const conversationRef = useRef<string | undefined>(conversationId);
   const stickToBottomRef = useRef(true);
   const items = Array.isArray(messages) ? messages : [];
-  const messageItems = buildMessageTimeline(items);
+  const messageItems = useMemo(() => buildMessageTimeline(items), [items]);
 
   const loadMoreFromTop = useCallback(() => {
     if (loading || loadingMore || !hasMore) return;

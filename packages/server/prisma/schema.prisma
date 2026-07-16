@@ -451,7 +451,13 @@ model ModelProviderTemplate {
   name      String        @db.Text
   provider  String        @db.Text
   modelIds  String[]      @default([]) @map("model_ids")
+  /// Legacy plaintext column. Read-only fallback; emptied by the startup
+  /// migration in src/db/model-config-key-migration.ts. Drop once every
+  /// deployment has booted at least once on >= the release that added
+  /// api_key_ciphertext.
   apiKey    String?       @map("api_key") @db.Text
+  /// Sealed with the per-template derived key — see credentials/secret-box.ts.
+  apiKeyCiphertext String? @map("api_key_ciphertext") @db.Text
   baseUrl   String?       @map("base_url") @db.Text
   enabled   Boolean       @default(true)
   createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)

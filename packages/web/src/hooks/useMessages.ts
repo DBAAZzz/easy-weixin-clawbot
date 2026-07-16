@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMessages } from "@/api/conversation.js";
 import { queryKeys } from "../lib/query-keys.js";
@@ -21,12 +22,16 @@ export function useMessages(accountId?: string, conversationId?: string) {
 
   // pages[0] = newest batch, pages[1] = older batch, etc.
   // Reverse so messages are chronological (oldest first).
-  const messages = data
-    ? data.pages
-        .slice()
-        .reverse()
-        .flatMap((page) => page.data)
-    : [];
+  const messages = useMemo(
+    () =>
+      data
+        ? data.pages
+            .slice()
+            .reverse()
+            .flatMap((page) => page.data)
+        : [],
+    [data],
+  );
 
   return {
     messages,

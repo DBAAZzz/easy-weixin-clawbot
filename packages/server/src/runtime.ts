@@ -29,7 +29,11 @@ export function createBotRuntime(): BotRuntime {
     return [...running.keys()];
   }
 
-  function launchAccount(accountId: string, abortController: AbortController): Promise<void> {
+  function launchAccount(
+    accountId: string,
+    abortController: AbortController,
+    isCurrentEntry: () => boolean,
+  ): Promise<void> {
     return (async () => {
       runtimeLogger.info({ accountId }, "开始启动账号运行时");
 
@@ -67,7 +71,13 @@ export function createBotRuntime(): BotRuntime {
           log.error(`start(${accountId})`, error);
         }
       } finally {
-        running.delete(accountId);
+        // Only retract our own registration. A newer launch may already own this
+        // accountId (restart during teardown), and deleting its entry would leave
+        // a live session unreachable — and a later ensureAccountStarted would then
+        // start a second concurrent session for the same account.
+        if (isCurrentEntry()) {
+          running.delete(accountId);
+        }
 
         if (!abortController.signal.aborted) {
           runtimeLogger.info(
@@ -90,8 +100,16 @@ export function createBotRuntime(): BotRuntime {
     if (running.has(accountId)) return;
 
     const abortController = new AbortController();
-    const startPromise = launchAccount(accountId, abortController);
-    running.set(accountId, { abortController, startPromise });
+    const entry: RunningAccount = {
+      abortController,
+      startPromise: Promise.resolve(),
+    };
+    entry.startPromise = launchAccount(
+      accountId,
+      abortController,
+      () => running.get(accountId) === entry,
+    );
+    running.set(accountId, entry);
   }
 
   async function bootstrap(): Promise<void> {

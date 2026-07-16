@@ -54,12 +54,12 @@ export function useResizableWidth({
   );
 
   useEffect(() => {
-    if (!storageKey || typeof window === "undefined") {
+    if (!storageKey || typeof window === "undefined" || isResizing) {
       return;
     }
 
     window.localStorage.setItem(storageKey, String(width));
-  }, [storageKey, width]);
+  }, [isResizing, storageKey, width]);
 
   useEffect(() => {
     if (!isResizing) {
@@ -108,16 +108,23 @@ export function useResizableWidth({
     [width],
   );
 
+  const adjustWidth = useCallback(
+    (delta: number) => {
+      setWidthState((current) => clampWidth(current + delta, minWidth, maxWidth));
+    },
+    [maxWidth, minWidth],
+  );
+
   const resizeWithKeyboard = useCallback(
     (event: KeyboardEvent<HTMLButtonElement>) => {
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        setWidth(width - keyboardStep);
+        adjustWidth(-keyboardStep);
       }
 
       if (event.key === "ArrowRight") {
         event.preventDefault();
-        setWidth(width + keyboardStep);
+        adjustWidth(keyboardStep);
       }
 
       if (event.key === "Home") {
@@ -130,7 +137,7 @@ export function useResizableWidth({
         setWidth(maxWidth);
       }
     },
-    [keyboardStep, maxWidth, minWidth, setWidth, width],
+    [adjustWidth, keyboardStep, maxWidth, minWidth, setWidth],
   );
 
   return {

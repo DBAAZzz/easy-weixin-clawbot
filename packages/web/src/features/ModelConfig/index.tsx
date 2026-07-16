@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button, ConfirmDialog, CpuIcon, PlusIcon } from "@clawbot/ui";
+import { cn } from "@/lib/cn.js";
 import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { ModelConfigCard } from "./ModelConfigCard.js";
 import { ModelConfigEditorModal } from "./ModelConfigEditorModal.js";
@@ -53,7 +54,7 @@ export function ModelConfigPage() {
           {loading ? (
             <div className="grid gap-4 xl:grid-cols-2">
               {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="ui-skeleton h-52 rounded-section" />
+                <ProviderConfigCardSkeleton key={index} />
               ))}
             </div>
           ) : null}
@@ -101,7 +102,7 @@ export function ModelConfigPage() {
           {loading ? (
             <div className="grid gap-4 xl:grid-cols-2">
               {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="ui-skeleton h-44 rounded-section" />
+                <ModelConfigCardSkeleton key={index} />
               ))}
             </div>
           ) : null}
@@ -183,5 +184,66 @@ export function ModelConfigPage() {
         ) : null}
       </ConfirmDialog>
     </>
+  );
+}
+
+function CardSkeletonHead() {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="ui-skeleton size-10 shrink-0 rounded-card" />
+      <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+        <div className="ui-skeleton h-4 w-2/5 rounded-lg" />
+        <div className="ui-skeleton h-3 w-1/3 rounded-full" />
+      </div>
+      <div className="flex shrink-0 items-center gap-2 self-start">
+        <div className="ui-skeleton h-7 w-20 rounded-pill" />
+        <div className="ui-skeleton h-5 w-9 rounded-pill" />
+        <div className="ui-skeleton size-7 rounded-card" />
+      </div>
+    </div>
+  );
+}
+
+function CardSkeletonMetricGrid({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-line",
+        className,
+      )}
+    >
+      <div className="ui-skeleton h-14" />
+      <div className="ui-skeleton h-14" />
+    </div>
+  );
+}
+
+function ProviderConfigCardSkeleton() {
+  return (
+    <div className="rounded-card border border-line bg-glass-90 p-6">
+      <CardSkeletonHead />
+      <CardSkeletonMetricGrid className="mt-7" />
+    </div>
+  );
+}
+
+function ModelConfigCardSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-card border border-line bg-glass-90">
+      <div className="px-5 pt-5">
+        <CardSkeletonHead />
+      </div>
+      <div className="mt-4 px-5">
+        <CardSkeletonMetricGrid />
+      </div>
+      <div className="mt-3 px-5">
+        <div className="ui-skeleton h-3 w-2/5 rounded-full" />
+      </div>
+      <div className="mt-2.5 flex flex-wrap gap-1.5 px-5 pb-4">
+        <div className="ui-skeleton h-6 w-20 rounded-pill" />
+        <div className="ui-skeleton h-6 w-24 rounded-pill" />
+        <div className="ui-skeleton h-6 w-28 rounded-pill" />
+      </div>
+    </div>
   );
 }

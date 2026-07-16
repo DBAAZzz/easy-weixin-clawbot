@@ -11,11 +11,11 @@ export type MessageTimelineItem = {
   tools: MessageRow[];
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-function getPayload(message: MessageRow) {
+function parsePayload(message: MessageRow): Record<string, unknown> {
   if (isRecord(message.payload)) {
     return message.payload;
   }
@@ -32,10 +32,31 @@ function getPayload(message: MessageRow) {
   }
 }
 
-function getPayloadContent(message: MessageRow) {
-  const payload = getPayload(message);
-  const content = payload.content;
-  return Array.isArray(content) ? content.filter(isRecord) : [];
+// react-query 结构共享保证未变化的 MessageRow 引用稳定，可安全按引用缓存解析结果
+const payloadCache = new WeakMap<MessageRow, Record<string, unknown>>();
+const payloadContentCache = new WeakMap<MessageRow, Record<string, unknown>[]>();
+
+export function getPayload(message: MessageRow): Record<string, unknown> {
+  const cached = payloadCache.get(message);
+  if (cached) {
+    return cached;
+  }
+
+  const payload = parsePayload(message);
+  payloadCache.set(message, payload);
+  return payload;
+}
+
+export function getPayloadContent(message: MessageRow): Record<string, unknown>[] {
+  const cached = payloadContentCache.get(message);
+  if (cached) {
+    return cached;
+  }
+
+  const content = getPayload(message).content;
+  const blocks = Array.isArray(content) ? content.filter(isRecord) : [];
+  payloadContentCache.set(message, blocks);
+  return blocks;
 }
 
 function hasDisplayContent(message: MessageRow) {

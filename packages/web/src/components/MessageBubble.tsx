@@ -1,44 +1,19 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { MESSAGE_CONTENT_TYPE, MESSAGE_ROLE, type MessageRow } from "@clawbot/shared";
 import ReactMarkdown from "react-markdown";
+import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "../lib/cn.js";
 import { formatFullDateTime } from "../lib/format.js";
+import { getPayload, getPayloadContent, isRecord } from "../lib/message-timeline.js";
 import { Accordion } from "@clawbot/ui";
 import { ChevronDownIcon, PulseIcon, TerminalIcon } from "@clawbot/ui";
 import "./message-markdown.css";
 
 type MessageContentBlock = Record<string, unknown>;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
 function isTextBlock(block: MessageContentBlock): block is MessageContentBlock & { text: string } {
   return block.type === MESSAGE_CONTENT_TYPE.TEXT && typeof block.text === "string";
-}
-
-function getPayload(message: MessageRow) {
-  if (isRecord(message.payload)) {
-    return message.payload;
-  }
-
-  if (typeof message.payload !== "string") {
-    return {};
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(message.payload);
-    return isRecord(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function getPayloadContent(message: MessageRow): MessageContentBlock[] {
-  const payload = getPayload(message);
-  const content = payload.content;
-  return Array.isArray(content) ? content.filter(isRecord) : [];
 }
 
 function stripInjectedUserContext(text: string) {
@@ -218,7 +193,7 @@ function ThoughtPanel(props: {
         <div className="mt-3 space-y-3 border-l border-line pl-3">
           {thinking.length > 0 ? (
             <div className="message-markdown text-muted-strong">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{thinking.join("\n\n")}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={remarkPlugins}>{thinking.join("\n\n")}</ReactMarkdown>
             </div>
           ) : null}
 
@@ -250,10 +225,22 @@ function ThoughtPanel(props: {
   );
 }
 
-export function MessageBubble({
+const EMPTY_MESSAGES: MessageRow[] = [];
+
+const remarkPlugins = [remarkGfm];
+
+const markdownComponents: Components = {
+  a: ({ children, ...anchorProps }) => (
+    <a {...anchorProps} target="_blank" rel="noreferrer">
+      {children}
+    </a>
+  ),
+};
+
+export const MessageBubble = memo(function MessageBubble({
   message,
-  thoughts = [],
-  tools = [],
+  thoughts = EMPTY_MESSAGES,
+  tools = EMPTY_MESSAGES,
 }: {
   message: MessageRow;
   thoughts?: MessageRow[];
@@ -291,16 +278,7 @@ export function MessageBubble({
 
           {textBlocks.length > 0 ? (
             <div className={cn("message-markdown", isUser && "message-markdown-inverted")}>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  a: ({ children, ...anchorProps }) => (
-                    <a {...anchorProps} target="_blank" rel="noreferrer">
-                      {children}
-                    </a>
-                  ),
-                }}
-              >
+              <ReactMarkdown remarkPlugins={remarkPlugins} components={markdownComponents}>
                 {textBlocks.join("\n\n")}
               </ReactMarkdown>
             </div>
@@ -348,4 +326,4 @@ export function MessageBubble({
       ) : null}
     </div>
   );
-}
+});

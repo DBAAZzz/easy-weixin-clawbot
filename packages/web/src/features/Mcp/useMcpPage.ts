@@ -107,8 +107,12 @@ export function useMcpPage() {
   const activeServerTools = activeServer
     ? tools.filter((tool) => tool.server_id === activeServer.id)
     : [];
-  const connectedCount = servers.filter((server) => server.status === "connected").length;
-  const enabledServerCount = servers.filter((server) => server.enabled).length;
+  let connectedCount = 0;
+  let enabledServerCount = 0;
+  for (const server of servers) {
+    if (server.status === "connected") connectedCount += 1;
+    if (server.enabled) enabledServerCount += 1;
+  }
   const disabledServerCount = servers.length - enabledServerCount;
   const enabledToolCount = tools.filter((tool) => tool.enabled).length;
   const allVisibleExpanded =

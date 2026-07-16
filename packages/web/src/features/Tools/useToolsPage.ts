@@ -42,9 +42,14 @@ export function useToolsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeToolName]);
 
-  const enabledCount = tools.filter((tool) => tool.enabled).length;
-  const parameterCount = tools.reduce((sum, tool) => sum + tool.parameterNames.length, 0);
-  const builtinCount = tools.filter((tool) => tool.origin === "builtin").length;
+  let enabledCount = 0;
+  let parameterCount = 0;
+  let builtinCount = 0;
+  for (const tool of tools) {
+    if (tool.enabled) enabledCount += 1;
+    parameterCount += tool.parameterNames.length;
+    if (tool.origin === "builtin") builtinCount += 1;
+  }
   const stats = [
     {
       label: "已安装",

@@ -7,7 +7,30 @@ import type {
   UpdateModelProviderTemplateInput,
   UpsertModelConfigInput,
 } from "@clawbot/agent";
+import { openSecret, sealSecret } from "../credentials/secret-box.js";
 import { getPrisma } from "./prisma.js";
+
+type TemplateSecretColumns = {
+  id: bigint;
+  apiKey: string | null;
+  apiKeyCiphertext: string | null;
+};
+
+export function templateEncryptionScope(templateId: bigint): string {
+  return `model-provider-template:${templateId}`;
+}
+
+/**
+ * Resolve a template's API key from the sealed column, falling back to the
+ * legacy plaintext column for rows the startup migration has not rewritten yet.
+ */
+export function resolveTemplateApiKey(row: TemplateSecretColumns): string | null {
+  if (row.apiKeyCiphertext) {
+    return openSecret(templateEncryptionScope(row.id), row.apiKeyCiphertext);
+  }
+
+  return row.apiKey;
+}
 
 function toTemplateRow(r: {
   id: bigint;
@@ -15,6 +38,7 @@ function toTemplateRow(r: {
   provider: string;
   modelIds: string[];
   apiKey: string | null;
+  apiKeyCiphertext: string | null;
   baseUrl: string | null;
   enabled: boolean;
   _count?: { configs: number };
@@ -24,7 +48,7 @@ function toTemplateRow(r: {
     name: r.name,
     provider: r.provider,
     modelIds: r.modelIds,
-    apiKey: r.apiKey,
+    apiKey: resolveTemplateApiKey(r),
     baseUrl: r.baseUrl,
     enabled: r.enabled,
     usageCount: r._count?.configs ?? 0,
@@ -47,6 +71,7 @@ function toConfigRow(r: {
     provider: string;
     modelIds: string[];
     apiKey: string | null;
+    apiKeyCiphertext: string | null;
     baseUrl: string | null;
     enabled: boolean;
   };
@@ -62,7 +87,7 @@ function toConfigRow(r: {
     modelId: r.modelId,
     supportsImageInputOverride: r.supportsImageInputOverride as ModelConfigRow["supportsImageInputOverride"],
     modelIds: r.template.modelIds,
-    apiKey: r.template.apiKey,
+    apiKey: resolveTemplateApiKey(r.template),
     baseUrl: r.template.baseUrl,
     templateEnabled: r.template.enabled,
     enabled: r.enabled,
@@ -94,17 +119,31 @@ export class PrismaModelConfigStore implements ModelConfigStore {
   async createTemplate(
     input: CreateModelProviderTemplateInput,
   ): Promise<ModelProviderTemplateRow> {
-    const row = await getPrisma().modelProviderTemplate.create({
-      data: {
-        name: input.name,
-        provider: input.provider,
-        modelIds: input.modelIds,
-        apiKey: input.apiKey ?? null,
-        baseUrl: input.baseUrl ?? null,
-        enabled: input.enabled ?? true,
-      },
-      include: { _count: { select: { configs: true } } },
+    // The encryption scope binds to the row id, which only exists after the
+    // insert, so the key is sealed in a second write inside one transaction.
+    const row = await getPrisma().$transaction(async (tx) => {
+      const created = await tx.modelProviderTemplate.create({
+        data: {
+          name: input.name,
+          provider: input.provider,
+          modelIds: input.modelIds,
+          baseUrl: input.baseUrl ?? null,
+          enabled: input.enabled ?? true,
+        },
+      });
+
+      if (!input.apiKey) {
+        return created;
+      }
+
+      return tx.modelProviderTemplate.update({
+        where: { id: created.id },
+        data: {
+          apiKeyCiphertext: sealSecret(templateEncryptionScope(created.id), input.apiKey),
+        },
+      });
     });
+
     return toTemplateRow(row);
   }
 
@@ -118,6 +157,7 @@ export class PrismaModelConfigStore implements ModelConfigStore {
       baseUrl: string | null;
       enabled: boolean;
       apiKey?: string | null;
+      apiKeyCiphertext?: string | null;
     } = {
       name: input.name,
       provider: input.provider,
@@ -126,10 +166,16 @@ export class PrismaModelConfigStore implements ModelConfigStore {
       enabled: input.enabled ?? true,
     };
 
+    // Any write to the key also clears the legacy plaintext column so a stale
+    // plaintext copy can never outlive the sealed value.
     if (input.clearApiKey) {
       data.apiKey = null;
+      data.apiKeyCiphertext = null;
     } else if (input.apiKey !== undefined) {
-      data.apiKey = input.apiKey;
+      data.apiKey = null;
+      data.apiKeyCiphertext = input.apiKey
+        ? sealSecret(templateEncryptionScope(input.id), input.apiKey)
+        : null;
     }
 
     const row = await getPrisma().modelProviderTemplate.update({

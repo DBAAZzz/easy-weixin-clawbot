@@ -1,4 +1,4 @@
-import { decryptToken, encryptToken, getMasterKey } from "../credentials/crypto.js";
+import { openSecret, sealSecret } from "../credentials/secret-box.js";
 import { getPrisma } from "../db/prisma.js";
 import {
   type WebSearchProviderType,
@@ -60,25 +60,6 @@ function encryptionScope(providerType: WebSearchProviderType): string {
   return `web-search-provider:${providerType}`;
 }
 
-function encodeCiphertext(row: { ciphertext: Buffer; iv: Buffer; authTag: Buffer }): string {
-  return [row.iv, row.authTag, row.ciphertext]
-    .map((part) => part.toString("base64url"))
-    .join(".");
-}
-
-function decodeCiphertext(value: string): { ciphertext: Buffer; iv: Buffer; authTag: Buffer } {
-  const parts = value.split(".");
-  if (parts.length !== 3 || parts.some((part) => !part)) {
-    throw new Error("Invalid web search provider ciphertext");
-  }
-
-  return {
-    iv: Buffer.from(parts[0], "base64url"),
-    authTag: Buffer.from(parts[1], "base64url"),
-    ciphertext: Buffer.from(parts[2], "base64url"),
-  };
-}
-
 function toRow(row: PrismaWebSearchProviderRow): WebSearchProviderRow {
   if (!isWebSearchProviderType(row.providerType)) {
     throw new Error(`Unsupported web search provider type: ${row.providerType}`);
@@ -99,12 +80,7 @@ function toDecryptedRow(row: PrismaWebSearchProviderRow): DecryptedWebSearchProv
     throw new Error(`Unsupported web search provider type: ${row.providerType}`);
   }
 
-  const masterKey = getMasterKey();
-  const apiKey = decryptToken(
-    decodeCiphertext(row.apiKeyCiphertext),
-    encryptionScope(row.providerType),
-    masterKey,
-  );
+  const apiKey = openSecret(encryptionScope(row.providerType), row.apiKeyCiphertext);
 
   return {
     id: row.id,
@@ -117,9 +93,7 @@ function toDecryptedRow(row: PrismaWebSearchProviderRow): DecryptedWebSearchProv
 }
 
 function encryptApiKey(providerType: WebSearchProviderType, apiKey: string): string {
-  const masterKey = getMasterKey();
-  const encrypted = encryptToken(apiKey, encryptionScope(providerType), masterKey);
-  return encodeCiphertext(encrypted);
+  return sealSecret(encryptionScope(providerType), apiKey);
 }
 
 export const webSearchProviderStore: WebSearchProviderStore = {

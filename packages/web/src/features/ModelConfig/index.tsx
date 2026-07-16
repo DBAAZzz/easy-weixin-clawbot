@@ -33,7 +33,7 @@ export function ModelConfigPage() {
 
   return (
     <>
-      <div className="space-y-6 md:space-y-7">
+      <div className="mx-auto max-w-7xl space-y-6 md:space-y-7 text-account-ink">
         <DashboardHeader
           eyebrow="Model Control Plane"
           title="模型配置管理"

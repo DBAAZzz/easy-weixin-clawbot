@@ -31,7 +31,7 @@ export function WebhooksPage() {
   } = useWebhooks();
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-7xl space-y-5 text-account-ink">
       <section className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>

@@ -1,5 +1,5 @@
 import type { ObservabilityTraceDetail } from "@clawbot/shared";
-import { TraceDetailPanel } from "../../components/observability/TraceDetailPanel.js";
+import { TraceDetailPanel } from "@/components/observability/TraceDetailPanel.js";
 
 export function TraceDetailSection({
   loading,

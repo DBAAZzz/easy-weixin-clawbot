@@ -1,5 +1,5 @@
 import type { TapeGraphNode } from "@clawbot/shared";
-import { formatMemoryValue } from "../../components/memory/MemoryTooltip.js";
+import { formatMemoryValue } from "@/components/memory/MemoryTooltip.js";
 
 export function matchesQuery(node: TapeGraphNode, query: string) {
   if (!query) return true;

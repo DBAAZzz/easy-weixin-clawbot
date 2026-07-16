@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button, ConfirmDialog, CpuIcon, PlusIcon } from "@clawbot/ui";
-import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { ModelConfigCard } from "./ModelConfigCard.js";
 import { ModelConfigEditorModal } from "./ModelConfigEditorModal.js";
 import { PageSectionHeader } from "./PageSectionHeader.js";

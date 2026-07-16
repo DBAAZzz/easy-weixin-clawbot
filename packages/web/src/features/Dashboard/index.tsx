@@ -2,7 +2,7 @@ import { Card } from "@clawbot/ui";
 import { AccountFilters } from "./AccountFilters.js";
 import { AccountTable } from "./AccountTable.js";
 import { AccountTableFooter } from "./AccountTableFooter.js";
-import { DashboardHeader } from "./DashboardHeader.js";
+import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { StatsGrid } from "./StatsGrid.js";
 import { useAccountList } from "./useAccountList.js";
 

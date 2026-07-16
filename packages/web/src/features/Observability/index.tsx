@@ -24,7 +24,7 @@ import {
   formatUsd,
 } from "../../lib/format.js";
 import { buildTraceDetailPath } from "../../lib/observability.js";
-import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { DashboardHeader } from "@/components/DashboardHeader.js";
 import {
   BarDistributionChart,
   FLAG_OPTIONS,

@@ -1,6 +1,6 @@
 import { startTransition } from "react";
 import { Card } from "@clawbot/ui";
-import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { StatsGrid } from "../Dashboard/StatsGrid.js";
 import { useToolsPage } from "./useToolsPage.js";
 import { ToolDetailModal } from "./ToolDetailModal.js";

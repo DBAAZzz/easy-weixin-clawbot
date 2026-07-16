@@ -1,7 +1,7 @@
 import { startTransition } from "react";
 import { Card, ConfirmDialog, toast } from "@clawbot/ui";
 import { TAPD_MCP_JSON_EXAMPLE } from "../../lib/mcp-form.js";
-import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { StatsGrid } from "../Dashboard/StatsGrid.js";
 import "./mcp.css";
 import { McpServerTable } from "./McpServerTable.js";

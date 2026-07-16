@@ -197,7 +197,11 @@ export interface HealthStatus {
   status: "ok";
   uptime_ms: number;
   started_at: string;
-  running_accounts: string[];
+  /**
+   * Count only. This endpoint is reachable without authentication, so it must
+   * not expose the account roster itself.
+   */
+  running_account_count: number;
   pending_message_writes: number;
   pending_trace_writes: number;
   pending_usage_writes: number;

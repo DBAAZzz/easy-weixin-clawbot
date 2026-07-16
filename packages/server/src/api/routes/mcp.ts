@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import type { McpTransport } from "@clawbot/shared";
 import type { McpManager } from "../../mcp/manager.js";
+import { ValidationError } from "../errors.js";
 
 const STANDARD_MCP_SLUG_MAX_LENGTH = 21;
 
@@ -20,28 +21,28 @@ function isStringRecord(value: unknown): value is Record<string, string> {
 async function readJsonBody(request: Request): Promise<Record<string, unknown>> {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    throw new Error("invalid request body");
+    throw new ValidationError("invalid request body");
   }
   return body;
 }
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.trim() === "") {
-    throw new Error(`${field} is required`);
+    throw new ValidationError(`${field} is required`);
   }
   return value.trim();
 }
 
 function requireObject(value: unknown, message: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(message);
+    throw new ValidationError(message);
   }
 
   return value as Record<string, unknown>;
 }
 
 function stripToAscii(value: string) {
-  return value.normalize("NFKD").replace(/[^\x00-\x7F]/g, "");
+  return value.normalize("NFKD").replace(/\P{ASCII}/gu, "");
 }
 
 function trimSlugTail(value: string) {
@@ -74,13 +75,13 @@ function parseStandardDocument(body: Record<string, unknown>) {
   const entries = Object.entries(servers);
 
   if (entries.length !== 1) {
-    throw new Error("mcpServers must contain exactly one server");
+    throw new ValidationError("mcpServers must contain exactly one server");
   }
 
   const [rawKey, rawConfig] = entries[0];
   const key = rawKey.trim();
   if (!key) {
-    throw new Error("mcp server key is required");
+    throw new ValidationError("mcp server key is required");
   }
 
   const config = requireObject(rawConfig, "mcp server config must be an object");
@@ -90,12 +91,12 @@ function parseStandardDocument(body: Record<string, unknown>) {
       : (requireString(config.transport, "transport") as McpTransport);
 
   if (transport !== "stdio") {
-    throw new Error("only stdio transport is supported");
+    throw new ValidationError("only stdio transport is supported");
   }
 
   const cwdValue = config.cwd;
   if (cwdValue !== undefined && cwdValue !== null && typeof cwdValue !== "string") {
-    throw new Error("cwd must be string or null");
+    throw new ValidationError("cwd must be string or null");
   }
 
   return {
@@ -109,7 +110,7 @@ function parseStandardDocument(body: Record<string, unknown>) {
         : isStringArray(config.args)
           ? config.args
           : (() => {
-              throw new Error("args must be a string array");
+              throw new ValidationError("args must be a string array");
             })(),
     env:
       config.env === undefined
@@ -117,7 +118,7 @@ function parseStandardDocument(body: Record<string, unknown>) {
         : isStringRecord(config.env)
           ? config.env
           : (() => {
-              throw new Error("env must be an object of string values");
+              throw new ValidationError("env must be an object of string values");
             })(),
     cwd: typeof cwdValue === "string" ? cwdValue.trim() || null : null,
   } as const;
@@ -138,10 +139,10 @@ function parseCreatePayload(body: Record<string, unknown>) {
         : requireString(body.transport, "transport")) as McpTransport,
     command: requireString(body.command, "command"),
     args: body.args === undefined ? [] : isStringArray(body.args) ? body.args : (() => {
-      throw new Error("args must be a string array");
+      throw new ValidationError("args must be a string array");
     })(),
     env: body.env === undefined ? {} : isStringRecord(body.env) ? body.env : (() => {
-      throw new Error("env must be an object of string values");
+      throw new ValidationError("env must be an object of string values");
     })(),
     cwd:
       body.cwd === undefined
@@ -151,7 +152,7 @@ function parseCreatePayload(body: Record<string, unknown>) {
           : typeof body.cwd === "string"
             ? body.cwd.trim() || null
             : (() => {
-                throw new Error("cwd must be string or null");
+                throw new ValidationError("cwd must be string or null");
               })(),
   } as const;
 }
@@ -178,19 +179,19 @@ function parseUpdatePayload(body: Record<string, unknown>) {
   }
   if ("args" in body) {
     if (!isStringArray(body.args)) {
-      throw new Error("args must be a string array");
+      throw new ValidationError("args must be a string array");
     }
     input.args = body.args;
   }
   if ("env" in body) {
     if (!isStringRecord(body.env)) {
-      throw new Error("env must be an object of string values");
+      throw new ValidationError("env must be an object of string values");
     }
     input.env = body.env;
   }
   if ("cwd" in body) {
     if (body.cwd !== null && typeof body.cwd !== "string") {
-      throw new Error("cwd must be string or null");
+      throw new ValidationError("cwd must be string or null");
     }
     input.cwd = body.cwd === null ? null : body.cwd?.trim() || null;
   }

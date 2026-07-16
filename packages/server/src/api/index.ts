@@ -11,6 +11,7 @@ import {
   type ObservabilityRouteService,
 } from "../observability/service.js";
 import type { BotRuntime } from "../runtime.js";
+import { ValidationError } from "./errors.js";
 import { createAuthMiddleware } from "./middleware/auth.js";
 import { registerAccountRoutes } from "./routes/accounts.js";
 import { registerAuthRoutes } from "./routes/auth.js";
@@ -132,6 +133,10 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerUsageRoutes(app);
 
   app.onError((error, c) => {
+    if (error instanceof ValidationError) {
+      return c.json({ error: error.message }, 400);
+    }
+
     apiLogger.error(
       {
         ...getErrorFields(error),
@@ -140,7 +145,10 @@ export function createApiApp(dependencies: ApiDependencies) {
       },
       "API 请求处理异常",
     );
-    return c.json({ error: error instanceof Error ? error.message : "internal error" }, 500);
+
+    // Internal error text (connection strings, file paths, driver messages) stays
+    // in the logs; the client only learns that the request failed.
+    return c.json({ error: "internal error" }, 500);
   });
 
   return app;

@@ -12,6 +12,7 @@ import { useUsageOverview } from "../../hooks/useUsageOverview.js";
 import { useAccounts } from "../../hooks/useAccounts.js";
 import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { formatCount, formatTokens } from "../../lib/format.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 const SERIES_COLORS = [
   "var(--color-accent)",
@@ -86,11 +87,7 @@ export function UsagePage() {
         <Select value={accountId} onChange={setAccountId} options={accountOptions} size="sm" />
       </div>
 
-      {error ? (
-        <div className="rounded-card border border-dashed border-account-line bg-account-table-head px-4 py-3 text-base text-danger">
-          {error}
-        </div>
-      ) : null}
+      {error ? <ErrorNotice>{error}</ErrorNotice> : null}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Metric label="请求总量" value={formatCount(totals?.requests ?? 0)} />

@@ -5,6 +5,7 @@ import { AccountTableFooter } from "./AccountTableFooter.js";
 import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { StatsGrid } from "./StatsGrid.js";
 import { useAccountList } from "./useAccountList.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function DashboardPage() {
   const {
@@ -33,11 +34,7 @@ export function DashboardPage() {
       <DashboardHeader onRefresh={refresh} />
       <StatsGrid stats={stats} />
 
-      {error ? (
-        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-          加载账号失败：{error}
-        </div>
-      ) : null}
+      {error ? <ErrorNotice>加载账号失败：{error}</ErrorNotice> : null}
 
       <Card className="overflow-hidden !p-0">
         <AccountFilters

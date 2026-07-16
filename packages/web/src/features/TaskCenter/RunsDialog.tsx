@@ -14,6 +14,7 @@ import { ClockIcon } from "@clawbot/ui";
 import { fetchScheduledTaskRuns } from "@/api/scheduled-tasks.js";
 import { queryKeys } from "../../lib/query-keys.js";
 import { formatDateTime, formatDuration } from "../../lib/format.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function RunsDialog(props: {
   open: boolean;
@@ -80,9 +81,9 @@ export function RunsDialog(props: {
                     </pre>
                   ) : null}
                   {run.error ? (
-                    <div className="mt-3 rounded-panel border border-notice-error-border bg-notice-error-bg px-4 py-3 text-sm leading-6 text-red-700">
+                    <ErrorNotice className="mt-3" size="sm">
                       {run.error}
-                    </div>
+                    </ErrorNotice>
                   ) : null}
                 </div>
               ))

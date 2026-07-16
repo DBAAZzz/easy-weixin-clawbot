@@ -3,6 +3,7 @@ import { LinkIcon, PencilIcon, RefreshIcon, RssIcon, SearchIcon, TrashIcon } fro
 import type { RssSourceDto } from "@/api/rss.js";
 import { formatDateTime, formatCount } from "../../lib/format.js";
 import { sourceStatusTone, sourceStatusLabel } from "./types.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function SourceCard(props: {
   source: RssSourceDto;
@@ -98,9 +99,9 @@ export function SourceCard(props: {
       </div>
 
       {props.source.last_error ? (
-        <div className="mt-3 mx-5 rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-sm leading-6 text-red-700">
+        <ErrorNotice className="mt-3 mx-5" size="sm">
           {props.source.last_error}
-        </div>
+        </ErrorNotice>
       ) : null}
     </div>
   );

@@ -5,6 +5,7 @@ import { StatsGrid } from "../Dashboard/StatsGrid.js";
 import { useToolsPage } from "./useToolsPage.js";
 import { ToolDetailModal } from "./ToolDetailModal.js";
 import { ToolsTable } from "./ToolsTable.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export { ToolDetailModal };
 
@@ -36,11 +37,7 @@ export function ToolsPage() {
         />
         <StatsGrid stats={stats} />
 
-        {error ? (
-          <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-            加载 tool 列表失败：{error}
-          </div>
-        ) : null}
+        {error ? <ErrorNotice>加载 tool 列表失败：{error}</ErrorNotice> : null}
 
         <Card className="overflow-hidden !p-0">
           <ToolsTable

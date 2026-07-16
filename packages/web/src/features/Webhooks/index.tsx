@@ -6,6 +6,7 @@ import { WebhookTokenCard } from "./WebhookTokenCard.js";
 import { WebhookTestModal } from "./WebhookTestModal.js";
 import { CreateTokenModal } from "./CreateTokenModal.js";
 import { TokenCreatedNotice } from "./TokenCreatedNotice.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function WebhooksPage() {
   const {
@@ -63,11 +64,7 @@ export function WebhooksPage() {
         </div>
       </section>
 
-      {error ? (
-        <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-          加载 Webhook Token 失败：{error}
-        </div>
-      ) : null}
+      {error ? <ErrorNotice>加载 Webhook Token 失败：{error}</ErrorNotice> : null}
 
       {createdToken ? (
         <TokenCreatedNotice token={createdToken} onDismiss={() => setCreatedToken(null)} />

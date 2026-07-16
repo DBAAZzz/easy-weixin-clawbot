@@ -7,6 +7,7 @@ import { useConversations } from "@/hooks/useConversations.js";
 import { ConversationList } from "@/components/ConversationList.js";
 import { NavItem } from "./NavItem.js";
 import type { SidebarNavProps } from "./sidebarVariants.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 function conversationTitle(conversation: ConversationRow): string {
   return conversation.title?.trim() || "未命名会话";
@@ -85,9 +86,9 @@ export function ConversationSidebarNav({ collapsed }: SidebarNavProps) {
       </div>
 
       {error ? (
-        <div className="mx-3 mb-2 shrink-0 rounded-card border border-notice-error-border bg-notice-error-bg px-3 py-2 text-sm leading-5 text-red-700">
+        <ErrorNotice className="mx-3 mb-2 shrink-0 px-3 py-2" size="sm">
           加载会话列表失败：{error}
-        </div>
+        </ErrorNotice>
       ) : null}
 
       <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden">

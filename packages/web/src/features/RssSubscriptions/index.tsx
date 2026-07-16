@@ -8,6 +8,7 @@ import { useRssSubscriptions } from "./useRssSubscriptions.js";
 import { SourceCard } from "./SourceCard.js";
 import { SourceEditorDialog } from "./SourceEditorDialog.js";
 import { SourcePreviewDialog } from "./SourcePreviewDialog.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function RssSubscriptionsPage() {
   const {
@@ -94,9 +95,9 @@ export function RssSubscriptionsPage() {
       </section>
 
       {error ? (
-        <div className="rounded-panel border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
+        <ErrorNotice>
           加载订阅源失败：{error instanceof Error ? error.message : String(error)}
-        </div>
+        </ErrorNotice>
       ) : null}
 
       {loading ? (

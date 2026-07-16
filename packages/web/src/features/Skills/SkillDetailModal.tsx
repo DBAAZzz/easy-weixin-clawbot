@@ -12,6 +12,7 @@ import { CompactMetaStrip } from "./CompactMetaStrip.js";
 import { DetailTabButton } from "./DetailTabButton.js";
 import { ExpandableSummary } from "./ExpandableSummary.js";
 import { SkillMarkdownDocument } from "./SkillMarkdownDocument.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function SkillDetailModal(props: {
   skill: SkillInfo;
@@ -130,9 +131,7 @@ export function SkillDetailModal(props: {
                     <div className="ui-skeleton h-28 rounded-card" />
                   </div>
                 ) : props.source.error ? (
-                  <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-sm leading-5 text-danger">
-                    加载源码失败：{props.source.error}
-                  </div>
+                  <ErrorNotice size="sm">加载源码失败：{props.source.error}</ErrorNotice>
                 ) : (
                   <div className="rounded-panel bg-detail-bg px-4 py-5 md:px-5 md:py-5">
                     <SkillMarkdownDocument markdown={markdownBody} />

@@ -5,6 +5,7 @@ import { createWebhookToken } from "@/api/webhooks.js";
 import type { AccountSummary } from "@clawbot/shared";
 import { cn } from "@/lib/cn.js";
 import { formatCount } from "@/lib/format.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export interface CreateTokenModalProps {
   accounts: AccountSummary[];
@@ -145,11 +146,7 @@ export function CreateTokenModal(props: CreateTokenModalProps) {
               </div>
             </div>
 
-            {error ? (
-              <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-                {error}
-              </div>
-            ) : null}
+            {error ? <ErrorNotice>{error}</ErrorNotice> : null}
           </div>
 
           <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-line bg-glass-92 px-1 pt-4">

@@ -5,6 +5,7 @@ import { Card } from "@clawbot/ui";
 import { Input } from "@clawbot/ui";
 import { login } from "@/api/auth-login.js";
 import logoUrl from "../../assets/images/logo.png";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function AuthLoginPage() {
   const [username, setUsername] = useState("");
@@ -43,11 +44,7 @@ export function AuthLoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          {error && (
-            <div className="border border-notice-error-border bg-notice-error-bg px-3 py-2 text-base text-red-700">
-              {error}
-            </div>
-          )}
+          {error && <ErrorNotice className="px-3 py-2">{error}</ErrorNotice>}
 
           <Input
             type="text"

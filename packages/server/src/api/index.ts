@@ -79,6 +79,14 @@ export function createApiApp(dependencies: ApiDependencies) {
     }),
   );
 
+  // loadAuthConfig() throws on a partial config and in production, so reaching
+  // here without a config means an explicit development-only opt-out.
+  if (!authConfig) {
+    apiLogger.warn(
+      "鉴权未启用：所有 /api/* 接口当前可匿名访问。仅限开发环境，请勿用于生产。",
+    );
+  }
+
   // Register auth routes (no JWT required)
   if (authConfig) {
     registerAuthRoutes(app, authConfig);

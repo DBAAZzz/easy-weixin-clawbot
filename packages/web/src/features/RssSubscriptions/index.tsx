@@ -1,7 +1,7 @@
 import { Input } from "@clawbot/ui";
 import { LinkIcon, SearchIcon } from "@clawbot/ui";
 import { formatCount } from "../../lib/format.js";
-import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { StatsGrid } from "../Dashboard/StatsGrid.js";
 import { createDraft, EMPTY_DRAFT } from "./types.js";
 import { useRssSubscriptions } from "./useRssSubscriptions.js";

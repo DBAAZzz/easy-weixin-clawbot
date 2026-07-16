@@ -5,7 +5,7 @@ import { Select } from "@clawbot/ui";
 import { LinkIcon, StackIcon } from "@clawbot/ui";
 import { toggleScheduledTask } from "@/api/scheduled-tasks.js";
 import { formatCount } from "../../lib/format.js";
-import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { StatsGrid } from "../Dashboard/StatsGrid.js";
 import { TaskCard } from "./TaskCard.js";
 import { TaskEditorDialog } from "./TaskEditorDialog.js";

@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import type { LoginState } from "@clawbot/shared";
 import { useNavigate } from "react-router-dom";
-import { QrCodeDisplay } from "../../components/QrCodeDisplay.js";
+import { QrCodeDisplay } from "@/components/QrCodeDisplay.js";
 import { Button } from "@clawbot/ui";
 import { ActivityIcon, ScanIcon } from "@clawbot/ui";
 import { cancelLogin, fetchLoginStatus, startLogin } from "@/api/wechat-login.js";
 import { cn } from "../../lib/cn.js";
-import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { DashboardHeader } from "@/components/DashboardHeader.js";
 
 function statusMeta(state: LoginState) {
   switch (state.status) {

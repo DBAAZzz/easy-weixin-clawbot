@@ -1,6 +1,6 @@
 import { ClockIcon, Input } from "@clawbot/ui";
 import { formatCount } from "../../lib/format.js";
-import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { StatsGrid } from "../Dashboard/StatsGrid.js";
 import { ScheduledTaskCard } from "./ScheduledTaskCard.js";
 import { useScheduledTasks } from "./useScheduledTasks.js";

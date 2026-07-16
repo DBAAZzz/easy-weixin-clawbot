@@ -10,7 +10,7 @@ import type { UsageOverview } from "@clawbot/shared";
 import { useMemo, useState, type ReactNode } from "react";
 import { useUsageOverview } from "../../hooks/useUsageOverview.js";
 import { useAccounts } from "../../hooks/useAccounts.js";
-import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { formatCount, formatTokens } from "../../lib/format.js";
 
 const SERIES_COLORS = [
@@ -74,7 +74,7 @@ export function UsagePage() {
   const totals = overview?.totals;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 text-account-ink">
       <DashboardHeader
         eyebrow="Usage"
         title="使用分析"

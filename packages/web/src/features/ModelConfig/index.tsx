@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button, ConfirmDialog, CpuIcon, PlusIcon } from "@clawbot/ui";
-import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { ModelConfigCard } from "./ModelConfigCard.js";
 import { ModelConfigEditorModal } from "./ModelConfigEditorModal.js";
 import { PageSectionHeader } from "./PageSectionHeader.js";
@@ -33,7 +33,7 @@ export function ModelConfigPage() {
 
   return (
     <>
-      <div className="space-y-6 md:space-y-7">
+      <div className="mx-auto max-w-7xl space-y-6 md:space-y-7 text-account-ink">
         <DashboardHeader
           eyebrow="Model Control Plane"
           title="模型配置管理"

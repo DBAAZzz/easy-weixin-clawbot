@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { MessageList } from "../../components/MessageList.js";
+import { MessageList } from "@/components/MessageList.js";
 import { Button } from "@clawbot/ui";
 import { RefreshIcon } from "@clawbot/ui";
 import { formatCount, formatRelativeTime } from "../../lib/format.js";

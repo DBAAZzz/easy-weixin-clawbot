@@ -11,7 +11,7 @@ import {
 } from "@clawbot/ui";
 import { formatCount } from "../../lib/format.js";
 import { cn } from "../../lib/cn.js";
-import { DashboardHeader } from "../Dashboard/DashboardHeader.js";
+import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { StatsGrid } from "../Dashboard/StatsGrid.js";
 import { SkillCard } from "./SkillCard.js";
 import { SkillDetailModal } from "./SkillDetailModal.js";

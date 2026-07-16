@@ -230,7 +230,7 @@ const EMPTY_MESSAGES: MessageRow[] = [];
 const remarkPlugins = [remarkGfm];
 
 const markdownComponents: Components = {
-  a: ({ children, ...anchorProps }) => (
+  a: ({ children, node: _node, ...anchorProps }) => (
     <a {...anchorProps} target="_blank" rel="noreferrer">
       {children}
     </a>

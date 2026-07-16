@@ -7,6 +7,7 @@ import {
   DialogSplit,
 } from "@clawbot/ui";
 import { TAPD_MCP_JSON_EXAMPLE } from "../../lib/mcp-form.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function ServerEditorModal(props: {
   mode: "create" | "edit";
@@ -78,11 +79,7 @@ export function ServerEditorModal(props: {
               className="min-h-96 w-full resize-y rounded-panel border border-account-line-strong bg-account-card px-4 py-4 font-mono text-base leading-6 text-account-ink outline-none transition duration-200 ease-expo placeholder:text-account-muted-faint focus:border-account-control-hover focus:shadow-focus-accent"
             />
 
-            {props.error ? (
-              <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-                {props.error}
-              </div>
-            ) : null}
+            {props.error ? <ErrorNotice>{props.error}</ErrorNotice> : null}
           </form>
         </DialogMain>
 

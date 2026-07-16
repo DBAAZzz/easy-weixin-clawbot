@@ -35,6 +35,7 @@ import {
   WINDOW_OPTIONS,
   type ObservabilityAccent,
 } from "./components/index.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 type TraceStatusFilter = "all" | "ok" | "error";
 
@@ -119,9 +120,7 @@ export function ObservabilityPage() {
       </div>
 
       {observability.error ? (
-        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-          加载可观测性数据失败：{observability.error}
-        </div>
+        <ErrorNotice>加载可观测性数据失败：{observability.error}</ErrorNotice>
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">

@@ -9,6 +9,7 @@ import { queryKeys } from "../../lib/query-keys.js";
 import { useAccounts } from "../../hooks/useAccounts.js";
 import { formatCount, formatDateTime } from "../../lib/format.js";
 import { MetricCard, statusClassName } from "./components.jsx";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function WebhookLogsPage() {
   const navigate = useNavigate();
@@ -65,11 +66,7 @@ export function WebhookLogsPage() {
   const activeAccountCount = new Set(logs.map((log) => log.accountId)).size;
 
   if (!source) {
-    return (
-      <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-        缺少 Webhook source，无法加载日志详情。
-      </div>
-    );
+    return <ErrorNotice>缺少 Webhook source，无法加载日志详情。</ErrorNotice>;
   }
 
   return (
@@ -111,11 +108,7 @@ export function WebhookLogsPage() {
         ) : null}
       </section>
 
-      {logsError ? (
-        <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-          加载日志失败：{logsError}
-        </div>
-      ) : null}
+      {logsError ? <ErrorNotice>加载日志失败：{logsError}</ErrorNotice> : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard

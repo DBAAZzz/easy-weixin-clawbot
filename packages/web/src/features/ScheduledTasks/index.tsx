@@ -4,6 +4,7 @@ import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { StatsGrid } from "../Dashboard/StatsGrid.js";
 import { ScheduledTaskCard } from "./ScheduledTaskCard.js";
 import { useScheduledTasks } from "./useScheduledTasks.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function ScheduledTasksPage() {
   const {
@@ -81,11 +82,7 @@ export function ScheduledTasksPage() {
         </div>
       </section>
 
-      {error ? (
-        <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-          加载定时任务失败：{error}
-        </div>
-      ) : null}
+      {error ? <ErrorNotice>加载定时任务失败：{error}</ErrorNotice> : null}
 
       {loading ? (
         <section className="grid gap-4 xl:grid-cols-2">

@@ -8,6 +8,7 @@ import { McpServerTable } from "./McpServerTable.js";
 import { ServerDetailModal } from "./ServerDetailModal.js";
 import { ServerEditorModal } from "./ServerEditorModal.js";
 import { useMcpPage } from "./useMcpPage.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export { ServerDetailModal } from "./ServerDetailModal.js";
 export { ServerEditorModal } from "./ServerEditorModal.js";
@@ -67,11 +68,7 @@ export function McpPage() {
         />
         <StatsGrid stats={stats} />
 
-        {error ? (
-          <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-            加载 MCP 列表失败：{error}
-          </div>
-        ) : null}
+        {error ? <ErrorNotice>加载 MCP 列表失败：{error}</ErrorNotice> : null}
 
         <Card className="overflow-hidden !p-0">
           <McpServerTable

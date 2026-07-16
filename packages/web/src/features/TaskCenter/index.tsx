@@ -13,6 +13,7 @@ import { PreviewDialog } from "./PreviewDialog.js";
 import { RunsDialog } from "./RunsDialog.js";
 import { useTaskCenter } from "./useTaskCenter.js";
 import { EMPTY_TASK_DRAFT, createTaskDraft } from "./types.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function TaskCenterPage() {
   const {
@@ -131,9 +132,9 @@ export function TaskCenterPage() {
       </section>
 
       {error ? (
-        <div className="rounded-panel border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
+        <ErrorNotice>
           加载任务失败：{error instanceof Error ? error.message : String(error)}
-        </div>
+        </ErrorNotice>
       ) : null}
 
       {loading ? (

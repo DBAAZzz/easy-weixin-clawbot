@@ -6,6 +6,7 @@ import { Input } from "@clawbot/ui";
 import { NetworkIcon, SearchIcon } from "@clawbot/ui";
 import { toast } from "@clawbot/ui";
 import { useWebSearchProviders } from "../../hooks/useWebSearchProviders.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 type WebSearchDraft = {
   enabled: boolean;
@@ -152,9 +153,7 @@ export function NetworkSearchSettingsPanel() {
       </header>
 
       {error ? (
-        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-          加载网络搜索配置失败：{error}
-        </div>
+        <ErrorNotice>加载网络搜索配置失败：{error}</ErrorNotice>
       ) : null}
 
       {loading ? (

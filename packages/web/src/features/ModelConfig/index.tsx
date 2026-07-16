@@ -6,6 +6,7 @@ import { ModelConfigEditorModal } from "./ModelConfigEditorModal.js";
 import { PageSectionHeader } from "./PageSectionHeader.js";
 import { ProviderConfigCard } from "./ProviderConfigCard.js";
 import { useModelConfigPage } from "./useModelConfigPage.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function ModelConfigPage() {
   const navigate = useNavigate();
@@ -44,11 +45,7 @@ export function ModelConfigPage() {
           onRefresh={() => void refresh()}
         />
 
-        {error ? (
-          <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-            加载模型配置失败：{error}
-          </div>
-        ) : null}
+        {error ? <ErrorNotice>加载模型配置失败：{error}</ErrorNotice> : null}
 
         <section className="space-y-3">
           <PageSectionHeader title="供应商配置" />

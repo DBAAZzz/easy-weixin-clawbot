@@ -21,6 +21,7 @@ import {
   taskStatusLabel,
   taskStatusTone,
 } from "./types.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function TaskCard(props: {
   task: RssTaskDto;
@@ -138,9 +139,9 @@ export function TaskCard(props: {
           ) : null}
 
           {props.task.last_error ? (
-            <div className="mt-3 rounded-panel border border-notice-error-border bg-notice-error-bg px-4 py-3 text-sm leading-6 text-red-700">
+            <ErrorNotice className="mt-3" size="sm">
               {props.task.last_error}
-            </div>
+            </ErrorNotice>
           ) : null}
         </div>
       ) : null}

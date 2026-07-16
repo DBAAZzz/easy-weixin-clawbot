@@ -17,6 +17,7 @@ import { SkillCard } from "./SkillCard.js";
 import { SkillDetailModal } from "./SkillDetailModal.js";
 import { runCheckTone, skillActivationTabs, type SkillActivationFilter } from "./types.js";
 import { useSkillsPage, notifySkillInstallSuccess } from "./useSkillsPage.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export { notifySkillInstallSuccess, SkillDetailModal };
 
@@ -83,17 +84,9 @@ export function SkillsPage() {
         />
         <StatsGrid stats={stats} />
 
-        {error ? (
-          <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-            加载 skill 列表失败：{error}
-          </div>
-        ) : null}
+        {error ? <ErrorNotice>加载 skill 列表失败：{error}</ErrorNotice> : null}
 
-        {mutationError ? (
-          <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-            操作失败：{mutationError}
-          </div>
-        ) : null}
+        {mutationError ? <ErrorNotice>操作失败：{mutationError}</ErrorNotice> : null}
 
         {notice ? (
           <div className="rounded-card border border-notice-success-border bg-notice-success-bg px-4 py-3 text-base leading-5 text-accent-strong">

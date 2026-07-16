@@ -4,6 +4,7 @@ import { Button } from "@clawbot/ui";
 import { Slider } from "@clawbot/ui";
 import { toast } from "@clawbot/ui";
 import { useAppSettings } from "../../hooks/useAppSettings.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 function formatRateLabel(value: number): string {
   return `${Math.round(value * 100)}%`;
@@ -77,11 +78,7 @@ export function GeneralSettingsPanel() {
         </div>
       </header>
 
-      {error ? (
-        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-          加载通用设置失败：{error}
-        </div>
-      ) : null}
+      {error ? <ErrorNotice>加载通用设置失败：{error}</ErrorNotice> : null}
 
       {loading ? (
         <div className="rounded-card border border-line bg-pane-74 px-4 py-3 text-base text-muted-strong">
@@ -122,11 +119,7 @@ export function GeneralSettingsPanel() {
             </p>
           </div>
 
-          {saveError ? (
-            <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-              {saveError}
-            </div>
-          ) : null}
+          {saveError ? <ErrorNotice>{saveError}</ErrorNotice> : null}
 
           <div className="flex flex-col gap-3 pt-2 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap items-center gap-2">

@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { matchesQuery } from "./types.js";
 import { StatCard, StatBreakdownItem, StatMeta } from "./StatCard.js";
 import { PrefixGroups } from "./PrefixGroups.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function MemoryGraphPage() {
   const accounts = useAccounts({ status: "active" });
@@ -138,9 +139,9 @@ export function MemoryGraphPage() {
     graph.refresh();
   };
 
-  if (!accounts.loading && accounts.accounts.length === 0) {
+  if (!accounts.loading && !accounts.error && accounts.accounts.length === 0) {
     return (
-      <div className="space-y-4">
+      <div className="mx-auto max-w-7xl space-y-4 text-account-ink">
         <section>
           <p className="text-xs font-semibold uppercase tracking-caps-lg text-account-muted-soft">
             Memory Graph
@@ -244,11 +245,9 @@ export function MemoryGraphPage() {
         </StatCard>
       </section>
 
-      {graph.error ? (
-        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-          加载记忆图失败：{graph.error}
-        </div>
-      ) : null}
+      {accounts.error ? <ErrorNotice>加载账号列表失败：{accounts.error}</ErrorNotice> : null}
+
+      {graph.error ? <ErrorNotice>加载记忆图失败：{graph.error}</ErrorNotice> : null}
 
       {/* ===== Graph + sidebar ===== */}
       <section className="grid gap-4 xl:grid-cols-[1fr_auto]">

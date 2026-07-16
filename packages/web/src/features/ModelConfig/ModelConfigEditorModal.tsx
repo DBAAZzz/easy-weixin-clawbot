@@ -34,6 +34,7 @@ import {
   ensureSelectedOption,
   type ConfigEditorForm,
 } from "./types.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function ModelConfigEditorModal(props: {
   initial?: ModelConfigDto;
@@ -425,11 +426,7 @@ export function ModelConfigEditorModal(props: {
                 </div>
               </fieldset>
 
-              {error ? (
-                <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-sm leading-5 text-danger">
-                  {error}
-                </div>
-              ) : null}
+              {error ? <ErrorNotice size="sm">{error}</ErrorNotice> : null}
 
               <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-line bg-glass-92 px-1 pt-4">
                 <Button size="sm" type="button" variant="secondary" onClick={props.onClose}>

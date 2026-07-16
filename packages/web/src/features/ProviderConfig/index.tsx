@@ -29,6 +29,7 @@ import {
 } from "./providerConfigForm.js";
 import { MODEL_PROVIDER_PRESETS, type ModelProviderPreset } from "./providerPresets.js";
 import { normalizeModelIdList } from "./templateForm.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function ProviderConfigPage() {
   const navigate = useNavigate();
@@ -213,17 +214,13 @@ export function ProviderConfigPage() {
       </div>
 
       {loadError ? (
-        <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
+        <ErrorNotice>
           加载供应商配置失败：
           {loadError instanceof Error ? loadError.message : String(loadError)}
-        </div>
+        </ErrorNotice>
       ) : null}
 
-      {error ? (
-        <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-          {error}
-        </div>
-      ) : null}
+      {error ? <ErrorNotice>{error}</ErrorNotice> : null}
 
       <div
         className={cn(

@@ -7,6 +7,7 @@ import { Input } from "@clawbot/ui";
 import { Select } from "@clawbot/ui";
 import { StackIcon } from "@clawbot/ui";
 import { toast } from "@clawbot/ui";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 const STORAGE_OPTIONS: Array<{ value: AssetStorageProvider; label: string }> = [
   { value: "local", label: "本地 data/assets" },
@@ -156,9 +157,7 @@ export function AssetStorageSettingsPanel() {
       </header>
 
       {error ? (
-        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-          加载资产存储设置失败：{error}
-        </div>
+        <ErrorNotice>加载资产存储设置失败：{error}</ErrorNotice>
       ) : null}
 
       {loading ? (
@@ -322,9 +321,7 @@ export function AssetStorageSettingsPanel() {
         ) : null}
 
       {saveError ? (
-        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-          {saveError}
-        </div>
+        <ErrorNotice>{saveError}</ErrorNotice>
       ) : null}
 
       <div className="flex flex-wrap justify-end gap-2 pt-2">

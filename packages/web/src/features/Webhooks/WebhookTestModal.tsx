@@ -6,6 +6,7 @@ import { testWebhookToken } from "@/api/webhooks.js";
 import type { AccountSummary } from "@clawbot/shared";
 import { cn } from "@/lib/cn.js";
 import { formatCount } from "@/lib/format.js";
+import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export interface WebhookTestModalProps {
   token: WebhookTokenInfo;
@@ -243,11 +244,7 @@ export function WebhookTestModal(props: WebhookTestModalProps) {
               />
             </div>
 
-            {error ? (
-              <div className="rounded-section border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-6 text-red-700">
-                {error}
-              </div>
-            ) : null}
+            {error ? <ErrorNotice>{error}</ErrorNotice> : null}
 
             {result ? (
               <div

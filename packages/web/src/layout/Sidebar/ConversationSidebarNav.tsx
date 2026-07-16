@@ -1,6 +1,6 @@
 import { useParams, useSearchParams } from "react-router-dom";
 import type { ConversationRow } from "@clawbot/shared";
-import { Button, ChevronLeftIcon, Tooltip } from "@clawbot/ui";
+import { ChevronLeftIcon, Tooltip } from "@clawbot/ui";
 import { cn } from "@/lib/cn.js";
 import { formatCount } from "@/lib/format.js";
 import { useConversations } from "@/hooks/useConversations.js";
@@ -18,7 +18,7 @@ function conversationBadge(conversation: ConversationRow): string {
 
 export function ConversationSidebarNav({ collapsed }: SidebarNavProps) {
   const { accountId } = useParams<{ accountId: string }>();
-  const { conversations, loading, error, refresh } = useConversations(accountId);
+  const { conversations, loading, error } = useConversations(accountId);
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedConversationId = searchParams.get("conversation") ?? undefined;
   const select = (conversationId: string) => setSearchParams({ conversation: conversationId });

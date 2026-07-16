@@ -46,7 +46,7 @@ export const TAPD_MCP_JSON_EXAMPLE = JSON.stringify(
 );
 
 function stripToAscii(value: string) {
-  return value.normalize("NFKD").replace(/[^\x00-\x7F]/g, "");
+  return value.normalize("NFKD").replace(/\P{ASCII}/gu, "");
 }
 
 function trimSlugTail(value: string) {

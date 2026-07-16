@@ -65,13 +65,11 @@ export function NetworkSearchSettingsPanel() {
   const [drafts, setDrafts] = useState<
     Record<(typeof NETWORK_SEARCH_PROVIDER_ORDER)[number], WebSearchDraft>
   >(() => createDraftState([]));
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { providers, loading, error, create, update, refresh } = useWebSearchProviders();
 
   useEffect(() => {
-    setSaveError(null);
     setDrafts(createDraftState(providers));
   }, [providers]);
 
@@ -92,7 +90,6 @@ export function NetworkSearchSettingsPanel() {
 
   async function handleSave() {
     setSaving(true);
-    setSaveError(null);
 
     try {
       for (const providerType of NETWORK_SEARCH_PROVIDER_ORDER) {
@@ -133,9 +130,7 @@ export function NetworkSearchSettingsPanel() {
       await refresh();
       toast.success("网络搜索设置已保存");
     } catch (saveIssue) {
-      const message = saveIssue instanceof Error ? saveIssue.message : "保存失败";
-      setSaveError(message);
-      toast.error(message);
+      toast.error(saveIssue instanceof Error ? saveIssue.message : "保存失败");
     } finally {
       setSaving(false);
     }
@@ -232,12 +227,6 @@ export function NetworkSearchSettingsPanel() {
             </section>
           );
         })}
-
-      {saveError ? (
-        <div className="rounded-card border border-notice-error-border bg-notice-error-bg px-4 py-3 text-base leading-5 text-danger">
-          {saveError}
-        </div>
-      ) : null}
 
       <div className="flex justify-end pt-2">
         <Button size="sm" disabled={saving || loading} onClick={() => void handleSave()}>

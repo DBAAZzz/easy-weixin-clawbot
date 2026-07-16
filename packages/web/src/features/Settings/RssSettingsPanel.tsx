@@ -139,9 +139,7 @@ export function RssSettingsPanel() {
       setClearBearerToken(false);
       toast.success("RSS 设置已保存");
     } catch (saveIssue) {
-      const message = saveIssue instanceof Error ? saveIssue.message : "保存失败";
-      setSaveError(message);
-      toast.error(message);
+      toast.error(saveIssue instanceof Error ? saveIssue.message : "保存失败");
     } finally {
       setSaving(false);
     }
@@ -160,9 +158,7 @@ export function RssSettingsPanel() {
         toast.error(result.message);
       }
     } catch (testIssue) {
-      const message = testIssue instanceof Error ? testIssue.message : "测试失败";
-      setSaveError(message);
-      toast.error(message);
+      toast.error(testIssue instanceof Error ? testIssue.message : "测试失败");
     } finally {
       setTesting(false);
     }

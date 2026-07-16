@@ -58,9 +58,7 @@ export function GeneralSettingsPanel() {
       setNormalRateDraft(formatRateInput(result.normal_rate));
       toast.success("通用设置已保存");
     } catch (saveIssue) {
-      const message = saveIssue instanceof Error ? saveIssue.message : "保存失败";
-      setSaveError(message);
-      toast.error(message);
+      toast.error(saveIssue instanceof Error ? saveIssue.message : "保存失败");
     } finally {
       setSaving(false);
     }

@@ -1,5 +1,8 @@
 {
   "recommendations": [
+    // 全仓使用 TypeScript 7（Go 原生端口）。该扩展基于 LSP 接管 JS/TS IntelliSense，
+    // 是编辑器侧用上 TS 7 的唯一方式——TS 7 的 npm 包不再提供 tsserver.js。
+    "TypeScriptTeam.native-preview",
     "vunguyentuan.vscode-css-variables"
   ]
 }

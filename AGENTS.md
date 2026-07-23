@@ -12,7 +12,7 @@
 | 层 | 技术 |
 |---|------|
 | 运行时 | Node.js >= 22, pnpm >= 10.30.0 |
-| 语言 | TypeScript 5.7+, 纯 ESM (`type: "module"`) |
+| 语言 | TypeScript 7（Go 原生端口，无 JS API；`baseUrl` 已移除、`paths` 必须相对）, 纯 ESM (`type: "module"`) |
 | 后端 | Hono 4 + @hono/node-server |
 | 前端 | React 19 + Vite 8 + Tailwind CSS 4 + @clawbot/ui（Base UI 封装） |
 | 数据库 | PostgreSQL + Prisma 6 |

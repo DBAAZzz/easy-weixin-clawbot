@@ -13,10 +13,11 @@
     "jsx": "react-jsx",
     "strict": true,
     "types": ["vite/client", "node"],
-    "baseUrl": ".",
+    // TS 7 移除了 baseUrl，paths 必须是相对 tsconfig 所在目录的相对路径。
+    // 运行时别名由 vite.config.ts 的 resolve.alias 单独维护，两处需保持一致。
     "paths": {
       "@clawbot/ui": ["../ui/src/index.ts"],
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src", "vite.config.ts", "../shared/src/constant"]

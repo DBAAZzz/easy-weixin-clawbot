@@ -1,6 +1,9 @@
 {
-  "js/ts.tsdk.path": "packages/agent/node_modules/typescript/lib",
-  "js/ts.tsdk.promptToUseWorkspaceVersion": true,
+  // 全仓已升到 TypeScript 7（Go 原生端口）。TS 7 的 npm 包只有 bin/tsc，
+  // 没有 tsserver.js，所以不能再用 tsdk 路径指定编辑器版本——那个机制已失效。
+  // 编辑器改由官方 LSP 扩展 TypeScriptTeam.native-preview 提供（见 extensions.json），
+  // 装上后自动接管 JS/TS IntelliSense；命令面板的
+  // "Disable/Enable TypeScript 7 Language Server" 可随时切换回内置版本。
   "github.copilot.chat.commitMessageGeneration.instructions": [
     {
       "text": "Always generate commit messages in English. Use the Conventional Commits specification.  "

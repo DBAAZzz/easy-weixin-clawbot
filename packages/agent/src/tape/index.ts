@@ -21,6 +21,8 @@ export {
   formatMemoryForPrompt,
 } from "./service.js";
 
+export type { MemoryPromptOptions } from "./service.js";
+
 export { queueRecordEntry, getPendingTapeWriteCount } from "./queue.js";
 
 export { fireExtractAndRecord } from "./extractor.js";

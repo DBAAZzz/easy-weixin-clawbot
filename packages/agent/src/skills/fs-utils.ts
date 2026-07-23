@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { run, INSTALLER_ENV_PASSTHROUGH } from "@clawbot/exec";
 import { stat } from "node:fs/promises";
 
 export async function isFile(path: string): Promise<boolean> {
@@ -32,24 +32,20 @@ export function execPromise(
     cwd?: string;
     timeout?: number;
     maxBuffer?: number;
-    env?: NodeJS.ProcessEnv;
     signal?: AbortSignal;
     rejectOnError?: "always" | "when-empty-output";
   } = {},
 ): Promise<{ stdout: string; stderr: string }> {
-  const {
-    rejectOnError = "always",
-    maxBuffer = 4 * 1024 * 1024,
-    ...execOptions
-  } = options;
-
-  return new Promise((resolve, reject) => {
-    execFile(binary, args, { maxBuffer, ...execOptions }, (error, stdout, stderr) => {
-      if (error && (rejectOnError === "always" || (!stdout && !stderr))) {
-        reject(new Error(`${binary} ${args.join(" ")} failed: ${stderr || error.message}`));
-        return;
-      }
-      resolve({ stdout, stderr });
-    });
+  // 面向包管理器的封装：safe 基底 + 安装器配置变量透传，不再接受调用方自定义 env。
+  return run({
+    binary,
+    args,
+    cwd: options.cwd,
+    timeoutMs: options.timeout ?? 30_000,
+    maxBuffer: options.maxBuffer ?? 4 * 1024 * 1024,
+    signal: options.signal,
+    rejectOnError: options.rejectOnError ?? "always",
+    inherit: "safe",
+    passthrough: INSTALLER_ENV_PASSTHROUGH,
   });
 }

@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { run } from "@clawbot/exec";
 import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import type { NativeHandler } from "../types.js";
 
@@ -53,29 +53,6 @@ function splitCommand(command: string): string[] {
   return args;
 }
 
-function runCommand(
-  binary: string,
-  args: string[],
-  timeoutMs: number,
-  signal: AbortSignal,
-): Promise<{ stdout: string; stderr: string }> {
-  return new Promise((resolve, reject) => {
-    execFile(
-      binary,
-      args,
-      { maxBuffer: 1024 * 1024, timeout: timeoutMs, signal },
-      (error, stdout, stderr) => {
-        if (error && !stdout) {
-          reject(new Error(stderr || error.message));
-          return;
-        }
-
-        resolve({ stdout, stderr });
-      },
-    );
-  });
-}
-
 export const cliHandler: NativeHandler = {
   async execute(args, config, ctx) {
     // CLI handler 是高风险能力：二进制必须来自 allowlist，具体 binary 由 tool 文件配置，模型不能覆盖。
@@ -111,7 +88,15 @@ export const cliHandler: NativeHandler = {
 
     const fullArgs = [...splitCommand(command), ...defaultArgs];
     // AbortSignal 来自 runner 的工具超时/请求取消，确保外部进程不会在对话结束后继续运行。
-    const { stdout, stderr } = await runCommand(binary, fullArgs, timeoutMs, ctx.signal);
+    const { stdout, stderr } = await run({
+      binary,
+      args: fullArgs,
+      timeoutMs,
+      maxBuffer: 1024 * 1024,
+      signal: ctx.signal,
+      inherit: "safe",
+      rejectOnError: "when-empty-output",
+    });
 
     let output = stdout.trim() || stderr.trim() || "(no output)";
     if (output.length > maxOutputChars) {

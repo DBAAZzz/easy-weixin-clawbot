@@ -12,12 +12,14 @@
     "assets:migrate-local-to-s3": "tsx --conditions development src/assets/migrate-local-to-s3.ts",
     "prisma:generate": "tsx src/prisma-cli.ts generate --schema prisma/schema.prisma",
     "prisma:push": "tsx src/prisma-cli.ts db push --schema prisma/schema.prisma",
-    "prisma:validate": "tsx src/prisma-cli.ts validate --schema prisma/schema.prisma"
+    "prisma:validate": "tsx src/prisma-cli.ts validate --schema prisma/schema.prisma",
+    "lint": "oxlint"
   },
   "dependencies": {
     "@andresaya/edge-tts": "^1.8.0",
     "@clawbot/asset": "workspace:*",
     "@clawbot/agent": "workspace:*",
+    "@clawbot/exec": "workspace:*",
     "@clawbot/observability": "workspace:*",
     "@clawbot/shared": "workspace:*",
     "@clawbot/weixin-agent-sdk": "workspace:*",
@@ -35,6 +37,7 @@
   "devDependencies": {
     "@types/node": "^22.19.15",
     "@types/jsonwebtoken": "^9.0.10",
+    "oxlint": "^1.59.0",
     "prisma": "^6.19.2",
     "tsx": "^4.19.3",
     "typescript": "^7.0.2"

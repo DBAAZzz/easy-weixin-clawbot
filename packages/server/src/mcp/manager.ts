@@ -17,6 +17,7 @@ import {
   listEnabledMcpServerConfigs,
   listMcpServers,
   listMcpTools,
+  saveResolvedLaunchSpec,
   setMcpServerEnabled,
   setMcpToolEnabled,
   syncMcpTools,
@@ -114,18 +115,34 @@ export function createMcpManager(registry: ToolRegistry): McpManager {
       last_error: null,
     });
 
-    const launch = await resolveLaunchSpec(server);
-    if (launch.rewrittenFrom) {
-      mcpLogger.info(
-        {
-          serverId: server.id,
-          serverSlug: server.slug,
-          qualifiedName: launch.rewrittenFrom,
+    let launch: { command: string; args: string[]; env: Record<string, string>; rewrittenFrom?: string };
+    if (server.resolvedCommand) {
+      // 已有固化结果：不再访问远程注册表
+      launch = {
+        command: server.resolvedCommand,
+        args: server.resolvedArgs ?? [],
+        env: { ...server.resolvedEnv, ...server.env },
+      };
+    } else {
+      launch = await resolveLaunchSpec(server);
+      if (launch.rewrittenFrom) {
+        mcpLogger.info(
+          {
+            serverId: server.id,
+            serverSlug: server.slug,
+            qualifiedName: launch.rewrittenFrom,
+            command: launch.command,
+            args: launch.args,
+          },
+          "已将 @mcp_hub_org/cli 配置解析为底层真实命令",
+        );
+        await saveResolvedLaunchSpec(server.id, {
           command: launch.command,
           args: launch.args,
-        },
-        "已将 @mcp_hub_org/cli 配置解析为底层真实命令",
-      );
+          env: launch.env,
+          rewrittenFrom: launch.rewrittenFrom,
+        });
+      }
     }
 
     const client = createStdioMcpClient({
@@ -186,6 +203,10 @@ export function createMcpManager(registry: ToolRegistry): McpManager {
       await rebuildRegistry();
     } catch (error) {
       await client.close().catch(() => undefined);
+      mcpLogger.warn(
+        { serverId: server.id, serverSlug: server.slug },
+        "MCP 连接失败。提示：子进程已不再继承宿主完整环境变量，若该 server 依赖某个环境变量，请在其 env 配置中显式声明",
+      );
       await updateMcpServerConnectionState(server.id, {
         status: "error",
         last_error: toErrorText(error),
@@ -259,9 +280,8 @@ export function createMcpManager(registry: ToolRegistry): McpManager {
 
     async shutdown() {
       registry.swap({ tools: [] });
-      for (const serverId of [...runtimes.keys()]) {
-        await closeRuntime(serverId);
-      }
+      // 并行关闭：close() 会等到进程真正退出（最长 gracefulTimeoutMs），串行会放大为 N 倍
+      await Promise.all([...runtimes.keys()].map((serverId) => closeRuntime(serverId)));
     },
 
     listServers() {

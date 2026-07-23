@@ -1,7 +1,12 @@
 import type { Hono } from "hono";
+import { basename, isAbsolute } from "node:path";
 import type { McpTransport } from "@clawbot/shared";
 import type { McpManager } from "../../mcp/manager.js";
+import { createModuleLogger } from "../../logger.js";
 import { ValidationError } from "../errors.js";
+
+const mcpRouteLogger = createModuleLogger("mcp-routes");
+const SHARED_INTERPRETER_BASENAMES = new Set(["python", "python3", "node"]);
 
 const STANDARD_MCP_SLUG_MAX_LENGTH = 21;
 
@@ -39,6 +44,24 @@ function requireObject(value: unknown, message: string): Record<string, unknown>
   }
 
   return value as Record<string, unknown>;
+}
+
+function validateAbsoluteCwd(cwdValue: unknown): void {
+  if (typeof cwdValue === "string" && cwdValue.trim() && !isAbsolute(cwdValue.trim())) {
+    throw new ValidationError("cwd must be an absolute path");
+  }
+}
+
+/** 只提示不拦截：依赖隔离是管理员的配置责任，见 docs/2026-07-23_21_30_exec-package-design.md §0.1 第 3 条。 */
+function buildSharedInterpreterWarning(command: string, args: readonly string[]): string | null {
+  if (!SHARED_INTERPRETER_BASENAMES.has(basename(command))) {
+    return null;
+  }
+  const usesIsolatedVenv = args.includes("-m") && args.includes("venv");
+  if (usesIsolatedVenv) {
+    return null;
+  }
+  return "该命令直接使用共享解释器，多个 MCP Server 的依赖可能互相冲突；建议使用 npx -y / uvx / docker 等自带隔离的 runner";
 }
 
 function stripToAscii(value: string) {
@@ -98,6 +121,7 @@ function parseStandardDocument(body: Record<string, unknown>) {
   if (cwdValue !== undefined && cwdValue !== null && typeof cwdValue !== "string") {
     throw new ValidationError("cwd must be string or null");
   }
+  validateAbsoluteCwd(cwdValue);
 
   return {
     name: key,
@@ -144,17 +168,19 @@ function parseCreatePayload(body: Record<string, unknown>) {
     env: body.env === undefined ? {} : isStringRecord(body.env) ? body.env : (() => {
       throw new ValidationError("env must be an object of string values");
     })(),
-    cwd:
-      body.cwd === undefined
-        ? null
-        : body.cwd === null
-          ? null
-          : typeof body.cwd === "string"
-            ? body.cwd.trim() || null
-            : (() => {
-                throw new ValidationError("cwd must be string or null");
-              })(),
+    cwd: parseCwdField(body.cwd),
   } as const;
+}
+
+function parseCwdField(cwdValue: unknown): string | null {
+  if (cwdValue === undefined || cwdValue === null) {
+    return null;
+  }
+  if (typeof cwdValue !== "string") {
+    throw new ValidationError("cwd must be string or null");
+  }
+  validateAbsoluteCwd(cwdValue);
+  return cwdValue.trim() || null;
 }
 
 function parseUpdatePayload(body: Record<string, unknown>) {
@@ -193,6 +219,7 @@ function parseUpdatePayload(body: Record<string, unknown>) {
     if (body.cwd !== null && typeof body.cwd !== "string") {
       throw new ValidationError("cwd must be string or null");
     }
+    validateAbsoluteCwd(body.cwd);
     input.cwd = body.cwd === null ? null : body.cwd?.trim() || null;
   }
 
@@ -207,7 +234,12 @@ export function registerMcpRoutes(app: Hono, manager: McpManager) {
   app.post("/api/mcp/servers", async (c) => {
     try {
       const payload = parseCreatePayload(await readJsonBody(c.req.raw));
-      return c.json({ data: await manager.createServer(payload) }, 201);
+      const data = await manager.createServer(payload);
+      const warning = buildSharedInterpreterWarning(payload.command, payload.args);
+      if (warning) {
+        mcpRouteLogger.warn({ serverId: data.id, serverSlug: data.slug }, warning);
+      }
+      return c.json({ data, ...(warning ? { warnings: [warning] } : {}) }, 201);
     } catch (error) {
       return c.json({ error: error instanceof Error ? error.message : "invalid request" }, 400);
     }
@@ -224,7 +256,15 @@ export function registerMcpRoutes(app: Hono, manager: McpManager) {
   app.patch("/api/mcp/servers/:id", async (c) => {
     try {
       const payload = parseUpdatePayload(await readJsonBody(c.req.raw));
-      return c.json({ data: await manager.updateServer(c.req.param("id"), payload) });
+      const data = await manager.updateServer(c.req.param("id"), payload);
+      const warning =
+        payload.command !== undefined
+          ? buildSharedInterpreterWarning(data.command, data.args)
+          : null;
+      if (warning) {
+        mcpRouteLogger.warn({ serverId: data.id, serverSlug: data.slug }, warning);
+      }
+      return c.json({ data, ...(warning ? { warnings: [warning] } : {}) });
     } catch (error) {
       return c.json({ error: error instanceof Error ? error.message : "invalid request" }, 400);
     }

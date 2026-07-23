@@ -170,6 +170,9 @@ export interface McpServerInfo {
   created_at: string;
   updated_at: string;
   tool_count: number;
+  resolved_command: string | null;
+  resolved_from: string | null;
+  resolved_at: string | null;
 }
 
 export interface McpToolInfo {

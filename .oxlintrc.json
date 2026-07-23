@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "no-restricted-imports": ["error", {
+      "paths": [
+        { "name": "node:child_process", "message": "请通过 @clawbot/exec 的 run()/spawnService() 起进程" },
+        { "name": "child_process", "message": "请通过 @clawbot/exec 的 run()/spawnService() 起进程" }
+      ]
+    }]
+  },
+  "overrides": [
+    {
+      "files": ["packages/exec/src/**", "packages/server/src/prisma-cli.ts", "**/*.test.ts", "packages/agent/test/**"],
+      "rules": { "no-restricted-imports": "off" }
+    }
+  ]
+}

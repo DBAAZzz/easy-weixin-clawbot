@@ -1,4 +1,4 @@
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { spawnService, type ServiceHandle } from "@clawbot/exec";
 import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import type {
   McpRemoteTool,
@@ -165,7 +165,7 @@ function createRequestPayload(
 }
 
 export function createStdioMcpClient(options: StdioMcpClientOptions): StdioMcpClient {
-  let child: ChildProcessWithoutNullStreams | null = null;
+  let child: ServiceHandle | null = null;
   let buffer = "";
   let nextId = 1;
   let connected = false;
@@ -224,7 +224,7 @@ export function createStdioMcpClient(options: StdioMcpClientOptions): StdioMcpCl
     }
   }
 
-  function bindProcess(processHandle: ChildProcessWithoutNullStreams) {
+  function bindProcess(processHandle: ServiceHandle) {
     processHandle.stdout.setEncoding("utf8");
     processHandle.stderr.setEncoding("utf8");
 
@@ -259,14 +259,14 @@ export function createStdioMcpClient(options: StdioMcpClientOptions): StdioMcpCl
       stderrBuffer = `${stderrBuffer}${chunk}`.slice(-8_000);
     });
 
-    processHandle.once("error", (error) => {
-      handleClose(toError(error));
-    });
-
-    processHandle.once("exit", (code, signal) => {
-      const reason = signal
-        ? `MCP server exited with signal ${signal}`
-        : `MCP server exited with code ${String(code ?? 0)}`;
+    void processHandle.exited.then((exit) => {
+      if (exit.spawnError) {
+        handleClose(toError(exit.spawnError));
+        return;
+      }
+      const reason = exit.signal
+        ? `MCP server exited with signal ${exit.signal}`
+        : `MCP server exited with code ${String(exit.code ?? 0)}`;
       handleClose(new Error(stderrBuffer.trim() || reason));
     });
   }
@@ -334,20 +334,20 @@ export function createStdioMcpClient(options: StdioMcpClientOptions): StdioMcpCl
       buffer = "";
       closing = false;
 
-      const processHandle = spawn(options.command, options.args ?? [], {
-        stdio: "pipe",
+      const processHandle = spawnService({
+        command: options.command,
+        args: options.args ?? [],
         cwd: options.cwd ?? undefined,
-        env: {
-          ...process.env,
-          ...(options.env ?? {}),
-        },
+        inherit: "safe",
+        env: options.env ?? {},
+        gracefulTimeoutMs: 5_000,
       });
 
       child = processHandle;
       bindProcess(processHandle);
 
       const timeoutHandle = setTimeout(() => {
-        processHandle.kill("SIGTERM");
+        void processHandle.stop();
       }, CONNECT_TIMEOUT_MS);
 
       let response: Record<string, unknown>;
@@ -393,7 +393,7 @@ export function createStdioMcpClient(options: StdioMcpClientOptions): StdioMcpCl
       child = null;
       connected = false;
       rejectPending(new Error("MCP client closed"));
-      processHandle.kill("SIGTERM");
+      await processHandle.stop();
     },
 
     async listTools(signal) {

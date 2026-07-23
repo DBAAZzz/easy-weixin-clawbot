@@ -1,10 +1,11 @@
+import { run } from "@clawbot/exec";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, normalize, relative, resolve } from "node:path";
 import { z } from "zod";
 import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 import type { ToolSnapshot } from "../tools/types.js";
-import { execPromise, isFile } from "./fs-utils.js";
+import { isFile } from "./fs-utils.js";
 import type { DetectedSkillRuntime, InstalledSkill, SkillInstaller } from "./types.js";
 import { isProvisionableKind, isPythonKind } from "./types.js";
 import type { RuntimeProvisioner } from "./runtime-provisioner.js";
@@ -76,31 +77,6 @@ script_path = sys.argv[1]
 sys.argv = [script_path, *sys.argv[2:]]
 runpy.run_path(script_path, run_name="__main__")
 `;
-
-const SENSITIVE_PREFIXES = [
-  "DATABASE_",
-  "DB_",
-  "OPENAI_",
-  "ANTHROPIC_",
-  "AWS_",
-  "AZURE_",
-  "JWT_",
-  "SECRET_",
-  "API_KEY",
-  "GOOGLE_",
-  "DEEPSEEK_",
-];
-
-function sanitizeEnv(): Record<string, string> {
-  const env = { ...process.env };
-  for (const key of Object.keys(env)) {
-    const upper = key.toUpperCase();
-    if (SENSITIVE_PREFIXES.some((prefix) => upper.startsWith(prefix))) {
-      delete env[key];
-    }
-  }
-  return env as Record<string, string>;
-}
 
 function splitArgs(raw: string): string[] {
   const args: string[] = [];
@@ -266,12 +242,14 @@ async function runChildProcess(
   signal: AbortSignal,
 ): Promise<string> {
   try {
-    const { stdout, stderr } = await execPromise(executable, commandArgs, {
+    const { stdout, stderr } = await run({
+      binary: executable,
+      args: commandArgs,
       cwd: options.cwd,
-      timeout: options.timeoutMs,
+      timeoutMs: options.timeoutMs,
       maxBuffer: 1024 * 1024,
-      env: sanitizeEnv(),
       signal,
+      inherit: "safe",
       rejectOnError: "when-empty-output",
     });
     return (stdout || stderr || "(no output)").trim();

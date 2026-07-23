@@ -111,7 +111,8 @@
     "build": "tsc",
     "dev": "tsc -w",
     "test": "tsx --conditions development --test 'test/**/*.test.ts'",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p test/tsconfig.json"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/tsconfig.json",
+    "lint": "oxlint"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.68",
@@ -122,6 +123,7 @@
     "@ai-sdk/openai": "^3.0.52",
     "@ai-sdk/openai-compatible": "^2.0.41",
     "@ai-sdk/xai": "^3.0.82",
+    "@clawbot/exec": "workspace:*",
     "@clawbot/observability": "workspace:*",
     "@clawbot/shared": "workspace:*",
     "ai": "^6.0.156",
@@ -131,6 +133,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.19.15",
+    "oxlint": "^1.59.0",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2"
   }

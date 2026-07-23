@@ -97,6 +97,12 @@ model McpServer {
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
   tools      McpTool[]
 
+  resolvedCommand  String?   @map("resolved_command") @db.Text
+  resolvedArgsJson Json?     @map("resolved_args_json")
+  resolvedEnvJson  Json?     @map("resolved_env_json")
+  resolvedFrom     String?   @map("resolved_from") @db.Text
+  resolvedAt       DateTime? @map("resolved_at") @db.Timestamptz(6)
+
   @@index([enabled], map: "idx_mcp_servers_enabled")
   @@map("mcp_servers")
 }

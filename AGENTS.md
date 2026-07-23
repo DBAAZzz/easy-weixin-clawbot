@@ -229,7 +229,8 @@ activation: on-demand    # always-on | on-demand
 | 主题 | 路径 |
 |------|------|
 | 架构总览 | [docs/2026-04-01_17_39_agent-architecture.md](docs/2026-04-01_17_39_agent-architecture.md) |
-| MCP 架构 | [docs/2026-04-01_17_39_mcp-architecture.md](docs/2026-04-01_17_39_mcp-architecture.md) |
+| MCP 架构（设计意图） | [docs/2026-04-01_17_39_mcp-architecture.md](docs/2026-04-01_17_39_mcp-architecture.md) |
+| MCP 运行时链路（排查用） | [docs/2026-07-23_18_10_mcp-runtime-walkthrough.md](docs/2026-07-23_18_10_mcp-runtime-walkthrough.md) |
 | Web 架构 | [docs/2026-04-23_19_23_web-architecture.md](docs/2026-04-23_19_23_web-architecture.md) |
 | 记忆系统 | [docs/2026-04-07_16_37_memory-system-architecture.md](docs/2026-04-07_16_37_memory-system-architecture.md) |
 | Tape 存储 | [docs/2026-04-04_20_03_tape-memory-storage.md](docs/2026-04-04_20_03_tape-memory-storage.md) |

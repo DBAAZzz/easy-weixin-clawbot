@@ -5,13 +5,13 @@ import {
   LLMProviderNotConfiguredError,
   resolveConfiguredModel,
   resolveModel,
-} from "./model-resolver.js";
+} from "../src/model-resolver.js";
 import {
   setModelConfigStore,
   type ModelConfigRow,
   type ModelConfigStore,
   type ModelScope,
-} from "./ports/index.js";
+} from "../src/ports/index.js";
 
 function createRow(overrides: Partial<ModelConfigRow> = {}): ModelConfigRow {
   return {

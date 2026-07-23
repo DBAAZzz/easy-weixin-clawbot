@@ -7,8 +7,8 @@ import {
   replaceImagesWithTextPlaceholders,
   stripUnreasonedToolCallHistory,
   TEXT_ONLY_IMAGE_PLACEHOLDER,
-} from "./messages.js";
-import type { AgentMessage, AssistantMessage } from "./types.js";
+} from "../../src/llm/messages.js";
+import type { AgentMessage, AssistantMessage } from "../../src/llm/types.js";
 
 test("agentToModelMessages normalizes malformed toolCall arguments to object input", () => {
   const assistant: AssistantMessage = {

@@ -99,10 +99,17 @@ Phase2: verdict == act → 通过 HeartbeatExecutorPort 执行 chat()
 
 ```bash
 pnpm test:agent
-# 等同于 tsx --test src/**/*.test.ts
+# 等同于 tsx --conditions development --test 'test/**/*.test.ts'
+
+pnpm -F @clawbot/agent typecheck
+# tsc --noEmit -p tsconfig.test.json —— 同时检查 src 与 test
 ```
 
-测试文件与源文件同目录，命名 `*.test.ts`。使用 Node.js 原生 test runner。
+测试文件全部放在 `test/`，目录结构镜像 `src/`，命名 `*.test.ts`。使用 Node.js 原生 test runner。
+
+- `src/tape/service.ts` → `test/tape/service.test.ts`
+- 测试用相对路径 import 源码（`../../src/tape/service.js`），可以访问包内部模块，不限于 `index.ts` 的公开导出
+- 构建配置 `tsconfig.json` 只 include `src`，所以测试不会进 `dist/`；类型检查测试要用 `tsconfig.test.json`
 
 ## 修改指南
 

@@ -6,9 +6,9 @@ import { dirname, join, relative } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
 import { z } from "zod";
-import { createSkillRuntimeToolSnapshot, validateRunRequest } from "./runtime-tools.js";
-import type { InstalledSkill, SkillInstaller } from "./types.js";
-import type { RuntimeProvisioner, ProvisionLog, ProvisionPlan } from "./runtime-provisioner.js";
+import { createSkillRuntimeToolSnapshot, validateRunRequest } from "../../src/skills/runtime-tools.js";
+import type { InstalledSkill, SkillInstaller } from "../../src/skills/types.js";
+import type { RuntimeProvisioner, ProvisionLog, ProvisionPlan } from "../../src/skills/runtime-provisioner.js";
 
 const execFileAsync = promisify(execFile);
 

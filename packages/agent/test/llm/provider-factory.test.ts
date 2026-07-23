@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { generateText, tool } from "ai";
 import { z } from "zod";
-import { agentToModelMessages } from "./messages.js";
-import { createLanguageModel } from "./provider-factory.js";
+import { agentToModelMessages } from "../../src/llm/messages.js";
+import { createLanguageModel } from "../../src/llm/provider-factory.js";
 
 async function assertProviderIgnoresEnvApiKey(options: {
   testName: string;

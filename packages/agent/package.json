@@ -110,7 +110,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "test": "tsx --conditions development --test 'src/**/*.test.ts'"
+    "test": "tsx --conditions development --test 'test/**/*.test.ts'",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.68",

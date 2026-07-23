@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { estimateMessageTokens } from "./token-estimator.js";
-import type { AssistantMessage } from "../llm/types.js";
+import { estimateMessageTokens } from "../../src/conversation/token-estimator.js";
+import type { AssistantMessage } from "../../src/llm/types.js";
 
 test("estimateMessageTokens does not throw on malformed toolCall arguments", () => {
   const malformedAssistant: AssistantMessage = {

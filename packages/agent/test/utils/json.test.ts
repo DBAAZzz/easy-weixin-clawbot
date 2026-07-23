@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { extractJsonBlock } from "./json.js";
+import { extractJsonBlock } from "../../src/utils/json.js";
 
 test("extractJsonBlock returns raw object span", () => {
   assert.equal(extractJsonBlock('{"a":1}'), '{"a":1}');

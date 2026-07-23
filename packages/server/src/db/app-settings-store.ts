@@ -1,3 +1,9 @@
+import {
+  APP_SETTINGS_SEALED_FIELDS,
+  resolveAppSettingsSecret,
+  sealedFieldWrite,
+  type AppSettingsSecretColumns,
+} from "./app-settings-secrets.js";
 import { getPrisma } from "./prisma.js";
 
 const APP_SETTINGS_SINGLETON_ID = 1;
@@ -43,68 +49,40 @@ export interface UpdateAppSettingsInput {
   assetS3PublicBaseUrl?: string | null;
 }
 
+/**
+ * Column-level shape of the `app_settings` row, including the sealed columns the
+ * public {@link AppSettingsRow} deliberately hides behind plaintext values.
+ */
+export interface AppSettingsColumns extends AppSettingsSecretColumns {
+  id: number;
+  normalRate: number;
+  rsshubBaseUrl: string | null;
+  rsshubAuthType: string;
+  rsshubUsername: string | null;
+  rssRequestTimeoutMs: number;
+  assetStorageProvider: string;
+  assetLocalBaseDir: string | null;
+  assetS3Name: string | null;
+  assetS3Endpoint: string | null;
+  assetS3Region: string | null;
+  assetS3Bucket: string | null;
+  assetS3AccessKeyId: string | null;
+  assetS3PublicBaseUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+type AppSettingsWriteColumns = Partial<
+  Omit<AppSettingsColumns, "id" | "createdAt" | "updatedAt">
+>;
+
 interface AppSettingsPrismaClient {
   appSettings: {
     upsert(args: {
       where: { id: number };
-      create: {
-        id: number;
-        normalRate?: number;
-        rsshubBaseUrl?: string | null;
-        rsshubAuthType?: "none" | "basic" | "bearer";
-        rsshubUsername?: string | null;
-        rsshubPassword?: string | null;
-        rsshubBearerToken?: string | null;
-        rssRequestTimeoutMs?: number;
-        assetStorageProvider?: "local" | "s3-compatible";
-        assetLocalBaseDir?: string | null;
-        assetS3Name?: string | null;
-        assetS3Endpoint?: string | null;
-        assetS3Region?: string | null;
-        assetS3Bucket?: string | null;
-        assetS3AccessKeyId?: string | null;
-        assetS3SecretAccessKey?: string | null;
-        assetS3PublicBaseUrl?: string | null;
-      };
-      update: {
-        normalRate?: number;
-        rsshubBaseUrl?: string | null;
-        rsshubAuthType?: "none" | "basic" | "bearer";
-        rsshubUsername?: string | null;
-        rsshubPassword?: string | null;
-        rsshubBearerToken?: string | null;
-        rssRequestTimeoutMs?: number;
-        assetStorageProvider?: "local" | "s3-compatible";
-        assetLocalBaseDir?: string | null;
-        assetS3Name?: string | null;
-        assetS3Endpoint?: string | null;
-        assetS3Region?: string | null;
-        assetS3Bucket?: string | null;
-        assetS3AccessKeyId?: string | null;
-        assetS3SecretAccessKey?: string | null;
-        assetS3PublicBaseUrl?: string | null;
-      };
-    }): Promise<{
-      id: number;
-      normalRate: number;
-      rsshubBaseUrl: string | null;
-      rsshubAuthType: "none" | "basic" | "bearer";
-      rsshubUsername: string | null;
-      rsshubPassword: string | null;
-      rsshubBearerToken: string | null;
-      rssRequestTimeoutMs: number;
-      assetStorageProvider: string;
-      assetLocalBaseDir: string | null;
-      assetS3Name: string | null;
-      assetS3Endpoint: string | null;
-      assetS3Region: string | null;
-      assetS3Bucket: string | null;
-      assetS3AccessKeyId: string | null;
-      assetS3SecretAccessKey: string | null;
-      assetS3PublicBaseUrl: string | null;
-      createdAt: Date;
-      updatedAt: Date;
-    }>;
+      create: AppSettingsWriteColumns & { id: number };
+      update: AppSettingsWriteColumns;
+    }): Promise<AppSettingsColumns>;
   };
 }
 
@@ -121,35 +99,15 @@ export interface AppSettingsStore {
   update(input: UpdateAppSettingsInput): Promise<AppSettingsRow>;
 }
 
-function toRow(row: {
-  id: number;
-  normalRate: number;
-  rsshubBaseUrl: string | null;
-  rsshubAuthType: string;
-  rsshubUsername: string | null;
-  rsshubPassword: string | null;
-  rsshubBearerToken: string | null;
-  rssRequestTimeoutMs: number;
-  assetStorageProvider: string;
-  assetLocalBaseDir: string | null;
-  assetS3Name: string | null;
-  assetS3Endpoint: string | null;
-  assetS3Region: string | null;
-  assetS3Bucket: string | null;
-  assetS3AccessKeyId: string | null;
-  assetS3SecretAccessKey: string | null;
-  assetS3PublicBaseUrl: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}): AppSettingsRow {
+function toRow(row: AppSettingsColumns): AppSettingsRow {
   return {
     id: row.id,
     normalRate: row.normalRate,
     rsshubBaseUrl: row.rsshubBaseUrl,
     rsshubAuthType: toRsshubAuthType(row.rsshubAuthType),
     rsshubUsername: row.rsshubUsername,
-    rsshubPassword: row.rsshubPassword,
-    rsshubBearerToken: row.rsshubBearerToken,
+    rsshubPassword: resolveAppSettingsSecret(row, "rsshubPassword"),
+    rsshubBearerToken: resolveAppSettingsSecret(row, "rsshubBearerToken"),
     rssRequestTimeoutMs: row.rssRequestTimeoutMs,
     assetStorageProvider: toAssetStorageProvider(row.assetStorageProvider),
     assetLocalBaseDir: row.assetLocalBaseDir,
@@ -158,23 +116,36 @@ function toRow(row: {
     assetS3Region: row.assetS3Region,
     assetS3Bucket: row.assetS3Bucket,
     assetS3AccessKeyId: row.assetS3AccessKeyId,
-    assetS3SecretAccessKey: row.assetS3SecretAccessKey,
+    assetS3SecretAccessKey: resolveAppSettingsSecret(row, "assetS3SecretAccessKey"),
     assetS3PublicBaseUrl: row.assetS3PublicBaseUrl,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
 }
 
-function toPrismaUpdate(input: UpdateAppSettingsInput) {
+/**
+ * Map the sealed fields present in `input` onto their ciphertext columns.
+ * Table-driven so a new sealed field only has to be added to
+ * APP_SETTINGS_SEALED_FIELDS.
+ */
+function toSealedWrite(input: UpdateAppSettingsInput): AppSettingsWriteColumns {
+  let data: AppSettingsWriteColumns = {};
+
+  for (const field of APP_SETTINGS_SEALED_FIELDS) {
+    const value = input[field];
+    if (value === undefined) continue;
+    data = { ...data, ...sealedFieldWrite(field, value) };
+  }
+
+  return data;
+}
+
+function toPrismaUpdate(input: UpdateAppSettingsInput): AppSettingsWriteColumns {
   return {
     ...(input.normalRate !== undefined ? { normalRate: input.normalRate } : {}),
     ...(input.rsshubBaseUrl !== undefined ? { rsshubBaseUrl: input.rsshubBaseUrl } : {}),
     ...(input.rsshubAuthType !== undefined ? { rsshubAuthType: input.rsshubAuthType } : {}),
     ...(input.rsshubUsername !== undefined ? { rsshubUsername: input.rsshubUsername } : {}),
-    ...(input.rsshubPassword !== undefined ? { rsshubPassword: input.rsshubPassword } : {}),
-    ...(input.rsshubBearerToken !== undefined
-      ? { rsshubBearerToken: input.rsshubBearerToken }
-      : {}),
     ...(input.rssRequestTimeoutMs !== undefined
       ? { rssRequestTimeoutMs: input.rssRequestTimeoutMs }
       : {}),
@@ -191,12 +162,10 @@ function toPrismaUpdate(input: UpdateAppSettingsInput) {
     ...(input.assetS3AccessKeyId !== undefined
       ? { assetS3AccessKeyId: input.assetS3AccessKeyId }
       : {}),
-    ...(input.assetS3SecretAccessKey !== undefined
-      ? { assetS3SecretAccessKey: input.assetS3SecretAccessKey }
-      : {}),
     ...(input.assetS3PublicBaseUrl !== undefined
       ? { assetS3PublicBaseUrl: input.assetS3PublicBaseUrl }
       : {}),
+    ...toSealedWrite(input),
   };
 }
 

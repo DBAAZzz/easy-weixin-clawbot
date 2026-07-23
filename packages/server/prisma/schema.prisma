@@ -484,8 +484,17 @@ model AppSettings {
   rsshubBaseUrl      String?  @map("rsshub_base_url") @db.Text
   rsshubAuthType     String   @default("none") @map("rsshub_auth_type") @db.Text
   rsshubUsername     String?  @map("rsshub_username") @db.Text
+  /// Legacy plaintext column. Read-only fallback; emptied by the startup
+  /// migration in src/db/app-settings-key-migration.ts. Drop once every
+  /// deployment has booted at least once on >= the release that added the
+  /// matching *_ciphertext column.
   rsshubPassword     String?  @map("rsshub_password") @db.Text
+  /// Sealed with the per-field derived key — see db/app-settings-secrets.ts.
+  rsshubPasswordCiphertext String? @map("rsshub_password_ciphertext") @db.Text
+  /// Legacy plaintext column — see rsshubPassword.
   rsshubBearerToken  String?  @map("rsshub_bearer_token") @db.Text
+  /// Sealed with the per-field derived key — see db/app-settings-secrets.ts.
+  rsshubBearerTokenCiphertext String? @map("rsshub_bearer_token_ciphertext") @db.Text
   rssRequestTimeoutMs Int     @default(15000) @map("rss_request_timeout_ms")
   assetStorageProvider String @default("local") @map("asset_storage_provider") @db.Text
   assetLocalBaseDir String?   @map("asset_local_base_dir") @db.Text
@@ -494,7 +503,10 @@ model AppSettings {
   assetS3Region     String?   @map("asset_s3_region") @db.Text
   assetS3Bucket     String?   @map("asset_s3_bucket") @db.Text
   assetS3AccessKeyId String?  @map("asset_s3_access_key_id") @db.Text
+  /// Legacy plaintext column — see rsshubPassword.
   assetS3SecretAccessKey String? @map("asset_s3_secret_access_key") @db.Text
+  /// Sealed with the per-field derived key — see db/app-settings-secrets.ts.
+  assetS3SecretAccessKeyCiphertext String? @map("asset_s3_secret_access_key_ciphertext") @db.Text
   assetS3PublicBaseUrl String? @map("asset_s3_public_base_url") @db.Text
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)

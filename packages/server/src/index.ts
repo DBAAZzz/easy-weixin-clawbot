@@ -4,7 +4,7 @@ import { schedulerManager, startHeartbeat, stopHeartbeat } from "@clawbot/agent"
 import { purgeCompacted } from "@clawbot/agent/tape";
 import { createApiApp } from "./api/index.js";
 import { mcpToolRegistry, skillInstaller, runtimeProvisioner, validateConfig } from "./ai.js";
-import { migratePlaintextProviderKeys } from "./db/model-config-key-migration.js";
+import { migratePlaintextSecrets } from "./db/secret-migrations.js";
 import { disconnectPrisma } from "./db/prisma.js";
 import { createLoginManager } from "./login/login-manager.js";
 import { createModuleLogger, getErrorFields } from "./logger.js";
@@ -22,16 +22,11 @@ const MAINTENANCE_INTERVAL_MS = 12 * 60 * 60 * 1000;
 
 const bootstrapLogger = createModuleLogger("bootstrap");
 
-await appSettingsService.bootstrap();
+// Must run before anything resolves a model config or reads app settings, so no
+// reader sees a key the migration is concurrently rewriting.
+await migratePlaintextSecrets();
 
-// Must run before anything resolves a model config, so the agent never reads a
-// key the migration is concurrently rewriting.
-await migratePlaintextProviderKeys().catch((error) => {
-  bootstrapLogger.warn(
-    { ...getErrorFields(error), subsystem: "model-config" },
-    "迁移模型 Provider API Key 失败，将继续以明文回退读取",
-  );
-});
+await appSettingsService.bootstrap();
 
 const mcpManager = createMcpManager(mcpToolRegistry);
 await mcpManager.bootstrap();

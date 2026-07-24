@@ -112,7 +112,8 @@
     "dev": "tsc -w",
     "test": "tsx --conditions development --test 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit && tsc --noEmit -p test/tsconfig.json",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "lint:layers": "node scripts/check-layers.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.68",

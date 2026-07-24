@@ -1,5 +1,4 @@
 import { TimeoutError } from "../../shared/errors.js";
-import { withTimeout } from "../../shared/utils/async.js";
 import { getChatExecutor } from "../../ports/chat-executor.js";
 import { getPushService } from "../../ports/push-service.js";
 import { getScheduledTaskHandler } from "../../ports/scheduled-task-handler.js";
@@ -13,40 +12,64 @@ import { PROMPT_TASK_KIND, schedulerConversationId } from "./constants.js";
 const EXECUTION_TIMEOUT_MS = 60_000;
 const MAX_FAIL_STREAK = 3;
 
-async function runChatTaskWithTimeout(
-  task: ScheduledTaskRow,
-  executionConvId: string,
-): Promise<string | undefined> {
+/**
+ * Run `fn` under a deadline, aborting the signal it was given when the deadline
+ * passes.
+ *
+ * Both task paths (LLM chat and native handlers) go through here so a timeout
+ * actually cancels the work. Rejecting the promise alone is not enough: the
+ * underlying run would keep calling the LLM, keep writing to the shared
+ * conversation history, and keep queueing persistence long after the executor
+ * has recorded the task as timed out.
+ */
+async function runWithDeadline<T>(
+  label: string,
+  timeoutMs: number,
+  fn: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   try {
-    const execPromise = getChatExecutor().execute({
-      accountId: task.accountId,
-      conversationId: executionConvId,
-      targetConversationId: task.conversationId,
-      prompt: task.prompt,
-      runKind: "scheduler",
-      signal: controller.signal,
-    });
-    void execPromise.catch(() => {});
+    const work = fn(controller.signal);
+    // When the deadline wins the race below, nothing is left observing `work`.
+    // This no-op catch keeps its eventual rejection from surfacing as an
+    // unhandled one; rejections arriving before the deadline are still returned
+    // by the race itself, so no error is swallowed here.
+    void work.catch(() => {});
 
-    const timeoutPromise = new Promise<never>((_, reject) => {
+    const deadline = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
         controller.abort();
-        reject(new TimeoutError(`Scheduled task #${task.seq} timed out`));
-      }, EXECUTION_TIMEOUT_MS);
+        reject(new TimeoutError(`${label} timed out`));
+      }, timeoutMs);
     });
-    const execResult = await Promise.race([execPromise, timeoutPromise]);
 
-    if (execResult.status === "error") {
-      throw new Error(execResult.error ?? "chat executor failed");
-    }
-
-    return execResult.text ?? undefined;
+    return await Promise.race([work, deadline]);
   } finally {
     if (timer) clearTimeout(timer);
   }
+}
+
+async function runChatTask(
+  task: ScheduledTaskRow,
+  executionConvId: string,
+  signal: AbortSignal,
+): Promise<string | undefined> {
+  const execResult = await getChatExecutor().execute({
+    accountId: task.accountId,
+    conversationId: executionConvId,
+    targetConversationId: task.conversationId,
+    prompt: task.prompt,
+    runKind: "scheduler",
+    signal,
+  });
+
+  if (execResult.status === "error") {
+    throw new Error(execResult.error ?? "chat executor failed");
+  }
+
+  return execResult.text ?? undefined;
 }
 
 /**
@@ -73,9 +96,10 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
   try {
     // 走RRS订阅定时任务
     if (task.taskKind !== PROMPT_TASK_KIND) {
-      const handlerResult = await withTimeout(
-        getScheduledTaskHandler().execute(task),
+      const handlerResult = await runWithDeadline(
+        `Scheduled task #${task.seq}`,
         EXECUTION_TIMEOUT_MS,
+        (signal) => getScheduledTaskHandler().execute(task, { signal }),
       );
 
       if (!handlerResult) {
@@ -88,7 +112,11 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
       pushed = handlerResult.pushed;
     } else {
       // Execute AI chat with timeout
-      result = await runChatTaskWithTimeout(task, executionConvId);
+      result = await runWithDeadline(
+        `Scheduled task #${task.seq}`,
+        EXECUTION_TIMEOUT_MS,
+        (signal) => runChatTask(task, executionConvId, signal),
+      );
 
       // Try to push the result
       if (result) {

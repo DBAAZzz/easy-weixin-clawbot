@@ -136,6 +136,7 @@ export type {
   ScheduledTaskRunRow,
   ScheduledTaskHandlerPort,
   ScheduledTaskHandlerResult,
+  ScheduledTaskExecutionContext,
   PushService,
   ModelConfigStore,
   ModelProviderTemplateRow,

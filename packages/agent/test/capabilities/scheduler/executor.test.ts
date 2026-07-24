@@ -5,6 +5,7 @@ import { schedulerConversationId } from "../../../src/capabilities/scheduler/con
 import {
   setChatExecutor,
   setPushService,
+  setScheduledTaskHandler,
   setSchedulerStore,
   type ChatExecutionRequest,
   type ChatExecutorPort,
@@ -151,7 +152,7 @@ test("executeTask aborts the executor's signal and records a timeout run past th
     const runPromise = executeTask(createTask());
 
     // Let executeTask progress past its async port calls up to the point
-    // where runChatTaskWithTimeout registers its 60s setTimeout.
+    // where runWithDeadline registers its 60s setTimeout.
     await flushMicrotasks();
     mock.timers.tick(60_000);
     await runPromise;
@@ -160,6 +161,44 @@ test("executeTask aborts the executor's signal and records a timeout run past th
     assert.equal(store.runs.length, 1);
     assert.equal(store.runs[0]?.status, "timeout");
     assert.deepEqual(store.statuses, ["running", "idle"]);
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("non-prompt task handlers get the same abort-on-deadline treatment as chat tasks", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const store = createFakeSchedulerStore();
+    setSchedulerStore(store);
+    setPushService({ async sendProactiveMessage() {} });
+    setChatExecutor({
+      async execute() {
+        throw new Error("chat executor must not be used for non-prompt tasks");
+      },
+    });
+
+    let aborted = false;
+    setScheduledTaskHandler({
+      execute(_task, ctx) {
+        // Same hung-work shape as the chat case: only the abort ends it.
+        return new Promise(() => {
+          ctx.signal.addEventListener("abort", () => {
+            aborted = true;
+          });
+        });
+      },
+    });
+
+    const runPromise = executeTask(createTask({ taskKind: "rss_digest" }));
+
+    await flushMicrotasks();
+    mock.timers.tick(60_000);
+    await runPromise;
+
+    assert.equal(aborted, true);
+    assert.equal(store.runs.length, 1);
+    assert.equal(store.runs[0]?.status, "timeout");
   } finally {
     mock.timers.reset();
   }

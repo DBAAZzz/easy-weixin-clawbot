@@ -17,7 +17,7 @@ import {
 } from "@clawbot/shared";
 import { withSpan, getTraceId } from "@clawbot/observability";
 import type { AgentRunner, RunCallbacks, RunResult } from "./runner.js";
-import type { RunContext } from "./context.js";
+import { runLogger, type RunContext } from "./context.js";
 import type { ConversationCache } from "./conversation/cache.js";
 import {
   resolveConfiguredModel,
@@ -69,13 +69,13 @@ function finalizeReply(
   debugFlags: DebugFlags,
   text: string,
   fallback: string,
-  debug?: { accountId: string; conversationId: string; startedAt: number; rounds: number },
+  debug?: { ctx: RunContext; startedAt: number; rounds: number },
 ): ChatResponse {
   const raw = text || fallback;
   const { cleanText, media } = extractMediaFromText(raw);
 
   let finalText = cleanText || undefined;
-  if (finalText && debug && debugFlags.isEnabled(debug.accountId, debug.conversationId)) {
+  if (finalText && debug && debugFlags.isEnabled(debug.ctx.accountId, debug.ctx.conversationId)) {
     const elapsed = Date.now() - debug.startedAt;
     finalText += `\n\n---\n⏱ ${debug.rounds} round(s), ${elapsed}ms`;
   }
@@ -107,7 +107,7 @@ async function loadConversationContext(
         recall(ctx.accountId, ctx.conversationId),
         recall(ctx.accountId, GLOBAL_BRANCH),
       ]).catch((err) => {
-        console.warn("[tape] recall failed, proceeding without memory:", err);
+        runLogger(ctx).warn("tape recall failed, proceeding without memory", { err });
         return [emptyState(), emptyState()] as const;
       }),
     ),
@@ -122,15 +122,16 @@ async function loadConversationContext(
 /**
  * Assemble the user message: prompt-profile text plus any prepared image content.
  */
-async function buildUserMessage(params: {
-  text: string;
-  media: ChatMedia | undefined;
-  memoryContext: string;
-  chatModel: ResolvedModel;
-  accountId: string;
-  conversationId: string;
-}): Promise<AgentMessage> {
-  const { text, media, memoryContext, chatModel, accountId, conversationId } = params;
+async function buildUserMessage(
+  ctx: RunContext,
+  params: {
+    text: string;
+    media: ChatMedia | undefined;
+    memoryContext: string;
+    chatModel: ResolvedModel;
+  },
+): Promise<AgentMessage> {
+  const { text, media, memoryContext, chatModel } = params;
 
   const assembledText = assembleUserContext(PROMPT_PROFILES.chat, {
     tapeMemory: memoryContext || undefined,
@@ -147,8 +148,8 @@ async function buildUserMessage(params: {
     const prepared = await prepareUserVisualContent({
       media,
       chatModel,
-      accountId,
-      conversationId,
+      accountId: ctx.accountId,
+      conversationId: ctx.conversationId,
     });
     userContent.push(...prepared.content);
     visualContexts.push(...prepared.visualContexts);
@@ -165,17 +166,16 @@ async function buildUserMessage(params: {
 /** Append a message to live history and queue it for persistence. */
 function appendMessage(
   cache: ConversationCache,
-  accountId: string,
-  conversationId: string,
+  ctx: RunContext,
   history: AgentMessage[],
   message: AgentMessage,
 ): void {
   history.push(message);
   getMessageStore().queuePersistMessage({
-    accountId,
-    conversationId,
+    accountId: ctx.accountId,
+    conversationId: ctx.conversationId,
     message,
-    seq: cache.nextSeq(accountId, conversationId),
+    seq: cache.nextSeq(ctx.accountId, ctx.conversationId),
   });
 }
 
@@ -191,12 +191,12 @@ interface RunTracker {
  */
 function createMessageTracker(
   cache: ConversationCache,
-  accountId: string,
-  conversationId: string,
+  ctx: RunContext,
   history: AgentMessage[],
   log: ChatLog,
   usageRequestId: string,
 ): RunTracker {
+  const { accountId, conversationId } = ctx;
   const messageStore = getMessageStore();
   const pendingToolArgs = new Map<string, Record<string, unknown>>();
   const state = { rounds: 0, messagesAddedInRun: 0 };
@@ -262,22 +262,21 @@ function createMessageTracker(
  * (falling back to the chat model) and records the turn — must not block the
  * user-facing response path.
  */
-function scheduleMemoryExtraction(params: {
-  accountId: string;
-  conversationId: string;
-  userText: string;
-  assistantText: string;
-  chatModel: ResolvedModel;
-}): void {
-  const { accountId, conversationId, userText, assistantText, chatModel } = params;
+function scheduleMemoryExtraction(
+  ctx: RunContext,
+  params: { userText: string; assistantText: string; chatModel: ResolvedModel },
+): void {
+  const { userText, assistantText, chatModel } = params;
+  const { accountId, conversationId } = ctx;
+  const logger = runLogger(ctx);
 
   void resolveConfiguredModel(accountId, conversationId, "extraction")
     .then((extractionModel) => {
       const effectiveExtractionModel = extractionModel ?? chatModel;
-      const extractionSource = extractionModel ? "configured-extraction" : "chat-fallback";
-      console.log(
-        `[tape] extraction model source=${extractionSource} model=${effectiveExtractionModel.modelId}`,
-      );
+      logger.info("tape extraction model resolved", {
+        source: extractionModel ? "configured-extraction" : "chat-fallback",
+        model: effectiveExtractionModel.modelId,
+      });
       fireExtractAndRecord(
         effectiveExtractionModel.model,
         accountId,
@@ -286,38 +285,30 @@ function scheduleMemoryExtraction(params: {
         `agent:${effectiveExtractionModel.modelId}`,
       );
     })
-    .catch((err) => console.warn("[chat] extraction model resolve failed:", err));
+    .catch((err) => logger.warn("extraction model resolve failed", { err }));
 }
 
 /**
  * Turn a runner RunResult into the user-facing reply, handling rollback of error
  * responses and firing post-response memory extraction / compaction.
  */
-async function handleRunResult(params: {
-  cache: ConversationCache;
-  debugFlags: DebugFlags;
-  result: RunResult;
-  accountId: string;
-  conversationId: string;
-  userText: string;
-  chatModel: ResolvedModel;
-  startedAt: number;
-  rounds: number;
-  messagesAddedInRun: number;
-}): Promise<ChatResponse> {
-  const {
-    cache,
-    debugFlags,
-    result,
-    accountId,
-    conversationId,
-    userText,
-    chatModel,
-    startedAt,
-    rounds,
-    messagesAddedInRun,
-  } = params;
-  const debug = { accountId, conversationId, startedAt, rounds };
+async function handleRunResult(
+  ctx: RunContext,
+  params: {
+    cache: ConversationCache;
+    debugFlags: DebugFlags;
+    result: RunResult;
+    userText: string;
+    chatModel: ResolvedModel;
+    startedAt: number;
+    rounds: number;
+    messagesAddedInRun: number;
+  },
+): Promise<ChatResponse> {
+  const { cache, debugFlags, result, userText, chatModel, startedAt, rounds, messagesAddedInRun } =
+    params;
+  const { accountId, conversationId } = ctx;
+  const debug = { ctx, startedAt, rounds };
 
   switch (result.status) {
     case "completed": {
@@ -326,19 +317,20 @@ async function handleRunResult(params: {
 
       // If the LLM returned an error or completely empty response, roll back
       if (!replyText && msg.stopReason !== MESSAGE_STOP_REASON.STOP) {
-        console.warn(
-          `[chat] error response — rolling back ${messagesAddedInRun} message(s). ` +
-            `stopReason: ${msg.stopReason} | errorMessage: ${(msg as any).errorMessage ?? "(none)"}`,
-        );
+        runLogger(ctx).warn("error response — rolling back turn", {
+          rolledBackMessages: messagesAddedInRun,
+          stopReason: msg.stopReason,
+          errorMessage: msg.errorMessage,
+        });
         await cache.rollback(accountId, conversationId, messagesAddedInRun);
       } else {
         // Both run asynchronously *after* the finalizeReply() return below.
-        scheduleMemoryExtraction({ accountId, conversationId, userText, assistantText: replyText, chatModel });
+        scheduleMemoryExtraction(ctx, { userText, assistantText: replyText, chatModel });
 
         // Compact if threshold reached
         withSpan("tape.compact", { branch: conversationId }, () =>
           compactIfNeeded(accountId, conversationId),
-        ).catch((err) => console.warn("[tape] compact failed:", err));
+        ).catch((err) => runLogger(ctx).warn("tape compact failed", { err }));
       }
 
       return finalizeReply(debugFlags, replyText, "抱歉，出了点问题，请稍后再试。", debug);
@@ -363,6 +355,19 @@ export async function runChatTurn(
   const { runner, log, cache, debugFlags } = deps;
   const startedAt = input.startedAt ?? Date.now();
 
+  // A turn mutates the shared in-memory history (append, and rollback on error),
+  // so the caller must already hold this conversation's lock. The lock stays
+  // outside because callers routinely need it to span more than one turn — and
+  // because `withLock` is not reentrant, taking it here as well would deadlock.
+  // Hence a guard rather than an acquisition.
+  if (!cache.isLocked(ctx.accountId, ctx.conversationId)) {
+    throw new Error(
+      `runChatTurn called without holding the conversation lock for ` +
+        `${ctx.accountId}/${ctx.conversationId} — wrap the call in ` +
+        `ChatEngine.conversations.withLock().`,
+    );
+  }
+
   // Resolve the chat model dynamically based on account/conversation context
   const chatModel = await resolveModel(ctx.accountId, ctx.conversationId, "chat");
 
@@ -372,24 +377,15 @@ export async function runChatTurn(
     async () => {
       const { history, memoryContext } = await loadConversationContext(cache, ctx);
 
-      const userMessage = await buildUserMessage({
+      const userMessage = await buildUserMessage(ctx, {
         text: input.text,
         media: input.media,
         memoryContext,
         chatModel,
-        accountId: ctx.accountId,
-        conversationId: ctx.conversationId,
       });
-      appendMessage(cache, ctx.accountId, ctx.conversationId, history, userMessage);
+      appendMessage(cache, ctx, history, userMessage);
 
-      const tracker = createMessageTracker(
-        cache,
-        ctx.accountId,
-        ctx.conversationId,
-        history,
-        log,
-        createUsageRequestId(),
-      );
+      const tracker = createMessageTracker(cache, ctx, history, log, createUsageRequestId());
 
       const result = await runner.run(
         history,
@@ -406,12 +402,10 @@ export async function runChatTurn(
         log.done(ctx.accountId, tracker.state.rounds, Date.now() - startedAt);
       }
 
-      return handleRunResult({
+      return handleRunResult(ctx, {
         cache,
         debugFlags,
         result,
-        accountId: ctx.accountId,
-        conversationId: ctx.conversationId,
         userText: input.text,
         chatModel,
         startedAt,

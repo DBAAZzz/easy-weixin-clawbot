@@ -31,6 +31,15 @@ export interface ConversationCache {
   rollback(accountId: string, conversationId: string, count: number): Promise<void>;
   appendAssistantText(accountId: string, conversationId: string, text: string): Promise<void>;
   withLock<T>(accountId: string, conversationId: string, fn: () => Promise<T>): Promise<T>;
+  /**
+   * Whether *someone* currently holds this conversation's lock.
+   *
+   * Deliberately not "whether the caller holds it" — tracking ownership would
+   * need AsyncLocalStorage, which this package has decided against. That makes
+   * this a guard against forgetting `withLock` entirely (the realistic mistake),
+   * not a proof of mutual exclusion.
+   */
+  isLocked(accountId: string, conversationId: string): boolean;
 }
 
 const DEFAULT_MAX_CACHED_CONVERSATIONS = 500;
@@ -121,6 +130,15 @@ export function createConversationCache(opts: ConversationCacheOptions = {}): Co
     } finally {
       release();
     }
+  }
+
+  /**
+   * `waitQueues` doubles as the held-lock set: `acquireConversationLock` seeds an
+   * empty queue on acquisition and deletes the key on the last release, so key
+   * presence is exactly "held".
+   */
+  function isLocked(accountId: string, conversationId: string): boolean {
+    return waitQueues.has(key(accountId, conversationId));
   }
 
   async function ensureLoaded(accountId: string, conversationId: string): Promise<AgentMessage[]> {
@@ -245,5 +263,6 @@ export function createConversationCache(opts: ConversationCacheOptions = {}): Co
     rollback,
     appendAssistantText,
     withLock,
+    isLocked,
   };
 }

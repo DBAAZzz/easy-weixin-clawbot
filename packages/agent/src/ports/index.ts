@@ -27,6 +27,7 @@ export { setSchedulerStore, getSchedulerStore } from "./scheduler-store.js";
 export type {
   ScheduledTaskHandlerPort,
   ScheduledTaskHandlerResult,
+  ScheduledTaskExecutionContext,
 } from "./scheduled-task-handler.js";
 export {
   setScheduledTaskHandler,

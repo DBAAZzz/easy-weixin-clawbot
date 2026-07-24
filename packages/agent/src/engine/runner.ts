@@ -424,12 +424,15 @@ export function createAgentRunner(
     });
 
     // Tools list is stable across iterations — the composite registry doesn't
-    // change mid-run (use_skill adds prompt text, not tools).  Serialize once.
+    // change mid-run (use_skill adds prompt text, not tools). So the schema
+    // serialization, its token estimate, and the AI SDK tool objects are all
+    // built once here rather than per round.
     const currentTools = [...tools.current().tools, USE_SKILL_TOOL];
     const toolsSchemaText = JSON.stringify(
       currentTools.map((t) => ({ name: t.name, description: t.description, parameters: t.parameters })),
     );
     const toolsSchemaTokens = estimateTextTokens(toolsSchemaText);
+    const aiSdkTools = buildAiSdkTools(currentTools);
 
     for (let round = 1; round <= maxRounds; round += 1) {
       if (signal?.aborted) {
@@ -458,7 +461,7 @@ export function createAgentRunner(
           modelId: effectiveModelId,
           system: fullSystemPrompt,
           messages: agentToModelMessages(trimResult.messages),
-          tools: buildAiSdkTools(currentTools),
+          tools: aiSdkTools,
           signal,
           round,
           trimResult,

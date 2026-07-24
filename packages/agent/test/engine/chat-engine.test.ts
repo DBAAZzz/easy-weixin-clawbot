@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createChatEngine, type ChatLog } from "../../src/engine/chat-engine.js";
+import { createChatEngine, type ChatEngine, type ChatLog } from "../../src/engine/chat-engine.js";
 import type { RunContext } from "../../src/engine/context.js";
 import type { AgentRunner } from "../../src/engine/runner.js";
 import type { AssistantMessage } from "../../src/llm/types.js";
@@ -120,6 +120,16 @@ function baseCtx(overrides: Partial<RunContext> = {}): RunContext {
   return { accountId: "acc", conversationId: "conv", runKind: "chat", ...overrides };
 }
 
+/**
+ * chat() requires the caller to hold the conversation lock, so every test goes
+ * through the same wrapper production uses instead of calling it bare.
+ */
+function chatLocked(engine: ChatEngine, ctx: RunContext, input: { text: string }) {
+  return engine.conversations.withLock(ctx.accountId, ctx.conversationId, () =>
+    engine.chat(ctx, input),
+  );
+}
+
 function assistantMessage(overrides: Partial<AssistantMessage> = {}): AssistantMessage {
   return {
     role: "assistant",
@@ -153,7 +163,7 @@ test("chat() happy path persists the turn and returns the reply text", async () 
   };
 
   const engine = createChatEngine({ runner, log: noopLog });
-  const reply = await engine.chat(baseCtx(), { text: "hi" });
+  const reply = await chatLocked(engine, baseCtx(), { text: "hi" });
 
   assert.equal(reply.text, "你好！");
   assert.equal(messageStore.rolledBack.length, 0);
@@ -177,7 +187,7 @@ test("chat() rolls back the turn when the model returns an empty error response"
   };
 
   const engine = createChatEngine({ runner, log: noopLog });
-  const reply = await engine.chat(baseCtx(), { text: "hi" });
+  const reply = await chatLocked(engine, baseCtx(), { text: "hi" });
 
   assert.equal(reply.text, "抱歉，出了点问题，请稍后再试。");
   // Empty assistant messages are never persisted — only the user turn was queued.
@@ -201,7 +211,7 @@ test("chat() falls back to the max-rounds message when the loop is cut off witho
   };
 
   const engine = createChatEngine({ runner, log: noopLog });
-  const reply = await engine.chat(baseCtx(), { text: "hi" });
+  const reply = await chatLocked(engine, baseCtx(), { text: "hi" });
 
   assert.equal(reply.text, "抱歉，这次问题我还没处理完。");
   // max_rounds never rolls back — the partial turn stays in history.
@@ -221,7 +231,32 @@ test("chat() surfaces the model's own text when max_rounds is hit with a real re
   };
 
   const engine = createChatEngine({ runner, log: noopLog });
-  const reply = await engine.chat(baseCtx(), { text: "hi" });
+  const reply = await chatLocked(engine, baseCtx(), { text: "hi" });
 
   assert.equal(reply.text, "线索还在处理中");
+});
+
+test("chat() refuses to run when the caller forgot to take the conversation lock", async () => {
+  const messageStore = createFakeMessageStore();
+  setMessageStore(messageStore);
+
+  let runnerCalled = false;
+  const runner: AgentRunner = {
+    async run(_messages, callbacks) {
+      runnerCalled = true;
+      const reply = assistantMessage({ content: [{ type: "text", text: "不该走到这里" }] });
+      callbacks.onMessage(reply);
+      return { status: "completed", finalMessage: reply };
+    },
+  };
+
+  const engine = createChatEngine({ runner, log: noopLog });
+
+  await assert.rejects(
+    () => engine.chat(baseCtx(), { text: "hi" }),
+    /without holding the conversation lock/,
+  );
+  // Rejects before touching history or the model, so nothing is half-applied.
+  assert.equal(runnerCalled, false);
+  assert.equal(messageStore.persisted.length, 0);
 });

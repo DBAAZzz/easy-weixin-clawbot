@@ -99,10 +99,17 @@ Phase2: verdict == act → 通过 HeartbeatExecutorPort 执行 chat()
 
 ```bash
 pnpm test:agent
-# 等同于 tsx --test src/**/*.test.ts
+# 等同于 tsx --conditions development --test 'test/**/*.test.ts'
+
+pnpm -F @clawbot/agent typecheck
+# 依次检查 tsconfig.json（src）与 test/tsconfig.json（test）
 ```
 
-测试文件与源文件同目录，命名 `*.test.ts`。使用 Node.js 原生 test runner。
+测试文件全部放在 `test/`，目录结构镜像 `src/`，命名 `*.test.ts`。使用 Node.js 原生 test runner。
+
+- `src/tape/service.ts` → `test/tape/service.test.ts`
+- 测试用相对路径 import 源码（`../../src/tape/service.js`），可以访问包内部模块，不限于 `index.ts` 的公开导出
+- 两个 tsconfig 分工：根 `tsconfig.json` 是 composite 构建配置（只 include `src`，所以测试不会进 `dist/`，且被 `packages/server` 的 project reference 引用）；`test/tsconfig.json` 是测试项目配置，`noEmit`，编辑器靠它给 `test/` 下的文件提供正确的编译选项——名字必须是 `tsconfig.json`，否则 VSCode 不会发现它，`node:*` 模块会误报 TS2307
 
 ## 修改指南
 

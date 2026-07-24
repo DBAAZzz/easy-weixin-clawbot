@@ -118,17 +118,38 @@ export interface SkillUploadResult extends SkillInfo {
   localRunCheck?: SkillLocalRunCheck;
 }
 
+/**
+ * 依赖在当前运行环境中的满足状态。
+ * `unknown` 表示探测手段本身不可用（解释器缺失、元数据读取失败），与「确认没装」的
+ * `missing` 区分开，避免把无法判断误报成环境残缺。
+ */
+export type SkillDependencyStatus = "ok" | "missing" | "outdated" | "unknown";
+
+export interface SkillDependencyCheck {
+  name: string;
+  installSpec?: string;
+  source: "markdown-install" | "import-scan" | "requirements-txt" | "frontmatter";
+  confidence: "high" | "medium" | "low";
+  status: SkillDependencyStatus;
+  installedVersion?: string;
+}
+
+export interface SkillRuntimeCheck {
+  runtime: "python" | "node";
+  binary: string;
+  status: "ok" | "missing";
+  version?: string;
+  /** 依赖安装目录（python 的 .venv / node 的 node_modules）是否已就绪。 */
+  envReady: boolean;
+}
+
 export interface SkillProvisionPlan {
   runtime: "python" | "node";
   installer: "uv-pip" | "pip" | "npm" | "pnpm" | "yarn" | "manual";
   createEnv: boolean;
   commandPreview: string[];
-  dependencies: Array<{
-    name: string;
-    installSpec?: string;
-    source: "markdown-install" | "import-scan";
-    confidence: "high" | "medium" | "low";
-  }>;
+  dependencies: SkillDependencyCheck[];
+  runtimeCheck: SkillRuntimeCheck;
 }
 
 export interface SkillProvisionLog {
@@ -170,6 +191,9 @@ export interface McpServerInfo {
   created_at: string;
   updated_at: string;
   tool_count: number;
+  resolved_command: string | null;
+  resolved_from: string | null;
+  resolved_at: string | null;
 }
 
 export interface McpToolInfo {

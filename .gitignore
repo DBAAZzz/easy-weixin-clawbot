@@ -6,3 +6,5 @@ dist
 *.tsbuildinfo
 /data
 opencode.json
+.superpowers
+.superpowers/

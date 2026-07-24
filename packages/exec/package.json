@@ -1,0 +1,26 @@
+{
+  "name": "@clawbot/exec",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "test": "tsx --conditions development --test 'test/**/*.test.ts'",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.15",
+    "tsx": "^4.19.3",
+    "typescript": "^7.0.2"
+  }
+}

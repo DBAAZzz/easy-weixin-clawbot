@@ -5,12 +5,18 @@ import type {
   SkillProvisionPlan,
 } from "@clawbot/shared";
 import { Button, DialogFrame } from "@clawbot/ui";
-import { formatCount } from "../../lib/format.js";
-import { buildEnvironmentSnapshot, formatActivationLabel, formatOriginLabel } from "./types.js";
+import {
+  formatActivationLabel,
+  formatOriginLabel,
+  isEnvironmentReady,
+} from "./types.js";
 import type { SkillDetailTab } from "./types.js";
+import { CommandPreview } from "./CommandPreview.js";
 import { CompactMetaStrip } from "./CompactMetaStrip.js";
 import { DetailTabButton } from "./DetailTabButton.js";
+import { EnvironmentChecklist } from "./EnvironmentChecklist.js";
 import { ExpandableSummary } from "./ExpandableSummary.js";
+import { ProvisionConsole } from "./ProvisionConsole.js";
 import { SkillMarkdownDocument } from "./SkillMarkdownDocument.js";
 import { ErrorNotice } from "@/components/ErrorNotice.js";
 
@@ -47,11 +53,6 @@ export function SkillDetailModal(props: {
       value: props.skill.enabled ? "已启用" : "已停用",
     },
   ];
-  const dependencies =
-    props.preflight?.dependencies.map((dependency) => dependency.name) ??
-    props.skill.dependencyNames ??
-    [];
-  const scripts = props.skill.scriptSet ?? [];
   const markdownBody = props.source.data?.markdown ?? "";
   const runtimeMessage =
     props.skill.runtimeKind === "knowledge-only" || !props.skill.runtimeKind
@@ -59,13 +60,9 @@ export function SkillDetailModal(props: {
       : props.skill.runtimeKind === "manual-needed"
         ? "该 Skill 需要人工确认运行方式。"
         : null;
-  const environmentSnapshot = buildEnvironmentSnapshot({
-    dependencies,
-    scripts,
-    installer: props.preflight?.installer,
-    createEnv: props.preflight?.createEnv,
-    commands: props.preflight?.commandPreview ?? [],
-  });
+  const environmentReady = isEnvironmentReady(props.preflight);
+  // 命令预览与日志共用同一槽位：一旦开始安装或已有日志，就切换成实时日志
+  const showConsole = props.provisionBusy || props.logs.length > 0;
   const primaryInstallAction =
     props.skill.provisionStatus === "ready" ||
     props.skill.provisionStatus === "failed" ||
@@ -155,10 +152,10 @@ export function SkillDetailModal(props: {
                     {!runtimeMessage ? (
                       <Button
                         size="sm"
-                        disabled={props.preflightBusy || props.provisionBusy}
+                        disabled={props.preflightBusy || props.provisionBusy || environmentReady}
                         onClick={() => void primaryInstallAction()}
                       >
-                        {props.provisionBusy ? "安装中…" : "安装"}
+                        {props.provisionBusy ? "安装中…" : environmentReady ? "环境已就绪" : "安装"}
                       </Button>
                     ) : null}
                   </div>
@@ -170,7 +167,8 @@ export function SkillDetailModal(props: {
                       <div className="space-y-3">
                         <div className="ui-skeleton h-4 rounded-card" />
                         <div className="ui-skeleton h-4 rounded-card" />
-                        <div className="ui-skeleton h-28 rounded-panel" />
+                        <div className="ui-skeleton h-4 rounded-card" />
+                        <div className="ui-skeleton h-56 rounded-card" />
                       </div>
                     ) : (
                       <div className="space-y-5">
@@ -186,26 +184,18 @@ export function SkillDetailModal(props: {
                           </p>
                         ) : null}
 
-                        <div>
-                          <p className="text-xs tracking-label text-muted">环境数据</p>
-                          <pre className="mt-2.5 overflow-x-auto rounded-panel border border-line bg-white/78 px-4 py-3 text-xs leading-5 text-ink-soft">
-                            {environmentSnapshot}
-                          </pre>
-                        </div>
+                        {props.preflight ? (
+                          <EnvironmentChecklist
+                            plan={props.preflight}
+                            detecting={props.preflightBusy}
+                          />
+                        ) : null}
 
-                        <div className="border-t border-line pt-5">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <p className="text-xs tracking-label text-muted">安装日志</p>
-                            <p className="text-sm text-muted">
-                              {formatCount(props.logs.length)} 条
-                            </p>
-                          </div>
-                          <pre className="mt-2.5 max-h-52 overflow-auto rounded-panel border border-line bg-white/78 px-4 py-3 text-xs leading-5 text-ink-soft">
-                            {props.logs.length > 0
-                              ? props.logs.map((log) => `[${log.level}] ${log.message}`).join("\n")
-                              : "暂无日志"}
-                          </pre>
-                        </div>
+                        {showConsole ? (
+                          <ProvisionConsole logs={props.logs} busy={props.provisionBusy} />
+                        ) : props.preflight ? (
+                          <CommandPreview plan={props.preflight} />
+                        ) : null}
                       </div>
                     )}
                   </div>

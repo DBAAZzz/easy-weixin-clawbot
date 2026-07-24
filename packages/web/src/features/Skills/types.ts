@@ -1,4 +1,9 @@
-import type { SkillInfo } from "@clawbot/shared";
+import type {
+  SkillDependencyStatus,
+  SkillInfo,
+  SkillProvisionPlan,
+  SkillRuntimeCheck,
+} from "@clawbot/shared";
 
 export type SkillDetailTab = "markdown" | "runtime";
 export type SkillActivationFilter = "all" | SkillInfo["activation"];
@@ -46,22 +51,32 @@ export function isMarkdownBlockBoundary(line: string) {
   );
 }
 
-export function buildEnvironmentSnapshot(options: {
-  dependencies: string[];
-  scripts: string[];
-  installer?: string;
-  createEnv?: boolean;
-  commands: string[];
-}) {
-  return JSON.stringify(
-    {
-      dependencies: options.dependencies,
-      scripts: options.scripts,
-      installer: options.installer ?? "unknown",
-      createEnv: options.createEnv ?? false,
-      commands: options.commands,
-    },
-    null,
-    2,
-  );
+export function formatDependencyStatus(status: SkillDependencyStatus) {
+  if (status === "ok") return { label: "已满足", dot: "bg-account-success-dot", text: "text-account-success-fg" };
+  if (status === "outdated") return { label: "版本不符", dot: "bg-account-warning-dot", text: "text-account-warning-fg" };
+  if (status === "missing") return { label: "未安装", dot: "bg-danger", text: "text-danger-strong" };
+  return { label: "无法检测", dot: "bg-account-muted-faint", text: "text-account-muted" };
+}
+
+export function formatRuntimeLabel(check: SkillRuntimeCheck) {
+  const name = check.runtime === "python" ? "Python" : "Node";
+  return check.version ? `${name} ${check.version}` : name;
+}
+
+export function formatInstallerLabel(installer: SkillProvisionPlan["installer"]) {
+  return installer === "manual" ? "未确定" : installer;
+}
+
+/** 环境是否全部就绪——决定安装按钮是可用还是显示「已就绪」。 */
+export function isEnvironmentReady(plan: SkillProvisionPlan | null) {
+  if (!plan) return false;
+  if (plan.runtimeCheck.status !== "ok") return false;
+  return plan.dependencies.every((dependency) => dependency.status === "ok");
+}
+
+/** 头部汇总：待处理项数含运行时缺失与所有非 ok 依赖。 */
+export function countPendingConditions(plan: SkillProvisionPlan) {
+  const runtimePending = plan.runtimeCheck.status === "ok" ? 0 : 1;
+  const depsPending = plan.dependencies.filter((dependency) => dependency.status !== "ok").length;
+  return runtimePending + depsPending;
 }

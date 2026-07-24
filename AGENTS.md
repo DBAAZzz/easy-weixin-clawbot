@@ -12,7 +12,7 @@
 | 层 | 技术 |
 |---|------|
 | 运行时 | Node.js >= 22, pnpm >= 10.30.0 |
-| 语言 | TypeScript 5.7+, 纯 ESM (`type: "module"`) |
+| 语言 | TypeScript 7（Go 原生端口，无 JS API；`baseUrl` 已移除、`paths` 必须相对）, 纯 ESM (`type: "module"`) |
 | 后端 | Hono 4 + @hono/node-server |
 | 前端 | React 19 + Vite 8 + Tailwind CSS 4 + @clawbot/ui（Base UI 封装） |
 | 数据库 | PostgreSQL + Prisma 6 |
@@ -31,6 +31,8 @@ packages/
   ui/           ← @clawbot/ui      基于 @base-ui/react 的基础组件库
   shared/       ← @clawbot/shared  纯类型包，零运行时依赖
   observability/← @clawbot/observability  Trace/Metrics/采样
+  exec/         ← @clawbot/exec    子进程执行统一出口（env 白名单、超时、进程组清杀）
+  asset/        ← @clawbot/asset   资源存储（本地/S3）
   weixin-agent-sdk/ ← weixin-agent-sdk  微信协议 SDK
 data/
   tools/        ← Markdown 工具定义（builtin/ + user/）
@@ -57,7 +59,9 @@ scripts/        ← 辅助脚本
 
 ```
 server → agent → observability → shared
-server → shared
+server → agent → exec
+server → exec
+server → asset
 web    → ui
 web    → shared（仅类型）
 ```
@@ -207,6 +211,7 @@ activation: on-demand    # always-on | on-demand
 - ❌ 使用 CommonJS（`require`/`module.exports`）
 - ❌ 使用 ESLint/Prettier（本项目用 oxlint/oxfmt）
 - ❌ 静默吞异常
+- ❌ 在 @clawbot/exec 之外直接使用 `node:child_process`（唯一豁免：`server/src/prisma-cli.ts` 与测试文件）
 
 ## 提交前检查清单
 
@@ -229,7 +234,8 @@ activation: on-demand    # always-on | on-demand
 | 主题 | 路径 |
 |------|------|
 | 架构总览 | [docs/2026-04-01_17_39_agent-architecture.md](docs/2026-04-01_17_39_agent-architecture.md) |
-| MCP 架构 | [docs/2026-04-01_17_39_mcp-architecture.md](docs/2026-04-01_17_39_mcp-architecture.md) |
+| MCP 架构（设计意图） | [docs/2026-04-01_17_39_mcp-architecture.md](docs/2026-04-01_17_39_mcp-architecture.md) |
+| MCP 运行时链路（排查用） | [docs/2026-07-23_18_10_mcp-runtime-walkthrough.md](docs/2026-07-23_18_10_mcp-runtime-walkthrough.md) |
 | Web 架构 | [docs/2026-04-23_19_23_web-architecture.md](docs/2026-04-23_19_23_web-architecture.md) |
 | 记忆系统 | [docs/2026-04-07_16_37_memory-system-architecture.md](docs/2026-04-07_16_37_memory-system-architecture.md) |
 | Tape 存储 | [docs/2026-04-04_20_03_tape-memory-storage.md](docs/2026-04-04_20_03_tape-memory-storage.md) |
@@ -240,3 +246,4 @@ activation: on-demand    # always-on | on-demand
 | 定时任务 | [docs/2026-04-23_19_23_scheduler-design.md](docs/2026-04-23_19_23_scheduler-design.md) |
 | Webhook | [docs/2026-04-21_00_11_webhook-integration.md](docs/2026-04-21_00_11_webhook-integration.md) |
 | JWT 认证 | [docs/2026-04-21_00_11_jwt-authentication.md](docs/2026-04-21_00_11_jwt-authentication.md) |
+| 进程执行统一出口 | [docs/2026-07-23_21_30_exec-package-design.md](docs/2026-07-23_21_30_exec-package-design.md) |

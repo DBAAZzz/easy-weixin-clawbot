@@ -51,15 +51,15 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.1",
-    "@tsdown/css": "0.22.2",
+    "@tsdown/css": "0.22.13",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "dumi": "^2.4.30",
     "oxfmt": "^0.44.0",
     "oxlint": "^1.59.0",
     "tailwindcss": "^4.2.2",
-    "tsdown": "^0.22.2",
-    "typescript": "^5.9.3"
+    "tsdown": "^0.22.13",
+    "typescript": "^7.0.2"
   },
   "peerDependencies": {
     "react": "^19.0.0"

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { z } from "zod";
-import { requireAgentToolContext } from "../runtime/agent-tool-context.js";
-import { defineTool } from "./define-tool.js";
+import { requireAgentToolContext } from "../../src/runtime/agent-tool-context.js";
+import { defineTool } from "../../src/tools/define-tool.js";
 
 const abortSignal = new AbortController().signal;
 

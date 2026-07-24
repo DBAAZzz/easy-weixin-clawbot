@@ -24,6 +24,9 @@ export interface McpServerRuntimeConfig extends McpServerWriteInput {
   status: McpServerStatus;
   last_error: string | null;
   last_seen_at: string | null;
+  resolvedCommand: string | null;
+  resolvedArgs: string[] | null;
+  resolvedEnv: Record<string, string> | null;
 }
 
 export interface DiscoveredMcpToolInput {
@@ -76,6 +79,32 @@ function parseSchema(value: Prisma.JsonValue): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function parseResolvedArgs(value: Prisma.JsonValue | null): string[] | null {
+  if (value === null) {
+    return null;
+  }
+  if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) {
+    console.warn("mcp_servers.resolved_args_json 格式异常，已忽略", value);
+    return null;
+  }
+  return value;
+}
+
+function parseResolvedEnv(value: Prisma.JsonValue | null): Record<string, string> | null {
+  if (value === null) {
+    return null;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    console.warn("mcp_servers.resolved_env_json 格式异常，已忽略", value);
+    return null;
+  }
+  if (!Object.values(value).every((item) => typeof item === "string")) {
+    console.warn("mcp_servers.resolved_env_json 格式异常，已忽略", value);
+    return null;
+  }
+  return value as Record<string, string>;
+}
+
 function toBigIntId(id: string): bigint {
   return BigInt(id);
 }
@@ -95,6 +124,9 @@ function toServerInfo(row: {
   lastSeenAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  resolvedCommand: string | null;
+  resolvedFrom: string | null;
+  resolvedAt: Date | null;
   _count?: { tools: number };
 }): McpServerInfo {
   return {
@@ -113,6 +145,9 @@ function toServerInfo(row: {
     created_at: row.createdAt.toISOString(),
     updated_at: row.updatedAt.toISOString(),
     tool_count: row._count?.tools ?? 0,
+    resolved_command: row.resolvedCommand,
+    resolved_from: row.resolvedFrom,
+    resolved_at: toIso(row.resolvedAt),
   };
 }
 
@@ -157,6 +192,9 @@ function toRuntimeConfig(row: {
   status: string;
   lastError: string | null;
   lastSeenAt: Date | null;
+  resolvedCommand: string | null;
+  resolvedArgsJson: Prisma.JsonValue | null;
+  resolvedEnvJson: Prisma.JsonValue | null;
 }): McpServerRuntimeConfig {
   return {
     id: row.id.toString(),
@@ -171,6 +209,9 @@ function toRuntimeConfig(row: {
     status: row.status as McpServerStatus,
     last_error: row.lastError,
     last_seen_at: toIso(row.lastSeenAt),
+    resolvedCommand: row.resolvedCommand,
+    resolvedArgs: parseResolvedArgs(row.resolvedArgsJson),
+    resolvedEnv: parseResolvedEnv(row.resolvedEnvJson),
   };
 }
 
@@ -260,6 +301,10 @@ export async function updateMcpServer(
   id: string,
   input: Partial<McpServerWriteInput>,
 ): Promise<McpServerInfo> {
+  // 配置一变（command/args/env 任一变更），已固化的 resolved_* 缓存作废：下次连接重新解析。
+  const shouldClearResolved =
+    input.command !== undefined || input.args !== undefined || input.env !== undefined;
+
   const row = await getPrisma().mcpServer.update({
     where: { id: toBigIntId(id) },
     data: {
@@ -270,11 +315,36 @@ export async function updateMcpServer(
       ...(input.args !== undefined ? { argsJson: input.args } : {}),
       ...(input.env !== undefined ? { envJson: input.env } : {}),
       ...(input.cwd !== undefined ? { cwd: input.cwd } : {}),
+      ...(shouldClearResolved
+        ? {
+            resolvedCommand: null,
+            resolvedArgsJson: Prisma.DbNull,
+            resolvedEnvJson: Prisma.DbNull,
+            resolvedFrom: null,
+            resolvedAt: null,
+          }
+        : {}),
     },
     include: { _count: { select: { tools: true } } },
   });
 
   return toServerInfo(row);
+}
+
+export async function saveResolvedLaunchSpec(
+  id: string,
+  spec: { command: string; args: string[]; env: Record<string, string>; rewrittenFrom: string },
+): Promise<void> {
+  await getPrisma().mcpServer.update({
+    where: { id: toBigIntId(id) },
+    data: {
+      resolvedCommand: spec.command,
+      resolvedArgsJson: spec.args,
+      resolvedEnvJson: spec.env,
+      resolvedFrom: spec.rewrittenFrom,
+      resolvedAt: new Date(),
+    },
+  });
 }
 
 export async function deleteMcpServer(id: string): Promise<void> {

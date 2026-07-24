@@ -7,7 +7,7 @@ import type {
   UpdateModelProviderTemplateInput,
   UpsertModelConfigInput,
 } from "@clawbot/agent";
-import { openSecret, sealSecret } from "../credentials/secret-box.js";
+import { openSecretOrNull, sealSecret } from "../credentials/secret-box.js";
 import { getPrisma } from "./prisma.js";
 
 type TemplateSecretColumns = {
@@ -23,10 +23,14 @@ export function templateEncryptionScope(templateId: bigint): string {
 /**
  * Resolve a template's API key from the sealed column, falling back to the
  * legacy plaintext column for rows the startup migration has not rewritten yet.
+ *
+ * An unopenable ciphertext resolves to null (logged) rather than throwing, so a
+ * rotated master key degrades to "this provider has no key" instead of failing
+ * every request that lists or resolves models.
  */
 export function resolveTemplateApiKey(row: TemplateSecretColumns): string | null {
   if (row.apiKeyCiphertext) {
-    return openSecret(templateEncryptionScope(row.id), row.apiKeyCiphertext);
+    return openSecretOrNull(templateEncryptionScope(row.id), row.apiKeyCiphertext);
   }
 
   return row.apiKey;

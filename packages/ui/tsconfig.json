@@ -12,7 +12,7 @@
     "declarationMap": true,
     "outDir": "dist",
     "rootDir": ".",
-    "baseUrl": ".",
+    // TS 7 移除了 baseUrl；paths 相对本文件解析。
     "paths": {
       "@clawbot/ui": ["./src/index.ts"]
     },

@@ -1,15 +1,12 @@
 import type { SkillInstaller, RuntimeProvisioner } from "@clawbot/agent";
 import { listBuiltinToolCatalog } from "@clawbot/agent/tools/builtins";
-import { execFile } from "node:child_process";
+import { run } from "@clawbot/exec";
 import { access, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { promisify } from "node:util";
-import type { Hono } from "hono";
+import type { Context, Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { ValidationError } from "../errors.js";
-
-const execFileAsync = promisify(execFile);
 
 async function readMarkdownPayload(request: Request): Promise<string> {
   const body = (await request.json().catch(() => null)) as { markdown?: unknown } | null;
@@ -65,10 +62,10 @@ async function buildLocalRunCheck(
 
   try {
     if (detected.kind === "python-script" || detected.kind === "python-script-set") {
-      await execFileAsync("python3", ["--version"]);
+      await run({ binary: "python3", args: ["--version"], timeoutMs: 10_000, inherit: "safe" });
       checks.push({ status: "ok", message: "python3 is available on host." });
     } else if (detected.kind === "node-script" || detected.kind === "node-script-set") {
-      await execFileAsync("node", ["--version"]);
+      await run({ binary: "node", args: ["--version"], timeoutMs: 10_000, inherit: "safe" });
       checks.push({ status: "ok", message: "node is available on host." });
     }
   } catch {
@@ -115,7 +112,12 @@ async function extractZipToTemp(zipBuffer: ArrayBuffer): Promise<{ extractDir: s
   await writeFile(zipPath, Buffer.from(zipBuffer));
 
   const extractDir = join(tempRoot, "extracted");
-  await execFileAsync("unzip", ["-o", "-q", zipPath, "-d", extractDir]);
+  await run({
+    binary: "unzip",
+    args: ["-o", "-q", zipPath, "-d", extractDir],
+    timeoutMs: 60_000,
+    inherit: "safe",
+  });
 
   // Locate SKILL.md — either at root or inside a single top-level directory
   const entries = await readdir(extractDir, { withFileTypes: true });
@@ -313,38 +315,54 @@ export function registerSkillRoutes(
     }
   });
 
-  app.get("/api/skills/:name/provision/logs", async (c) => {
-    if (!provisioner) {
-      return c.json({ error: "Runtime provisioner is not available" }, 501);
-    }
-    const name = c.req.param("name");
-    const installed = installer.getInstalled(name);
-    if (!installed) {
-      return c.json({ error: "skill not found" }, 404);
-    }
-    if (!isAutoProvisionableSkill(installed)) {
-      return c.json({ error: `skill is not an auto-provisionable script skill (kind=${installed.skill.detectedRuntime?.kind ?? "knowledge-only"})` }, 400);
-    }
-
-    // SSE-based streaming provision
-    return streamSSE(c, async (stream) => {
-      try {
-        await installer.setProvisionStatus(name, "provisioning");
-        for await (const log of provisioner.provisionStream(installed)) {
-          await stream.writeSSE({
-            event: "log",
-            data: JSON.stringify(log),
-          });
-        }
-        await installer.setProvisionStatus(name, "ready");
-        await stream.writeSSE({ event: "done", data: JSON.stringify({ status: "ready" }) });
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        await installer.setProvisionStatus(name, "failed", msg);
-        await stream.writeSSE({ event: "error", data: JSON.stringify({ error: msg }) });
+  /**
+   * 首装与重装共用一套 SSE 协议，差异只在底层跑哪条流。
+   * 事件：log（每条 ProvisionLog）、done（{status:"ready"}）、error（{error}）。
+   */
+  function streamProvisionRoute(mode: "provision" | "reprovision") {
+    return async (c: Context) => {
+      if (!provisioner) {
+        return c.json({ error: "Runtime provisioner is not available" }, 501);
       }
-    });
-  });
+      // 泛型 Context 下 param 是可选的，路由本身保证有值，这里仅做类型收窄
+      const name = c.req.param("name");
+      if (!name) {
+        return c.json({ error: "skill name is required" }, 400);
+      }
+      const installed = installer.getInstalled(name);
+      if (!installed) {
+        return c.json({ error: "skill not found" }, 404);
+      }
+      if (!isAutoProvisionableSkill(installed)) {
+        return c.json({ error: `skill is not an auto-provisionable script skill (kind=${installed.skill.detectedRuntime?.kind ?? "knowledge-only"})` }, 400);
+      }
+
+      return streamSSE(c, async (stream) => {
+        try {
+          await installer.setProvisionStatus(name, "provisioning");
+          const logs =
+            mode === "reprovision"
+              ? provisioner.reprovisionStream(installed)
+              : provisioner.provisionStream(installed);
+          for await (const log of logs) {
+            await stream.writeSSE({
+              event: "log",
+              data: JSON.stringify(log),
+            });
+          }
+          await installer.setProvisionStatus(name, "ready");
+          await stream.writeSSE({ event: "done", data: JSON.stringify({ status: "ready" }) });
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          await installer.setProvisionStatus(name, "failed", msg);
+          await stream.writeSSE({ event: "error", data: JSON.stringify({ error: msg }) });
+        }
+      });
+    };
+  }
+
+  app.get("/api/skills/:name/provision/logs", streamProvisionRoute("provision"));
+  app.get("/api/skills/:name/reprovision/logs", streamProvisionRoute("reprovision"));
 
   app.get("/api/skills/:name/preflight", async (c) => {
     if (!provisioner) {

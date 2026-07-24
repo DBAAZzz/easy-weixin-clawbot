@@ -4,10 +4,10 @@ import type {
   CreateTaskInput,
   ScheduledTaskRow,
   SchedulerStore,
-} from "../ports/scheduler-store.js";
-import { setSchedulerStore } from "../ports/scheduler-store.js";
-import { schedulerToolRegistry } from "./tool.js";
-import { deactivate } from "./manager.js";
+} from "../../src/ports/scheduler-store.js";
+import { setSchedulerStore } from "../../src/ports/scheduler-store.js";
+import { schedulerToolRegistry } from "../../src/scheduler/tool.js";
+import { deactivate } from "../../src/scheduler/manager.js";
 
 const abortSignal = new AbortController().signal;
 

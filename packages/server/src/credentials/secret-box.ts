@@ -1,4 +1,7 @@
+import { createModuleLogger, getErrorFields } from "../logger.js";
 import { decryptToken, encryptToken, getMasterKey, type EncryptedToken } from "./crypto.js";
+
+const secretBoxLogger = createModuleLogger("secret-box");
 
 /**
  * Text-column representation of an {@link EncryptedToken}: `iv.authTag.ciphertext`,
@@ -38,4 +41,24 @@ export function sealSecret(scope: string, plaintext: string): string {
 
 export function openSecret(scope: string, sealed: string): string {
   return decryptToken(decodeSealedSecret(sealed), scope, getMasterKey());
+}
+
+/**
+ * Read path variant of {@link openSecret}: a secret that cannot be opened —
+ * rotated or missing `CLAWBOT_CREDENTIAL_KEY`, corrupted ciphertext — degrades
+ * to "this credential is unavailable" instead of throwing through whatever
+ * request happened to read the row.
+ *
+ * The failure is logged with the scope only; the ciphertext never reaches logs.
+ */
+export function openSecretOrNull(scope: string, sealed: string): string | null {
+  try {
+    return openSecret(scope, sealed);
+  } catch (error) {
+    secretBoxLogger.error(
+      { ...getErrorFields(error), scope },
+      "解密密钥失败，该凭据按缺失处理（请检查 CLAWBOT_CREDENTIAL_KEY 是否变更）",
+    );
+    return null;
+  }
 }

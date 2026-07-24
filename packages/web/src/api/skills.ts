@@ -82,8 +82,15 @@ export function reprovisionSkill(
   );
 }
 
+export type ProvisionMode = "provision" | "reprovision";
+
+/**
+ * 首装与重装共用同一套 SSE 协议，仅端点不同。
+ * 不用 EventSource 是因为它无法携带 Authorization 头。
+ */
 export async function streamProvisionLogs(
   name: string,
+  mode: ProvisionMode,
   handlers: {
     onLog: (log: SkillProvisionLog) => void;
     onDone?: (status: { status: string }) => void;
@@ -96,7 +103,7 @@ export async function streamProvisionLogs(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`/api/skills/${encodeURIComponent(name)}/provision/logs`, {
+  const response = await fetch(`/api/skills/${encodeURIComponent(name)}/${mode}/logs`, {
     method: "GET",
     headers,
   });

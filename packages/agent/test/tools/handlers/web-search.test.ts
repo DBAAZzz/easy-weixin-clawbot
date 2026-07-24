@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { WebToolService } from "../../ports/web-tool-service.js";
-import { setWebToolService } from "../../ports/web-tool-service.js";
-import { webSearchHandler } from "./web-search.js";
+import type { WebToolService } from "../../../src/ports/web-tool-service.js";
+import { setWebToolService } from "../../../src/ports/web-tool-service.js";
+import { webSearchHandler } from "../../../src/tools/handlers/web-search.js";
 
 function createService(overrides: Partial<WebToolService> = {}): WebToolService {
   return {

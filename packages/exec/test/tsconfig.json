@@ -1,0 +1,17 @@
+{
+  // 编辑器和 `tsc --noEmit -p test/tsconfig.json` 用的测试项目配置。
+  //
+  // 必须叫 tsconfig.json：VSCode 的 TS server 从文件向上查找的就是这个名字，
+  // 找不到就退回默认编译选项，node:* 之类的模块会误报 TS2307/TS1259。
+  //
+  // 不能把 test 并进 ../tsconfig.json —— 那个是构建配置，rootDir/outDir 必须保持只含 src。
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "sourceMap": false,
+    "rootDir": "..",
+    "types": ["node"]
+  },
+  "include": ["."]
+}

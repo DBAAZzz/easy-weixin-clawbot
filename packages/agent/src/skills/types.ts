@@ -58,6 +58,33 @@ export interface SkillDependency {
   confidence: "high" | "medium" | "low";
 }
 
+/**
+ * 依赖在当前运行环境中的满足状态。
+ *
+ * `unknown` 与 `missing` 必须区分：前者是「探测手段本身不可用」（venv/包管理器缺失、
+ * 元数据查询失败），后者是「确认没装」。混为一谈会让用户误以为环境残缺。
+ */
+export type DependencyStatus = "ok" | "missing" | "outdated" | "unknown";
+
+export interface SkillDependencyCheck extends SkillDependency {
+  status: DependencyStatus;
+  installedVersion?: string;
+}
+
+/**
+ * 解释器自身的探测结果。只承载事实，不做文案——展示层负责组装成用户可读的标签。
+ */
+export interface SkillRuntimeCheck {
+  runtime: SkillRuntime;
+  /** 探测所用的可执行文件名，如 "python3"。 */
+  binary: string;
+  status: "ok" | "missing";
+  /** `--version` 解析出的版本号，如 "3.11.5"。 */
+  version?: string;
+  /** 依赖安装目录（python 的 .venv / node 的 node_modules）是否已就绪。 */
+  envReady: boolean;
+}
+
 export interface DetectedSkillRuntime {
   kind: DetectedSkillKind;
   preferredInstaller: SkillProvisionInstaller;

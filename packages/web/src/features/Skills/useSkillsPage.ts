@@ -8,7 +8,7 @@ import type {
 } from "@clawbot/shared";
 import { toast } from "@clawbot/ui";
 import { useSkills } from "../../hooks/useSkills.js";
-import { fetchSkillSource } from "@/api/skills.js";
+import { fetchSkillSource, type ProvisionMode } from "@/api/skills.js";
 import { formatCount } from "../../lib/format.js";
 import { queryKeys } from "../../lib/query-keys.js";
 import { isAutoProvisionableRuntime } from "./skills-runtime-labels.js";
@@ -33,7 +33,6 @@ export function useSkillsPage() {
     disable,
     uploadFile,
     preflight,
-    reprovision,
     streamProvision,
   } = useSkills();
   const [query, setQuery] = useState("");
@@ -213,21 +212,32 @@ export function useSkillsPage() {
     }
   }
 
-  async function handleProvision(skill: SkillInfo) {
+  /** 首装与重装共用同一条流式链路，安装过程实时可见。 */
+  async function runProvision(skill: SkillInfo, mode: ProvisionMode) {
     setProvisionBusy(true);
     setPreflightError(null);
     setProvisionLogs([]);
     setMutationError(null);
 
+    let failed = false;
     try {
-      await streamProvision(skill.name, {
+      await streamProvision(skill.name, mode, {
         onLog: (log) => setProvisionLogs((prev) => [...prev, log]),
         onError: (payload) => {
+          failed = true;
           setMutationError(payload.error);
         },
       });
       await handleRefresh();
-      setNotice(`技能 "${skill.name}" 运行时安装完成`);
+      if (!failed) {
+        setNotice(
+          mode === "reprovision"
+            ? `技能 "${skill.name}" 已完成重装`
+            : `技能 "${skill.name}" 运行时安装完成`,
+        );
+        // 环境已变，重新检测让列表状态跟上
+        void handlePreflight(skill);
+      }
     } catch (reason) {
       setMutationError(reason instanceof Error ? reason.message : String(reason));
     } finally {
@@ -235,22 +245,12 @@ export function useSkillsPage() {
     }
   }
 
-  async function handleReprovision(skill: SkillInfo) {
-    setProvisionBusy(true);
-    setMutationError(null);
-    setPreflightError(null);
-    setProvisionLogs([]);
+  function handleProvision(skill: SkillInfo) {
+    return runProvision(skill, "provision");
+  }
 
-    try {
-      const result = await reprovision(skill.name);
-      setProvisionLogs(result.logs);
-      setNotice(`技能 "${skill.name}" 已完成重装`);
-      await handleRefresh();
-    } catch (reason) {
-      setMutationError(reason instanceof Error ? reason.message : String(reason));
-    } finally {
-      setProvisionBusy(false);
-    }
+  function handleReprovision(skill: SkillInfo) {
+    return runProvision(skill, "reprovision");
   }
 
   async function handleToggle(skill: SkillInfo) {

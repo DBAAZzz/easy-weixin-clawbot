@@ -11,6 +11,7 @@ import {
   streamProvisionLogs,
   updateSkill,
   uploadSkillFile,
+  type ProvisionMode,
 } from "@/api/skills.js";
 import { queryKeys } from "../lib/query-keys.js";
 
@@ -52,8 +53,12 @@ export function useSkills() {
       invalidate();
       return result;
     },
-    async streamProvision(name: string, handlers: Parameters<typeof streamProvisionLogs>[1]) {
-      await streamProvisionLogs(name, handlers);
+    async streamProvision(
+      name: string,
+      mode: ProvisionMode,
+      handlers: Parameters<typeof streamProvisionLogs>[2],
+    ) {
+      await streamProvisionLogs(name, mode, handlers);
       invalidate();
     },
     async update(name: string, markdown: string) {

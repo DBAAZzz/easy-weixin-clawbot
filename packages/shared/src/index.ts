@@ -41,6 +41,9 @@ export type {
   SkillUploadResult,
   SkillProvisionPlan,
   SkillProvisionLog,
+  SkillDependencyCheck,
+  SkillDependencyStatus,
+  SkillRuntimeCheck,
   ToolInfo,
   ToolDef,
 } from "./types.js";

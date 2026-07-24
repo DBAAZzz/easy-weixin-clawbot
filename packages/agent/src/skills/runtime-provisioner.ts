@@ -1,5 +1,14 @@
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import {
+  UNPROBED_INDEX,
+  normalizePythonName,
+  probeInterpreter,
+  probeNodePackages,
+  probePythonPackages,
+  resolveDependencyStatus,
+  stripNodeVersionRange,
+} from "./environment-probe.js";
 import { execPromise, isFile, pathExists } from "./fs-utils.js";
 import type {
   DetectedSkillRuntime,
@@ -7,8 +16,10 @@ import type {
   ProvisionStatus,
   ProvisionableKind,
   SkillDependency,
+  SkillDependencyCheck,
   SkillProvisionInstaller,
   SkillRuntime,
+  SkillRuntimeCheck,
 } from "./types.js";
 import {
   isProvisionableKind,
@@ -20,7 +31,8 @@ export interface ProvisionPlan {
   installer: SkillProvisionInstaller;
   createEnv: boolean;
   commandPreview: string[];
-  dependencies: SkillDependency[];
+  dependencies: SkillDependencyCheck[];
+  runtimeCheck: SkillRuntimeCheck;
 }
 
 export interface ProvisionLog {
@@ -45,6 +57,7 @@ export interface RuntimeProvisioner {
   provision(skill: InstalledSkill): Promise<ProvisionLog[]>;
   provisionStream(skill: InstalledSkill): AsyncGenerator<ProvisionLog>;
   reprovision(skill: InstalledSkill): Promise<ProvisionLog[]>;
+  reprovisionStream(skill: InstalledSkill): AsyncGenerator<ProvisionLog>;
   healthCheck(skill: InstalledSkill): Promise<boolean>;
 }
 
@@ -59,6 +72,11 @@ interface RuntimeAdapter {
   readonly runtime: SkillRuntime;
   readonly artifactPath: string | null;
   ensureToolchain(skillName: string): Promise<void>;
+  probeRuntime(skillDir: string): Promise<SkillRuntimeCheck>;
+  probeDependencies(
+    skillDir: string,
+    dependencies: SkillDependency[],
+  ): Promise<SkillDependencyCheck[]>;
   prepareEnv(skillDir: string): AsyncGenerator<ProvisionLog>;
   validateEntrypoint(skill: InstalledSkill, skillDir: string): Promise<void>;
   verifyEntrypoint(skill: InstalledSkill, skillDir: string): Promise<void>;
@@ -135,6 +153,24 @@ const pythonAdapter: RuntimeAdapter = {
     if (!(await ensureBinaryAvailable("python3"))) {
       throw new Error(`python3 is not available on host, cannot provision skill "${skillName}"`);
     }
+  },
+
+  async probeRuntime(skillDir) {
+    const { available, version } = await probeInterpreter("python3");
+    return {
+      runtime: "python",
+      binary: "python3",
+      status: available ? "ok" : "missing",
+      version,
+      envReady: await isFile(join(skillDir, ".venv", "bin", "python")),
+    };
+  },
+
+  async probeDependencies(skillDir, dependencies) {
+    const index = await probePythonPackages(skillDir);
+    return dependencies.map((dependency) =>
+      resolveDependencyStatus(dependency, index, normalizePythonName),
+    );
   },
 
   validateEntrypoint(skill, skillDir) {
@@ -262,6 +298,24 @@ const nodeAdapter: RuntimeAdapter = {
     }
   },
 
+  async probeRuntime(skillDir) {
+    const { available, version } = await probeInterpreter("node");
+    return {
+      runtime: "node",
+      binary: "node",
+      status: available ? "ok" : "missing",
+      version,
+      envReady: await pathExists(join(skillDir, "node_modules")),
+    };
+  },
+
+  async probeDependencies(skillDir, dependencies) {
+    const index = await probeNodePackages(skillDir, dependencies);
+    return dependencies.map((dependency) =>
+      resolveDependencyStatus(dependency, index, stripNodeVersionRange),
+    );
+  },
+
   validateEntrypoint(skill, skillDir) {
     return ensureEntrypointExists(skill, skillDir, "node");
   },
@@ -382,9 +436,13 @@ async function createProvisionPlan(
   skill: InstalledSkill,
   adapter: RuntimeAdapter,
   detected: DetectedSkillRuntime & { kind: ProvisionableKind },
+  runtimeCheck: SkillRuntimeCheck,
 ): Promise<ProvisionPlan> {
   const skillDir = getSkillDir(skill);
-  const installPlan = await adapter.buildInstall(skill);
+  const [installPlan, dependencies] = await Promise.all([
+    adapter.buildInstall(skill),
+    adapter.probeDependencies(skillDir, detected.dependencies),
+  ]);
   const artifactPath = adapter.artifactPath ? join(skillDir, adapter.artifactPath) : null;
 
   return {
@@ -392,7 +450,28 @@ async function createProvisionPlan(
     installer: installPlan.installer,
     createEnv: artifactPath ? !(await pathExists(artifactPath)) : false,
     commandPreview: installPlan.commands,
-    dependencies: detected.dependencies,
+    dependencies,
+    runtimeCheck,
+  };
+}
+
+/**
+ * 解释器缺失时的降级计划：装不了也测不了，依赖一律 unknown 而非 missing。
+ */
+function createUnavailableRuntimePlan(
+  adapter: RuntimeAdapter,
+  detected: DetectedSkillRuntime & { kind: ProvisionableKind },
+  runtimeCheck: SkillRuntimeCheck,
+): ProvisionPlan {
+  return {
+    runtime: adapter.runtime,
+    installer: "manual",
+    createEnv: adapter.artifactPath !== null,
+    commandPreview: [],
+    dependencies: detected.dependencies.map((dependency) =>
+      resolveDependencyStatus(dependency, UNPROBED_INDEX, (name) => name),
+    ),
+    runtimeCheck,
   };
 }
 
@@ -485,9 +564,16 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
       const detected = requireProvisionableRuntime(skill);
       const adapter = selectAdapter(detected.kind);
       const skillDir = getSkillDir(skill);
-      await adapter.ensureToolchain(skill.skill.source.name);
+
+      // 与 provision 不同，preflight 不因缺解释器而抛错：把「运行时不可用」作为
+      // 一条可展示的检测结果返回，用户才能在列表里看到到底缺什么。
+      const runtimeCheck = await adapter.probeRuntime(skillDir);
+      if (runtimeCheck.status !== "ok") {
+        return createUnavailableRuntimePlan(adapter, detected, runtimeCheck);
+      }
+
       await adapter.validateEntrypoint(skill, skillDir);
-      return createProvisionPlan(skill, adapter, detected);
+      return createProvisionPlan(skill, adapter, detected, runtimeCheck);
     },
 
     provision(skill) {
@@ -503,6 +589,11 @@ export function createRuntimeProvisioner(): RuntimeProvisioner {
     async reprovision(skill) {
       const detected = requireProvisionableRuntime(skill);
       return collectLogs(reprovisionWithAdapter(skill, selectAdapter(detected.kind), detected));
+    },
+
+    reprovisionStream(skill) {
+      const detected = requireProvisionableRuntime(skill);
+      return reprovisionWithAdapter(skill, selectAdapter(detected.kind), detected);
     },
 
     async healthCheck(skill) {

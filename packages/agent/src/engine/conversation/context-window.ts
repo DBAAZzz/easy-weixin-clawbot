@@ -222,6 +222,23 @@ export function fitToContextWindow(
   const remaining = level1Messages.slice(safeCut);
   const droppedCount = safeCut;
 
+  // Nothing was droppable: every message sits inside the protected recent window
+  // (P2 in docs/2026-04-08_15_29_context-window-management.md), which happens
+  // when a conversation opens on a single oversized turn. Emitting the notice
+  // anyway would inject a message the user never sent *and* make the payload
+  // larger than the history it was supposed to shrink, so the Level 1 result
+  // stands. The protected window outranks the budget here — the caller sees that
+  // in `trimmedTokens`.
+  if (droppedCount === 0) {
+    return {
+      messages: level1Messages,
+      trimLevel: 2,
+      originalTokens,
+      trimmedTokens: level1Tokens,
+      droppedMessageCount: 0,
+    };
+  }
+
   const ellipsis: UserMessage = {
     role: MESSAGE_ROLE.USER,
     content: `[以上 ${droppedCount} 条早期对话已省略]`,

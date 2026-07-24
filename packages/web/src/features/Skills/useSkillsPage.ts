@@ -201,7 +201,8 @@ export function useSkillsPage() {
   async function handlePreflight(skill: SkillInfo) {
     setPreflightBusy(true);
     setPreflightError(null);
-    setPreflightPlan(null);
+    // 保留旧列表不清空：重新检测期间列表原地降透明度，弹窗高度不抖动；
+    // 骨架仅在从未有过 plan（首次加载）时出现。
     try {
       const plan = await preflight(skill.name);
       setPreflightPlan(plan);

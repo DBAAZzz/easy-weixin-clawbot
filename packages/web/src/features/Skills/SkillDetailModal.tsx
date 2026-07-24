@@ -11,6 +11,7 @@ import {
   isEnvironmentReady,
 } from "./types.js";
 import type { SkillDetailTab } from "./types.js";
+import { CommandPreview } from "./CommandPreview.js";
 import { CompactMetaStrip } from "./CompactMetaStrip.js";
 import { DetailTabButton } from "./DetailTabButton.js";
 import { EnvironmentChecklist } from "./EnvironmentChecklist.js";
@@ -60,6 +61,8 @@ export function SkillDetailModal(props: {
         ? "该 Skill 需要人工确认运行方式。"
         : null;
   const environmentReady = isEnvironmentReady(props.preflight);
+  // 命令预览与日志共用同一槽位：一旦开始安装或已有日志，就切换成实时日志
+  const showConsole = props.provisionBusy || props.logs.length > 0;
   const primaryInstallAction =
     props.skill.provisionStatus === "ready" ||
     props.skill.provisionStatus === "failed" ||
@@ -164,7 +167,8 @@ export function SkillDetailModal(props: {
                       <div className="space-y-3">
                         <div className="ui-skeleton h-4 rounded-card" />
                         <div className="ui-skeleton h-4 rounded-card" />
-                        <div className="ui-skeleton h-28 rounded-panel" />
+                        <div className="ui-skeleton h-4 rounded-card" />
+                        <div className="ui-skeleton h-56 rounded-card" />
                       </div>
                     ) : (
                       <div className="space-y-5">
@@ -180,11 +184,18 @@ export function SkillDetailModal(props: {
                           </p>
                         ) : null}
 
-                        {props.preflight ? <EnvironmentChecklist plan={props.preflight} /> : null}
+                        {props.preflight ? (
+                          <EnvironmentChecklist
+                            plan={props.preflight}
+                            detecting={props.preflightBusy}
+                          />
+                        ) : null}
 
-                        <div className="border-t border-line pt-5">
+                        {showConsole ? (
                           <ProvisionConsole logs={props.logs} busy={props.provisionBusy} />
-                        </div>
+                        ) : props.preflight ? (
+                          <CommandPreview plan={props.preflight} />
+                        ) : null}
                       </div>
                     )}
                   </div>

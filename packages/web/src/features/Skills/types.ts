@@ -73,3 +73,10 @@ export function isEnvironmentReady(plan: SkillProvisionPlan | null) {
   if (plan.runtimeCheck.status !== "ok") return false;
   return plan.dependencies.every((dependency) => dependency.status === "ok");
 }
+
+/** 头部汇总：待处理项数含运行时缺失与所有非 ok 依赖。 */
+export function countPendingConditions(plan: SkillProvisionPlan) {
+  const runtimePending = plan.runtimeCheck.status === "ok" ? 0 : 1;
+  const depsPending = plan.dependencies.filter((dependency) => dependency.status !== "ok").length;
+  return runtimePending + depsPending;
+}

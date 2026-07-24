@@ -50,7 +50,7 @@ export function ProvisionConsole(props: { logs: SkillProvisionLog[]; busy: boole
         ref={viewportRef}
         role="log"
         aria-live="polite"
-        className="mt-2.5 max-h-64 overflow-auto rounded-panel border border-line bg-white/78 px-4 py-3"
+        className="mt-2.5 h-56 overflow-auto rounded-card border border-line bg-white/78 px-4 py-3"
       >
         {props.logs.length === 0 ? (
           <p className="font-mono text-xs text-muted">暂无日志</p>

@@ -1,6 +1,7 @@
-import { chat, type ScheduledTaskHandlerPort, type ScheduledTaskHandlerResult, type ScheduledTaskRow } from "@clawbot/agent";
+import type { ScheduledTaskHandlerPort, ScheduledTaskHandlerResult, ScheduledTaskRow } from "@clawbot/agent";
+import { getPushService } from "@clawbot/agent/ports";
 import { getPrisma } from "../db/prisma.js";
-import { sendProactiveMessage } from "../proactive-push.js";
+import { chatEngine } from "../ai.js";
 import { TASK_ENTRY_QUERY_LIMIT } from "./constants.js";
 import { RssNotFoundError, RssValidationError } from "./errors.js";
 import { buildTaskConfig, parseStoredTaskConfig, parseTaskPayload } from "./payload.js";
@@ -138,22 +139,27 @@ async function formatDigestMessage(task: ScheduledTaskRow, entries: EntryRecord[
       .join("\n");
   });
 
-  const response = await chat(
-    task.accountId,
-    `rss-digest:${task.id.toString()}:${Date.now()}`,
-    [
-      "你是一个运营消息摘要助手。",
-      "请根据下面给出的 RSS 条目，生成一条适合直接发送到微信会话的中文摘要消息。",
-      "要求：",
-      "1. 先给出一句总览标题。",
-      "2. 用 3 到 6 条要点总结最重要的新信息。",
-      "3. 不要编造信息，只能基于提供的条目内容。",
-      "4. 每条要点尽量简洁，整体控制在 700 汉字以内。",
-      "5. 末尾附上“延伸阅读”列表，每行一个“标题：链接”。",
-      "",
-      "条目如下：",
-      promptParts.join("\n\n"),
-    ].join("\n"),
+  const response = await chatEngine.chat(
+    {
+      accountId: task.accountId,
+      conversationId: `rss-digest:${task.id.toString()}:${Date.now()}`,
+      runKind: "chat",
+    },
+    {
+      text: [
+        "你是一个运营消息摘要助手。",
+        "请根据下面给出的 RSS 条目，生成一条适合直接发送到微信会话的中文摘要消息。",
+        "要求：",
+        "1. 先给出一句总览标题。",
+        "2. 用 3 到 6 条要点总结最重要的新信息。",
+        "3. 不要编造信息，只能基于提供的条目内容。",
+        "4. 每条要点尽量简洁，整体控制在 700 汉字以内。",
+        "5. 末尾附上“延伸阅读”列表，每行一个“标题：链接”。",
+        "",
+        "条目如下：",
+        promptParts.join("\n\n"),
+      ].join("\n"),
+    },
   );
 
   const text = response.text?.trim();
@@ -259,7 +265,7 @@ export async function executeRssTask(
     });
   }
 
-  await sendProactiveMessage(task.accountId, conversationId, content);
+  await getPushService().sendProactiveMessage(task.accountId, conversationId, content);
   await markEntriesDelivered(task, [...selected, ...dropped]);
 
   return {

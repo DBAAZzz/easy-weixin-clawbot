@@ -1,9 +1,17 @@
 import "./config/load-env.js";
 import { serve } from "@hono/node-server";
-import { schedulerManager, startHeartbeat, stopHeartbeat } from "@clawbot/agent";
+import {
+  createBuiltinCommands,
+  schedulerManager,
+  setScheduledTaskHandler,
+  startHeartbeat,
+  stopHeartbeat,
+} from "@clawbot/agent";
 import { purgeCompacted } from "@clawbot/agent/tape";
 import { createApiApp } from "./api/index.js";
-import { mcpToolRegistry, skillInstaller, runtimeProvisioner, validateConfig } from "./ai.js";
+import { mcpToolRegistry, skillInstaller, runtimeProvisioner, validateConfig, chatEngine } from "./ai.js";
+import { commandRegistry } from "./agent.js";
+import { rssTaskHandler } from "./api/routes/rss.js";
 import { migratePlaintextSecrets } from "./db/secret-migrations.js";
 import { disconnectPrisma } from "./db/prisma.js";
 import { createLoginManager } from "./login/login-manager.js";
@@ -16,6 +24,9 @@ import { rssService } from "./rss/service.js";
 import { appSettingsService } from "./settings/service.js";
 
 validateConfig();
+
+commandRegistry.registerAll(createBuiltinCommands({ debugFlags: chatEngine.debugFlags }));
+setScheduledTaskHandler(rssTaskHandler);
 
 const RSS_COLLECTION_INTERVAL_MS = 5 * 60 * 1000;
 const MAINTENANCE_INTERVAL_MS = 12 * 60 * 60 * 1000;

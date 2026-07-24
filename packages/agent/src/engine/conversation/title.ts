@@ -4,7 +4,7 @@ import type { AgentMessage, AssistantMessage, UserMessage } from "../../llm/type
 import { resolveConfiguredModel, resolveModel } from "../../llm/model-resolver.js";
 import { getPromptAssets } from "../../prompts/port.js";
 import { PROMPT_PROFILES } from "../../prompts/profiles.js";
-import { getHistory } from "./history.js";
+import type { ConversationCache } from "./cache.js";
 import { extractAssistantText, extractTextContent } from "../../shared/utils/chat-utils.js";
 
 const TITLE_MAX_CHARS = 20;
@@ -66,6 +66,7 @@ function isAssistantMessage(message: AgentMessage): message is AssistantMessage 
 }
 
 export async function generateConversationTitle(
+  cache: ConversationCache,
   accountId: string,
   conversationId: string,
   turn?: ConversationTitleTurn,
@@ -74,7 +75,7 @@ export async function generateConversationTitle(
   let assistantText = turn?.assistantText.trim() ?? "";
 
   if (!userText || !assistantText) {
-    const history = getHistory(accountId, conversationId);
+    const history = cache.get(accountId, conversationId);
     const firstUser = history.find((message) => message.role === MESSAGE_ROLE.USER);
     if (!firstUser) {
       return null;

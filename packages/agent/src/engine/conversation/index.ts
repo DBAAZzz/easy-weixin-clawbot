@@ -1,14 +1,8 @@
 export {
-  ensureHistoryLoaded,
-  getHistory,
-  nextSeq,
-  currentSeq,
-  appendAssistantTextMessage,
-  evictConversation,
-  clearConversation,
-  withConversationLock,
-  rollbackMessages,
-} from "./history.js";
+  createConversationCache,
+  type ConversationCache,
+  type ConversationCacheOptions,
+} from "./cache.js";
 export {
   fitToContextWindow,
   type ContextWindowConfig,

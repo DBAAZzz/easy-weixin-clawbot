@@ -1,8 +1,6 @@
 /**
- * chat() — core conversation orchestration.
- *
- * Loads history + tape memory → builds user message → runs LLM → persists → extracts memory.
- * Decoupled from transport layer — no HTTP, no WeChat, no Prisma.
+ * A single chat turn — loads history + tape memory → builds user message →
+ * runs LLM → persists → extracts memory. Called by ChatEngine.chat().
  */
 
 import type {
@@ -19,15 +17,15 @@ import {
 } from "@clawbot/shared";
 import { withSpan, getTraceId } from "@clawbot/observability";
 import type { AgentRunner, RunCallbacks, RunResult } from "./runner.js";
+import type { RunContext } from "./context.js";
+import type { ConversationCache } from "./conversation/cache.js";
 import {
   resolveConfiguredModel,
   resolveModel,
   type ResolvedModel,
 } from "../llm/model-resolver.js";
 import type { ChatResponse, ChatMedia } from "../shared/types.js";
-import type { AgentToolContext } from "../capabilities/tools/context.js";
-import { isDebugEnabled } from "../commands/debug.js";
-import { ensureHistoryLoaded, getHistory, nextSeq, rollbackMessages } from "./conversation/index.js";
+import type { DebugFlags } from "../commands/debug.js";
 import { getMessageStore } from "../ports/message-store.js";
 import { getUsageStore } from "../ports/usage-store.js";
 import {
@@ -48,7 +46,27 @@ import {
   isEmptyAssistantMessage,
 } from "../shared/utils/chat-utils.js";
 
+export interface ChatLog {
+  llm(accountId: string, round: number): void;
+  tool(name: string, args: Record<string, unknown>, result: string): void;
+  done(accountId: string, rounds: number, ms: number): void;
+}
+
+export interface ChatTurnDeps {
+  runner: AgentRunner;
+  log: ChatLog;
+  cache: ConversationCache;
+  debugFlags: DebugFlags;
+}
+
+export interface ChatTurnInput {
+  text: string;
+  media?: ChatMedia;
+  startedAt?: number;
+}
+
 function finalizeReply(
+  debugFlags: DebugFlags,
   text: string,
   fallback: string,
   debug?: { accountId: string; conversationId: string; startedAt: number; rounds: number },
@@ -57,7 +75,7 @@ function finalizeReply(
   const { cleanText, media } = extractMediaFromText(raw);
 
   let finalText = cleanText || undefined;
-  if (finalText && debug && isDebugEnabled(debug.accountId, debug.conversationId)) {
+  if (finalText && debug && debugFlags.isEnabled(debug.accountId, debug.conversationId)) {
     const elapsed = Date.now() - debug.startedAt;
     finalText += `\n\n---\n⏱ ${debug.rounds} round(s), ${elapsed}ms`;
   }
@@ -65,31 +83,6 @@ function finalizeReply(
   const response: ChatResponse = { text: finalText };
   if (media) response.media = media;
   return response;
-}
-
-export interface ChatDeps {
-  runner: AgentRunner;
-  log: {
-    llm(accountId: string, round: number): void;
-    tool(name: string, args: Record<string, unknown>, result: string): void;
-    done(accountId: string, rounds: number, ms: number): void;
-  };
-}
-
-export interface ChatOptions {
-  signal?: AbortSignal;
-  toolContext?: AgentToolContext;
-}
-
-let _deps: ChatDeps | null = null;
-
-export function setChatDeps(deps: ChatDeps): void {
-  _deps = deps;
-}
-
-function getDeps(): ChatDeps {
-  if (!_deps) throw new Error("ChatDeps not initialized — call setChatDeps() at startup");
-  return _deps;
 }
 
 function createUsageRequestId(): string {
@@ -102,17 +95,17 @@ function createUsageRequestId(): string {
  * the live history array and the formatted memory block for prompt injection.
  */
 async function loadConversationContext(
-  accountId: string,
-  conversationId: string,
+  cache: ConversationCache,
+  ctx: RunContext,
 ): Promise<{ history: AgentMessage[]; memoryContext: string }> {
   const [, [sessionMemory, globalMemory]] = await Promise.all([
-    withSpan("history.load", { conversationId, accountId }, () =>
-      ensureHistoryLoaded(accountId, conversationId),
+    withSpan("history.load", { conversationId: ctx.conversationId, accountId: ctx.accountId }, () =>
+      cache.ensureLoaded(ctx.accountId, ctx.conversationId),
     ),
-    withSpan("tape.recall", { conversationId, accountId }, () =>
+    withSpan("tape.recall", { conversationId: ctx.conversationId, accountId: ctx.accountId }, () =>
       Promise.all([
-        recall(accountId, conversationId),
-        recall(accountId, GLOBAL_BRANCH),
+        recall(ctx.accountId, ctx.conversationId),
+        recall(ctx.accountId, GLOBAL_BRANCH),
       ]).catch((err) => {
         console.warn("[tape] recall failed, proceeding without memory:", err);
         return [emptyState(), emptyState()] as const;
@@ -121,7 +114,7 @@ async function loadConversationContext(
   ]);
 
   return {
-    history: getHistory(accountId, conversationId),
+    history: cache.get(ctx.accountId, ctx.conversationId),
     memoryContext: formatMemoryForPrompt(globalMemory, sessionMemory),
   };
 }
@@ -170,13 +163,19 @@ async function buildUserMessage(params: {
 }
 
 /** Append a message to live history and queue it for persistence. */
-function appendMessage(accountId: string, conversationId: string, history: AgentMessage[], message: AgentMessage): void {
+function appendMessage(
+  cache: ConversationCache,
+  accountId: string,
+  conversationId: string,
+  history: AgentMessage[],
+  message: AgentMessage,
+): void {
   history.push(message);
   getMessageStore().queuePersistMessage({
     accountId,
     conversationId,
     message,
-    seq: nextSeq(accountId, conversationId),
+    seq: cache.nextSeq(accountId, conversationId),
   });
 }
 
@@ -191,10 +190,11 @@ interface RunTracker {
  * non-empty ones, log tool calls, and track round/message counters.
  */
 function createMessageTracker(
+  cache: ConversationCache,
   accountId: string,
   conversationId: string,
   history: AgentMessage[],
-  log: ChatDeps["log"],
+  log: ChatLog,
   usageRequestId: string,
 ): RunTracker {
   const messageStore = getMessageStore();
@@ -219,7 +219,7 @@ function createMessageTracker(
           accountId,
           conversationId,
           message,
-          seq: nextSeq(accountId, conversationId),
+          seq: cache.nextSeq(accountId, conversationId),
         });
       }
 
@@ -294,6 +294,8 @@ function scheduleMemoryExtraction(params: {
  * responses and firing post-response memory extraction / compaction.
  */
 async function handleRunResult(params: {
+  cache: ConversationCache;
+  debugFlags: DebugFlags;
   result: RunResult;
   accountId: string;
   conversationId: string;
@@ -303,7 +305,18 @@ async function handleRunResult(params: {
   rounds: number;
   messagesAddedInRun: number;
 }): Promise<ChatResponse> {
-  const { result, accountId, conversationId, userText, chatModel, startedAt, rounds, messagesAddedInRun } = params;
+  const {
+    cache,
+    debugFlags,
+    result,
+    accountId,
+    conversationId,
+    userText,
+    chatModel,
+    startedAt,
+    rounds,
+    messagesAddedInRun,
+  } = params;
   const debug = { accountId, conversationId, startedAt, rounds };
 
   switch (result.status) {
@@ -317,7 +330,7 @@ async function handleRunResult(params: {
           `[chat] error response — rolling back ${messagesAddedInRun} message(s). ` +
             `stopReason: ${msg.stopReason} | errorMessage: ${(msg as any).errorMessage ?? "(none)"}`,
         );
-        await rollbackMessages(accountId, conversationId, messagesAddedInRun);
+        await cache.rollback(accountId, conversationId, messagesAddedInRun);
       } else {
         // Both run asynchronously *after* the finalizeReply() return below.
         scheduleMemoryExtraction({ accountId, conversationId, userText, assistantText: replyText, chatModel });
@@ -328,10 +341,11 @@ async function handleRunResult(params: {
         ).catch((err) => console.warn("[tape] compact failed:", err));
       }
 
-      return finalizeReply(replyText, "抱歉，出了点问题，请稍后再试。", debug);
+      return finalizeReply(debugFlags, replyText, "抱歉，出了点问题，请稍后再试。", debug);
     }
     case "max_rounds":
       return finalizeReply(
+        debugFlags,
         extractAssistantText(result.lastMessage),
         "抱歉，这次问题我还没处理完。",
         debug,
@@ -341,38 +355,37 @@ async function handleRunResult(params: {
   }
 }
 
-export async function chat(
-  accountId: string,
-  conversationId: string,
-  text: string,
-  media?: ChatMedia,
-  startedAt = Date.now(),
-  options: ChatOptions = {},
+export async function runChatTurn(
+  deps: ChatTurnDeps,
+  ctx: RunContext,
+  input: ChatTurnInput,
 ): Promise<ChatResponse> {
-  const { runner, log } = getDeps();
+  const { runner, log, cache, debugFlags } = deps;
+  const startedAt = input.startedAt ?? Date.now();
 
   // Resolve the chat model dynamically based on account/conversation context
-  const chatModel = await resolveModel(accountId, conversationId, "chat");
+  const chatModel = await resolveModel(ctx.accountId, ctx.conversationId, "chat");
 
   return withSpan(
     "agent.chat",
-    { model: chatModel.modelId, hasMedia: Boolean(media) },
+    { model: chatModel.modelId, hasMedia: Boolean(input.media) },
     async () => {
-      const { history, memoryContext } = await loadConversationContext(accountId, conversationId);
+      const { history, memoryContext } = await loadConversationContext(cache, ctx);
 
       const userMessage = await buildUserMessage({
-        text,
-        media,
+        text: input.text,
+        media: input.media,
         memoryContext,
         chatModel,
-        accountId,
-        conversationId,
+        accountId: ctx.accountId,
+        conversationId: ctx.conversationId,
       });
-      appendMessage(accountId, conversationId, history, userMessage);
+      appendMessage(cache, ctx.accountId, ctx.conversationId, history, userMessage);
 
       const tracker = createMessageTracker(
-        accountId,
-        conversationId,
+        cache,
+        ctx.accountId,
+        ctx.conversationId,
         history,
         log,
         createUsageRequestId(),
@@ -381,23 +394,25 @@ export async function chat(
       const result = await runner.run(
         history,
         tracker.callbacks,
-        options.signal,
+        ctx.signal,
         {
           model: chatModel.model,
           meta: chatModel.meta,
         },
-        options.toolContext ?? { accountId, conversationId, runKind: "chat" },
+        ctx,
       );
 
       if (result.status !== "aborted") {
-        log.done(accountId, tracker.state.rounds, Date.now() - startedAt);
+        log.done(ctx.accountId, tracker.state.rounds, Date.now() - startedAt);
       }
 
       return handleRunResult({
+        cache,
+        debugFlags,
         result,
-        accountId,
-        conversationId,
-        userText: text,
+        accountId: ctx.accountId,
+        conversationId: ctx.conversationId,
+        userText: input.text,
         chatModel,
         startedAt,
         rounds: tracker.state.rounds,

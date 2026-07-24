@@ -118,8 +118,8 @@ export {
   getModelConfigStore,
   setHeartbeatStore,
   getHeartbeatStore,
-  setHeartbeatExecutor,
-  getHeartbeatExecutor,
+  setChatExecutor,
+  getChatExecutor,
   setWebToolService,
   getWebToolService,
 } from "./ports/index.js";
@@ -147,9 +147,11 @@ export type {
   ModelScope,
   ModelVisionOverride,
   HeartbeatStore,
-  HeartbeatExecutorPort,
   HeartbeatExecutionRequest,
   HeartbeatExecutionResult,
+  ChatExecutorPort,
+  ChatExecutionRequest,
+  ChatExecutionResult,
   WebSearchResult,
   WebSearchRequest,
   WebSearchResponse,
@@ -179,22 +181,16 @@ export type {
 
 // ── Conversation (history management) ───────────────────────────────
 export {
-  ensureHistoryLoaded,
-  getHistory,
-  nextSeq,
-  currentSeq,
-  appendAssistantTextMessage,
-  evictConversation,
-  clearConversation,
-  withConversationLock,
-  rollbackMessages,
+  createConversationCache,
+  type ConversationCache,
+  type ConversationCacheOptions,
   generateConversationTitle,
 } from "./engine/conversation/index.js";
 
 // ── Commands ────────────────────────────────────────────────────────
 export { CommandRegistry } from "./commands/registry.js";
-export { builtinCommands } from "./commands/builtins.js";
-export { isDebugEnabled } from "./commands/debug.js";
+export { createBuiltinCommands } from "./commands/builtins.js";
+export { createDebugFlags, type DebugFlags } from "./commands/debug.js";
 export type { Command, CommandContext } from "./commands/types.js";
 
 // ── Scheduler ───────────────────────────────────────────────────────
@@ -223,7 +219,8 @@ export type {
 } from "./capabilities/heartbeat/types.js";
 
 // ── Chat orchestration ──────────────────────────────────────────────
-export { chat } from "./engine/chat.js";
+export { createChatEngine, type ChatEngine, type ChatLog } from "./engine/chat-engine.js";
+export { type RunContext, toolContextFrom } from "./engine/context.js";
 
 // ── Prompt system ───────────────────────────────────────────────────
 export type {

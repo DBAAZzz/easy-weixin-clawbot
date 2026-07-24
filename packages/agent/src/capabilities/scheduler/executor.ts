@@ -1,7 +1,6 @@
-import { chat } from "../../engine/chat.js";
 import { TimeoutError } from "../../shared/errors.js";
 import { withTimeout } from "../../shared/utils/async.js";
-import { withConversationLock } from "../../engine/conversation/history.js";
+import { getChatExecutor } from "../../ports/chat-executor.js";
 import { getPushService } from "../../ports/push-service.js";
 import { getScheduledTaskHandler } from "../../ports/scheduled-task-handler.js";
 import {
@@ -22,18 +21,15 @@ async function runChatTaskWithTimeout(
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   try {
-    const chatPromise = withConversationLock(task.accountId, executionConvId, () =>
-      chat(task.accountId, executionConvId, task.prompt, undefined, Date.now(), {
-        signal: controller.signal,
-        toolContext: {
-          accountId: task.accountId,
-          conversationId: executionConvId,
-          targetConversationId: task.conversationId,
-          runKind: "scheduler",
-        },
-      }),
-    );
-    void chatPromise.catch(() => {});
+    const execPromise = getChatExecutor().execute({
+      accountId: task.accountId,
+      conversationId: executionConvId,
+      targetConversationId: task.conversationId,
+      prompt: task.prompt,
+      runKind: "scheduler",
+      signal: controller.signal,
+    });
+    void execPromise.catch(() => {});
 
     const timeoutPromise = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
@@ -41,9 +37,13 @@ async function runChatTaskWithTimeout(
         reject(new TimeoutError(`Scheduled task #${task.seq} timed out`));
       }, EXECUTION_TIMEOUT_MS);
     });
-    const chatResult = await Promise.race([chatPromise, timeoutPromise]);
+    const execResult = await Promise.race([execPromise, timeoutPromise]);
 
-    return chatResult.text ?? undefined;
+    if (execResult.status === "error") {
+      throw new Error(execResult.error ?? "chat executor failed");
+    }
+
+    return execResult.text ?? undefined;
   } finally {
     if (timer) clearTimeout(timer);
   }

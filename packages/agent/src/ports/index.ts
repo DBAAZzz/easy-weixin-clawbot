@@ -53,11 +53,16 @@ export type { HeartbeatStore } from "./heartbeat-store.js";
 export { setHeartbeatStore, getHeartbeatStore } from "./heartbeat-store.js";
 
 export type {
-  HeartbeatExecutorPort,
   HeartbeatExecutionRequest,
   HeartbeatExecutionResult,
-} from "./heartbeat-executor.js";
-export { setHeartbeatExecutor, getHeartbeatExecutor } from "./heartbeat-executor.js";
+} from "../capabilities/heartbeat/types.js";
+
+export type {
+  ChatExecutorPort,
+  ChatExecutionRequest,
+  ChatExecutionResult,
+} from "./chat-executor.js";
+export { setChatExecutor, getChatExecutor } from "./chat-executor.js";
 
 export type {
   WebSearchResult,

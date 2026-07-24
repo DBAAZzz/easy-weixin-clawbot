@@ -1,2 +1,2 @@
-export type { ChatDeps, ChatOptions } from "./chat.js";
-export { setChatDeps, chat } from "./chat.js";
+export { createChatEngine, type ChatEngine, type ChatLog } from "./chat-engine.js";
+export { type RunContext, toolContextFrom } from "./context.js";

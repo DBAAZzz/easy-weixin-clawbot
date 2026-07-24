@@ -2,13 +2,13 @@
  * Heartbeat Evaluator — two-phase goal evaluation.
  *
  * Phase 1: reasonInternal() → lightweight structured verdict (act/wait/resolve/abandon)
- * Phase 2: HeartbeatExecutorPort → full chat() in the original conversation (only on verdict=act)
+ * Phase 2: ChatExecutorPort → full chat() in the original conversation (only on verdict=act)
  */
 
 import { reasonInternal } from "./reason-internal.js";
 import { MESSAGE_ROLE } from "@clawbot/shared";
 import { getHeartbeatStore } from "../../ports/heartbeat-store.js";
-import { getHeartbeatExecutor } from "../../ports/heartbeat-executor.js";
+import { getChatExecutor } from "../../ports/chat-executor.js";
 import { getMessageStore } from "../../ports/message-store.js";
 import {
   type GoalTransition,
@@ -275,7 +275,7 @@ export async function evaluateGoal(goal: PendingGoalRow): Promise<GoalTransition
     }
 
     // ── Phase 2: verdict === "act" → full execution ──
-    const executor = getHeartbeatExecutor();
+    const executor = getChatExecutor();
     const assets = getPromptAssets();
     const execTemplate = assets.get(PROMPT_TEMPLATES.heartbeat_exec);
 
@@ -291,6 +291,7 @@ export async function evaluateGoal(goal: PendingGoalRow): Promise<GoalTransition
       accountId: goal.accountId,
       conversationId: goal.sourceConversationId,
       prompt: phase2Prompt,
+      runKind: "heartbeat",
     });
 
     if (execResult.status === "error") {

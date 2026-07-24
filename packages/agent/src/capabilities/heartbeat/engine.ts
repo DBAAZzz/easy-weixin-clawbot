@@ -4,7 +4,7 @@
  * Concurrency model:
  *   Layer 1: inflight Set — same goal never runs twice concurrently
  *   Layer 2: per-account serial queue — same account's goals run serially
- *   Layer 3: withConversationLock — Phase 2 execution via HeartbeatExecutorPort (server layer)
+ *   Layer 3: ConversationCache.withLock — Phase 2 execution via ChatExecutorPort (server layer)
  */
 
 import { createLogger } from "@clawbot/observability";

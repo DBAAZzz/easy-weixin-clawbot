@@ -6,8 +6,8 @@ import type {
   SchedulerStore,
 } from "../../src/ports/scheduler-store.js";
 import { setSchedulerStore } from "../../src/ports/scheduler-store.js";
-import { schedulerToolRegistry } from "../../src/scheduler/tool.js";
-import { deactivate } from "../../src/scheduler/manager.js";
+import { schedulerToolRegistry } from "../../src/capabilities/scheduler/tool.js";
+import { deactivate } from "../../src/capabilities/scheduler/manager.js";
 
 const abortSignal = new AbortController().signal;
 

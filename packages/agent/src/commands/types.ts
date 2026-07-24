@@ -1,4 +1,4 @@
-import type { ChatResponse } from "../types.js";
+import type { ChatResponse } from "../shared/types.js";
 
 export interface CommandContext {
   accountId: string;

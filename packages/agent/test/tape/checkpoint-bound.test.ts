@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { emptyState } from "../../src/tape/fold.js";
-import { withBoundedDecisions } from "../../src/tape/service.js";
-import type { TapeState } from "../../src/tape/types.js";
+import { emptyState } from "../../src/memory/fold.js";
+import { withBoundedDecisions } from "../../src/memory/service.js";
+import type { TapeState } from "../../src/memory/types.js";
 
 function stateWithDecisions(count: number): TapeState {
   const state = emptyState();

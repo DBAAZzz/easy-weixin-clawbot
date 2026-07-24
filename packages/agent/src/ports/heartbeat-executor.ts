@@ -6,7 +6,7 @@
  * while server provides the lock-wrapped implementation.
  */
 
-import type { HeartbeatExecutionRequest, HeartbeatExecutionResult } from "../heartbeat/types.js";
+import type { HeartbeatExecutionRequest, HeartbeatExecutionResult } from "../capabilities/heartbeat/types.js";
 import { createPortSlot } from "./slot.js";
 
 export type { HeartbeatExecutionRequest, HeartbeatExecutionResult };

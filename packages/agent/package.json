@@ -12,49 +12,49 @@
       "default": "./dist/index.js"
     },
     "./skills/registry": {
-      "types": "./src/skills/registry.ts",
-      "development": "./src/skills/registry.ts",
-      "default": "./dist/skills/registry.js"
+      "types": "./src/capabilities/skills/registry.ts",
+      "development": "./src/capabilities/skills/registry.ts",
+      "default": "./dist/capabilities/skills/registry.js"
     },
     "./skills/types": {
-      "types": "./src/skills/types.ts",
-      "development": "./src/skills/types.ts",
-      "default": "./dist/skills/types.js"
+      "types": "./src/capabilities/skills/types.ts",
+      "development": "./src/capabilities/skills/types.ts",
+      "default": "./dist/capabilities/skills/types.js"
     },
     "./skills/installer": {
-      "types": "./src/skills/installer.ts",
-      "development": "./src/skills/installer.ts",
-      "default": "./dist/skills/installer.js"
+      "types": "./src/capabilities/skills/installer.ts",
+      "development": "./src/capabilities/skills/installer.ts",
+      "default": "./dist/capabilities/skills/installer.js"
     },
     "./tools/registry": {
-      "types": "./src/tools/registry.ts",
-      "development": "./src/tools/registry.ts",
-      "default": "./dist/tools/registry.js"
+      "types": "./src/capabilities/tools/registry.ts",
+      "development": "./src/capabilities/tools/registry.ts",
+      "default": "./dist/capabilities/tools/registry.js"
     },
     "./tools/types": {
-      "types": "./src/tools/types.ts",
-      "development": "./src/tools/types.ts",
-      "default": "./dist/tools/types.js"
+      "types": "./src/capabilities/tools/types.ts",
+      "development": "./src/capabilities/tools/types.ts",
+      "default": "./dist/capabilities/tools/types.js"
     },
     "./tools/builtins": {
-      "types": "./src/tools/builtins.ts",
-      "development": "./src/tools/builtins.ts",
-      "default": "./dist/tools/builtins.js"
+      "types": "./src/capabilities/tools/builtins.ts",
+      "development": "./src/capabilities/tools/builtins.ts",
+      "default": "./dist/capabilities/tools/builtins.js"
     },
     "./mcp/types": {
-      "types": "./src/mcp/types.ts",
-      "development": "./src/mcp/types.ts",
-      "default": "./dist/mcp/types.js"
+      "types": "./src/capabilities/mcp/types.ts",
+      "development": "./src/capabilities/mcp/types.ts",
+      "default": "./dist/capabilities/mcp/types.js"
     },
     "./mcp/stdio-client": {
-      "types": "./src/mcp/stdio-client.ts",
-      "development": "./src/mcp/stdio-client.ts",
-      "default": "./dist/mcp/stdio-client.js"
+      "types": "./src/capabilities/mcp/stdio-client.ts",
+      "development": "./src/capabilities/mcp/stdio-client.ts",
+      "default": "./dist/capabilities/mcp/stdio-client.js"
     },
     "./mcp/tool-adapter": {
-      "types": "./src/mcp/tool-adapter.ts",
-      "development": "./src/mcp/tool-adapter.ts",
-      "default": "./dist/mcp/tool-adapter.js"
+      "types": "./src/capabilities/mcp/tool-adapter.ts",
+      "development": "./src/capabilities/mcp/tool-adapter.ts",
+      "default": "./dist/capabilities/mcp/tool-adapter.js"
     },
     "./ports": {
       "types": "./src/ports/index.ts",
@@ -62,14 +62,14 @@
       "default": "./dist/ports/index.js"
     },
     "./tape": {
-      "types": "./src/tape/index.ts",
-      "development": "./src/tape/index.ts",
-      "default": "./dist/tape/index.js"
+      "types": "./src/memory/index.ts",
+      "development": "./src/memory/index.ts",
+      "default": "./dist/memory/index.js"
     },
     "./conversation": {
-      "types": "./src/conversation/index.ts",
-      "development": "./src/conversation/index.ts",
-      "default": "./dist/conversation/index.js"
+      "types": "./src/engine/conversation/index.ts",
+      "development": "./src/engine/conversation/index.ts",
+      "default": "./dist/engine/conversation/index.js"
     },
     "./commands": {
       "types": "./src/commands/index.ts",
@@ -77,24 +77,24 @@
       "default": "./dist/commands/index.js"
     },
     "./scheduler": {
-      "types": "./src/scheduler/index.ts",
-      "development": "./src/scheduler/index.ts",
-      "default": "./dist/scheduler/index.js"
+      "types": "./src/capabilities/scheduler/index.ts",
+      "development": "./src/capabilities/scheduler/index.ts",
+      "default": "./dist/capabilities/scheduler/index.js"
     },
     "./model-resolver": {
-      "types": "./src/model-resolver.ts",
-      "development": "./src/model-resolver.ts",
-      "default": "./dist/model-resolver.js"
+      "types": "./src/llm/model-resolver.ts",
+      "development": "./src/llm/model-resolver.ts",
+      "default": "./dist/llm/model-resolver.js"
     },
     "./chat": {
-      "types": "./src/chat.ts",
-      "development": "./src/chat.ts",
-      "default": "./dist/chat.js"
+      "types": "./src/engine/index.ts",
+      "development": "./src/engine/index.ts",
+      "default": "./dist/engine/index.js"
     },
     "./media": {
-      "types": "./src/media.ts",
-      "development": "./src/media.ts",
-      "default": "./dist/media.js"
+      "types": "./src/shared/media.ts",
+      "development": "./src/shared/media.ts",
+      "default": "./dist/shared/media.js"
     },
     "./prompts": {
       "types": "./src/prompts/index.ts",

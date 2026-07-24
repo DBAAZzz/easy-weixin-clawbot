@@ -9,9 +9,9 @@ import {
   probeNodePackages,
   resolveDependencyStatus,
   stripNodeVersionRange,
-} from "../../src/skills/environment-probe.js";
-import type { InstalledPackageIndex } from "../../src/skills/environment-probe.js";
-import type { SkillDependency } from "../../src/skills/types.js";
+} from "../../src/capabilities/skills/environment-probe.js";
+import type { InstalledPackageIndex } from "../../src/capabilities/skills/environment-probe.js";
+import type { SkillDependency } from "../../src/capabilities/skills/types.js";
 
 function dependency(name: string, installSpec?: string): SkillDependency {
   return { name, installSpec, source: "markdown-install", confidence: "high" };

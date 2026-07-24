@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { MockLanguageModelV3 } from "ai/test";
 import { setTapeStore, type CreateAnchorParams, type CreateEntryParams, type TapeAnchorRow, type TapeEntryRow, type TapeStore } from "../../src/ports/tape-store.js";
 import { loadPromptAssets, setPromptAssets } from "../../src/prompts/index.js";
-import { fireExtractAndRecord } from "../../src/tape/extractor.js";
-import { recall } from "../../src/tape/service.js";
+import { fireExtractAndRecord } from "../../src/memory/extractor.js";
+import { recall } from "../../src/memory/service.js";
 
 function createGenerateResult(
   text: string,

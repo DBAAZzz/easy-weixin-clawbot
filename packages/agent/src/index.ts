@@ -16,7 +16,7 @@ export type {
 export { agentToModelMessages, legacyPayloadToAgentMessage } from "./llm/messages.js";
 export { createLanguageModel } from "./llm/provider-factory.js";
 export { modelSupportsVision } from "./llm/model-meta.js";
-export type { ResolvedModel } from "./model-resolver.js";
+export type { ResolvedModel } from "./llm/model-resolver.js";
 export {
   buildModelFromConfig,
   resolveConfiguredModel,
@@ -27,12 +27,12 @@ export {
   LLM_PROVIDER_NOT_CONFIGURED_CODE,
   LLM_PROVIDER_NOT_CONFIGURED_MESSAGE,
   LLM_PROVIDER_NOT_CONFIGURED_USER_MESSAGE,
-} from "./model-resolver.js";
+} from "./llm/model-resolver.js";
 
 export type {
   ChatMedia,
   ChatResponse,
-} from "./types.js";
+} from "./shared/types.js";
 
 export type {
   AgentConfig,
@@ -40,8 +40,8 @@ export type {
   ModelOverride,
   RunCallbacks,
   RunResult,
-} from "./runner.js";
-export { createAgentRunner } from "./runner.js";
+} from "./engine/runner.js";
+export { createAgentRunner } from "./engine/runner.js";
 export type {
   SkillActivation,
   SkillCatalogItem,
@@ -62,43 +62,43 @@ export type {
   SkillProvisionInstaller,
   ProvisionStatus,
   InstalledSkill,
-} from "./skills/types.js";
-export { createSkillRegistry } from "./skills/registry.js";
-export { createSkillInstaller } from "./skills/installer.js";
-export { scanSkillPackage } from "./skills/package-scanner.js";
-export { analyzeScript } from "./skills/script-analyzer.js";
-export { detectSkillRuntime } from "./skills/runtime-detector.js";
-export { createSkillRuntimeToolSnapshot } from "./skills/runtime-tools.js";
-export { normalizeFrontmatter } from "./skills/normalizer.js";
-export type { NormalizeResult } from "./skills/normalizer.js";
-export { createRuntimeProvisioner, readManagedMeta } from "./skills/runtime-provisioner.js";
+} from "./capabilities/skills/types.js";
+export { createSkillRegistry } from "./capabilities/skills/registry.js";
+export { createSkillInstaller } from "./capabilities/skills/installer.js";
+export { scanSkillPackage } from "./capabilities/skills/package-scanner.js";
+export { analyzeScript } from "./capabilities/skills/script-analyzer.js";
+export { detectSkillRuntime } from "./capabilities/skills/runtime-detector.js";
+export { createSkillRuntimeToolSnapshot } from "./capabilities/skills/runtime-tools.js";
+export { normalizeFrontmatter } from "./capabilities/skills/normalizer.js";
+export type { NormalizeResult } from "./capabilities/skills/normalizer.js";
+export { createRuntimeProvisioner, readManagedMeta } from "./capabilities/skills/runtime-provisioner.js";
 export type {
   RuntimeProvisioner,
   ProvisionPlan,
   ProvisionLog,
   ManagedMeta,
-} from "./skills/runtime-provisioner.js";
+} from "./capabilities/skills/runtime-provisioner.js";
 export type {
   ToolCatalogItem,
   ToolRegistry,
   ToolSnapshot,
-} from "./tools/types.js";
-export { createToolRegistry } from "./tools/registry.js";
-export { createCompositeToolRegistry } from "./tools/composite-registry.js";
+} from "./capabilities/tools/types.js";
+export { createToolRegistry } from "./capabilities/tools/registry.js";
+export { createCompositeToolRegistry } from "./capabilities/tools/composite-registry.js";
 export {
   createBuiltinToolSnapshot,
   getBuiltinToolCatalogItem,
   listBuiltinToolCatalog,
-} from "./tools/builtins.js";
+} from "./capabilities/tools/builtins.js";
 export type {
   McpRemoteTool,
   McpToolBinding,
   McpToolCallResult,
   StdioMcpClient,
   StdioMcpClientOptions,
-} from "./mcp/types.js";
-export { createStdioMcpClient } from "./mcp/stdio-client.js";
-export { createMcpToolSnapshotItem } from "./mcp/tool-adapter.js";
+} from "./capabilities/mcp/types.js";
+export { createStdioMcpClient } from "./capabilities/mcp/stdio-client.js";
+export { createMcpToolSnapshotItem } from "./capabilities/mcp/tool-adapter.js";
 
 // ── Ports (dependency injection interfaces) ─────────────────────────
 export {
@@ -168,14 +168,14 @@ export {
   fireExtractAndRecord,
   queueRecordEntry,
   getPendingTapeWriteCount,
-} from "./tape/index.js";
+} from "./memory/index.js";
 export type {
   TapeState,
   TapeFact,
   TapePreference,
   TapeDecision,
   RecordParams,
-} from "./tape/index.js";
+} from "./memory/index.js";
 
 // ── Conversation (history management) ───────────────────────────────
 export {
@@ -189,7 +189,7 @@ export {
   withConversationLock,
   rollbackMessages,
   generateConversationTitle,
-} from "./conversation/index.js";
+} from "./engine/conversation/index.js";
 
 // ── Commands ────────────────────────────────────────────────────────
 export { CommandRegistry } from "./commands/registry.js";
@@ -203,7 +203,7 @@ export {
   schedulerToolRegistry,
   scheduleCommand,
   executeTask,
-} from "./scheduler/index.js";
+} from "./capabilities/scheduler/index.js";
 
 // ── Heartbeat ───────────────────────────────────────────────────────
 export {
@@ -211,7 +211,7 @@ export {
   stopHeartbeat,
   checkWaitingGoalsAsync,
   heartbeatToolRegistry,
-} from "./heartbeat/index.js";
+} from "./capabilities/heartbeat/index.js";
 export type {
   GoalStatus,
   GoalOrigin,
@@ -220,10 +220,10 @@ export type {
   CreateGoalInput,
   UpdateGoalInput,
   GoalTransition,
-} from "./heartbeat/types.js";
+} from "./capabilities/heartbeat/types.js";
 
 // ── Chat orchestration ──────────────────────────────────────────────
-export { chat } from "./chat.js";
+export { chat } from "./engine/chat.js";
 
 // ── Prompt system ───────────────────────────────────────────────────
 export type {
@@ -243,7 +243,7 @@ export {
   setPromptAssets,
   getPromptAssets,
 } from "./prompts/index.js";
-export { extractMediaFromText, resolveFilePath } from "./media.js";
+export { extractMediaFromText, resolveFilePath } from "./shared/media.js";
 
 // ── Errors ──────────────────────────────────────────────────────────
-export { AgentError, TimeoutError, ModelResolutionError, SkillProvisionError } from "./errors.js";
+export { AgentError, TimeoutError, ModelResolutionError, SkillProvisionError } from "./shared/errors.js";

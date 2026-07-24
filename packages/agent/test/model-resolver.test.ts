@@ -5,7 +5,7 @@ import {
   LLMProviderNotConfiguredError,
   resolveConfiguredModel,
   resolveModel,
-} from "../src/model-resolver.js";
+} from "../src/llm/model-resolver.js";
 import {
   setModelConfigStore,
   type ModelConfigRow,

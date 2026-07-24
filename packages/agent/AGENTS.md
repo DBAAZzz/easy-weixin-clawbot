@@ -53,7 +53,9 @@ src/
 └── test/                       测试 fixtures + helpers（不参与分层检查）
 ```
 
-`pnpm -F @clawbot/agent lint:layers`（`scripts/check-layers.mjs`）用工具而非公约执行上表的分层规则：扫描 `src/**/*.ts` 的相对 import，任何**值导入**（非 `import type`）指向更高层即非零退出。`import type` 不受限——跨层的纯类型引用（如 `RunKind`、`AgentMessage`）不产生运行时依赖，予以豁免。
+`pnpm -F @clawbot/agent lint:layers`（`scripts/check-layers.mjs`）用工具而非公约执行上表的分层规则：扫描 `src/**/*.ts` 的静态与动态相对 import，任何**值导入**指向更高层即非零退出。
+
+**向上的 `import type` 同样受检**，只是走单独的 `TYPE_EXEMPT` 白名单。纯类型引用确实没有运行时依赖，但仍是耦合——本次重构切掉的 4 条反向边里，`prompts → skills/types` 恰恰就是 type-only 的，若一律豁免，护栏就防不住它自己刚修的那类问题。当前白名单只有 4 条（`ports` 搬运上层领域类型 3 条 + `shared/utils/chat-utils` 用 `AgentMessage` 1 条），每条都在脚本里注明理由；新增一条必须改脚本，是一次显式的、可 review 的动作。
 
 ## 核心模式
 

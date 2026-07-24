@@ -2,6 +2,7 @@ import "./config/load-env.js";
 import { serve } from "@hono/node-server";
 import {
   createBuiltinCommands,
+  scheduleCommand,
   schedulerManager,
   setScheduledTaskHandler,
   startHeartbeat,
@@ -26,6 +27,7 @@ import { appSettingsService } from "./settings/service.js";
 validateConfig();
 
 commandRegistry.registerAll(createBuiltinCommands({ debugFlags: chatEngine.debugFlags }));
+commandRegistry.register(scheduleCommand);
 setScheduledTaskHandler(rssTaskHandler);
 
 const RSS_COLLECTION_INTERVAL_MS = 5 * 60 * 1000;

@@ -38,7 +38,7 @@ import { fitToContextWindow, type TrimResult } from "./conversation/context-wind
 import { estimateTextTokens } from "../llm/token-estimator.js";
 import type { SkillRegistry } from "../capabilities/skills/types.js";
 import type { ToolRegistry, ToolContent, ToolContext } from "../capabilities/tools/types.js";
-import type { AgentToolContext } from "../capabilities/tools/context.js";
+import { toolContextFrom, type RunContext } from "./context.js";
 import {
   collectLoadedSkillNames,
   createConversationSkillRuntime,
@@ -90,7 +90,7 @@ export interface AgentRunner {
     callbacks: RunCallbacks,
     signal?: AbortSignal,
     modelOverride?: ModelOverride,
-    toolContext?: AgentToolContext,
+    runContext?: RunContext,
   ): Promise<RunResult>;
 }
 
@@ -335,10 +335,10 @@ async function executeToolCall(
     skillRuntime: ConversationSkillRuntime;
     signal: AbortSignal | undefined;
     timeoutMs: number;
-    toolContext?: AgentToolContext;
+    runContext?: RunContext;
   },
 ): Promise<ToolResultMessage> {
-  const { tools, skillRuntime, signal, timeoutMs, toolContext } = deps;
+  const { tools, skillRuntime, signal, timeoutMs, runContext } = deps;
   const toolStartedAt = Date.now();
   try {
     const content = await withSpan(
@@ -356,7 +356,7 @@ async function executeToolCall(
             : await tools.execute(
                 toolCall.name,
                 toolCall.arguments,
-                createToolContext(signal, timeoutMs, toolContext),
+                createToolContext(signal, timeoutMs, runContext),
               );
 
         span.addAttributes({
@@ -407,7 +407,7 @@ export function createAgentRunner(
     callbacks: RunCallbacks,
     signal?: AbortSignal,
     modelOverride?: ModelOverride,
-    toolContext?: AgentToolContext,
+    runContext?: RunContext,
   ): Promise<RunResult> {
     const { model: effectiveModel, meta: effectiveMeta, modelId: effectiveModelId } =
       resolveEffectiveModel(config, modelOverride);
@@ -492,7 +492,7 @@ export function createAgentRunner(
       // 每个结果都会被包装成 toolResult message，再追加回 workingHistory 供下一轮 LLM 继续推理。
       const toolResults = await Promise.all(
         toolCalls.map((toolCall) =>
-          executeToolCall(toolCall, { tools, skillRuntime, signal, timeoutMs, toolContext }),
+          executeToolCall(toolCall, { tools, skillRuntime, signal, timeoutMs, runContext }),
         ),
       );
 
@@ -521,13 +521,18 @@ export function createAgentRunner(
   return { run };
 }
 
+/**
+ * Build the per-tool-call context. The signal here is the *tool's* — timeout
+ * composed with the run's — so it must never be replaced by the run signal.
+ * `toolContextFrom()` maps RunContext field-by-field for exactly that reason:
+ * spreading RunContext instead would let its own `signal` (present-but-undefined
+ * on non-scheduler runs) clobber the timeout and silently disable it.
+ */
 function createToolContext(
   parentSignal: AbortSignal | undefined,
   timeoutMs: number,
-  toolContext?: AgentToolContext,
+  runContext?: RunContext,
 ): ToolContext {
-  return {
-    signal: createToolSignal(parentSignal, timeoutMs),
-    ...toolContext,
-  };
+  const signal = createToolSignal(parentSignal, timeoutMs);
+  return runContext ? toolContextFrom(runContext, signal) : { signal };
 }

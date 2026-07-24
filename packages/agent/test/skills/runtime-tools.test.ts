@@ -159,12 +159,21 @@ function createStubProvisioner(): RuntimeProvisioner {
       createEnv: false,
       commandPreview: [],
       dependencies: [],
+      runtimeCheck: {
+        runtime: "python",
+        binary: "python3",
+        status: "ok",
+        envReady: true,
+      },
     }),
     provision: async (): Promise<ProvisionLog[]> => [],
     async *provisionStream(): AsyncGenerator<ProvisionLog> {
       yield { level: "info", message: "ok", timestamp: Date.now() };
     },
     reprovision: async (): Promise<ProvisionLog[]> => [],
+    async *reprovisionStream(): AsyncGenerator<ProvisionLog> {
+      yield { level: "info", message: "ok", timestamp: Date.now() };
+    },
     healthCheck: async () => true,
   };
 }

@@ -147,8 +147,6 @@ export type {
   ModelScope,
   ModelVisionOverride,
   HeartbeatStore,
-  HeartbeatExecutionRequest,
-  HeartbeatExecutionResult,
   ChatExecutorPort,
   ChatExecutionRequest,
   ChatExecutionResult,

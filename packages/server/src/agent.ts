@@ -10,7 +10,6 @@ import {
 import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk";
 import {
   CommandRegistry,
-  scheduleCommand,
   createHandoffAnchors,
   checkWaitingGoalsAsync,
   isLLMProviderNotConfiguredError,
@@ -30,8 +29,11 @@ import { observabilityService } from "./observability/service.js";
 import { TTS_CACHE_DIR } from "./paths.js";
 import { getTTSProvider } from "./services/tts/index.js";
 
+/**
+ * Populated once at startup by index.ts — every command is registered there so
+ * `/help` can never depend on which module happened to be imported first.
+ */
 export const commandRegistry = new CommandRegistry();
-commandRegistry.register(scheduleCommand);
 
 const agentLogger = createModuleLogger("agent");
 

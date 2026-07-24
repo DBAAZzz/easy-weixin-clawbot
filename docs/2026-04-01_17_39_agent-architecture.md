@@ -247,7 +247,9 @@ L1 ports           DI 边界
 L0 shared          零依赖工具函数
 ```
 
-`import type` 不受此规则约束——跨层的纯类型引用（`RunKind`、`AgentMessage` 等）没有运行时依赖，因此允许 `ports` 这类低层 import 高层的类型。`pnpm -F @clawbot/agent lint:layers` 强制执行这条规则，而不是停留在文档约定上。
+向上的 `import type` 也在检查范围内，只是走单独的白名单。纯类型引用没有运行时依赖，但仍构成耦合：拆分前存在的 `prompts → skills/types` 反向边就是 type-only 的，一律豁免会让护栏对这类问题完全失明。因此低层 import 高层类型（如 `ports` 用 `RunKind`、`AgentMessage`）需要登记进 `scripts/check-layers.mjs` 的 `TYPE_EXEMPT` 并写明理由，当前共 4 条。
+
+`pnpm -F @clawbot/agent lint:layers` 强制执行以上全部规则（含动态 `import()`），而不是停留在文档约定上。
 
 ### 允许的进程级单例
 

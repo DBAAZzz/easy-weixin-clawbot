@@ -14,9 +14,12 @@
  *   L1 ports
  *   L0 shared
  *
- * `import type` is exempt from ordering — cross-cutting vocabulary types
- * (RunKind, GoalStatus, AgentMessage, ...) may flow upward since they carry
- * no runtime dependency. Only value imports are checked.
+ * Upward `import type` carries no runtime dependency, but it is still coupling
+ * — and the reverse edge this refactor removed (prompts -> skills/types) was
+ * type-only, so blanket-exempting types would leave the guardrail unable to
+ * catch the very class of problem it exists for. Upward type imports are
+ * therefore checked too, against the explicit TYPE_EXEMPT allowlist below:
+ * adding one is a deliberate, reviewable act rather than an invisible drift.
  *
  * src/index.ts is the public barrel and may import anything. src/test/ is
  * test fixture code, not layered product code, and is excluded.
@@ -52,6 +55,20 @@ const SAME_RANK_ALLOWED = new Set([
   "llm->prompts",
 ]);
 
+/**
+ * Upward `import type` edges that are deliberate cross-cutting vocabulary.
+ * Each entry is a port or shared helper naming a domain type it transports but
+ * does not own. Anything not listed here is a violation — add with a reason.
+ */
+const TYPE_EXEMPT = new Set([
+  // Ports describe IO over domain types owned by the layer above them.
+  "ports->capabilities/tools", //     RunKind, on ChatExecutionRequest
+  "ports->capabilities/heartbeat", // PendingGoalRow & co, on HeartbeatStore
+  "ports->llm", //                    AgentMessage, on MessageStore
+  // Message-shape helpers operate on the LLM vocabulary without depending on it.
+  "shared->llm", //                   AgentMessage, in chat-utils
+]);
+
 function topDir(relPath) {
   const parts = relPath.split("/");
   if (parts[0] === "capabilities") return `capabilities/${parts[1]}`;
@@ -74,6 +91,8 @@ function listFiles(dir) {
 // Matches both `import ... from "./x.js"` and `export ... from "./x.js"`,
 // capturing whether the import is type-only.
 const IMPORT_RE = /(import|export)(\s+type)?\s+(?:[^'"]*?\s+from\s+)?["'](\.[^"']+)["']/g;
+// `await import("./x.js")` — a value dependency the static form above misses.
+const DYNAMIC_IMPORT_RE = /\bimport\s*\(\s*["'](\.[^"']+)["']/g;
 
 function checkFile(absPath) {
   const relPath = relative(SRC_DIR, absPath).split("\\").join("/");
@@ -87,25 +106,42 @@ function checkFile(absPath) {
 
   const content = readFileSync(absPath, "utf8");
   const violations = [];
-  let match;
-  IMPORT_RE.lastIndex = 0;
-  while ((match = IMPORT_RE.exec(content))) {
-    const [, , typeOnly, specifier] = match;
-    if (typeOnly) continue;
 
+  const check = (specifier, isTypeOnly) => {
     const resolved = normalize(join(dirname(relPath), specifier)).split("\\").join("/");
     const toDir = topDir(resolved);
-    if (toDir === fromDir) continue;
+    if (toDir === fromDir) return;
 
     const toRank = RANK[toDir];
-    if (toRank === undefined) continue; // e.g. relative import that escapes src/ (shouldn't happen)
+    if (toRank === undefined) return; // e.g. relative import that escapes src/ (shouldn't happen)
 
-    if (toRank < fromRank) continue; // strictly downward, fine
-    if (toRank === fromRank && SAME_RANK_ALLOWED.has(`${fromDir}->${toDir}`)) continue;
+    const edge = `${fromDir}->${toDir}`;
+    if (toRank < fromRank) return; // strictly downward, fine
+    if (toRank === fromRank && SAME_RANK_ALLOWED.has(edge)) return;
+
+    if (isTypeOnly) {
+      if (TYPE_EXEMPT.has(edge)) return;
+      violations.push(
+        `${relPath}: type-imports "${specifier}" (${fromDir} [L${fromRank}] -> ${toDir} [L${toRank}]) ` +
+          `— upward type edge not in TYPE_EXEMPT`,
+      );
+      return;
+    }
 
     violations.push(
       `${relPath}: value-imports "${specifier}" (${fromDir} [L${fromRank}] -> ${toDir} [L${toRank}]) — not allowed by layering rules`,
     );
+  };
+
+  let match;
+  IMPORT_RE.lastIndex = 0;
+  while ((match = IMPORT_RE.exec(content))) {
+    check(match[3], Boolean(match[2]));
+  }
+
+  DYNAMIC_IMPORT_RE.lastIndex = 0;
+  while ((match = DYNAMIC_IMPORT_RE.exec(content))) {
+    check(match[1], false);
   }
 
   return violations;

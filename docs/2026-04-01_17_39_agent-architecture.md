@@ -225,3 +225,43 @@ const runner = createAgentRunner({ model, systemPrompt, apiKey }, skills);
 - MessageBuilder 抽取 — 构造逻辑太少，不值得独立
 - 多 Agent 路由 — Phase 5
 - 工具参数 schema 校验 — 可以加但不阻塞 MVP
+
+---
+
+## 附录：模块分层（2026-07-24 重构后）
+
+> 上面的正文是 MVP 阶段（pi-ai 时代）的原始设计记录，保留作历史参照。实际实现早已迁移到 AI SDK 6，
+> 并在 [2026-07-24 模块边界重构](./2026-07-24_15_37_agent-module-boundary-refactor.md) 后有了明确的物理分层。
+> 当前目录结构、Port 列表、核心模式见 [packages/agent/AGENTS.md](../packages/agent/AGENTS.md)——那份文档随代码演进，是唯一权威来源；这里只补三件正文没有的事：分层规则、允许的进程级单例、单进程假设。
+
+### 模块分层
+
+`src/` 下按 L5→L0 分层，规则是**只能向下依赖**：
+
+```
+L5 engine          一次 run 的执行体（RunContext 贯穿，ConversationCache/ChatEngine 可实例化）
+L4 capabilities/*  tools 是能力层内部的基础子层；skills/mcp/scheduler/heartbeat 可以依赖 tools，反过来不行
+L3 memory          Tape 记忆
+L2 llm / prompts / commands   llm 可以依赖 prompts；prompts 与 commands 互相独立
+L1 ports           DI 边界
+L0 shared          零依赖工具函数
+```
+
+向上的 `import type` 也在检查范围内，只是走单独的白名单。纯类型引用没有运行时依赖，但仍构成耦合：拆分前存在的 `prompts → skills/types` 反向边就是 type-only 的，一律豁免会让护栏对这类问题完全失明。因此低层 import 高层类型（如 `ports` 用 `RunKind`、`AgentMessage`）需要登记进 `scripts/check-layers.mjs` 的 `TYPE_EXEMPT` 并写明理由，当前共 4 条。
+
+`pnpm -F @clawbot/agent lint:layers` 强制执行以上全部规则（含动态 `import()`），而不是停留在文档约定上。
+
+### 允许的进程级单例
+
+绝大多数模块级可变状态已经收敛成可实例化的工厂（`ConversationCache`、`ChatEngine`、`DebugFlags`），`engine/` 目录内现在没有模块级可变状态。但以下四处**保留**模块级状态，是有意为之而不是遗留：
+
+| 位置 | 状态 | 保留理由 |
+|---|---|---|
+| `llm/model-resolver.ts` | 配置读缓存 | 纯读缓存 + 显式 `invalidateModelCache()`，无跨账号污染风险 |
+| `memory/queue.ts` | tape 写队列 | 进程级异步写队列 |
+| `capabilities/heartbeat/engine.ts` | tick 定时器 / inflight / accountQueues | 进程级轮询器 |
+| `capabilities/scheduler/manager.ts` | cron job 表 | 进程级 cron 注册表 |
+
+### 单进程假设
+
+这四处单例、以及 `server` 侧只创建一份 `chatEngine` 的事实，都建立在**单进程假设**上：`@clawbot/server` 目前以单进程部署，没有多副本水平扩展。把这个假设写清楚（本节 + `packages/agent/AGENTS.md`）比消除它便宜两个数量级——真要支持多副本，需要把这四处状态迁移到外部存储（Redis / DB 行锁），并把 `ConversationCache`/`ChatEngine` 的单例创建改为按需协调，这不是当前阶段要解的问题。

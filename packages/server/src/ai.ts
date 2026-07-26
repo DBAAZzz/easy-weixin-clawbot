@@ -9,6 +9,7 @@ import "./config/load-env.js";
 import {
   createCompositeToolRegistry,
   createAgentRunner,
+  createChatEngine,
   createSkillInstaller,
   createSkillRegistry,
   createSkillRuntimeToolSnapshot,
@@ -18,11 +19,10 @@ import {
   setUsageStore,
   setTapeStore,
   setSchedulerStore,
-  setScheduledTaskHandler,
   setPushService,
   setModelConfigStore,
   setHeartbeatStore,
-  setHeartbeatExecutor,
+  setChatExecutor,
   setWebToolService,
   schedulerToolRegistry,
   heartbeatToolRegistry,
@@ -32,7 +32,6 @@ import {
   PROMPT_ASSET_SPECS,
 } from "@clawbot/agent";
 import { createBuiltinToolSnapshot } from "@clawbot/agent/tools/builtins";
-import { setChatDeps } from "@clawbot/agent/chat";
 import { mkdirSync } from "node:fs";
 import { ensurePrismaUrls } from "./db/prisma-env.js";
 import { PrismaMessageStore } from "./db/message-store.impl.js";
@@ -41,14 +40,13 @@ import { PrismaTapeStore } from "./db/tape-store.impl.js";
 import { PrismaSchedulerStore } from "./db/scheduler-store.impl.js";
 import { PrismaModelConfigStore } from "./db/model-config-store.impl.js";
 import { PrismaHeartbeatStore } from "./db/heartbeat-store.impl.js";
-import { createHeartbeatExecutor } from "./db/heartbeat-executor.impl.js";
+import { createChatExecutor } from "./db/chat-executor.impl.js";
 import { createModuleLogger, getErrorFields, log } from "./logger.js";
 import {
   DOWNLOADS_DIR,
 } from "./paths.js";
-import { sendProactiveMessage } from "./proactive-push.js";
+import { createProactivePush } from "./proactive-push.js";
 import { createWebToolService } from "./web-tools/service.js";
-import { rssTaskHandler } from "./api/routes/rss.js";
 
 mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
@@ -151,14 +149,13 @@ setMessageStore(new PrismaMessageStore());
 setUsageStore({ queueRecord: queueRecordUsage });
 setTapeStore(new PrismaTapeStore());
 setSchedulerStore(new PrismaSchedulerStore());
-setScheduledTaskHandler(rssTaskHandler);
 setModelConfigStore(new PrismaModelConfigStore());
-setPushService({ sendProactiveMessage });
 setHeartbeatStore(new PrismaHeartbeatStore());
-setHeartbeatExecutor(createHeartbeatExecutor());
 setWebToolService(createWebToolService());
 
-setChatDeps({
+// ── Chat engine ────────────────────────────────────────────────────
+
+export const chatEngine = createChatEngine({
   runner,
   log: {
     llm: log.llm,
@@ -166,3 +163,6 @@ setChatDeps({
     done: log.done,
   },
 });
+
+setPushService(createProactivePush(chatEngine.conversations));
+setChatExecutor(createChatExecutor(chatEngine));

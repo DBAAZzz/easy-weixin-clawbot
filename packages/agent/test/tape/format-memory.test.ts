@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { emptyState } from "../../src/tape/fold.js";
-import { formatMemoryForPrompt } from "../../src/tape/service.js";
-import type { TapeState } from "../../src/tape/types.js";
+import { emptyState } from "../../src/memory/fold.js";
+import { formatMemoryForPrompt } from "../../src/memory/service.js";
+import type { TapeState } from "../../src/memory/types.js";
 
 function stateWith(input: {
   facts?: Array<[string, unknown, string?]>;

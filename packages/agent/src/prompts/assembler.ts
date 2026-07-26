@@ -1,13 +1,12 @@
 /**
  * Prompt assembler — builds final prompts from profiles, assets, and runtime context.
  *
- * Two main functions:
- * - `assembleSystemPrompt()` — base asset + optional skill catalog
- * - `assembleUserContext()` — time + memory + recent context + user text
+ * `assembleSystemPrompt()` lives in `engine/system-prompt.ts` (needs SkillRegistry,
+ * which would create a capabilities -> prompts -> capabilities cycle if kept here).
+ * This module only has `assembleUserContext()` and template rendering, both zero-dependency.
  */
 
 import type { PromptProfile } from "./types.js";
-import type { SkillRegistry } from "../skills/types.js";
 
 const TEMPLATE_VAR_PATTERN = /\{\{(\w+)\}\}/g;
 
@@ -53,40 +52,6 @@ export function validateTemplateVars(
       `Prompt asset "${assetKey}" has unexpected unresolved template vars: ${unexpected.join(", ")}`,
     );
   }
-}
-
-// ── System prompt assembly ─────────────────────────────────────────
-
-/**
- * Build the final system prompt for a lane.
- *
- * @param profile - The lane's prompt profile
- * @param basePrompt - The loaded prompt asset content (already variable-resolved)
- * @param skills - Skill registry (only consulted if profile.injectSkills is true)
- */
-export function assembleSystemPrompt(
-  profile: PromptProfile,
-  basePrompt: string,
-  skills?: SkillRegistry,
-): string {
-  let prompt = basePrompt;
-
-  if (profile.injectSkills && skills) {
-    const snapshot = skills.current();
-
-    for (const skill of snapshot.alwaysOn) {
-      prompt += `\n\n[Skill: ${skill.name}]\n${skill.body}`;
-    }
-
-    if (snapshot.index.length > 0) {
-      prompt += "\n\n你有以下可用技能，需要时调用 use_skill 加载：";
-      for (const skill of snapshot.index) {
-        prompt += `\n- ${skill.name}: ${skill.summary}`;
-      }
-    }
-  }
-
-  return prompt;
 }
 
 // ── User context assembly ──────────────────────────────────────────

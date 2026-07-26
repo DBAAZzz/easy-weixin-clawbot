@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { heartbeatToolRegistry } from "../../src/heartbeat/tool.js";
+import { heartbeatToolRegistry } from "../../src/capabilities/heartbeat/tool.js";
 
 const abortSignal = new AbortController().signal;
 

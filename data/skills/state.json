@@ -7,7 +7,7 @@
     "akshare-stock-analysis": {
       "enabled": true,
       "installedAt": "2026-04-20T14:57:39.624Z",
-      "provisionStatus": "pending"
+      "provisionStatus": "ready"
     },
     "stock-analysis": {
       "enabled": true,

@@ -20,7 +20,6 @@ export {
   renderTemplate,
   listTemplateVars,
   validateTemplateVars,
-  assembleSystemPrompt,
   assembleUserContext,
   type UserContextOptions,
 } from "./assembler.js";

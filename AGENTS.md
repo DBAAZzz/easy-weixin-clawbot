@@ -198,8 +198,8 @@ activation: on-demand    # always-on | on-demand
 
 - MCP Server 配置存在数据库 `mcp_servers` 表
 - 工具发现后持久化到 `mcp_tools` 表
-- `packages/agent/src/mcp/` 处理 stdio 协议
-- `packages/agent/src/tools/composite-registry.ts` 合并本地 + MCP 工具
+- `packages/agent/src/capabilities/mcp/` 处理 stdio 协议
+- `packages/agent/src/capabilities/tools/composite-registry.ts` 合并本地 + MCP 工具
 - Web 管理 API：`/api/mcp`
 
 ## 禁止事项

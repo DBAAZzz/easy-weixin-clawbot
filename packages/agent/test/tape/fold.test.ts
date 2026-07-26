@@ -5,8 +5,8 @@ import {
   emptyState,
   fold,
   serializeState,
-} from "../../src/tape/fold.js";
-import type { TapeState } from "../../src/tape/types.js";
+} from "../../src/memory/fold.js";
+import type { TapeState } from "../../src/memory/types.js";
 
 const AT = "2026-07-01T00:00:00.000Z";
 

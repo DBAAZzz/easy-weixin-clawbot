@@ -27,6 +27,7 @@ export { setSchedulerStore, getSchedulerStore } from "./scheduler-store.js";
 export type {
   ScheduledTaskHandlerPort,
   ScheduledTaskHandlerResult,
+  ScheduledTaskExecutionContext,
 } from "./scheduled-task-handler.js";
 export {
   setScheduledTaskHandler,
@@ -53,11 +54,11 @@ export type { HeartbeatStore } from "./heartbeat-store.js";
 export { setHeartbeatStore, getHeartbeatStore } from "./heartbeat-store.js";
 
 export type {
-  HeartbeatExecutorPort,
-  HeartbeatExecutionRequest,
-  HeartbeatExecutionResult,
-} from "./heartbeat-executor.js";
-export { setHeartbeatExecutor, getHeartbeatExecutor } from "./heartbeat-executor.js";
+  ChatExecutorPort,
+  ChatExecutionRequest,
+  ChatExecutionResult,
+} from "./chat-executor.js";
+export { setChatExecutor, getChatExecutor } from "./chat-executor.js";
 
 export type {
   WebSearchResult,

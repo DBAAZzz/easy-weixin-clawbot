@@ -9,23 +9,15 @@ import {
 } from "@clawbot/observability";
 import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk";
 import {
-  chat,
   CommandRegistry,
-  builtinCommands,
-  scheduleCommand,
-  clearConversation,
-  evictConversation,
-  withConversationLock,
   createHandoffAnchors,
   checkWaitingGoalsAsync,
-  currentSeq,
-  generateConversationTitle,
   isLLMProviderNotConfiguredError,
 } from "@clawbot/agent";
-import type { ChatMedia as AgentChatMedia } from "@clawbot/agent";
-import { getSchedulerStore } from "@clawbot/agent/ports";
+import type { ChatMedia as AgentChatMedia, RunContext } from "@clawbot/agent";
+import { getPushService, getSchedulerStore } from "@clawbot/agent/ports";
+import { chatEngine } from "./ai.js";
 import { getAssetService } from "./assets/index.js";
-import { sendProactiveMessage } from "./proactive-push.js";
 import {
   getConversationTitle,
   setConversationTitleIfEmpty,
@@ -37,9 +29,11 @@ import { observabilityService } from "./observability/service.js";
 import { TTS_CACHE_DIR } from "./paths.js";
 import { getTTSProvider } from "./services/tts/index.js";
 
-const commandRegistry = new CommandRegistry();
-commandRegistry.registerAll(builtinCommands);
-commandRegistry.register(scheduleCommand);
+/**
+ * Populated once at startup by index.ts — every command is registered there so
+ * `/help` can never depend on which module happened to be imported first.
+ */
+export const commandRegistry = new CommandRegistry();
 
 const agentLogger = createModuleLogger("agent");
 
@@ -142,7 +136,7 @@ async function rotateSession(accountId: string, wechatConvId: string): Promise<s
     );
   }
 
-  evictConversation(accountId, oldEffective);
+  chatEngine.conversations.evict(accountId, oldEffective);
   sessionCache.set(k, newEffective);
   await upsertRoute(accountId, wechatConvId, newEffective);
   return newEffective;
@@ -191,7 +185,7 @@ async function deliverUnpushedRuns(accountId: string, conversationId: string): P
     if (!run.result) continue;
     try {
       const header = `📬 [定时任务 #${run.task.seq}「${run.task.name}」补发结果]\n`;
-      await sendProactiveMessage(accountId, conversationId, header + run.result);
+      await getPushService().sendProactiveMessage(accountId, conversationId, header + run.result);
       await store.markRunPushed(run.id);
     } catch (err) {
       agentLogger.warn(
@@ -218,7 +212,10 @@ async function generateTitleIfNeeded(
     return;
   }
 
-  const title = await generateConversationTitle(accountId, conversationId, turn);
+  const title = await chatEngine.generateConversationTitle(
+    { accountId, conversationId, runKind: "chat" },
+    turn,
+  );
   if (!title) {
     return;
   }
@@ -300,16 +297,15 @@ export function createAgent(accountId: string): Agent {
           const media = await withSpan("asset.ingest", { hasMedia: Boolean(req.media) }, () =>
             attachAssetIdToMedia(accountId, effectiveConvId, req.media),
           );
+          const ctx: RunContext = {
+            accountId,
+            conversationId: effectiveConvId,
+            targetConversationId: req.conversationId,
+            runKind: "chat",
+          };
           const reply = await withSpan("conversation.lock", {}, async () =>
-            withConversationLock(accountId, effectiveConvId, async () =>
-              chat(accountId, effectiveConvId, req.text, media, startedAt, {
-                toolContext: {
-                  accountId,
-                  conversationId: effectiveConvId,
-                  targetConversationId: req.conversationId,
-                  runKind: "chat",
-                },
-              }),
+            chatEngine.conversations.withLock(accountId, effectiveConvId, async () =>
+              chatEngine.chat(ctx, { text: req.text, media, startedAt }),
             ),
           );
 
@@ -330,7 +326,7 @@ export function createAgent(accountId: string): Agent {
           }
 
           // Post-chat hook: notify heartbeat engine of new user/assistant messages
-          const latestSeq = currentSeq(accountId, effectiveConvId);
+          const latestSeq = chatEngine.conversations.currentSeq(accountId, effectiveConvId);
           checkWaitingGoalsAsync(accountId, effectiveConvId, latestSeq).catch((err) => {
             agentLogger.warn(
               {
@@ -379,7 +375,7 @@ export function createAgent(accountId: string): Agent {
       const k = `${accountId}::${wechatConvId}`;
       const effective = sessionCache.get(k) ?? wechatConvId;
       log.clear(accountId, wechatConvId);
-      clearConversation(accountId, effective);
+      chatEngine.conversations.clear(accountId, effective);
       sessionCache.delete(k);
       void deleteRoute(accountId, wechatConvId).catch((err) => {
         log.error(`deleteRoute(${accountId}/${wechatConvId})`, err);

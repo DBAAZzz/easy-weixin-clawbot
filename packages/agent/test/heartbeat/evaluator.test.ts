@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseEvalResult, pendingWithBackoff } from "../../src/heartbeat/evaluator.js";
-import type { PendingGoalRow } from "../../src/heartbeat/types.js";
+import { parseEvalResult, pendingWithBackoff } from "../../src/capabilities/heartbeat/evaluator.js";
+import type { PendingGoalRow } from "../../src/capabilities/heartbeat/types.js";
 
 test("parseEvalResult reads a plain JSON verdict", () => {
   assert.deepEqual(parseEvalResult('{"verdict":"act","reason":"go"}'), {

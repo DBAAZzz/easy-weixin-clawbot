@@ -262,14 +262,24 @@ export function getNativeHandler(name: string): NativeHandler | undefined {
 ### CLI Handler 安全策略
 
 ```typescript
-const BINARY_ALLOWLIST = new Set(["opencli", "gh", "docker", "curl"]);
+const BINARY_ALLOWLIST = new Set(["opencli"]);
 
 // 校验：
-// - binary 必须在 allowlist 中
+// - binary 必须在 allowlist 中，且只能由 tool 文件的 handlerConfig 指定，模型不可通过参数覆盖
 // - 参数禁止 shell 元字符（|, ;, &&, `, $() 等）
 // - 超时默认 30s，上限 120s
 // - 输出超过 maxOutputChars 截断并标注
 ```
+
+**名单为什么只剩 `opencli`**（架构评审 C3，2026-07-02）：CLI handler 的参数由模型生成，而模型的输入来自微信消息和 webhook 这类不可信外部来源，等价于把名单里的二进制直接暴露给 prompt injection。
+
+- `docker` 可通过 `-v /:/host` 取得等效 root 权限；
+- `curl` 能绕开 `web-tools/service.ts` 为 web_fetch 实现的私网 / localhost / 元数据地址防护，形成任意 SSRF 与本地文件外带；
+- `gh` 携带仓库写权限凭据。
+
+禁 shell 元字符防的是命令拼接，防不了这些二进制自身的能力，因此收缩名单是唯一有效的处置。若确有场景需要放开，应改为按账号显式授权 + 参数白名单（`curl` 须复用 WebToolService 的地址校验），而不是重新加回全局名单。
+
+回归防护见 `packages/agent/test/capabilities/tools/handlers/cli.test.ts`：`docker` / `curl` / `gh` / `bash` 等被逐一断言拒绝，改名单会直接让测试失败。
 
 ### Tool Registry（不可变快照）
 

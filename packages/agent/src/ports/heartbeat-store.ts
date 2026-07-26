@@ -9,7 +9,7 @@ import type {
   PendingGoalRow,
   CreateGoalInput,
   UpdateGoalInput,
-} from "../heartbeat/types.js";
+} from "../capabilities/heartbeat/types.js";
 import { createPortSlot } from "./slot.js";
 
 export interface HeartbeatStore {

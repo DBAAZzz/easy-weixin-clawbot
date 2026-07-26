@@ -4,7 +4,7 @@ import {
   compareVersions,
   parseVersionConstraints,
   satisfiesVersion,
-} from "../../src/skills/version-spec.js";
+} from "../../src/capabilities/skills/version-spec.js";
 
 function satisfies(installed: string, spec: string, name: string) {
   return satisfiesVersion(installed, parseVersionConstraints(spec, name));

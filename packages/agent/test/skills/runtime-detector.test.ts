@@ -3,10 +3,10 @@ import { mkdtemp, rm, writeFile, mkdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { scanSkillPackage } from "../../src/skills/package-scanner.js";
-import { detectSkillRuntime } from "../../src/skills/runtime-detector.js";
-import { compileSkill, createSkillSource } from "../../src/skills/compiler.js";
-import { parseMdContent } from "../../src/utils/parser.js";
+import { scanSkillPackage } from "../../src/capabilities/skills/package-scanner.js";
+import { detectSkillRuntime } from "../../src/capabilities/skills/runtime-detector.js";
+import { compileSkill, createSkillSource } from "../../src/capabilities/skills/compiler.js";
+import { parseMdContent } from "../../src/shared/utils/parser.js";
 
 async function withTempSkill(
   files: Record<string, string>,

@@ -81,7 +81,7 @@ prisma/
 | `TapeStore` | `db/tape-store.ts` |
 | `SchedulerStore` | `db/scheduler-store.ts` |
 | `ModelConfigStore` | `db/model-config-store.ts` |
-| `HeartbeatStore` | `db/heartbeat-store.ts` |
+| `HeartbeatStore` | `db/heartbeat-store.impl.ts` |
 | `PushService` | runtime 层直接实现 |
 
 **新增 Port 实现时**：在 `db/` 创建实现文件，在 `index.ts` 或 `ai.ts` 中通过 setter 注入到 agent。
@@ -89,7 +89,8 @@ prisma/
 ## 数据库
 
 - Schema 位于 `prisma/schema.prisma`，这是**唯一真相源**
-- 修改 schema 后：`pnpm -F @clawbot/server prisma:generate` → `prisma:push`
+- **migration-first**，不用 `db push`。改 schema 后：`prisma:migrate:diff` 生成 SQL → 人工审查 → 存入 `prisma/migrations/<timestamp>_<name>/migration.sql` → `prisma:migrate:deploy` → `prisma:generate`
+- 不用 `migrate dev`：它需要 shadow database，托管 Postgres 无权创建
 - 大量使用 JSONB 字段（messages.payload, tape_entries.payload 等）
 - **禁止手动修改生成的 Prisma Client**
 

@@ -11,8 +11,10 @@
     "start": "node dist/index.js",
     "assets:migrate-local-to-s3": "tsx --conditions development src/assets/migrate-local-to-s3.ts",
     "prisma:generate": "tsx src/prisma-cli.ts generate --schema prisma/schema.prisma",
-    "prisma:push": "tsx src/prisma-cli.ts db push --schema prisma/schema.prisma",
     "prisma:validate": "tsx src/prisma-cli.ts validate --schema prisma/schema.prisma",
+    "prisma:migrate:deploy": "tsx src/prisma-cli.ts migrate deploy --schema prisma/schema.prisma",
+    "prisma:migrate:diff": "tsx src/prisma-cli.ts migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script",
+    "prisma:migrate:status": "tsx src/prisma-cli.ts migrate status --schema prisma/schema.prisma",
     "lint": "oxlint"
   },
   "dependencies": {

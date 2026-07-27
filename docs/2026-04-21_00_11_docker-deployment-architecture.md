@@ -120,7 +120,7 @@ resolve(process.cwd(), "config.yaml")
 也就是：
 
 - `prisma:generate` → `tsx src/prisma-cli.ts generate`
-- `prisma:push` → `tsx src/prisma-cli.ts db push`
+- `prisma:migrate:deploy` → `tsx src/prisma-cli.ts migrate deploy`
 
 同时：
 
@@ -227,7 +227,7 @@ Builder 阶段建议：
 原因有三个：
 
 1. workspace 包当前仍有源码级导出
-2. `server` 启动前还要执行 `pnpm -F @clawbot/server prisma:push`
+2. `server` 启动前还要执行 `pnpm -F @clawbot/server prisma:migrate:deploy`
 3. `packages/agent/prompts/*.md` 需要作为运行时文件保留
 
 ### 4.5 当前阶段不要做 `pnpm prune --prod`
@@ -240,7 +240,7 @@ Builder 阶段建议：
 
 - `prisma`
 - `tsx`
-- `pnpm -F @clawbot/server prisma:push`
+- `pnpm -F @clawbot/server prisma:migrate:deploy`
 
 等后续满足下面两个条件后，再考虑瘦身：
 
@@ -257,11 +257,11 @@ Web 端可以保持轻量：
 
 ## 5. 启动与数据库初始化策略
 
-### 5.1 当前阶段用 `prisma:push`
+### 5.1 用 `prisma migrate deploy`
 
 当前仓库不是 migration-first，第一版部署应与代码现实保持一致：
 
-- 启动前执行 `pnpm -F @clawbot/server prisma:push`
+- 启动前执行 `pnpm -F @clawbot/server prisma:migrate:deploy`
 
 而不是直接写成：
 
@@ -272,7 +272,7 @@ Web 端可以保持轻量：
 `server-entrypoint.sh` 建议做这几步：
 
 1. 等待 PostgreSQL 可用
-2. 执行 `pnpm -F @clawbot/server prisma:push`
+2. 执行 `pnpm -F @clawbot/server prisma:migrate:deploy`
 3. 处理 `data/` 初始化
 4. 执行 `pnpm -F @clawbot/server start`
 
@@ -280,7 +280,7 @@ Web 端可以保持轻量：
 
 ```text
 wait-for-postgres
-  -> pnpm -F @clawbot/server prisma:push
+  -> pnpm -F @clawbot/server prisma:migrate:deploy
   -> init-data-layout
   -> pnpm -F @clawbot/server start
 ```
@@ -453,7 +453,7 @@ postgres healthy -> server healthy -> nginx
 
 1. 把 `agent / observability / weixin-agent-sdk` 的运行时导出统一收敛到 `dist`
 2. 让 Server 运行镜像摆脱对 `tsx` / `prisma` devDependencies 的依赖
-3. 从 `prisma db push` 过渡到 `prisma migrate deploy`
+3. ~~从 `prisma db push` 过渡到 `prisma migrate deploy`~~（已完成，见 0_init 基线）
 4. 再收缩 Server 镜像，只复制真正的运行时产物
 
 也就是说：

@@ -88,9 +88,11 @@ pnpm build
 pnpm test:agent
 pnpm test:server
 
-# 数据库
-pnpm -F @clawbot/server prisma:generate   # 生成 Prisma Client
-pnpm -F @clawbot/server prisma:push       # 同步 schema 到数据库
+# 数据库（migration-first，不再使用 db push）
+pnpm -F @clawbot/server prisma:generate        # 生成 Prisma Client
+pnpm -F @clawbot/server prisma:migrate:deploy  # 应用未执行的 migration
+pnpm -F @clawbot/server prisma:migrate:status  # 查看 migration 状态
+pnpm -F @clawbot/server prisma:migrate:diff    # 生成 schema 变更 SQL（需人工审查后存入 migrations/）
 
 # 类型检查（单包）
 pnpm -F @clawbot/server exec tsc --noEmit
@@ -151,7 +153,9 @@ pnpm -F @clawbot/web exec tsc --noEmit
 
 - ORM：Prisma 6，schema 位于 `packages/server/prisma/schema.prisma`
 - **禁止手动修改生成的 Prisma Client 文件**
-- 修改 schema 后执行 `pnpm -F @clawbot/server prisma:generate`
+- **migration-first**：所有 schema 变更必须落成 `packages/server/prisma/migrations/` 下的 migration，禁止再用 `db push`
+- 改 schema 的流程：改 `schema.prisma` → `prisma:migrate:diff` 生成 SQL → **人工审查**（`--from-schema-datasource` 会输出全部差异，包含破坏性语句）→ 存入 `migrations/<timestamp>_<name>/migration.sql` → `prisma:migrate:deploy` → `prisma:generate`
+- 本仓不用 `migrate dev`：它需要 shadow database，托管 Postgres（Supabase）无权创建
 - JSONB 用于存储灵活 payload（messages.payload, tape_entries.payload 等）
 
 ## Markdown 工具与技能格式
@@ -216,7 +220,7 @@ activation: on-demand    # always-on | on-demand
 ## 提交前检查清单
 
 1. `pnpm -F <package> exec tsc --noEmit` 类型检查通过
-2. 如修改了 Prisma schema → 已运行 `prisma:generate`
+2. 如修改了 Prisma schema → 已生成 migration 并运行 `prisma:migrate:deploy` + `prisma:generate`
 3. 如修改了 `agent` 包 → 确认未引入对 `server` 的依赖
 4. 如修改了前端 → 无 Tailwind 任意值
 5. 如新增/修改 Markdown 工具或技能 → frontmatter 字段完整

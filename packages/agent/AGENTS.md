@@ -1,6 +1,6 @@
 # AGENTS.md — @clawbot/agent
 
-> AI 核心引擎：LLM 循环、工具调用、技能注入、MCP 集成、Tape 记忆、定时任务、Heartbeat。
+> AI 核心引擎：LLM 循环、工具调用、技能注入、MCP 集成、Tape 记忆、定时任务、主动提醒。
 
 ## 角色定位
 
@@ -34,7 +34,7 @@ src/
 │   ├── skills/                 # 技能 Registry + Compiler + Loader + Installer + ConversationSkillRuntime
 │   ├── mcp/                    # MCP stdio 客户端 + 工具适配
 │   ├── scheduler/              # Cron 任务管理，通过 ChatExecutorPort 执行任务，不直接依赖 engine
-│   └── heartbeat/              # 异步目标检查（Phase1 评估 + Phase2 通过 ChatExecutorPort 执行）
+│   └── heartbeat/              # 主动提醒：每分钟扫到期 reminder，在真实会话跑一次 chat 后推送
 │
 ├── memory/                     L3 Tape 记忆：fold reducer + LLM 提取 + 压缩（原 tape/）
 │
@@ -105,7 +105,7 @@ Port 定义在 `ports/`，由 `server` 包在启动时注入实现：
 | `PushService` | 主动推送消息（微信） |
 | `SchedulerStore` | 定时任务 + 运行记录 CRUD |
 | `ModelConfigStore` | LLM Provider 模板 + 作用域配置 |
-| `HeartbeatStore` | 异步目标 CRUD + 状态机 |
+| `HeartbeatStore` | reminder 的建 / 查到期 / 抢占删除 / 列举 |
 | `ChatExecutorPort` | 在 `capabilities/`（scheduler、heartbeat）内发起一次完整 `chat()`，由 `server` 提供加锁实现；取代了原来 scheduler 专属的、直接 import `engine/chat.ts` 的反向依赖 |
 
 **添加新外部依赖时**，必须定义 Port 接口，在 `server` 侧实现。
@@ -133,12 +133,17 @@ entries = extract(对话历史) via LLM  →  facts | preferences | decisions
 
 分支策略：`__global__`（跨会话持久）、`{conversationId}`（会话临时）
 
-### Heartbeat 两阶段
+### Heartbeat（主动提醒）
 
 ```
-Phase1: 找到到期目标 → LLM 评估 → Verdict {act|wait|resolve|abandon}
-Phase2: verdict == act → 通过 ChatExecutorPort 执行 chat()
+每 60s: findDue() → claimById() 原子抢占 → ChatExecutorPort 在真实会话跑 chat()
+      → PushService 推送（recordHistory: false，chat 已落库）
 ```
+
+- 行的存在即状态，触发成功即删行；没有 status 字段
+- `claimById` 是 `DELETE ... RETURNING`，兼作跨进程抢占锁
+- 一律不重试：提醒有时效，迟到的提醒不如不发
+- 提醒的 prompt 以 `trigger` role 落库（`inputRole: "trigger"`），发给模型时转成带 `[系统触发·提醒]` 前缀的 user 轮次
 
 ### 允许的进程级单例
 
@@ -148,7 +153,7 @@ Phase2: verdict == act → 通过 ChatExecutorPort 执行 chat()
 |---|---|---|
 | `llm/model-resolver.ts` | 配置读缓存 | 纯读缓存 + 显式 `invalidateModelCache()`，无跨账号污染风险 |
 | `memory/queue.ts` | tape 写队列 | 进程级异步写队列 |
-| `capabilities/heartbeat/engine.ts` | tick 定时器 / inflight / accountQueues | 进程级轮询器 |
+| `capabilities/heartbeat/engine.ts` | tick 定时器 / accountQueues | 进程级轮询器 |
 | `capabilities/scheduler/manager.ts` | cron job 表 | 进程级 cron 注册表 |
 
 单进程假设写清楚比消除假设便宜两个数量级——不要为了"更纯粹"去重构这四处。

@@ -1,4 +1,4 @@
-import type { ChatResponse, ChatMedia } from "../shared/types.js";
+import type { ChatResponse } from "../shared/types.js";
 import type { AgentRunner } from "./runner.js";
 import type { RunContext } from "./context.js";
 import { createConversationCache, type ConversationCache } from "./conversation/cache.js";

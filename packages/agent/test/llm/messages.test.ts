@@ -7,6 +7,7 @@ import {
   replaceImagesWithTextPlaceholders,
   stripUnreasonedToolCallHistory,
   TEXT_ONLY_IMAGE_PLACEHOLDER,
+  TRIGGER_PROMPT_PREFIX,
 } from "../../src/llm/messages.js";
 import type { AgentMessage, AssistantMessage } from "../../src/llm/types.js";
 
@@ -315,4 +316,23 @@ test("agentToModelMessages does not merge assistants separated by tool results",
 
   const roles = agentToModelMessages(history).map((m) => m.role);
   assert.deepEqual(roles, ["user", "assistant", "tool", "assistant"]);
+});
+
+test("agentToModelMessages sends trigger turns as marked user messages", () => {
+  const history: AgentMessage[] = [
+    {
+      role: "trigger",
+      timestamp: 1,
+      content: [{ type: "text", text: "问问他面试结果" }],
+      meta: { kind: "reminder", reminderId: "r-1" },
+    },
+    { role: "assistant", timestamp: 2, content: [{ type: "text", text: "面试怎么样？" }] },
+  ];
+
+  const result = agentToModelMessages(history);
+
+  assert.equal(result.length, 2);
+  assert.equal(result[0].role, "user", "trigger must reach the model as a user turn");
+  assert.equal(result[0].content, `${TRIGGER_PROMPT_PREFIX} 问问他面试结果`);
+  assert.equal(result[1].role, "assistant");
 });

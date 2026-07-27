@@ -19,6 +19,7 @@ import type {
   AgentMessage,
   AssistantMessage,
   ToolResultMessage,
+  TriggerMessage,
   UserMessage,
 } from "../../../src/llm/types.js";
 
@@ -348,4 +349,52 @@ test("minRecentTurns controls how much of the tail is protected from dropping", 
   // Protecting more turns can only ever drop fewer messages.
   assert.ok(protectedMany.droppedMessageCount <= protectedFew.droppedMessageCount);
   assert.ok(protectedMany.messages.length >= protectedFew.messages.length);
+});
+
+function trigger(text: string): TriggerMessage {
+  return {
+    role: "trigger",
+    content: [{ type: "text", text }],
+    timestamp: 1,
+    meta: { kind: "reminder", reminderId: "r-1" },
+  };
+}
+
+/**
+ * A trigger turn is the reason the assistant spoke unprompted. Cutting it away
+ * while keeping the reply would leave that reply with no visible cause, so the
+ * cut point must be allowed to land on one.
+ */
+test("R9: trimming may start at a trigger turn", () => {
+  const config = {
+    contextWindowTokens: 700,
+    outputReserveTokens: 100,
+    fixedOverheadTokens: 100,
+  };
+
+  const history: AgentMessage[] = [];
+  for (let i = 0; i < 8; i += 1) {
+    history.push(user(`question ${i} ${"x".repeat(400)}`));
+    history.push(assistant(`answer ${i} ${"y".repeat(400)}`));
+  }
+  history.push(trigger("问问他面试结果"));
+  history.push(assistant("面试结果怎么样？"));
+
+  const result = fitToContextWindow(history, config);
+  const first = result.messages[0];
+
+  assert.ok(
+    first.role === "user" || first.role === "trigger",
+    `history must start on a user-role turn, got ${first.role}`,
+  );
+
+  const triggerKept = result.messages.some((message) => message.role === "trigger");
+  const replyKept = result.messages.some(
+    (message) => message.role === "assistant" && JSON.stringify(message.content).includes("面试结果怎么样"),
+  );
+  assert.equal(
+    triggerKept,
+    replyKept,
+    "a proactive reply and the trigger that caused it must be kept or dropped together",
+  );
 });

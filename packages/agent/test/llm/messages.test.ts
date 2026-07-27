@@ -261,3 +261,58 @@ test("replaceImagesWithTextPlaceholders converts tool-result images", () => {
     { type: "text", text: TEXT_ONLY_IMAGE_PLACEHOLDER },
   ]);
 });
+
+test("agentToModelMessages merges adjacent assistant messages", () => {
+  const history: AgentMessage[] = [
+    { role: "user", timestamp: 1, content: [{ type: "text", text: "在吗" }] },
+    { role: "assistant", timestamp: 2, content: [{ type: "text", text: "在的" }] },
+    { role: "assistant", timestamp: 3, content: [{ type: "text", text: "对了，面试结果出了吗" }] },
+    { role: "assistant", timestamp: 4, content: [{ type: "text", text: "还有个事" }] },
+  ];
+
+  const result = agentToModelMessages(history);
+
+  assert.equal(result.length, 2);
+  assert.equal(result[0].role, "user");
+  assert.equal(result[1].role, "assistant");
+  assert.deepEqual(result[1].content, [
+    { type: "text", text: "在的" },
+    { type: "text", text: "对了，面试结果出了吗" },
+    { type: "text", text: "还有个事" },
+  ]);
+});
+
+test("agentToModelMessages leaves alternating roles untouched", () => {
+  const history: AgentMessage[] = [
+    { role: "user", timestamp: 1, content: [{ type: "text", text: "一" }] },
+    { role: "assistant", timestamp: 2, content: [{ type: "text", text: "二" }] },
+    { role: "user", timestamp: 3, content: [{ type: "text", text: "三" }] },
+    { role: "assistant", timestamp: 4, content: [{ type: "text", text: "四" }] },
+  ];
+
+  assert.equal(agentToModelMessages(history).length, 4);
+});
+
+test("agentToModelMessages does not merge assistants separated by tool results", () => {
+  const history: AgentMessage[] = [
+    { role: "user", timestamp: 1, content: [{ type: "text", text: "查一下" }] },
+    {
+      role: "assistant",
+      timestamp: 2,
+      stopReason: "toolUse",
+      content: [{ type: "toolCall", id: "call_1", name: "search", arguments: { q: "x" } }],
+    },
+    {
+      role: "toolResult",
+      timestamp: 3,
+      toolCallId: "call_1",
+      toolName: "search",
+      isError: false,
+      content: [{ type: "text", text: "结果" }],
+    },
+    { role: "assistant", timestamp: 4, content: [{ type: "text", text: "查到了" }] },
+  ];
+
+  const roles = agentToModelMessages(history).map((m) => m.role);
+  assert.deepEqual(roles, ["user", "assistant", "tool", "assistant"]);
+});

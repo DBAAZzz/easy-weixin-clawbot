@@ -161,9 +161,47 @@ function toolContentToOutput(
   return { type: "content", value: parts };
 }
 
+type AssistantParts = Exclude<AssistantModelMessage["content"], string>;
+
+function assistantParts(content: AssistantModelMessage["content"]): AssistantParts {
+  return typeof content === "string" ? [{ type: "text", text: content }] : content;
+}
+
+/**
+ * Collapse adjacent assistant messages into one.
+ *
+ * Proactive pushes (heartbeat, scheduler, RSS) append assistant messages that
+ * are not preceded by a user message, so stored history can hold consecutive
+ * assistants. Anthropic requires strictly alternating roles and rejects that
+ * shape, so merge them at the provider boundary.
+ *
+ * Assistant messages carrying tool calls are always separated by their tool
+ * results, so they never end up adjacent here.
+ */
+function mergeAdjacentAssistants(messages: ModelMessage[]): ModelMessage[] {
+  const merged: ModelMessage[] = [];
+
+  for (const msg of messages) {
+    const prev = merged[merged.length - 1];
+
+    if (msg.role !== "assistant" || prev?.role !== "assistant") {
+      merged.push(msg);
+      continue;
+    }
+
+    merged[merged.length - 1] = {
+      role: "assistant",
+      content: [...assistantParts(prev.content), ...assistantParts(msg.content)],
+    } satisfies AssistantModelMessage;
+  }
+
+  return merged;
+}
+
 /**
  * Convert project-internal AgentMessage[] to AI SDK ModelMessage[].
- * Groups consecutive toolResult messages into a single ToolModelMessage.
+ * Groups consecutive toolResult messages into a single ToolModelMessage,
+ * and merges adjacent assistant messages (see mergeAdjacentAssistants).
  */
 export function agentToModelMessages(messages: AgentMessage[]): ModelMessage[] {
   const result: ModelMessage[] = [];
@@ -195,7 +233,7 @@ export function agentToModelMessages(messages: AgentMessage[]): ModelMessage[] {
     }
   }
 
-  return result;
+  return mergeAdjacentAssistants(result);
 }
 
 /**

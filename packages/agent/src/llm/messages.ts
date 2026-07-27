@@ -23,6 +23,7 @@ import type {
   ImageContent,
   TextContent,
   ToolResultMessage,
+  TriggerMessage,
   UserMessage,
 } from "./types.js";
 
@@ -108,6 +109,19 @@ function userToModel(msg: UserMessage): UserModelMessage {
     return { type: "image" as const, image: block.data, mimeType: block.mimeType };
   });
   return { role: "user", content: parts };
+}
+
+/** Prefix marking a turn as system-originated rather than user-spoken. */
+export const TRIGGER_PROMPT_PREFIX = "[系统触发·提醒]";
+
+/**
+ * Trigger turns reach the model as user messages so role alternation stays
+ * valid, but carry a prefix so the model does not later mistake them for
+ * something the user actually said.
+ */
+function triggerToModel(msg: TriggerMessage): UserModelMessage {
+  const text = msg.content.map((block) => block.text).join("\n");
+  return { role: "user", content: `${TRIGGER_PROMPT_PREFIX} ${text}` };
 }
 
 function assistantToModel(msg: AssistantMessage): AssistantModelMessage {
@@ -226,6 +240,9 @@ export function agentToModelMessages(messages: AgentMessage[]): ModelMessage[] {
       result.push({ role: "tool", content: toolResults } as ToolModelMessage);
     } else if (msg.role === MESSAGE_ROLE.USER) {
       result.push(userToModel(msg));
+      i++;
+    } else if (msg.role === MESSAGE_ROLE.TRIGGER) {
+      result.push(triggerToModel(msg));
       i++;
     } else {
       result.push(assistantToModel(msg));

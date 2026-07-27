@@ -9,6 +9,7 @@
  */
 
 import type { RunKind } from "../capabilities/tools/types.js";
+import type { TriggerMeta } from "../llm/types.js";
 import { createPortSlot } from "./slot.js";
 
 export interface ChatExecutionRequest {
@@ -20,6 +21,14 @@ export interface ChatExecutionRequest {
   prompt: string;
   runKind: RunKind;
   signal?: AbortSignal;
+  /**
+   * Role under which the prompt is recorded. Defaults to "user".
+   * Use "trigger" for system-originated turns (a fired reminder) so history
+   * shows the cause without attributing the prompt to the user.
+   */
+  inputRole?: "user" | "trigger";
+  /** Required when inputRole is "trigger". */
+  triggerMeta?: TriggerMeta;
 }
 
 export interface ChatExecutionResult {

@@ -117,7 +117,9 @@ function degradeImages(message: AgentMessage): AgentMessage {
  *  - If the message at `index` is a toolResult, advance past the group.
  *  - If the message at `index` is an assistant with toolUse stopReason,
  *    advance past its corresponding toolResults.
- *  - The first kept message must be a user message (API requirement).
+ *  - The first kept message must be a user-role turn (API requirement).
+ *    Trigger messages qualify: they reach the model as user messages, and
+ *    dropping one would leave the assistant reply it caused unexplained.
  */
 function findSafeCutIndex(messages: AgentMessage[], rawIndex: number): number {
   let idx = rawIndex;
@@ -139,8 +141,12 @@ function findSafeCutIndex(messages: AgentMessage[], rawIndex: number): number {
     }
   }
 
-  // Ensure we start with a user message
-  while (idx < messages.length && messages[idx].role !== MESSAGE_ROLE.USER) {
+  // Ensure we start with a user-role turn (user or trigger)
+  while (
+    idx < messages.length &&
+    messages[idx].role !== MESSAGE_ROLE.USER &&
+    messages[idx].role !== MESSAGE_ROLE.TRIGGER
+  ) {
     idx++;
   }
 

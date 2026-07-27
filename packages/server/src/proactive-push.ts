@@ -1,4 +1,4 @@
-import type { ConversationCache, PushService } from "@clawbot/agent";
+import type { ConversationCache, PushOptions, PushService } from "@clawbot/agent";
 import { sendMessageWeixin } from "@clawbot/weixin-agent-sdk";
 import { getContextToken } from "./db/conversations.js";
 import { getRoute } from "./db/session-routes.js";
@@ -13,6 +13,7 @@ export function createProactivePush(conversations: ConversationCache): PushServi
       accountId: string,
       conversationId: string,
       text: string,
+      opts?: PushOptions,
     ): Promise<void> {
       const contextToken = await getContextToken(accountId, conversationId);
       if (!contextToken) {
@@ -35,8 +36,11 @@ export function createProactivePush(conversations: ConversationCache): PushServi
       });
 
       try {
-        const effectiveConversationId = (await getRoute(accountId, conversationId)) ?? conversationId;
-        await conversations.appendAssistantText(accountId, effectiveConversationId, text);
+        if (opts?.recordHistory !== false) {
+          const effectiveConversationId =
+            (await getRoute(accountId, conversationId)) ?? conversationId;
+          await conversations.appendAssistantText(accountId, effectiveConversationId, text);
+        }
       } catch (error) {
         proactivePushLogger.warn(
           {

@@ -4,17 +4,14 @@ import type { RunContext } from "./context.js";
 import { createConversationCache, type ConversationCache } from "./conversation/cache.js";
 import { generateConversationTitle } from "./conversation/title.js";
 import { createDebugFlags, type DebugFlags } from "../commands/debug.js";
-import { runChatTurn, type ChatLog } from "./turn.js";
+import { runChatTurn, type ChatLog, type ChatTurnInput } from "./turn.js";
 
 export type { ChatLog };
 
 export interface ChatEngine {
   readonly conversations: ConversationCache;
   readonly debugFlags: DebugFlags;
-  chat(
-    ctx: RunContext,
-    input: { text: string; media?: ChatMedia; startedAt?: number },
-  ): Promise<ChatResponse>;
+  chat(ctx: RunContext, input: ChatTurnInput): Promise<ChatResponse>;
   generateConversationTitle(
     ctx: RunContext,
     turn: { userText: string; assistantText: string },

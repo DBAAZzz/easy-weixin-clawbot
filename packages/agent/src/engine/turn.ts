@@ -7,6 +7,7 @@ import type {
   ImageContent,
   AgentMessage,
   TextContent,
+  TriggerMeta,
   VisualContext,
 } from "../llm/types.js";
 import { randomUUID } from "node:crypto";
@@ -63,6 +64,10 @@ export interface ChatTurnInput {
   text: string;
   media?: ChatMedia;
   startedAt?: number;
+  /** Role under which `text` is recorded. Defaults to "user". */
+  inputRole?: "user" | "trigger";
+  /** Required when inputRole is "trigger". */
+  triggerMeta?: TriggerMeta;
 }
 
 function finalizeReply(
@@ -129,15 +134,31 @@ async function buildUserMessage(
     media: ChatMedia | undefined;
     memoryContext: string;
     chatModel: ResolvedModel;
+    inputRole?: "user" | "trigger";
+    triggerMeta?: TriggerMeta;
   },
 ): Promise<AgentMessage> {
-  const { text, media, memoryContext, chatModel } = params;
+  const { text, media, memoryContext, chatModel, inputRole, triggerMeta } = params;
 
   const assembledText = assembleUserContext(PROMPT_PROFILES.chat, {
     tapeMemory: memoryContext || undefined,
     time: new Date(),
     userText: text || "(no text)",
   });
+
+  // System-originated turns carry no media and are recorded under their own
+  // role so history shows why the agent spoke unprompted.
+  if (inputRole === "trigger") {
+    if (!triggerMeta) {
+      throw new Error("buildUserMessage: inputRole 'trigger' requires triggerMeta");
+    }
+    return {
+      role: MESSAGE_ROLE.TRIGGER,
+      content: [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: assembledText }],
+      timestamp: Date.now(),
+      meta: triggerMeta,
+    };
+  }
 
   const userContent: (TextContent | ImageContent)[] = [
     { type: MESSAGE_CONTENT_TYPE.TEXT, text: assembledText },
@@ -382,6 +403,8 @@ export async function runChatTurn(
         media: input.media,
         memoryContext,
         chatModel,
+        inputRole: input.inputRole,
+        triggerMeta: input.triggerMeta,
       });
       appendMessage(cache, ctx, history, userMessage);
 

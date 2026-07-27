@@ -138,6 +138,7 @@ export type {
   ScheduledTaskHandlerResult,
   ScheduledTaskExecutionContext,
   PushService,
+  PushOptions,
   ModelConfigStore,
   ModelProviderTemplateRow,
   CreateModelProviderTemplateInput,

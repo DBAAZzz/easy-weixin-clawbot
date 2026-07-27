@@ -156,6 +156,15 @@ function serializeMessage(message: AgentMessage): unknown {
     };
   }
 
+  if (message.role === MESSAGE_ROLE.TRIGGER) {
+    return {
+      role: message.role,
+      meta: message.meta,
+      timestamp: message.timestamp,
+      content: message.content,
+    };
+  }
+
   return {
     role: message.role,
     toolCallId: message.toolCallId,

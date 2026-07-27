@@ -26,7 +26,11 @@ export function createChatExecutor(chatEngine: ChatEngine): ChatExecutorPort {
             runKind: req.runKind,
             signal: req.signal,
           };
-          const result = await chatEngine.chat(ctx, { text: req.prompt });
+          const result = await chatEngine.chat(ctx, {
+            text: req.prompt,
+            inputRole: req.inputRole,
+            triggerMeta: req.triggerMeta,
+          });
           return { text: result.text, status: "completed" as const };
         } catch (err) {
           return { status: "error" as const, error: (err as Error).message };

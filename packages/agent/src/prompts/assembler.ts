@@ -75,6 +75,10 @@ const TIME_FORMAT: Intl.DateTimeFormatOptions = {
   hour: "2-digit",
   minute: "2-digit",
   weekday: "short",
+  // Without an offset the model has to guess a zone when it writes an absolute
+  // timestamp back (create_reminder's fire_at), and a wrong guess silently
+  // shifts the reminder by hours.
+  timeZoneName: "shortOffset",
 };
 
 /**

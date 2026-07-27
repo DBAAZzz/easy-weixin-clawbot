@@ -188,21 +188,28 @@ role: "user", content: "[系统触发·提醒] 问问他面试结果怎么样"
 
 **不需要改的**（已确认）：`restoreHistory`（`server/db/messages.ts:381`）和 `hydrateMessage`（同文件 190 行）都是 role 无关的——只克隆 payload 并处理 content 里的图片块，`TriggerMessage` 的 `content: TextContent[]` 天然兼容。
 
-**(3) 阻塞前置：核实 `messages.role` 的 CHECK 约束**
+**(3) 无条件移除 `messages.role` 的 CHECK 约束**
 
-早期的 `packages/server/supabase/schema.sql` 里 messages 表带 `CHECK (role IN ('user','assistant','toolResult'))`，而 Prisma schema 未声明该约束（`schema.prisma:135` 是裸 `String @db.Text`）。`db push` 不会移除它不认识的约束，所以**线上库可能仍留着这条 CHECK**——若存在，写入 `role = 'trigger'` 会直接报错。
+早期的 `packages/server/supabase/schema.sql` 里 messages 表带 `CHECK (role IN ('user','assistant','toolResult'))`，而 Prisma schema 未声明该约束（`schema.prisma:135` 是裸 `String @db.Text`）。`db push` 不会移除它不认识的约束，所以线上库可能仍留着这条 CHECK——若存在，写入 `role = 'trigger'` 会直接报错。
 
-实施前必须先执行 `\d+ messages` 确认。若约束存在，在 §11 第 2 步的 migration 里一并处理：
+在 §11 的 reminders migration 里无条件执行，不做前置核实：
 
 ```sql
 ALTER TABLE messages DROP CONSTRAINT IF EXISTS messages_role_check;
 ```
 
+`IF EXISTS` 是幂等的，约束不存在时静默通过，因此不需要先 `\d+ messages` 确认。
+
+两点实施注意：
+
+1. **这条语句 `prisma migrate dev` 不会自动生成**。Prisma 只从 schema 差异推导 SQL，而它不知道这条 CHECK 的存在（schema 里没声明）。必须手工追加到生成出来的 `migration.sql` 末尾。
+2. **约束名假定为 Postgres 默认命名**。`supabase/schema.sql` 里它是列级内联约束（`role TEXT NOT NULL CHECK (...)`），Postgres 默认命名为 `messages_role_check`。若实际库中该约束由其他方式创建而名称不同，这条 `IF EXISTS` 会静默跳过、约束仍在，届时写入 trigger 消息会报错——报错信息会直接给出真实约束名，按名重跑一次即可。
+
 **(4) `agentToModelMessages` 合并相邻 assistant 消息**
 
 在 `llm/messages.ts:168` 增加合并分支：相邻 assistant 消息的 content 拼接为一条后再发给 provider。解决问题三。
 
-这是兜底修复，与 heartbeat 无关——**它同时修掉 scheduler 和 RSS 现有的隐患**，因此应作为独立 bugfix 提交（见 §11 第 0 步），不挂在本重构下。
+这是兜底修复，与 heartbeat 无关——**它同时修掉 scheduler 和 RSS 现有的隐患**，因此应作为独立 bugfix 提交（见 §11 第 1 步），不挂在本重构下。
 
 **(5) PushService 加 `recordHistory`**
 
@@ -372,10 +379,9 @@ interface HeartbeatStore {
 
 ## 11. 实施顺序
 
-0. **阻塞前置**：`\d+ messages` 核实是否残留 `CHECK (role IN (...))` 约束（§5.2 (3)）。结果决定第 2 步的 migration 是否需要 `DROP CONSTRAINT`
 1. **独立 bugfix，先行合并**：`agentToModelMessages` 合并相邻 assistant 消息（§5.2 问题三）。这是修复 scheduler / RSS 现有隐患，与本重构无依赖关系，应单独提交
 2. Prisma 基线：`0_init` + `migrate resolve --applied`（不改任何表结构，先确认基线正确）
-3. 改 `schema.prisma`（删 `PendingGoal`、加 `Reminder`）→ `migrate dev --name replace_goals_with_reminders`；若第 0 步发现 CHECK 存在，在同一 migration 里 `DROP CONSTRAINT IF EXISTS messages_role_check`
+3. 改 `schema.prisma`（删 `PendingGoal`、加 `Reminder`）→ `migrate dev --name replace_goals_with_reminders`，然后**手工在生成的 `migration.sql` 末尾追加** `ALTER TABLE messages DROP CONSTRAINT IF EXISTS messages_role_check;`（§5.2 (3)）
 4. 加 `MESSAGE_ROLE.TRIGGER` 与 `TriggerMessage` 类型 → 跑 `tsc --noEmit` 收集所有未穷尽分支，逐个处理（`agentToModelMessages`、`findSafeCutIndex`、`buildUserMessage`、web 两处）
 5. 改 `HeartbeatStore` port 接口 + server 侧实现
 6. 扩展 `ChatExecutorPort` 的 `inputRole` / `triggerMeta` 参数
@@ -387,3 +393,4 @@ interface HeartbeatStore {
 12. 重写测试
 13. 更新 `package.json` 脚本、`Dockerfile`、`AGENTS.md`、部署文档；删除 `supabase/schema.sql`
 14. `tsc --noEmit` 三包全过：`@clawbot/agent`、`@clawbot/server`、`@clawbot/web`
+15. 冒烟验证：登记一条 1 分钟后触发的提醒，确认历史里出现 `trigger` + `assistant` 两条、微信侧收到消息、Web 后台渲染正常

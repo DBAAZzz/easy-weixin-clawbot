@@ -542,42 +542,21 @@ model ModelConfig {
 
 // ─── Heartbeat (Pending Goals) ────────────────────────────────────────
 
-model PendingGoal {
-  id                      BigInt    @id @default(autoincrement())
-  goalId                  String    @unique @default(dbgenerated("gen_random_uuid()")) @map("goal_id") @db.Uuid
-  accountId               String    @map("account_id") @db.Text
-  sourceConversationId    String    @map("source_conversation_id") @db.Text
+/// A pending proactive reminder. The row's existence is its state — a fired
+/// reminder is deleted, so there is no status column.
+model Reminder {
+  id             BigInt   @id @default(autoincrement())
+  reminderId     String   @unique @default(dbgenerated("gen_random_uuid()")) @map("reminder_id") @db.Uuid
+  accountId      String   @map("account_id") @db.Text
+  /// Real conversation id — reminders run in the user's own session.
+  conversationId String   @map("conversation_id") @db.Text
+  prompt         String   @db.Text
+  fireAt         DateTime @map("fire_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  description             String    @db.Text
-  context                 String    @db.Text
-  originType              String    @map("origin_type") @db.Text    // conversation | tool_failure | follow_up
-  originRef               String?   @map("origin_ref") @db.Text
-
-  status                  String    @default("pending") @db.Text    // pending | checking | waiting_user | resolved | abandoned
-
-  nextCheckAt             DateTime  @map("next_check_at") @db.Timestamptz(6)
-  checkCount              Int       @default(0) @map("check_count")
-  maxChecks               Int       @default(10) @map("max_checks")
-  backoffMs               Int       @default(300000) @map("backoff_ms")  // 5 min
-
-  latestSourceMessageSeq  Int?      @map("latest_source_message_seq")
-  resumeSignal            String?   @map("resume_signal") @db.Text
-
-  lastCheckAt             DateTime? @map("last_check_at") @db.Timestamptz(6)
-  lastCheckResult         String?   @map("last_check_result") @db.Text
-  resolution              String?   @db.Text
-
-  totalInputTokens        Int       @default(0) @map("total_input_tokens")
-  totalOutputTokens       Int       @default(0) @map("total_output_tokens")
-
-  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  expiresAt               DateTime? @map("expires_at") @db.Timestamptz(6)
-
-  @@index([status, nextCheckAt], map: "idx_pending_goals_status_next_check")
-  @@index([accountId, status], map: "idx_pending_goals_account_status")
-  @@index([accountId, sourceConversationId, status], map: "idx_pending_goals_account_conv_status")
-  @@map("pending_goals")
+  @@index([fireAt], map: "idx_reminders_fire_at")
+  @@index([accountId], map: "idx_reminders_account")
+  @@map("reminders")
 }
 
 // ─── Weixin Credential Management ─────────────────────────────────────

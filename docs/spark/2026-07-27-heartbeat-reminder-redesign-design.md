@@ -92,8 +92,8 @@ model Reminder {
         conversationId: row.conversationId,      // 真实会话
         prompt: row.prompt,
         runKind: "heartbeat",
-        persistInput: false,                     // 见 §5.2
-        trigger: { kind: "reminder", reminderId: row.reminderId, prompt: row.prompt },
+        inputRole: "trigger",                    // 见 §5.2
+        triggerMeta: { kind: "reminder", reminderId: row.reminderId },
       })
       if (result.status === "completed" && result.text?.trim()) {
         await push.sendProactiveMessage(
@@ -132,48 +132,91 @@ scheduler 没踩到，是因为它跑在隔离会话——chat 写进 `scheduler
 
 #### 解法（三处改动）
 
-**(1) `ChatExecutorPort` 增加 `persistInput` 与 `trigger`**
+**(1) 新增 `trigger` role，触发信息独立成一条消息**
+
+触发信息作为**独立一条消息**落库，使用新 role `trigger`。session 记录因此是完整且直观的——历史里明确地有「因为这条提醒，所以说了这句话」两条记录，而不是把来源藏在 assistant 消息的 payload 里。
 
 ```ts
+// packages/shared/src/constant/messages.ts
+export const MESSAGE_ROLE = {
+  USER: "user",
+  ASSISTANT: "assistant",
+  TOOL_RESULT: "toolResult",
+  TRIGGER: "trigger",          // 新增
+} as const;
+
+// packages/agent/src/llm/types.ts
+export interface TriggerMessage {
+  role: "trigger";
+  content: TextContent[];       // 触发用的 prompt 原文
+  timestamp: number;
+  meta: { kind: "reminder"; reminderId: string };
+}
+export type AgentMessage = UserMessage | AssistantMessage | ToolResultMessage | TriggerMessage;
+
+// packages/agent/src/ports/chat-executor.ts
 interface ChatExecutionRequest {
   // ...现有字段
-  /** false 时输入 prompt 参与本次 LLM 调用，但不作为 user 消息落库。默认 true。 */
-  persistInput?: boolean;
-  /** 主动消息的触发来源，写入 assistant 消息的 payload。 */
-  trigger?: { kind: string; reminderId?: string; prompt?: string };
+  /** 输入 prompt 以何种 role 落库。默认 "user"。 */
+  inputRole?: "user" | "trigger";
+  /** inputRole 为 "trigger" 时写入该消息的 meta。 */
+  triggerMeta?: { kind: "reminder"; reminderId: string };
 }
 ```
 
-`turn.ts:386` 的 `appendMessage` 按 `persistInput` 条件化——prompt 仍进入本轮 LLM 的消息数组（模型看得到指令），但不写入历史。解决问题二。
+`turn.ts:380-386` 的 `buildUserMessage` 按 `inputRole` 构造 `UserMessage` 或 `TriggerMessage`，其余落库路径不变。
 
-**(2) 触发信息写入 assistant 消息的 payload**
+**发给 LLM 时，trigger 消息转成带标记的 user 角色**：
 
-```jsonc
-{
-  "fragments": [...],
-  "trigger": { "kind": "reminder", "reminderId": "...", "prompt": "问问他面试结果", "firedAt": "2026-07-28T09:00:00+08:00" }
-}
+```
+role: "user", content: "[系统触发·提醒] 问问他面试结果怎么样"
 ```
 
-`Message.payload` 是自由 JSONB（`schema.prisma:137`），无需 schema 变更。这保证 **session 记录是完整的**——看历史时能查出这条主动消息是被哪条提醒、什么 prompt 触发的，而不是凭空冒出一句话。Web 后台可据此在消息上打「主动」标记。
+不能直接跳过——本轮 LLM 需要这条指令才知道要说什么。转成 user 保证了角色交替合法；加 `[系统触发·提醒]` 前缀让模型清楚这不是用户在说话，避免它在后续轮次里误以为用户提过这个要求。这一步在 `agentToModelMessages` 里做。
 
-选 payload 而非新增一条 `role: "system"` 的独立消息，是因为新 role 要贯穿 `agentToModelMessages`（跳过）、`restoreHistory`、`context-window` 裁剪、Web UI 渲染四处，改动面大得多；且线上库的 `messages.role` 可能残留早期 `supabase/schema.sql` 的 `CHECK (role IN ('user','assistant','toolResult'))` 约束（Prisma schema 未声明该约束，实际库需 `\d+ messages` 核实）。
+**(2) 受影响的链路**
 
-**(3) `agentToModelMessages` 合并相邻 assistant 消息**
+| 位置 | 改动 | 说明 |
+|---|---|---|
+| `shared/constant/messages.ts:1` | 加 `TRIGGER` | |
+| `agent/llm/types.ts:93` | 加 `TriggerMessage` 并入 `AgentMessage` 联合类型 | TS 会把所有未穷尽的 switch/if 报出来，据此定位剩余改动点 |
+| `agent/llm/messages.ts:168` | `agentToModelMessages` 加 trigger 分支，转 user 角色 + 前缀 | |
+| `agent/engine/conversation/context-window.ts:143` | `findSafeCutIndex` 的「Ensure we start with a user message」循环要把 trigger 也视为合法起点 | 否则裁剪时 trigger 消息会被跳过丢失，assistant 就没了来由 |
+| `agent/engine/turn.ts:380-386` | `buildUserMessage` 按 `inputRole` 分支 | |
+| `web/src/lib/message-timeline.ts` | 加 trigger 分组处理 | |
+| `web/src/components/MessageBubble.tsx` | 渲染为分隔式提示条（如「⏰ 提醒触发：…」），不是对话气泡 | |
+
+**不需要改的**（已确认）：`restoreHistory`（`server/db/messages.ts:381`）和 `hydrateMessage`（同文件 190 行）都是 role 无关的——只克隆 payload 并处理 content 里的图片块，`TriggerMessage` 的 `content: TextContent[]` 天然兼容。
+
+**(3) 阻塞前置：核实 `messages.role` 的 CHECK 约束**
+
+早期的 `packages/server/supabase/schema.sql` 里 messages 表带 `CHECK (role IN ('user','assistant','toolResult'))`，而 Prisma schema 未声明该约束（`schema.prisma:135` 是裸 `String @db.Text`）。`db push` 不会移除它不认识的约束，所以**线上库可能仍留着这条 CHECK**——若存在，写入 `role = 'trigger'` 会直接报错。
+
+实施前必须先执行 `\d+ messages` 确认。若约束存在，在 §11 第 2 步的 migration 里一并处理：
+
+```sql
+ALTER TABLE messages DROP CONSTRAINT IF EXISTS messages_role_check;
+```
+
+**(4) `agentToModelMessages` 合并相邻 assistant 消息**
 
 在 `llm/messages.ts:168` 增加合并分支：相邻 assistant 消息的 content 拼接为一条后再发给 provider。解决问题三。
 
 这是兜底修复，与 heartbeat 无关——**它同时修掉 scheduler 和 RSS 现有的隐患**，因此应作为独立 bugfix 提交（见 §11 第 0 步），不挂在本重构下。
 
-**PushService 保持不变**：既然 assistant 消息由 chat 落库，push 只需负责发到微信，不再重复写历史。给 `sendProactiveMessage` 加一个 `opts?: { recordHistory?: boolean }`，heartbeat 传 `false`，scheduler 与 RSS 两个现有调用方不传、行为不变。
+**(5) PushService 加 `recordHistory`**
+
+既然 assistant 消息由 chat 落库，push 只需负责发到微信，不再重复写历史。给 `sendProactiveMessage` 加 `opts?: { recordHistory?: boolean }`，heartbeat 传 `false`，scheduler 与 RSS 两个现有调用方不传、行为不变。解决问题一。
 
 #### 最终历史形态
 
 ```
-user(用户上次说的) → assistant(上次回复) → assistant(主动消息, payload.trigger 记录来源)
-                                              ↑ 无伪造 user 消息，来源可追溯
-                                              ↑ 发给 LLM 前由 (3) 合并为一条
+user(用户上次说的) → assistant(上次回复) → trigger(提醒 prompt) → assistant(主动消息)
+                                              ↑ 独立可见，来源一目了然
+                                              ↑ 发给 LLM 时转 user 角色 + [系统触发·提醒] 前缀
 ```
+
+heartbeat 路径因此天然满足角色交替（trigger→user、后接 assistant），(4) 的合并修复只为兜住 scheduler / RSS 的既有历史。
 
 ### 5.3 错误处理：一律不重试
 
@@ -307,8 +350,10 @@ interface HeartbeatStore {
 | chat 失败 | 记 warn，不恢复行，不重试 |
 | **push 不重复写历史** | heartbeat 路径传 `recordHistory: false`；针对 §5.2 问题一的回归测试 |
 | PushService 兼容 | scheduler / RSS 不传 opts 时仍写历史 |
-| **`persistInput: false`** | reminder 的 prompt 不落库为 user 消息，但仍出现在本轮发给 LLM 的消息数组里（§5.2 问题二） |
-| **trigger 元数据** | assistant 消息的 `payload.trigger` 含 `reminderId` / `prompt` / `firedAt`，可从历史反查触发来源 |
+| **`inputRole: "trigger"`** | reminder 的 prompt 落库为 `role: "trigger"` 消息而非 user 消息，`meta.reminderId` 正确 |
+| **trigger 转 user 送模型** | `agentToModelMessages` 把 trigger 转为 user 角色并加 `[系统触发·提醒]` 前缀；本轮 LLM 收得到指令 |
+| **裁剪不丢 trigger** | `findSafeCutIndex` 在 trigger 消息处可作为合法起点，不会跳过它导致 assistant 失去来由 |
+| **历史还原** | `restoreHistory` 能还原 trigger 消息（回归测试，确认 role 无关的 hydrate 路径成立） |
 | **相邻 assistant 合并** | 历史含连续 assistant 时，`agentToModelMessages` 输出合并为一条；三条及以上同样合并（§5.2 问题三） |
 | 合并不误伤 | `user → assistant → user → assistant` 不被合并；toolResult 分组逻辑不受影响 |
 | 每账号串行 | 同账号两条同时到期的提醒不并发执行 |
@@ -321,20 +366,24 @@ interface HeartbeatStore {
 2. **单条提醒可能丢失**。先删后执行意味着 chat 失败时提醒消失。这是对「宁可漏说、不可重复骚扰」的刻意选择。
 3. **主动推送依赖 `contextToken`**。`proactive-push.ts:19` 要求会话有缓存的 contextToken，微信侧从未聊过的联系人推不出去。提醒只能发生在已有对话的会话中。
 4. **`prisma:push` 移除后不可回退**。若日后出现无法用 migration 表达的场景，需重新引入。考虑到只有自用库，风险可控。
-5. **触发信息不是独立消息**。挂在 `payload.trigger` 上，看历史列表时需展开 payload 才看得到，不如独立一条直观。换来的是不碰 `agentToModelMessages` / `restoreHistory` / 上下文裁剪 / Web 渲染四条链路。
-6. **合并相邻 assistant 是有损的**。两条主动消息被合并成一条发给 LLM 后，模型无法区分它们是分两次说的。对上下文理解无实质影响，但如果日后需要「模型知道自己隔了多久说了第二次」，要改为在合并时插入时间标记。
+5. **新增 `trigger` role 是跨包破坏性改动**。它落在 `@clawbot/shared` 的 `MESSAGE_ROLE` 上，`AgentMessage` 联合类型随之扩大，agent / server / web 三个包都要处理新分支。好处是 TS 会把所有未穷尽的分支报出来，改动点不会遗漏；代价是这次改动无法只局限在 heartbeat 目录内。
+6. **trigger 消息会占用上下文预算**。它作为一条真实消息参与上下文窗口计算，长 prompt 会挤占历史。当前 prompt 由 Agent 登记时自行控制长度，未设上限；若日后发现挤占明显，可在 `create_reminder` 加 prompt 长度校验。
+7. **合并相邻 assistant 是有损的**。两条主动消息被合并成一条发给 LLM 后，模型无法区分它们是分两次说的。对上下文理解无实质影响，但如果日后需要「模型知道自己隔了多久说了第二次」，要改为在合并时插入时间标记。
 
 ## 11. 实施顺序
 
-0. **独立 bugfix，先行合并**：`agentToModelMessages` 合并相邻 assistant 消息（§5.2 问题三）。这是修复 scheduler / RSS 现有隐患，与本重构无依赖关系，应单独提交
-1. Prisma 基线：`0_init` + `migrate resolve --applied`（不改任何表结构，先确认基线正确）
-2. 改 `schema.prisma`（删 `PendingGoal`、加 `Reminder`）→ `migrate dev --name replace_goals_with_reminders`
-3. 改 `HeartbeatStore` port 接口 + server 侧实现
-4. 扩展 `ChatExecutorPort` 的 `persistInput` / `trigger` 参数，`turn.ts:386` 条件化落库，trigger 写入 assistant payload
-5. 扩展 `PushService` 的 `recordHistory` 参数（先加参数保持默认行为，独立可验证）
-6. 重写 `engine.ts` tick
-7. 重写 `tool.ts` 三个工具
-8. 删除 evaluator / reason-internal / prompt 资产 / post-chat 钩子 / `getMessagesSince`
-9. 重写测试
-10. 更新 `package.json` 脚本、`Dockerfile`、`AGENTS.md`、部署文档；删除 `supabase/schema.sql`
-11. `pnpm -F @clawbot/agent exec tsc --noEmit` 与 `pnpm -F @clawbot/server exec tsc --noEmit` 通过
+0. **阻塞前置**：`\d+ messages` 核实是否残留 `CHECK (role IN (...))` 约束（§5.2 (3)）。结果决定第 2 步的 migration 是否需要 `DROP CONSTRAINT`
+1. **独立 bugfix，先行合并**：`agentToModelMessages` 合并相邻 assistant 消息（§5.2 问题三）。这是修复 scheduler / RSS 现有隐患，与本重构无依赖关系，应单独提交
+2. Prisma 基线：`0_init` + `migrate resolve --applied`（不改任何表结构，先确认基线正确）
+3. 改 `schema.prisma`（删 `PendingGoal`、加 `Reminder`）→ `migrate dev --name replace_goals_with_reminders`；若第 0 步发现 CHECK 存在，在同一 migration 里 `DROP CONSTRAINT IF EXISTS messages_role_check`
+4. 加 `MESSAGE_ROLE.TRIGGER` 与 `TriggerMessage` 类型 → 跑 `tsc --noEmit` 收集所有未穷尽分支，逐个处理（`agentToModelMessages`、`findSafeCutIndex`、`buildUserMessage`、web 两处）
+5. 改 `HeartbeatStore` port 接口 + server 侧实现
+6. 扩展 `ChatExecutorPort` 的 `inputRole` / `triggerMeta` 参数
+7. 扩展 `PushService` 的 `recordHistory` 参数（先加参数保持默认行为，独立可验证）
+8. 重写 `engine.ts` tick
+9. 重写 `tool.ts` 三个工具
+10. 删除 evaluator / reason-internal / prompt 资产 / post-chat 钩子 / `getMessagesSince`
+11. Web 侧渲染 trigger 消息（`message-timeline.ts` 分组 + `MessageBubble.tsx` 提示条样式）
+12. 重写测试
+13. 更新 `package.json` 脚本、`Dockerfile`、`AGENTS.md`、部署文档；删除 `supabase/schema.sql`
+14. `tsc --noEmit` 三包全过：`@clawbot/agent`、`@clawbot/server`、`@clawbot/web`

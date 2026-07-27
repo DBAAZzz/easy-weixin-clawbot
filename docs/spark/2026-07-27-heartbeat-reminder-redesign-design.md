@@ -1,6 +1,8 @@
 # Heartbeat 重构：从 Goal 跟进引擎到 Reminder 提醒器
 
-> 状态：设计已确认，待实现
+> **状态：已作废。** 本方案已实现并跑通，但方向错误——reminder 与 scheduler 无结构性区分度，
+> 且未能提供目标中的「活人感」。由 [2026-07-27-heartbeat-pulse-design.md](./2026-07-27-heartbeat-pulse-design.md) 取代。
+> 其中的 Prisma Migrate 基建、`trigger` role、相邻 assistant 合并等部分被第二版保留，仍可参考。
 > 日期：2026-07-27
 > 影响范围：`packages/agent/src/capabilities/heartbeat/`、`packages/server`（Prisma schema + 迁移基建）
 

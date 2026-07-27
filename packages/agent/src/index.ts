@@ -4,6 +4,8 @@ export type {
   UserMessage,
   AssistantMessage,
   ToolResultMessage,
+  TriggerMessage,
+  TriggerMeta,
   TextContent,
   ImageContent,
   ThinkingContent,
@@ -127,7 +129,6 @@ export type {
   MessageStore,
   RestoredHistory,
   PersistMessageParams,
-  MessagesSinceRow,
   TapeStore,
   TapeEntryRow,
   TapeAnchorRow,
@@ -205,17 +206,14 @@ export {
 export {
   startHeartbeat,
   stopHeartbeat,
-  checkWaitingGoalsAsync,
+  runHeartbeatTick,
   heartbeatToolRegistry,
 } from "./capabilities/heartbeat/index.js";
-export type {
-  GoalStatus,
-  GoalOrigin,
-  Verdict,
-  PendingGoalRow,
-  CreateGoalInput,
-  UpdateGoalInput,
-  GoalTransition,
+export type { ReminderRow, CreateReminderInput } from "./capabilities/heartbeat/types.js";
+export {
+  MAX_PENDING_PER_ACCOUNT,
+  MAX_FIRE_AHEAD_MS,
+  TICK_BATCH_SIZE,
 } from "./capabilities/heartbeat/types.js";
 
 // ── Chat orchestration ──────────────────────────────────────────────
@@ -232,7 +230,6 @@ export type {
 } from "./prompts/index.js";
 export {
   PROMPT_PROFILES,
-  PROMPT_TEMPLATES,
   PROMPT_ASSET_SPECS,
   loadPromptAssets,
   resolveBundledPromptsDir,

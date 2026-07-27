@@ -6,7 +6,7 @@
 export type { PromptLane, PromptProfile, PromptAssets, PromptAssetSpec } from "./types.js";
 
 // Profile declarations
-export { PROMPT_PROFILES, PROMPT_TEMPLATES, PROMPT_ASSET_SPECS } from "./profiles.js";
+export { PROMPT_PROFILES, PROMPT_ASSET_SPECS } from "./profiles.js";
 
 // Loader
 export {

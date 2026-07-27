@@ -41,9 +41,6 @@ function createFakeMessageStore(seed: Record<string, RestoredHistory> = {}): Mes
     async clearMessages(accountId, conversationId) {
       cleared.push({ accountId, conversationId });
     },
-    async getMessagesSince() {
-      return [];
-    },
   };
 }
 

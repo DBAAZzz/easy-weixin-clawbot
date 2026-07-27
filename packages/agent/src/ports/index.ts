@@ -1,4 +1,4 @@
-export type { MessageStore, RestoredHistory, PersistMessageParams, MessagesSinceRow } from "./message-store.js";
+export type { MessageStore, RestoredHistory, PersistMessageParams } from "./message-store.js";
 export { setMessageStore, getMessageStore } from "./message-store.js";
 
 export type { UsageStore, RecordUsageParams } from "./usage-store.js";

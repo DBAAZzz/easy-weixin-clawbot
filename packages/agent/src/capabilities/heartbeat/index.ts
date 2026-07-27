@@ -1,25 +1,14 @@
 export {
   startHeartbeat,
   stopHeartbeat,
-  checkWaitingGoalsAsync,
+  runHeartbeatTick,
 } from "./engine.js";
 
+export { heartbeatToolRegistry } from "./tool.js";
+
+export type { ReminderRow, CreateReminderInput } from "./types.js";
 export {
-  heartbeatToolRegistry,
-} from "./tool.js";
-
-export { evaluateGoal } from "./evaluator.js";
-export { reasonInternal } from "./reason-internal.js";
-
-export type {
-  GoalStatus,
-  GoalOrigin,
-  Verdict,
-  PendingGoalRow,
-  CreateGoalInput,
-  UpdateGoalInput,
-  GoalTransition,
-  HeartbeatExecutionRequest,
-  HeartbeatExecutionResult,
+  MAX_PENDING_PER_ACCOUNT,
+  MAX_FIRE_AHEAD_MS,
+  TICK_BATCH_SIZE,
 } from "./types.js";
-export { LIMITS, INITIAL_BACKOFF_MS, MAX_BACKOFF_MS, nextBackoff } from "./types.js";

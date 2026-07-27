@@ -11,7 +11,6 @@ import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk
 import {
   CommandRegistry,
   createHandoffAnchors,
-  checkWaitingGoalsAsync,
   isLLMProviderNotConfiguredError,
 } from "@clawbot/agent";
 import type { ChatMedia as AgentChatMedia, RunContext } from "@clawbot/agent";
@@ -324,20 +323,6 @@ export function createAgent(accountId: string): Agent {
               );
             });
           }
-
-          // Post-chat hook: notify heartbeat engine of new user/assistant messages
-          const latestSeq = chatEngine.conversations.currentSeq(accountId, effectiveConvId);
-          checkWaitingGoalsAsync(accountId, effectiveConvId, latestSeq).catch((err) => {
-            agentLogger.warn(
-              {
-                ...getErrorFields(err),
-                accountId,
-                conversationId: effectiveConvId,
-                seq: latestSeq,
-              },
-              "心跳后置检查失败",
-            );
-          });
 
           return withSpanSync(
             "message.send",

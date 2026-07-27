@@ -1,8 +1,9 @@
 /**
- * Heartbeat Agent Tools — create/resolve/list pending goals.
+ * Heartbeat Agent Tools — schedule / list / cancel proactive reminders.
  *
- * These tools are registered into the ToolRegistry and called by the Agent
- * during normal conversations. The Agent decides autonomously when to create goals.
+ * Registered into the ToolRegistry and called by the Agent during normal
+ * conversations. The Agent decides on its own when something is worth
+ * bringing up later.
  */
 
 import { z } from "zod";
@@ -11,133 +12,106 @@ import type { ToolSnapshotItem } from "../tools/types.js";
 import { defineTool, textResult } from "../tools/define-tool.js";
 import { requireAgentToolContext } from "../tools/context.js";
 import { getHeartbeatStore } from "../../ports/heartbeat-store.js";
-import { LIMITS, INITIAL_BACKOFF_MS } from "./types.js";
+import { MAX_PENDING_PER_ACCOUNT, MAX_FIRE_AHEAD_MS } from "./types.js";
 
-// ── Tool definitions ───────────────────────────────────────────────
+function formatFireAt(date: Date): string {
+  return date.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", hour12: false });
+}
 
-const createPendingGoalTool = defineTool({
-  name: "create_pending_goal",
+const createReminderTool = defineTool({
+  name: "create_reminder",
   description:
-    "当你发现当前对话中有需要后续跟进的事项时调用。" +
-    "比如：工具暂时不可用需要稍后重试、用户说'我一会儿确认'、某个操作需要等待异步结果。" +
-    "不要用于用户明确要求的定时任务（那是 scheduler 的职责）。",
+    "当你想在之后某个时间主动跟用户说点什么时调用。" +
+    "比如：用户提到明天有面试，你想第二天问问结果；用户说晚点回复你，你想过一会儿再提一嘴。" +
+    "到时间后你会在这个对话里被唤醒，按 prompt 生成一句话主动发给用户。" +
+    "用户明确要求的定时任务（每天推送新闻之类）请用 create_scheduled_task。",
   parameters: z.object({
-    description: z.string().describe("目标描述（一句话说明要跟进什么）"),
-    context: z.string().describe("相关上下文（创建时的背景信息）"),
-    delay_minutes: z.number().min(1).max(1440).describe("首次检查延迟分钟数，默认 5").optional(),
-    max_checks: z.number().min(1).max(20).describe("最大检查次数，默认 10").optional(),
+    fire_at: z
+      .string()
+      .describe('触发时间，ISO8601 带时区，如 "2026-07-28T09:00:00+08:00"'),
+    prompt: z
+      .string()
+      .describe("到时间后给你自己的指令，说明要跟用户聊什么，如「问问他昨天的面试结果」"),
   }),
   async execute(args, toolCtx) {
-    const {
-      description,
-      context,
-      delay_minutes: delayMinutes,
-      max_checks: maxChecks,
-    } = args;
+    const { fire_at: fireAtRaw, prompt } = args;
 
-    // Heartbeat Phase 2 and scheduler runs do not have a live user delivery path
-    // for new goals; keep follow-up instructions in the current result instead.
+    // Background runs have no live user to deliver a new reminder to; keep the
+    // follow-up in the current reply instead.
     if (toolCtx.runKind === "heartbeat" || toolCtx.runKind === "scheduler") {
       return textResult(
-        "拒绝：当前后台执行中不能创建新的 pending goal。请直接在本次结果里说明需要后续跟进的事项。",
+        "拒绝：当前后台执行中不能创建新的提醒。请直接在本次结果里说明需要后续跟进的事项。",
       );
     }
 
     const ctx = requireAgentToolContext(toolCtx);
 
+    const fireAt = new Date(fireAtRaw);
+    if (Number.isNaN(fireAt.getTime())) {
+      return textResult(`❌ 无法解析时间 "${fireAtRaw}"，请用 ISO8601 格式，如 2026-07-28T09:00:00+08:00`);
+    }
+
+    const now = Date.now();
+    if (fireAt.getTime() <= now) {
+      return textResult(`❌ 触发时间 ${formatFireAt(fireAt)} 已过去，请给一个将来的时间。`);
+    }
+    if (fireAt.getTime() - now > MAX_FIRE_AHEAD_MS) {
+      return textResult(`❌ 最远只能安排 ${MAX_FIRE_AHEAD_MS / 86_400_000} 天以内的提醒。`);
+    }
+
     const store = getHeartbeatStore();
 
-    // Per-account quota
-    const activeCount = await store.countActiveGoals(ctx.accountId);
-    if (activeCount >= LIMITS.maxActiveGoalsPerAccount) {
+    const pending = await store.listByAccount(ctx.accountId);
+    if (pending.length >= MAX_PENDING_PER_ACCOUNT) {
       return textResult(
-        `拒绝：当前已有 ${activeCount} 个活跃目标（上限 ${LIMITS.maxActiveGoalsPerAccount}）。请先完成现有目标。`,
+        `拒绝：已有 ${pending.length} 条待触发提醒（上限 ${MAX_PENDING_PER_ACCOUNT}）。请先取消一些。`,
       );
     }
 
-    // Dedup: similar description in same conversation
-    const existing = await store.findSimilarGoal(ctx.accountId, ctx.conversationId, description);
-    if (existing) {
-      return textResult(
-        `已存在相似目标: ${existing.goalId}（${existing.description}）。不重复创建。`,
-      );
-    }
-
-    const delayMs = (delayMinutes ?? 5) * 60_000;
-    const goal = await store.createGoal({
+    const reminder = await store.createReminder({
       accountId: ctx.accountId,
-      sourceConversationId: ctx.conversationId,
-      description,
-      context,
-      originType: "conversation",
-      delayMs,
-      maxChecks: maxChecks ?? LIMITS.defaultMaxChecks,
+      conversationId: ctx.conversationId,
+      prompt,
+      fireAt,
     });
 
     return textResult(
-      `✅ 已创建待跟进目标\n` +
-        `🎯 ${goal.description}\n` +
-        `⏰ 首次检查: ${Math.round(delayMs / 60_000)} 分钟后\n` +
-        `🔢 ID: ${goal.goalId}`,
+      `✅ 已安排提醒\n⏰ ${formatFireAt(reminder.fireAt)}\n📝 ${reminder.prompt}\n🔢 ID: ${reminder.reminderId}`,
     );
   },
 });
 
-const resolvePendingGoalTool = defineTool({
-  name: "resolve_pending_goal",
-  description: "当你在对话中得知某个待跟进目标已经完成时调用。",
-  parameters: z.object({
-    goal_id: z.string().describe("目标 ID (UUID)"),
-    resolution: z.string().describe("完成说明"),
-  }),
-  async execute(args) {
-    const { goal_id: goalId, resolution } = args;
-
-    const store = getHeartbeatStore();
-    const goal = await store.getByGoalId(goalId);
-
-    if (!goal) return textResult(`❌ 未找到目标 ${goalId}`);
-    if (goal.status === "resolved" || goal.status === "abandoned") {
-      return textResult(`目标 ${goalId} 已处于终态: ${goal.status}`);
-    }
-
-    await store.updateGoal(goalId, {
-      status: "resolved",
-      resolution,
-      lastCheckAt: new Date(),
-      lastCheckResult: `manually resolved: ${resolution}`,
-    });
-
-    return textResult(`✅ 目标已标记完成: ${goal.description}`);
-  },
-});
-
-const listPendingGoalsTool = defineTool({
-  name: "list_pending_goals",
-  description: "列出当前账号的所有活跃待跟进目标。",
+const listRemindersTool = defineTool({
+  name: "list_reminders",
+  description: "列出当前账号所有待触发的提醒。",
   parameters: z.object({}),
   async execute(_args, toolCtx) {
     const ctx = requireAgentToolContext(toolCtx);
 
-    const store = getHeartbeatStore();
-    const goals = await store.listGoals(ctx.accountId, false);
+    const reminders = await getHeartbeatStore().listByAccount(ctx.accountId);
+    if (reminders.length === 0) return textResult("当前没有待触发的提醒。");
 
-    if (goals.length === 0) return textResult("当前没有活跃的待跟进目标。");
+    const lines = reminders.map(
+      (r) => `⏰ ${formatFireAt(r.fireAt)}\n   ${r.prompt}\n   ID: ${r.reminderId}`,
+    );
 
-    const lines = goals.map((g) => {
-      const statusEmoji: Record<string, string> = {
-        pending: "⏳",
-        checking: "🔄",
-        waiting_user: "💬",
-      };
-      return (
-        `${statusEmoji[g.status] ?? "❓"} [${g.status}] ${g.description}\n` +
-        `   ID: ${g.goalId} | 已检查 ${g.checkCount}/${g.maxChecks} 次` +
-        (g.lastCheckResult ? ` | 上次: ${g.lastCheckResult.slice(0, 60)}` : "")
-      );
-    });
+    return textResult(`📋 待触发提醒 (${reminders.length}):\n\n${lines.join("\n\n")}`);
+  },
+});
 
-    return textResult(`📋 活跃目标 (${goals.length}):\n\n${lines.join("\n\n")}`);
+const cancelReminderTool = defineTool({
+  name: "cancel_reminder",
+  description: "取消一条尚未触发的提醒。用户说「不用提醒我了」时调用。",
+  parameters: z.object({
+    reminder_id: z.string().describe("提醒 ID (UUID)，可从 list_reminders 获取"),
+  }),
+  async execute(args) {
+    const { reminder_id: reminderId } = args;
+
+    const removed = await getHeartbeatStore().claimById(reminderId);
+    if (!removed) return textResult(`未找到待触发的提醒 ${reminderId}，可能已经触发或已被取消。`);
+
+    return textResult(`✅ 已取消提醒：${removed.prompt}`);
   },
 });
 
@@ -146,9 +120,9 @@ const listPendingGoalsTool = defineTool({
 export const heartbeatToolRegistry = createToolRegistry();
 
 const tools: ToolSnapshotItem[] = [
-  createPendingGoalTool,
-  resolvePendingGoalTool,
-  listPendingGoalsTool,
+  createReminderTool,
+  listRemindersTool,
+  cancelReminderTool,
 ];
 
 heartbeatToolRegistry.swap({ tools });

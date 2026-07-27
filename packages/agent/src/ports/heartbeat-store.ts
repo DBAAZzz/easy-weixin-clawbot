@@ -1,44 +1,27 @@
 /**
- * HeartbeatStore — agent-defined interface for pending goal persistence.
+ * HeartbeatStore — agent-defined interface for reminder persistence.
  *
  * Implemented by server (Prisma) and injected at startup.
  */
 
-import type {
-  GoalStatus,
-  PendingGoalRow,
-  CreateGoalInput,
-  UpdateGoalInput,
-} from "../capabilities/heartbeat/types.js";
+import type { ReminderRow, CreateReminderInput } from "../capabilities/heartbeat/types.js";
 import { createPortSlot } from "./slot.js";
 
 export interface HeartbeatStore {
-  // ── CRUD ──
-  createGoal(input: CreateGoalInput): Promise<PendingGoalRow>;
-  getByGoalId(goalId: string): Promise<PendingGoalRow | null>;
-  updateGoal(goalId: string, updates: UpdateGoalInput): Promise<void>;
+  createReminder(input: CreateReminderInput): Promise<ReminderRow>;
 
-  // ── Queries ──
-  findDueGoals(now: Date): Promise<PendingGoalRow[]>;
-  findByAccountAndStatus(
-    accountId: string,
-    conversationId: string,
-    status: GoalStatus,
-  ): Promise<PendingGoalRow[]>;
-  countActiveGoals(accountId: string): Promise<number>;
-  findSimilarGoal(
-    accountId: string,
-    conversationId: string,
-    description: string,
-  ): Promise<PendingGoalRow | null>;
-  listGoals(accountId: string, includeTerminal?: boolean): Promise<PendingGoalRow[]>;
+  /** Reminders due at or before `now`, earliest first. */
+  findDue(now: Date, limit: number): Promise<ReminderRow[]>;
 
-  // ── Events ──
-  markUserReplied(goalId: string, messageSeq: number): Promise<void>;
-  processResumeSignals(now: Date): Promise<number>;
+  /**
+   * Delete a reminder and return the deleted row, or null if it was already
+   * gone. Deletion is the claim: the tick uses it so only one worker runs a
+   * given reminder, and cancel_reminder uses it to drop one. Same operation.
+   */
+  claimById(reminderId: string): Promise<ReminderRow | null>;
 
-  // ── Lifecycle ──
-  abandonExpired(now: Date): Promise<number>;
+  /** Queued reminders for an account, earliest first. */
+  listByAccount(accountId: string): Promise<ReminderRow[]>;
 }
 
 export const { set: setHeartbeatStore, get: getHeartbeatStore } =

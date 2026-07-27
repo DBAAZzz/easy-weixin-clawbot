@@ -35,19 +35,6 @@ export const PROMPT_PROFILES: Record<PromptLane, PromptProfile> = {
   },
 
   /**
-   * Heartbeat Phase 1 — lightweight goal evaluation via reasonInternal().
-   * No skills or tools. Has tape memory and recent conversation context.
-   */
-  heartbeat_eval: {
-    lane: "heartbeat_eval",
-    systemPromptKey: "heartbeat-eval",
-    injectSkills: false,
-    injectTapeMemory: true,
-    injectTime: true,
-    injectRecentContext: true,
-  },
-
-  /**
    * Memory extraction — extracts structured facts from conversation turns.
    * Fully self-contained: manages its own existing-keys injection.
    * No external context injection.
@@ -76,14 +63,6 @@ export const PROMPT_PROFILES: Record<PromptLane, PromptProfile> = {
 };
 
 /**
- * Runtime-rendered templates that are not standalone prompt lanes.
- * These assets should not be mistaken for independent prompt profiles.
- */
-export const PROMPT_TEMPLATES = {
-  heartbeat_exec: "heartbeat-exec",
-} as const;
-
-/**
  * Startup validation rules for all bundled prompt assets.
  *
  * Any unresolved `{{var}}` left after startup must be explicitly allowed here,
@@ -97,14 +76,6 @@ export const PROMPT_ASSET_SPECS: readonly PromptAssetSpec[] = [
   {
     key: "vision-describe",
     allowedRuntimeVars: [],
-  },
-  {
-    key: "heartbeat-eval",
-    allowedRuntimeVars: [],
-  },
-  {
-    key: PROMPT_TEMPLATES.heartbeat_exec,
-    allowedRuntimeVars: ["goalId", "description", "context", "reason", "recentSection"],
   },
   {
     key: "memory-extract",

@@ -92,8 +92,7 @@ export interface ToolResultMessage {
 
 /** What caused a TriggerMessage. Persisted so history can be traced back. */
 export interface TriggerMeta {
-  kind: "reminder";
-  reminderId: string;
+  kind: "pulse";
 }
 
 /**

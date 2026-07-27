@@ -2,13 +2,16 @@ export {
   startHeartbeat,
   stopHeartbeat,
   runHeartbeatTick,
+  notePulseActivity,
 } from "./engine.js";
 
-export { heartbeatToolRegistry } from "./tool.js";
+export { parsePulseVerdict, applyPulseGuards } from "./evaluator.js";
 
-export type { ReminderRow, CreateReminderInput } from "./types.js";
+export type { PulseRow, PulseUpdate, PulseVerdict, PulseDecision } from "./types.js";
 export {
-  MAX_PENDING_PER_ACCOUNT,
-  MAX_FIRE_AHEAD_MS,
-  TICK_BATCH_SIZE,
+  PULSE_MIN_MINUTES,
+  PULSE_MAX_MINUTES,
+  PULSE_MAX_PER_DAY,
+  PULSE_MIN_GAP_MINUTES,
+  PULSE_TICK_BATCH_SIZE,
 } from "./types.js";

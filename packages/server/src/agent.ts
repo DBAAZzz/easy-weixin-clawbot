@@ -12,6 +12,7 @@ import {
   CommandRegistry,
   createHandoffAnchors,
   isLLMProviderNotConfiguredError,
+  notePulseActivity,
 } from "@clawbot/agent";
 import type { ChatMedia as AgentChatMedia, RunContext } from "@clawbot/agent";
 import { getPushService, getSchedulerStore } from "@clawbot/agent/ports";
@@ -323,6 +324,19 @@ export function createAgent(accountId: string): Agent {
               );
             });
           }
+
+          // Reset the proactive pulse: the user just spoke, so the agent has
+          // no reason to bubble up again soon.
+          void notePulseActivity(accountId, effectiveConvId).catch((err) => {
+            agentLogger.warn(
+              {
+                ...getErrorFields(err),
+                accountId,
+                conversationId: effectiveConvId,
+              },
+              "更新会话节拍失败",
+            );
+          });
 
           return withSpanSync(
             "message.send",

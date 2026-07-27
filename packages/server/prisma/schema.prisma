@@ -542,21 +542,29 @@ model ModelConfig {
 
 // ─── Heartbeat (Pending Goals) ────────────────────────────────────────
 
-/// A pending proactive reminder. The row's existence is its state — a fired
-/// reminder is deleted, so there is no status column.
-model Reminder {
-  id             BigInt   @id @default(autoincrement())
-  reminderId     String   @unique @default(dbgenerated("gen_random_uuid()")) @map("reminder_id") @db.Uuid
-  accountId      String   @map("account_id") @db.Text
-  /// Real conversation id — reminders run in the user's own session.
-  conversationId String   @map("conversation_id") @db.Text
-  prompt         String   @db.Text
-  fireAt         DateTime @map("fire_at") @db.Timestamptz(6)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+/// A conversation's proactive rhythm. Holds no instruction — only when the
+/// agent should next consider speaking, and how restrained it must be.
+/// Storing a prompt here would turn this into a scheduler.
+model ConversationPulse {
+  id             BigInt    @id @default(autoincrement())
+  accountId      String    @map("account_id") @db.Text
+  conversationId String    @map("conversation_id") @db.Text
 
-  @@index([fireAt], map: "idx_reminders_fire_at")
-  @@index([accountId], map: "idx_reminders_account")
-  @@map("reminders")
+  nextEvalAt     DateTime  @map("next_eval_at") @db.Timestamptz(6)
+  lastUserAt     DateTime? @map("last_user_at") @db.Timestamptz(6)
+  lastSpokeAt    DateTime? @map("last_spoke_at") @db.Timestamptz(6)
+  /// Consecutive evaluations that decided to stay quiet. Drives backoff.
+  quietStreak    Int       @default(0) @map("quiet_streak")
+  /// Local date (Asia/Shanghai, YYYY-MM-DD) that spokenToday refers to.
+  spokenDateKey  String?   @map("spoken_date_key") @db.Text
+  spokenToday    Int       @default(0) @map("spoken_today")
+
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([accountId, conversationId], map: "conversation_pulse_account_conv_key")
+  @@index([nextEvalAt], map: "idx_conversation_pulse_next_eval")
+  @@map("conversation_pulse")
 }
 
 // ─── Weixin Credential Management ─────────────────────────────────────

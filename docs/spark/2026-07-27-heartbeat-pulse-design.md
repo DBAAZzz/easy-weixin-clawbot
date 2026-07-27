@@ -1,6 +1,6 @@
 # Heartbeat 重构（第二版）：从 Reminder 提醒器到 Pulse 自省节拍
 
-> 状态：设计已确认，待实现
+> 状态：已实现（分支 `feat/heartbeat-reminder`）
 > 日期：2026-07-27
 > 取代：`2026-07-27-heartbeat-reminder-redesign-design.md`（第一版，已实现但方向错误，见 §2）
 > 影响范围：`packages/agent/src/capabilities/heartbeat/`、`packages/server`
@@ -87,8 +87,10 @@ model ConversationPulse {
   lastSpokeAt      DateTime? @map("last_spoke_at") @db.Timestamptz(6)
   /// Consecutive evaluations that decided to stay quiet. Drives backoff.
   quietStreak      Int       @default(0) @map("quiet_streak")
-  /// Date the daily counter refers to (Asia/Shanghai).
-  spokenDate       DateTime? @map("spoken_date") @db.Date
+  lastUserAt       DateTime? @map("last_user_at") @db.Timestamptz(6)
+  /// Local date key (Asia/Shanghai, YYYY-MM-DD) the daily counter refers to.
+  /// Stored as text, not @db.Date, to avoid UTC-midnight ambiguity.
+  spokenDateKey    String?   @map("spoken_date_key") @db.Text
   spokenToday      Int       @default(0) @map("spoken_today")
 
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)

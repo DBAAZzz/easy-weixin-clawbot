@@ -3,70 +3,76 @@
  */
 
 import type { HeartbeatStore } from "@clawbot/agent/ports";
-import type { ReminderRow, CreateReminderInput } from "@clawbot/agent";
+import type { PulseRow, PulseUpdate } from "@clawbot/agent";
 import { getPrisma } from "./prisma.js";
 
-interface PrismaReminder {
+interface PrismaPulse {
   id: bigint;
-  reminderId: string;
   accountId: string;
   conversationId: string;
-  prompt: string;
-  fireAt: Date;
-  createdAt: Date;
+  nextEvalAt: Date;
+  lastUserAt: Date | null;
+  lastSpokeAt: Date | null;
+  quietStreak: number;
+  spokenDateKey: string | null;
+  spokenToday: number;
 }
 
-function toReminderRow(row: PrismaReminder): ReminderRow {
+function toPulseRow(row: PrismaPulse): PulseRow {
   return {
     id: row.id,
-    reminderId: row.reminderId,
     accountId: row.accountId,
     conversationId: row.conversationId,
-    prompt: row.prompt,
-    fireAt: row.fireAt,
-    createdAt: row.createdAt,
+    nextEvalAt: row.nextEvalAt,
+    lastUserAt: row.lastUserAt,
+    lastSpokeAt: row.lastSpokeAt,
+    quietStreak: row.quietStreak,
+    spokenDateKey: row.spokenDateKey,
+    spokenToday: row.spokenToday,
   };
 }
 
 export class PrismaHeartbeatStore implements HeartbeatStore {
-  async createReminder(input: CreateReminderInput): Promise<ReminderRow> {
-    const row = await getPrisma().reminder.create({
-      data: {
-        accountId: input.accountId,
-        conversationId: input.conversationId,
-        prompt: input.prompt,
-        fireAt: input.fireAt,
-      },
+  async notePulseActivity(
+    accountId: string,
+    conversationId: string,
+    now: Date,
+    nextEvalAt: Date,
+  ): Promise<void> {
+    await getPrisma().conversationPulse.upsert({
+      where: { accountId_conversationId: { accountId, conversationId } },
+      create: { accountId, conversationId, nextEvalAt, lastUserAt: now },
+      update: { nextEvalAt, lastUserAt: now },
     });
-    return toReminderRow(row);
   }
 
-  async findDue(now: Date, limit: number): Promise<ReminderRow[]> {
-    const rows = await getPrisma().reminder.findMany({
-      where: { fireAt: { lte: now } },
-      orderBy: { fireAt: "asc" },
+  async findDuePulses(now: Date, limit: number): Promise<PulseRow[]> {
+    const rows = await getPrisma().conversationPulse.findMany({
+      where: { nextEvalAt: { lte: now } },
+      orderBy: { nextEvalAt: "asc" },
       take: limit,
     });
-    return rows.map(toReminderRow);
+    return rows.map(toPulseRow);
   }
 
-  async claimById(reminderId: string): Promise<ReminderRow | null> {
-    // DELETE ... RETURNING is atomic: whoever deletes the row owns it, so
-    // concurrent ticks (or a second process) cannot double-fire a reminder.
-    try {
-      const row = await getPrisma().reminder.delete({ where: { reminderId } });
-      return toReminderRow(row);
-    } catch {
-      // P2025 — already claimed or never existed.
-      return null;
-    }
-  }
-
-  async listByAccount(accountId: string): Promise<ReminderRow[]> {
-    const rows = await getPrisma().reminder.findMany({
-      where: { accountId },
-      orderBy: { fireAt: "asc" },
+  async claimForEval(id: bigint, expectedNextEvalAt: Date, deferTo: Date): Promise<boolean> {
+    const result = await getPrisma().conversationPulse.updateMany({
+      where: { id, nextEvalAt: expectedNextEvalAt },
+      data: { nextEvalAt: deferTo },
     });
-    return rows.map(toReminderRow);
+    return result.count === 1;
+  }
+
+  async applyVerdict(id: bigint, updates: PulseUpdate): Promise<void> {
+    await getPrisma().conversationPulse.update({
+      where: { id },
+      data: {
+        nextEvalAt: updates.nextEvalAt,
+        quietStreak: updates.quietStreak,
+        ...(updates.lastSpokeAt !== undefined && { lastSpokeAt: updates.lastSpokeAt }),
+        ...(updates.spokenDateKey !== undefined && { spokenDateKey: updates.spokenDateKey }),
+        ...(updates.spokenToday !== undefined && { spokenToday: updates.spokenToday }),
+      },
+    });
   }
 }

@@ -35,6 +35,20 @@ export const PROMPT_PROFILES: Record<PromptLane, PromptProfile> = {
   },
 
   /**
+   * Heartbeat pulse — decides whether the agent should speak unprompted.
+   * Memory and elapsed silence only; deliberately no raw conversation, which
+   * keeps the cost per evaluation flat.
+   */
+  pulse_eval: {
+    lane: "pulse_eval",
+    systemPromptKey: "pulse-eval",
+    injectSkills: false,
+    injectTapeMemory: true,
+    injectTime: true,
+    injectRecentContext: false,
+  },
+
+  /**
    * Memory extraction — extracts structured facts from conversation turns.
    * Fully self-contained: manages its own existing-keys injection.
    * No external context injection.
@@ -75,6 +89,10 @@ export const PROMPT_ASSET_SPECS: readonly PromptAssetSpec[] = [
   },
   {
     key: "vision-describe",
+    allowedRuntimeVars: [],
+  },
+  {
+    key: "pulse-eval",
     allowedRuntimeVars: [],
   },
   {

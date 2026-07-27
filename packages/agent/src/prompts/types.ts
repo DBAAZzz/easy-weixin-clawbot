@@ -6,6 +6,7 @@
 export type PromptLane =
   | "chat"
   | "vision_describe"
+  | "pulse_eval"
   | "memory_extract"
   | "conversation_title";
 

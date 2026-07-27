@@ -6,58 +6,71 @@ import { setChatExecutor } from "../../src/ports/chat-executor.js";
 import type { ChatExecutionRequest } from "../../src/ports/chat-executor.js";
 import { setPushService } from "../../src/ports/push-service.js";
 import type { PushOptions } from "../../src/ports/push-service.js";
-import type { ReminderRow } from "../../src/capabilities/heartbeat/types.js";
-import { runHeartbeatTick } from "../../src/capabilities/heartbeat/engine.js";
+import type {
+  PulseRow,
+  PulseUpdate,
+  PulseVerdict,
+} from "../../src/capabilities/heartbeat/types.js";
+import {
+  runHeartbeatTick,
+  notePulseActivity,
+} from "../../src/capabilities/heartbeat/engine.js";
+import { PULSE_MIN_MINUTES } from "../../src/capabilities/heartbeat/types.js";
 
-function makeReminder(overrides: Partial<ReminderRow> = {}): ReminderRow {
+const HOUR_MS = 3600_000;
+
+function makePulse(overrides: Partial<PulseRow> = {}): PulseRow {
   return {
     id: 1n,
-    reminderId: "11111111-1111-1111-1111-111111111111",
     accountId: "acc-1",
     conversationId: "conv-1",
-    prompt: "问问他面试结果",
-    fireAt: new Date("2026-07-28T01:00:00.000Z"),
-    createdAt: new Date("2026-07-27T00:00:00.000Z"),
+    nextEvalAt: new Date(Date.now() - 60_000),
+    lastUserAt: new Date(Date.now() - 6 * HOUR_MS),
+    lastSpokeAt: null,
+    quietStreak: 2,
+    spokenDateKey: null,
+    spokenToday: 0,
     ...overrides,
   };
 }
 
 interface Harness {
-  store: HeartbeatStore;
   chatCalls: ChatExecutionRequest[];
   pushCalls: Array<{ text: string; opts?: PushOptions }>;
-  claimAttempts: string[];
+  verdicts: Array<{ id: bigint; updates: PulseUpdate }>;
+  claims: bigint[];
+  activity: Array<{ accountId: string; conversationId: string; nextEvalAt: Date }>;
 }
 
 function install(options: {
-  due: ReminderRow[];
-  /** Reminders the store still holds; a claim removes one. */
+  due: PulseRow[];
   claimable?: Set<string>;
   chatResult?: { status: "completed" | "error"; text?: string; error?: string };
   pushThrows?: boolean;
 }): Harness {
-  const claimable =
-    options.claimable ?? new Set(options.due.map((reminder) => reminder.reminderId));
-  const byId = new Map(options.due.map((reminder) => [reminder.reminderId, reminder]));
+  const claimable = options.claimable ?? new Set(options.due.map((p) => p.id.toString()));
 
-  const chatCalls: ChatExecutionRequest[] = [];
-  const pushCalls: Array<{ text: string; opts?: PushOptions }> = [];
-  const claimAttempts: string[] = [];
+  const harness: Harness = {
+    chatCalls: [],
+    pushCalls: [],
+    verdicts: [],
+    claims: [],
+    activity: [],
+  };
 
   const store: HeartbeatStore = {
-    async createReminder() {
-      throw new Error("not used");
+    async notePulseActivity(accountId, conversationId, _now, nextEvalAt) {
+      harness.activity.push({ accountId, conversationId, nextEvalAt });
     },
-    async findDue() {
+    async findDuePulses() {
       return options.due;
     },
-    async claimById(reminderId) {
-      claimAttempts.push(reminderId);
-      if (!claimable.delete(reminderId)) return null;
-      return byId.get(reminderId) ?? null;
+    async claimForEval(id) {
+      harness.claims.push(id);
+      return claimable.delete(id.toString());
     },
-    async listByAccount() {
-      return [];
+    async applyVerdict(id, updates) {
+      harness.verdicts.push({ id, updates });
     },
   };
 
@@ -65,7 +78,7 @@ function install(options: {
 
   setChatExecutor({
     async execute(req) {
-      chatCalls.push(req);
+      harness.chatCalls.push(req);
       return options.chatResult ?? { status: "completed", text: "面试结果怎么样？" };
     },
   });
@@ -73,18 +86,47 @@ function install(options: {
   setPushService({
     async sendProactiveMessage(_accountId, _conversationId, text, opts) {
       if (options.pushThrows) throw new Error("push failed");
-      pushCalls.push({ text, opts });
+      harness.pushCalls.push({ text, opts });
     },
   });
 
-  return { store, chatCalls, pushCalls, claimAttempts };
+  return harness;
 }
 
-test("tick runs a due reminder in its real conversation as a trigger turn", async () => {
-  const harness = install({ due: [makeReminder()] });
+async function settle(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 20));
+}
 
-  await runHeartbeatTick();
-  await new Promise((resolve) => setImmediate(resolve));
+/** The real evaluator calls an LLM; tests hand the tick a stand-in instead. */
+function verdict(overrides: Partial<PulseVerdict> = {}): PulseVerdict {
+  return {
+    speak: true,
+    reason: "面试该有结果了",
+    prompt: "问问他面试结果",
+    nextEvalInMinutes: 120,
+    ...overrides,
+  };
+}
+
+const SPEAKS = async () => verdict();
+const STAYS_QUIET = async () => verdict({ speak: false, prompt: null, nextEvalInMinutes: 180 });
+
+test("a pulse the tick could not claim is not evaluated", async () => {
+  const harness = install({ due: [makePulse()], claimable: new Set() });
+
+  await runHeartbeatTick(SPEAKS);
+  await settle();
+
+  assert.deepEqual(harness.claims, [1n]);
+  assert.equal(harness.chatCalls.length, 0);
+  assert.equal(harness.verdicts.length, 0);
+});
+
+test("speaking runs chat in the real conversation as a pulse trigger", async () => {
+  const harness = install({ due: [makePulse()] });
+
+  await runHeartbeatTick(SPEAKS);
+  await settle();
 
   assert.equal(harness.chatCalls.length, 1);
   const [call] = harness.chatCalls;
@@ -92,96 +134,116 @@ test("tick runs a due reminder in its real conversation as a trigger turn", asyn
   assert.equal(call.prompt, "问问他面试结果");
   assert.equal(call.runKind, "heartbeat");
   assert.equal(call.inputRole, "trigger");
-  assert.deepEqual(call.triggerMeta, {
-    kind: "reminder",
-    reminderId: "11111111-1111-1111-1111-111111111111",
-  });
+  assert.deepEqual(call.triggerMeta, { kind: "pulse" });
 });
 
-test("tick pushes without recording history a second time", async () => {
-  const harness = install({ due: [makeReminder()] });
+test("speaking pushes without recording history a second time", async () => {
+  const harness = install({ due: [makePulse()] });
 
-  await runHeartbeatTick();
-  await new Promise((resolve) => setImmediate(resolve));
+  await runHeartbeatTick(SPEAKS);
+  await settle();
 
   assert.equal(harness.pushCalls.length, 1);
-  assert.equal(harness.pushCalls[0].text, "面试结果怎么样？");
   assert.equal(harness.pushCalls[0].opts?.recordHistory, false);
 });
 
-test("a reminder claimed elsewhere is not run twice", async () => {
-  const reminder = makeReminder();
-  const harness = install({ due: [reminder, reminder] });
+test("speaking resets the quiet streak and bumps the daily count", async () => {
+  const harness = install({ due: [makePulse({ quietStreak: 3 })] });
 
-  await runHeartbeatTick();
-  await new Promise((resolve) => setImmediate(resolve));
+  await runHeartbeatTick(SPEAKS);
+  await settle();
 
-  assert.equal(harness.claimAttempts.length, 2);
-  assert.equal(harness.chatCalls.length, 1, "only the winning claim runs the reminder");
-  assert.equal(harness.pushCalls.length, 1);
+  const [{ updates }] = harness.verdicts;
+  assert.equal(updates.quietStreak, 0);
+  assert.equal(updates.spokenToday, 1);
+  assert.ok(updates.lastSpokeAt);
 });
 
-test("a failed chat drops the reminder instead of retrying", async () => {
+test("staying quiet increments the streak and never pushes", async () => {
+  const harness = install({ due: [makePulse({ quietStreak: 2 })] });
+
+  await runHeartbeatTick(STAYS_QUIET);
+  await settle();
+
+  assert.equal(harness.chatCalls.length, 0);
+  assert.equal(harness.pushCalls.length, 0);
+  assert.equal(harness.verdicts[0].updates.quietStreak, 3);
+});
+
+test("a failed chat counts as staying quiet and is not retried", async () => {
   const harness = install({
-    due: [makeReminder()],
+    due: [makePulse({ quietStreak: 1 })],
     chatResult: { status: "error", error: "provider down" },
   });
 
-  await runHeartbeatTick();
-  await new Promise((resolve) => setImmediate(resolve));
+  await runHeartbeatTick(SPEAKS);
+  await settle();
 
   assert.equal(harness.chatCalls.length, 1);
   assert.equal(harness.pushCalls.length, 0);
-  assert.equal(await harness.store.claimById("11111111-1111-1111-1111-111111111111"), null);
+  assert.equal(harness.verdicts[0].updates.quietStreak, 2);
+  assert.equal(harness.verdicts[0].updates.lastSpokeAt, undefined);
 });
 
 test("an empty reply pushes nothing", async () => {
   const harness = install({
-    due: [makeReminder()],
+    due: [makePulse()],
     chatResult: { status: "completed", text: "   " },
   });
 
-  await runHeartbeatTick();
-  await new Promise((resolve) => setImmediate(resolve));
+  await runHeartbeatTick(SPEAKS);
+  await settle();
 
   assert.equal(harness.pushCalls.length, 0);
 });
 
 test("a failed push does not throw out of the tick", async () => {
-  const harness = install({ due: [makeReminder()], pushThrows: true });
+  const harness = install({ due: [makePulse()], pushThrows: true });
 
-  await runHeartbeatTick();
-  await new Promise((resolve) => setImmediate(resolve));
+  await runHeartbeatTick(SPEAKS);
+  await settle();
 
   assert.equal(harness.chatCalls.length, 1);
   assert.equal(harness.pushCalls.length, 0);
+  assert.equal(harness.verdicts.length, 1, "the pulse is still rescheduled");
 });
 
-test("reminders for one account run serially", async () => {
-  const due = [
-    makeReminder({ reminderId: "a", prompt: "第一条" }),
-    makeReminder({ reminderId: "b", prompt: "第二条" }),
-  ];
+test("pulses for one account are evaluated serially", async () => {
   const order: string[] = [];
+  const slowQuiet = async (pulse: PulseRow): Promise<PulseVerdict> => {
+    order.push(`start:${pulse.conversationId}`);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    order.push(`end:${pulse.conversationId}`);
+    return verdict({ speak: false, prompt: null });
+  };
 
-  install({ due });
-
-  setChatExecutor({
-    async execute(req) {
-      order.push(`start:${req.prompt}`);
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      order.push(`end:${req.prompt}`);
-      return { status: "completed", text: "ok" };
-    },
+  install({
+    due: [
+      makePulse({ id: 1n, conversationId: "conv-a" }),
+      makePulse({ id: 2n, conversationId: "conv-b" }),
+    ],
   });
 
-  await runHeartbeatTick();
-  await new Promise((resolve) => setTimeout(resolve, 60));
+  await runHeartbeatTick(slowQuiet);
+  await new Promise((resolve) => setTimeout(resolve, 80));
 
   assert.deepEqual(order, [
-    "start:第一条",
-    "end:第一条",
-    "start:第二条",
-    "end:第二条",
+    "start:conv-a",
+    "end:conv-a",
+    "start:conv-b",
+    "end:conv-b",
   ]);
+});
+
+test("notePulseActivity pushes the next evaluation out", async () => {
+  const harness = install({ due: [] });
+  const before = Date.now();
+
+  await notePulseActivity("acc-1", "conv-1");
+
+  assert.equal(harness.activity.length, 1);
+  const delayMinutes = Math.round(
+    (harness.activity[0].nextEvalAt.getTime() - before) / 60_000,
+  );
+  assert.equal(delayMinutes, PULSE_MIN_MINUTES);
 });

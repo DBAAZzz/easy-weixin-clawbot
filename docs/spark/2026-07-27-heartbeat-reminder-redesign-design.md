@@ -92,6 +92,8 @@ model Reminder {
         conversationId: row.conversationId,      // 真实会话
         prompt: row.prompt,
         runKind: "heartbeat",
+        persistInput: false,                     // 见 §5.2
+        trigger: { kind: "reminder", reminderId: row.reminderId, prompt: row.prompt },
       })
       if (result.status === "completed" && result.text?.trim()) {
         await push.sendProactiveMessage(
@@ -106,26 +108,72 @@ model Reminder {
 
 **删除 `inflight` Set**：抢占已由 `DELETE ... RETURNING` 在数据库层保证，内存去重是多余的。这顺带修复了旧实现「无租约、多实例重复执行」的缺陷。
 
-### 5.2 双写陷阱与 PushService 扩展
+### 5.2 主动消息的落库模型
 
-**问题**：`chat()` 在真实会话执行时会通过 `queuePersistMessage` 把 assistant 回复落库（`turn.ts:218`）；而 `sendProactiveMessage` 推送后又会调 `appendAssistantText` 再写一次（`proactive-push.ts:39`）。同一句话会在历史里出现两遍。
+在真实会话中执行主动消息，会同时撞上三个问题。它们必须一起解决，否则任何一个的单独修复都会引发另一个。
 
-scheduler 没踩到这个坑，是因为它跑在隔离会话——chat 写进 `scheduler:N`，push 写进真实会话，各写各的。本设计要在真实会话跑 chat，两条写入路径就会撞车。
+#### 问题一：assistant 消息双写
 
-**改法**：给 `PushService` 增加可选参数。
+`chat()` 在真实会话执行时通过 `queuePersistMessage` 把 assistant 回复落库（`turn.ts:218`）；而 `sendProactiveMessage` 推送后又调 `appendAssistantText` 再写一次（`proactive-push.ts:39`）。同一句话在历史里出现两遍。
+
+scheduler 没踩到，是因为它跑在隔离会话——chat 写进 `scheduler:N`，push 写进真实会话，各写各的。
+
+#### 问题二：伪造的 user 消息
+
+`chat()` 会把输入 text 构造成 **user 消息并持久化**（`turn.ts:380-386`）。若直接在真实会话跑 reminder 的 prompt，历史里会多出一条用户从未发过的消息（如「问问他面试结果怎么样」）。用户在 Web 后台看得到它，更严重的是 **LLM 在之后每一轮都会认为用户说过这话**。
+
+这是 scheduler 选择隔离会话的第三个理由——让这条假 user 消息落在用户看不见的地方。
+
+#### 问题三：连续 assistant 消息
+
+`agentToModelMessages`（`llm/messages.ts:168`）**只合并连续的 toolResult，对连续 assistant 不做任何处理**，直接透传给 provider。Anthropic 要求角色严格交替，会拒绝这样的消息数组。
+
+这是**现有代码里已存在的隐患**，不是本设计引入的：scheduler（`agent.ts:188`）和 RSS（`rss/task-service.ts:284`）通过 `appendAssistantText` 单方面追加 assistant 消息，真实会话历史会变成 `user → assistant → assistant(主动)`，再推一次就是三条。
+
+#### 解法（三处改动）
+
+**(1) `ChatExecutorPort` 增加 `persistInput` 与 `trigger`**
 
 ```ts
-interface PushService {
-  sendProactiveMessage(
-    accountId: string,
-    conversationId: string,
-    text: string,
-    opts?: { recordHistory?: boolean },   // 默认 true
-  ): Promise<void>;
+interface ChatExecutionRequest {
+  // ...现有字段
+  /** false 时输入 prompt 参与本次 LLM 调用，但不作为 user 消息落库。默认 true。 */
+  persistInput?: boolean;
+  /** 主动消息的触发来源，写入 assistant 消息的 payload。 */
+  trigger?: { kind: string; reminderId?: string; prompt?: string };
 }
 ```
 
-heartbeat 传 `{ recordHistory: false }`；scheduler（`agent.ts:188`）和 RSS（`rss/task-service.ts:284`）两个现有调用方不传，行为不变。
+`turn.ts:386` 的 `appendMessage` 按 `persistInput` 条件化——prompt 仍进入本轮 LLM 的消息数组（模型看得到指令），但不写入历史。解决问题二。
+
+**(2) 触发信息写入 assistant 消息的 payload**
+
+```jsonc
+{
+  "fragments": [...],
+  "trigger": { "kind": "reminder", "reminderId": "...", "prompt": "问问他面试结果", "firedAt": "2026-07-28T09:00:00+08:00" }
+}
+```
+
+`Message.payload` 是自由 JSONB（`schema.prisma:137`），无需 schema 变更。这保证 **session 记录是完整的**——看历史时能查出这条主动消息是被哪条提醒、什么 prompt 触发的，而不是凭空冒出一句话。Web 后台可据此在消息上打「主动」标记。
+
+选 payload 而非新增一条 `role: "system"` 的独立消息，是因为新 role 要贯穿 `agentToModelMessages`（跳过）、`restoreHistory`、`context-window` 裁剪、Web UI 渲染四处，改动面大得多；且线上库的 `messages.role` 可能残留早期 `supabase/schema.sql` 的 `CHECK (role IN ('user','assistant','toolResult'))` 约束（Prisma schema 未声明该约束，实际库需 `\d+ messages` 核实）。
+
+**(3) `agentToModelMessages` 合并相邻 assistant 消息**
+
+在 `llm/messages.ts:168` 增加合并分支：相邻 assistant 消息的 content 拼接为一条后再发给 provider。解决问题三。
+
+这是兜底修复，与 heartbeat 无关——**它同时修掉 scheduler 和 RSS 现有的隐患**，因此应作为独立 bugfix 提交（见 §11 第 0 步），不挂在本重构下。
+
+**PushService 保持不变**：既然 assistant 消息由 chat 落库，push 只需负责发到微信，不再重复写历史。给 `sendProactiveMessage` 加一个 `opts?: { recordHistory?: boolean }`，heartbeat 传 `false`，scheduler 与 RSS 两个现有调用方不传、行为不变。
+
+#### 最终历史形态
+
+```
+user(用户上次说的) → assistant(上次回复) → assistant(主动消息, payload.trigger 记录来源)
+                                              ↑ 无伪造 user 消息，来源可追溯
+                                              ↑ 发给 LLM 前由 (3) 合并为一条
+```
 
 ### 5.3 错误处理：一律不重试
 
@@ -255,10 +303,14 @@ interface HeartbeatStore {
 | 用例 | 断言 |
 |---|---|
 | tick 选取 | 只取 `fire_at <= now` 的行，未到期不取 |
-| 原子抢占 | 并发两次 tick 对同一行，`deleteAndClaim` 只成功一次，chat 只执行一次 |
+| 原子抢占 | 并发两次 tick 对同一行，`claimById` 只成功一次，chat 只执行一次 |
 | chat 失败 | 记 warn，不恢复行，不重试 |
-| **push 不重复写历史** | heartbeat 路径传 `recordHistory: false`；针对 §5.2 双写陷阱的回归测试 |
+| **push 不重复写历史** | heartbeat 路径传 `recordHistory: false`；针对 §5.2 问题一的回归测试 |
 | PushService 兼容 | scheduler / RSS 不传 opts 时仍写历史 |
+| **`persistInput: false`** | reminder 的 prompt 不落库为 user 消息，但仍出现在本轮发给 LLM 的消息数组里（§5.2 问题二） |
+| **trigger 元数据** | assistant 消息的 `payload.trigger` 含 `reminderId` / `prompt` / `firedAt`，可从历史反查触发来源 |
+| **相邻 assistant 合并** | 历史含连续 assistant 时，`agentToModelMessages` 输出合并为一条；三条及以上同样合并（§5.2 问题三） |
+| 合并不误伤 | `user → assistant → user → assistant` 不被合并；toolResult 分组逻辑不受影响 |
 | 每账号串行 | 同账号两条同时到期的提醒不并发执行 |
 | 工具校验 | `fire_at` 为过去时间 → 拒绝；超 7 天 → 拒绝；超配额 20 → 拒绝 |
 | 递归防护 | `runKind: "heartbeat"` 下调用 `create_reminder` 被拒 |
@@ -269,16 +321,20 @@ interface HeartbeatStore {
 2. **单条提醒可能丢失**。先删后执行意味着 chat 失败时提醒消失。这是对「宁可漏说、不可重复骚扰」的刻意选择。
 3. **主动推送依赖 `contextToken`**。`proactive-push.ts:19` 要求会话有缓存的 contextToken，微信侧从未聊过的联系人推不出去。提醒只能发生在已有对话的会话中。
 4. **`prisma:push` 移除后不可回退**。若日后出现无法用 migration 表达的场景，需重新引入。考虑到只有自用库，风险可控。
+5. **触发信息不是独立消息**。挂在 `payload.trigger` 上，看历史列表时需展开 payload 才看得到，不如独立一条直观。换来的是不碰 `agentToModelMessages` / `restoreHistory` / 上下文裁剪 / Web 渲染四条链路。
+6. **合并相邻 assistant 是有损的**。两条主动消息被合并成一条发给 LLM 后，模型无法区分它们是分两次说的。对上下文理解无实质影响，但如果日后需要「模型知道自己隔了多久说了第二次」，要改为在合并时插入时间标记。
 
 ## 11. 实施顺序
 
+0. **独立 bugfix，先行合并**：`agentToModelMessages` 合并相邻 assistant 消息（§5.2 问题三）。这是修复 scheduler / RSS 现有隐患，与本重构无依赖关系，应单独提交
 1. Prisma 基线：`0_init` + `migrate resolve --applied`（不改任何表结构，先确认基线正确）
 2. 改 `schema.prisma`（删 `PendingGoal`、加 `Reminder`）→ `migrate dev --name replace_goals_with_reminders`
 3. 改 `HeartbeatStore` port 接口 + server 侧实现
-4. 扩展 `PushService` 的 `recordHistory` 参数（先加参数保持默认行为，独立可验证）
-5. 重写 `engine.ts` tick
-6. 重写 `tool.ts` 三个工具
-7. 删除 evaluator / reason-internal / prompt 资产 / post-chat 钩子 / `getMessagesSince`
-8. 重写测试
-9. 更新 `package.json` 脚本、`Dockerfile`、`AGENTS.md`、部署文档；删除 `supabase/schema.sql`
-10. `pnpm -F @clawbot/agent exec tsc --noEmit` 与 `pnpm -F @clawbot/server exec tsc --noEmit` 通过
+4. 扩展 `ChatExecutorPort` 的 `persistInput` / `trigger` 参数，`turn.ts:386` 条件化落库，trigger 写入 assistant payload
+5. 扩展 `PushService` 的 `recordHistory` 参数（先加参数保持默认行为，独立可验证）
+6. 重写 `engine.ts` tick
+7. 重写 `tool.ts` 三个工具
+8. 删除 evaluator / reason-internal / prompt 资产 / post-chat 钩子 / `getMessagesSince`
+9. 重写测试
+10. 更新 `package.json` 脚本、`Dockerfile`、`AGENTS.md`、部署文档；删除 `supabase/schema.sql`
+11. `pnpm -F @clawbot/agent exec tsc --noEmit` 与 `pnpm -F @clawbot/server exec tsc --noEmit` 通过

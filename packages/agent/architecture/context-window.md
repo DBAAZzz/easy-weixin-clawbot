@@ -21,7 +21,7 @@ flowchart TD
     C --> D
 
     subgraph round["round 层 — AgentRunner.run() 每轮"]
-        D["assembleSystemPrompt()<br/>base + always-on 技能 + 技能索引"] --> E["buildPromptHistory()<br/>剥 tool 历史 / 图片降级"]
+        D["assembleSystemPrompt()<br/>base + always-on 技能 + 技能索引"] --> E["buildPromptHistory()<br/>叙述化 tool 历史 / 图片降级"]
         E --> F["fitToContextWindow()<br/>Level 0/1/2 裁剪"]
         F --> G["callModel()"]
         G -->|"stopReason = tool_use"| H["并行执行 tool calls<br/>结果 append 回 workingHistory"]
@@ -44,7 +44,7 @@ flowchart TD
 - `src/engine/system-prompt.ts:11` — `assembleSystemPrompt()`
 - `src/prompts/assembler.ts:90` — `assembleUserContext()`
 - `src/prompts/profiles.ts:15` — `PROMPT_PROFILES.chat` 声明该 lane 允许注入哪些 context（`injectSkills` / `injectTapeMemory` / `injectTime`）
-- `src/engine/runner.ts:439-456` — tools schema 序列化与固定开销估算
+- `src/engine/runner.ts:444-461` — tools schema 序列化与固定开销估算
 
 ### 为什么记忆放在 user message 而不是 system prompt
 
@@ -64,6 +64,25 @@ budget = meta.contextWindow − meta.maxOutputTokens − (systemPrompt tokens + 
 
 元数据是**每模型**而非每 provider 的：同一家的窗口能从 8k（小米的 TTS 模型）跨到 1M（mimo-v2.5），provider 平均值对它覆盖的绝大多数模型都是错的，而且错得不对称——猜大了是 provider 400，猜小了是静默过度裁剪。
 
+### 模型目录怎么来、怎么维护
+
+```
+models.dev/api.json
+   ↓ scripts/generate-models.ts        pnpm -F @clawbot/agent generate:models
+src/llm/data/<provider>.json           13 个 provider / 426 个模型，提交进仓库
+   + data/.manifest.json               structureHash + 各文件 sha256
+   ↓ src/llm/models.generated.ts       JSON import 聚合
+resolveModelMeta()
+```
+
+几条约束：
+
+- **只在构建期取数**，运行时零网络请求。目录是提交物，`tsc` 会把 JSON 一并输出到 `dist/llm/data/`。
+- **生成是原子的**：先写进 staging 目录并校验，通过后才替换旧目录，失败回滚。中途失败不会留下半份目录。
+- **产物不可手改**：`pnpm -F @clawbot/agent check:models` 校验 manifest 的 structureHash 和每个文件的 sha256，手动改数值会被发现。要改值就改 `model-overrides.ts`（运行时叠加，不进 JSON，这样重新生成时 diff 只反映上游变化）。
+- **`check:models` 不校验新鲜度**。models.dev 一发新模型就让 CI 变红，那不是本仓的缺陷。目录过期靠人工重跑。
+- `requiresReasonedToolHistory` 由**生成期规则**派生（`PROVIDER_QUIRKS`：deepseek 且 `reasoning === true`），不是运行时按 provider 查表。它是端点属性却只适用于该 provider 的部分模型，运行时按 provider 查会过度应用——`deepseek-chat` 不是思考模型，早期就是这么被误标的。
+
 ### Token 计数是启发式，不是 tokenizer
 
 `src/llm/token-estimator.ts` 不引入任何 tokenizer 依赖：
@@ -77,7 +96,7 @@ budget = meta.contextWindow − meta.maxOutputTokens − (systemPrompt tokens + 
 
 ## 四、裁剪前的预处理
 
-`buildPromptHistory()`（`src/engine/runner.ts:247`）在裁剪前按模型能力改写历史，两步都返回副本：
+`buildPromptHistory()`（`src/engine/runner.ts:252`）在裁剪前按模型能力改写历史，两步都返回副本：
 
 1. `requiresReasonedToolHistory` 的模型（DeepSeek thinking 系）→ `narrateUnreasonedToolCalls()` 把缺少 reasoning 的 tool 往返压成叙述文本。
 2. 不支持视觉的模型 → `replaceImagesWithTextPlaceholders()` 把图片换成文本占位。
@@ -137,7 +156,7 @@ DeepSeek thinking 模式拒收"有 tool call 但没有 reasoning_content"的历�
 | Tape 压缩触发 | 增量 entry ≥ 200 折叠为 checkpoint 快照 | `compactIfNeeded()` |
 | checkpoint 快照决策上限 | 50 | `CHECKPOINT_DECISION_LIMIT` |
 | `/reset` handoff 携带决策 | 20 | `HANDOFF_DECISION_LIMIT` |
-| tool-use 循环轮数 | `maxRounds` 默认 10，超出返回 `max_rounds` 并降级回复 | `src/engine/runner.ts:423` |
+| tool-use 循环轮数 | `maxRounds` 默认 10，超出返回 `max_rounds` 并降级回复 | `src/engine/runner.ts:428` |
 | 会话历史内存缓存 | 500 个会话，LRU 淘汰 | `src/engine/conversation/cache.ts:45` |
 
 记忆预算被打满时会追加一句"（记忆超出预算，已省略 N 条较早内容）"——不加这句，模型会把"没提到"读成"不存在"，然后带着错误的自信作答。
@@ -146,7 +165,7 @@ Tape 压缩时 facts / preferences 故意**不**截断：它们的源 entry 会�
 
 ## 七、可观测性
 
-每轮裁剪都上报（`recordTrimMetrics()`，`src/engine/runner.ts:259`）：
+每轮裁剪都上报（`recordTrimMetrics()`，`src/engine/runner.ts:264`）：
 
 - `contextTrimTotal{trim_level}` — 各级裁剪触发次数
 - `contextTokensOriginal` / `contextTokensTrimmed` — 裁剪前后 token 分布

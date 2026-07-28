@@ -1,6 +1,6 @@
 # AGENTS.md — @clawbot/agent
 
-> AI 核心引擎：LLM 循环、工具调用、技能注入、MCP 集成、Tape 记忆、定时任务、Heartbeat。
+> AI 核心引擎：LLM 循环、工具调用、技能注入、MCP 集成、Tape 记忆、定时任务、主动提醒。
 
 ## 角色定位
 
@@ -34,7 +34,7 @@ src/
 │   ├── skills/                 # 技能 Registry + Compiler + Loader + Installer + ConversationSkillRuntime
 │   ├── mcp/                    # MCP stdio 客户端 + 工具适配
 │   ├── scheduler/              # Cron 任务管理，通过 ChatExecutorPort 执行任务，不直接依赖 engine
-│   └── heartbeat/              # 异步目标检查（Phase1 评估 + Phase2 通过 ChatExecutorPort 执行）
+│   └── heartbeat/              # 主动节拍：定期自省该不该开口，决定与措辞都在那一刻产生
 │
 ├── memory/                     L3 Tape 记忆：fold reducer + LLM 提取 + 压缩（原 tape/）
 │
@@ -105,7 +105,7 @@ Port 定义在 `ports/`，由 `server` 包在启动时注入实现：
 | `PushService` | 主动推送消息（微信） |
 | `SchedulerStore` | 定时任务 + 运行记录 CRUD |
 | `ModelConfigStore` | LLM Provider 模板 + 作用域配置 |
-| `HeartbeatStore` | 异步目标 CRUD + 状态机 |
+| `HeartbeatStore` | 会话节拍的活动登记 / 查到期 / 乐观抢占 / 写回裁决 |
 | `ChatExecutorPort` | 在 `capabilities/`（scheduler、heartbeat）内发起一次完整 `chat()`，由 `server` 提供加锁实现；取代了原来 scheduler 专属的、直接 import `engine/chat.ts` 的反向依赖 |
 
 **添加新外部依赖时**，必须定义 Port 接口，在 `server` 侧实现。
@@ -133,12 +133,22 @@ entries = extract(对话历史) via LLM  →  facts | preferences | decisions
 
 分支策略：`__global__`（跨会话持久）、`{conversationId}`（会话临时）
 
-### Heartbeat 两阶段
+### Heartbeat（主动节拍）
 
 ```
-Phase1: 找到到期目标 → LLM 评估 → Verdict {act|wait|resolve|abandon}
-Phase2: verdict == act → 通过 ChatExecutorPort 执行 chat()
+每 60s: findDuePulses() → claimForEval() 乐观抢占 → evaluatePulse() 问「此刻该开口吗」
+      → applyPulseGuards() 施加硬约束 → 开口则 ChatExecutorPort 在真实会话跑 chat()
+      → PushService 推送（recordHistory: false，chat 已落库）→ applyVerdict() 写回节拍
 ```
+
+**与 scheduler 的区别是结构性的，不是参数上的**：scheduler 有「任务」这个对象，执行什么、何时执行在登记时确定；heartbeat 没有任何对象。`conversation_pulse` 表**没有 prompt 字段**——它不存指令，只存节奏。往里加一个 prompt 字段就等于把它变回 scheduler。
+
+- 求值输入只有 Tape 记忆与沉默时长，**不读原始对话**，成本每次恒定
+- 说什么、要不要说、下次何时再想，全在求值那一刻决定
+- 克制规则（静默时段、每日上限、最小间隔、退避）在 `applyPulseGuards` 里代码强制，模型只提建议
+- `quietStreak` 驱动 `30 × 2^n` 分钟的指数退避下限，冷会话自然衰减到每天一次
+- 开口的 prompt 以 `trigger` role 落库（`inputRole: "trigger"`），发给模型时转成带 `[系统触发·提醒]` 前缀的 user 轮次
+- 一律不重试：chat 失败按未开口处理
 
 ### 允许的进程级单例
 
@@ -148,7 +158,7 @@ Phase2: verdict == act → 通过 ChatExecutorPort 执行 chat()
 |---|---|---|
 | `llm/model-resolver.ts` | 配置读缓存 | 纯读缓存 + 显式 `invalidateModelCache()`，无跨账号污染风险 |
 | `memory/queue.ts` | tape 写队列 | 进程级异步写队列 |
-| `capabilities/heartbeat/engine.ts` | tick 定时器 / inflight / accountQueues | 进程级轮询器 |
+| `capabilities/heartbeat/engine.ts` | tick 定时器 / accountQueues | 进程级轮询器 |
 | `capabilities/scheduler/manager.ts` | cron job 表 | 进程级 cron 注册表 |
 
 单进程假设写清楚比消除假设便宜两个数量级——不要为了"更纯粹"去重构这四处。

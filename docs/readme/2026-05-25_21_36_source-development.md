@@ -22,10 +22,10 @@ pnpm install
   本地源码开发时，数据库只支持 `DATABASE_URL` 和 `DIRECT_URL`
 - `.env` 里的后台登录配置：`AUTH_USERNAME`、`AUTH_PASSWORD`、`AUTH_JWT_SECRET`
 
-同步数据库 schema：
+初始化 / 升级数据库 schema：
 
 ```bash
-pnpm -F @clawbot/server prisma:push
+pnpm -F @clawbot/server prisma:migrate:deploy
 ```
 
 ## 常用命令

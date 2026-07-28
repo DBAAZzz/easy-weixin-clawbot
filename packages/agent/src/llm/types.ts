@@ -90,7 +90,28 @@ export interface ToolResultMessage {
   timestamp: number;
 }
 
-export type AgentMessage = UserMessage | AssistantMessage | ToolResultMessage;
+/** What caused a TriggerMessage. Persisted so history can be traced back. */
+export interface TriggerMeta {
+  kind: "pulse";
+}
+
+/**
+ * A system-originated turn that made the agent speak without the user saying
+ * anything. Persisted as its own message so the session record shows the
+ * cause, and converted to a marked user turn before reaching the model.
+ */
+export interface TriggerMessage {
+  role: typeof MESSAGE_ROLE.TRIGGER;
+  content: TextContent[];
+  timestamp: number;
+  meta: TriggerMeta;
+}
+
+export type AgentMessage =
+  | UserMessage
+  | AssistantMessage
+  | ToolResultMessage
+  | TriggerMessage;
 
 // ── Model metadata (sidecar for LanguageModel) ─────────────────────
 

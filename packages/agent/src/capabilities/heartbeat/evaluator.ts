@@ -1,315 +1,241 @@
 /**
- * Heartbeat Evaluator — two-phase goal evaluation.
+ * Pulse evaluator — decides, at this moment, whether the agent should speak.
  *
- * Phase 1: reasonInternal() → lightweight structured verdict (act/wait/resolve/abandon)
- * Phase 2: ChatExecutorPort → full chat() in the original conversation (only on verdict=act)
+ * The model only advises. Every restraint rule (quiet hours, daily cap,
+ * minimum gap, backoff) is enforced here in code, because a model that talks
+ * itself into speaking is exactly the failure mode being guarded against.
  */
 
-import { reasonInternal } from "./reason-internal.js";
-import { MESSAGE_ROLE } from "@clawbot/shared";
-import { getHeartbeatStore } from "../../ports/heartbeat-store.js";
-import { getChatExecutor } from "../../ports/chat-executor.js";
-import { getMessageStore } from "../../ports/message-store.js";
-import {
-  type GoalTransition,
-  type PendingGoalRow,
-  type Verdict,
-  LIMITS,
-  nextBackoff,
-} from "./types.js";
+import { generateText } from "ai";
+import { createLogger } from "@clawbot/observability";
+import { resolveModel } from "../../llm/model-resolver.js";
+import { recall, emptyState, formatMemoryForPrompt, GLOBAL_BRANCH } from "../../memory/index.js";
+import { assembleUserContext } from "../../prompts/assembler.js";
 import { getPromptAssets } from "../../prompts/port.js";
-import { renderTemplate } from "../../prompts/assembler.js";
-import { PROMPT_PROFILES, PROMPT_TEMPLATES } from "../../prompts/profiles.js";
+import { PROMPT_PROFILES } from "../../prompts/profiles.js";
 import { extractJsonBlock } from "../../shared/utils/json.js";
+import {
+  type PulseRow,
+  type PulseVerdict,
+  type PulseDecision,
+  PULSE_TIMEZONE,
+  PULSE_MIN_MINUTES,
+  PULSE_MAX_MINUTES,
+  PULSE_QUIET_START_HOUR,
+  PULSE_QUIET_END_HOUR,
+  PULSE_MAX_PER_DAY,
+  PULSE_MIN_GAP_MINUTES,
+  PULSE_MAX_BACKOFF_STEPS,
+  PULSE_PARSE_FAILURE_MINUTES,
+} from "./types.js";
 
-type TokenUpdates = Pick<PendingGoalRow, "totalInputTokens" | "totalOutputTokens">;
+const logger = createLogger({ component: "heartbeat.evaluator" });
+
+const MINUTE_MS = 60_000;
+
+// ── Local-time helpers ─────────────────────────────────────────────
+
+const HOUR_MINUTE_FORMAT = new Intl.DateTimeFormat("en-GB", {
+  timeZone: PULSE_TIMEZONE,
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+const DATE_KEY_FORMAT = new Intl.DateTimeFormat("en-CA", {
+  timeZone: PULSE_TIMEZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/** Minutes elapsed since local midnight in PULSE_TIMEZONE. */
+function localMinuteOfDay(date: Date): number {
+  const [hour, minute] = HOUR_MINUTE_FORMAT.format(date).split(":").map(Number);
+  return hour * 60 + minute;
+}
+
+/** YYYY-MM-DD in PULSE_TIMEZONE. */
+export function localDateKey(date: Date): string {
+  return DATE_KEY_FORMAT.format(date);
+}
+
+export function isQuietHour(date: Date): boolean {
+  const hour = Math.floor(localMinuteOfDay(date) / 60);
+  return hour >= PULSE_QUIET_START_HOUR || hour < PULSE_QUIET_END_HOUR;
+}
+
+/** Minutes from `date` until the quiet window ends. */
+function minutesUntilQuietEnd(date: Date): number {
+  const current = localMinuteOfDay(date);
+  const target = PULSE_QUIET_END_HOUR * 60;
+  return current < target ? target - current : 24 * 60 - current + target;
+}
 
 // ── Verdict parsing ────────────────────────────────────────────────
 
-const VALID_VERDICTS = new Set<Verdict>(["act", "wait", "resolve", "abandon"]);
-
-function isValidVerdict(v: unknown): v is Verdict {
-  return typeof v === "string" && VALID_VERDICTS.has(v as Verdict);
+function quietVerdict(reason: string, minutes: number): PulseVerdict {
+  return { speak: false, reason, prompt: null, nextEvalInMinutes: minutes };
 }
 
-export function parseEvalResult(text: string): { verdict: Verdict; reason: string } {
-  // 1. Try direct JSON.parse
+function readVerdict(raw: unknown): PulseVerdict | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const value = raw as Record<string, unknown>;
+
+  if (typeof value.speak !== "boolean") return null;
+
+  const minutes = Number(value.next_eval_in_minutes);
+  const prompt = typeof value.prompt === "string" && value.prompt.trim() ? value.prompt.trim() : null;
+
+  return {
+    speak: value.speak,
+    reason: typeof value.reason === "string" ? value.reason : "",
+    prompt,
+    nextEvalInMinutes: Number.isFinite(minutes) ? minutes : PULSE_PARSE_FAILURE_MINUTES,
+  };
+}
+
+/**
+ * Parse the evaluator's output. Anything unparseable degrades to staying
+ * quiet — never to speaking, which would let a malformed response reach a user.
+ */
+export function parsePulseVerdict(text: string): PulseVerdict {
   try {
-    const parsed = JSON.parse(text.trim());
-    if (isValidVerdict(parsed.verdict)) return parsed;
+    const parsed = readVerdict(JSON.parse(text.trim()));
+    if (parsed) return parsed;
   } catch {}
 
-  // 2. Try extracting a JSON block (markdown fence or brace span)
-  const jsonBlock = extractJsonBlock(text);
-  if (jsonBlock) {
+  const block = extractJsonBlock(text);
+  if (block) {
     try {
-      const parsed = JSON.parse(jsonBlock);
-      if (isValidVerdict(parsed.verdict)) return parsed;
+      const parsed = readVerdict(JSON.parse(block));
+      if (parsed) return parsed;
     } catch {}
   }
 
-  // 3. Keyword fallback (logged, not silent)
-  if (/完成|达成|resolved/i.test(text)) return { verdict: "resolve", reason: "keyword match" };
-  if (/放弃|没有意义|abandon/i.test(text)) return { verdict: "abandon", reason: "keyword match" };
-  if (/执行|行动|需要|act/i.test(text)) return { verdict: "act", reason: "keyword match" };
-
-  // 4. Default wait + warning
-  console.warn(`[heartbeat] eval parse failed, defaulting to wait. raw: ${text.slice(0, 200)}`);
-  return { verdict: "wait", reason: "parse_failed" };
+  logger.warn("verdict parse failed, staying quiet", { raw: text.slice(0, 200) });
+  return quietVerdict("parse_failed", PULSE_PARSE_FAILURE_MINUTES);
 }
 
-// ── Recent context reader ──────────────────────────────────────────
+// ── Hard constraints ───────────────────────────────────────────────
 
-async function getRecentContextSince(
-  accountId: string,
-  conversationId: string,
-  sinceSeq: number,
-  maxMessages = 10,
-): Promise<string> {
-  const messageStore = getMessageStore();
-  const recent = await messageStore.getMessagesSince(accountId, conversationId, sinceSeq, maxMessages);
+/** True when the agent spoke last and the user never answered. */
+function isUnanswered(pulse: PulseRow): boolean {
+  if (!pulse.lastSpokeAt) return false;
+  return !pulse.lastUserAt || pulse.lastUserAt < pulse.lastSpokeAt;
+}
 
-  if (recent.length === 0) return "";
+/**
+ * Minimum delay before the next evaluation. Grows exponentially with the
+ * quiet streak so a conversation with nothing to say decays to roughly one
+ * check a day on its own, and doubles again when the user is ignoring us.
+ */
+function backoffFloorMinutes(pulse: PulseRow): number {
+  const steps = Math.min(2 ** pulse.quietStreak, PULSE_MAX_BACKOFF_STEPS);
+  const floor = PULSE_MIN_MINUTES * steps * (isUnanswered(pulse) ? 2 : 1);
+  return Math.min(floor, PULSE_MAX_MINUTES);
+}
 
-  return recent
-    .map((msg) => {
-      if (msg.role === MESSAGE_ROLE.USER) return `用户: ${msg.textContent}`;
-      if (msg.role === MESSAGE_ROLE.ASSISTANT) return `助手: ${msg.textContent}`;
-      return "";
-    })
+function spokenToday(pulse: PulseRow, now: Date): number {
+  return pulse.spokenDateKey === localDateKey(now) ? pulse.spokenToday : 0;
+}
+
+/**
+ * Turn an advisory verdict into a final decision, enforcing every restraint
+ * rule. A blocked verdict still reschedules — the pulse must keep beating.
+ */
+export function applyPulseGuards(
+  pulse: PulseRow,
+  verdict: PulseVerdict,
+  now: Date,
+): PulseDecision {
+  const floor = backoffFloorMinutes(pulse);
+  const requested = Math.round(verdict.nextEvalInMinutes);
+  const minutes = Math.min(Math.max(requested, floor), PULSE_MAX_MINUTES);
+
+  const defer = (blockedBy?: string): PulseDecision => ({
+    speak: false,
+    prompt: null,
+    nextEvalAt: new Date(now.getTime() + minutes * MINUTE_MS),
+    ...(blockedBy ? { blockedBy } : {}),
+  });
+
+  if (!verdict.speak) return defer();
+  if (!verdict.prompt) return defer("missing_prompt");
+
+  if (isQuietHour(now)) {
+    // Hold the thought until people are awake rather than dropping it.
+    return {
+      speak: false,
+      prompt: null,
+      nextEvalAt: new Date(now.getTime() + minutesUntilQuietEnd(now) * MINUTE_MS),
+      blockedBy: "quiet_hours",
+    };
+  }
+
+  if (spokenToday(pulse, now) >= PULSE_MAX_PER_DAY) return defer("daily_cap");
+
+  if (
+    pulse.lastSpokeAt &&
+    now.getTime() - pulse.lastSpokeAt.getTime() < PULSE_MIN_GAP_MINUTES * MINUTE_MS
+  ) {
+    return defer("min_gap");
+  }
+
+  return {
+    speak: true,
+    prompt: verdict.prompt,
+    nextEvalAt: new Date(now.getTime() + minutes * MINUTE_MS),
+  };
+}
+
+// ── Evaluation ─────────────────────────────────────────────────────
+
+function describeElapsed(from: Date | null, now: Date): string {
+  if (!from) return "从未";
+  const minutes = Math.max(0, Math.round((now.getTime() - from.getTime()) / MINUTE_MS));
+  if (minutes < 60) return `${minutes} 分钟`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours} 小时`;
+  return `${Math.round(hours / 24)} 天`;
+}
+
+export function buildPulseStateText(pulse: PulseRow, now: Date): string {
+  return [
+    "## 当前状态",
+    `- 距他上次说话: ${describeElapsed(pulse.lastUserAt, now)}`,
+    `- 距你上次主动开口: ${describeElapsed(pulse.lastSpokeAt, now)}`,
+    `- 连续判定无话可说: ${pulse.quietStreak} 次`,
+    `- 今日已主动开口: ${spokenToday(pulse, now)} 次（上限 ${PULSE_MAX_PER_DAY}）`,
+    pulse.lastSpokeAt && isUnanswered(pulse) ? "- 你上次主动开口后他没有回应" : "",
+    "",
+    "现在要主动找他说话吗？",
+  ]
     .filter(Boolean)
     .join("\n");
 }
 
-// ── Phase 1: lightweight evaluation ────────────────────────────────
+/** Ask the model whether to speak. Side-effect free: nothing is persisted. */
+export async function evaluatePulse(pulse: PulseRow, now: Date): Promise<PulseVerdict> {
+  const profile = PROMPT_PROFILES.pulse_eval;
+  const model = await resolveModel(pulse.accountId, pulse.conversationId, "chat");
 
-async function phase1Evaluate(
-  goal: PendingGoalRow,
-  recentContext: string,
-): Promise<{ verdict: Verdict; reason: string; usage: { input: number; output: number } }> {
-  const assets = getPromptAssets();
-  const evalProfile = PROMPT_PROFILES.heartbeat_eval;
-  const systemPrompt = assets.get(evalProfile.systemPromptKey);
+  const [sessionMemory, globalMemory] = await Promise.all([
+    recall(pulse.accountId, pulse.conversationId).catch(() => emptyState()),
+    recall(pulse.accountId, GLOBAL_BRANCH).catch(() => emptyState()),
+  ]);
 
-  const userPrompt = `## 目标
-${goal.description}
-
-## 上下文
-${goal.context}
-
-## 当前状态
-- 来源: ${goal.originType}
-- 已检查 ${goal.checkCount} 次（上限 ${goal.maxChecks}）
-- 上次检查结果: ${goal.lastCheckResult ?? "无"}
-- 创建时间: ${goal.createdAt.toISOString()}
-${goal.resumeSignal ? `- 恢复信号: ${goal.resumeSignal}` : ""}
-
-请判断此目标现在是否需要采取行动。`;
-
-  const result = await reasonInternal({
-    accountId: goal.accountId,
-    sourceConversationId: goal.sourceConversationId,
-    systemPrompt,
-    userPrompt,
-    recentContext: recentContext || undefined,
-    profile: evalProfile,
+  const assembled = assembleUserContext(profile, {
+    tapeMemory: formatMemoryForPrompt(globalMemory, sessionMemory) || undefined,
+    time: now,
+    userText: buildPulseStateText(pulse, now),
   });
 
-  const { verdict, reason } = parseEvalResult(result.text);
-  return { verdict, reason, usage: result.usage };
-}
+  const result = await generateText({
+    model: model.model,
+    system: getPromptAssets().get(profile.systemPromptKey),
+    messages: [{ role: "user", content: assembled }],
+  });
 
-// ── Transition builders ────────────────────────────────────────────
-
-function tokenUpdatesFrom(
-  goal: PendingGoalRow,
-  usage: { input: number; output: number },
-): TokenUpdates {
-  return {
-    totalInputTokens: goal.totalInputTokens + usage.input,
-    totalOutputTokens: goal.totalOutputTokens + usage.output,
-  };
-}
-
-export function pendingWithBackoff(
-  goal: PendingGoalRow,
-  now: Date,
-  lastCheckResult: string,
-  tokenUpdates?: TokenUpdates,
-): GoalTransition {
-  const backoffMs = nextBackoff(goal.backoffMs);
-  return {
-    goalId: goal.goalId,
-    newStatus: "pending",
-    updates: {
-      status: "pending",
-      lastCheckAt: now,
-      lastCheckResult,
-      checkCount: goal.checkCount + 1,
-      backoffMs,
-      nextCheckAt: new Date(now.getTime() + backoffMs),
-      resumeSignal: null,
-      ...(tokenUpdates ?? {}),
-    },
-  };
-}
-
-function resolved(
-  goal: PendingGoalRow,
-  now: Date,
-  reason: string,
-  tokenUpdates: TokenUpdates,
-): GoalTransition {
-  return {
-    goalId: goal.goalId,
-    newStatus: "resolved",
-    updates: {
-      status: "resolved",
-      lastCheckAt: now,
-      lastCheckResult: reason,
-      resolution: reason,
-      checkCount: goal.checkCount + 1,
-      resumeSignal: null,
-      ...tokenUpdates,
-    },
-    requestPush: {
-      accountId: goal.accountId,
-      conversationId: goal.sourceConversationId,
-      text: `✅ 待办完成：${goal.description}\n\n${reason}`,
-    },
-  };
-}
-
-function abandoned(
-  goal: PendingGoalRow,
-  now: Date,
-  lastCheckResult: string,
-  tokenUpdates?: TokenUpdates,
-  resolution = `abandoned: ${lastCheckResult}`,
-): GoalTransition {
-  return {
-    goalId: goal.goalId,
-    newStatus: "abandoned",
-    updates: {
-      status: "abandoned",
-      lastCheckAt: now,
-      lastCheckResult,
-      resolution,
-      checkCount: goal.checkCount + 1,
-      resumeSignal: null,
-      ...(tokenUpdates ?? {}),
-    },
-  };
-}
-
-function waitingUser(
-  goal: PendingGoalRow,
-  now: Date,
-  resultText: string,
-  tokenUpdates: TokenUpdates,
-): GoalTransition {
-  return {
-    goalId: goal.goalId,
-    newStatus: "waiting_user",
-    updates: {
-      status: "waiting_user",
-      lastCheckAt: now,
-      lastCheckResult: resultText.slice(0, 500),
-      checkCount: goal.checkCount + 1,
-      resumeSignal: null,
-      ...tokenUpdates,
-    },
-  };
-}
-
-// ── Core evaluator ─────────────────────────────────────────────────
-
-export async function evaluateGoal(goal: PendingGoalRow): Promise<GoalTransition> {
-  const store = getHeartbeatStore();
-  const now = new Date();
-
-  // Mark as checking
-  await store.updateGoal(goal.goalId, { status: "checking" });
-
-  try {
-    // Token budget check
-    const totalTokens = goal.totalInputTokens + goal.totalOutputTokens;
-    if (totalTokens > LIMITS.maxTokensPerGoal) {
-      return abandoned(
-        goal,
-        now,
-        "token budget exceeded",
-        undefined,
-        `abandoned: token budget exceeded (${totalTokens} tokens used)`,
-      );
-    }
-
-    // Read incremental context from source conversation
-    const recentContext = goal.latestSourceMessageSeq
-      ? await getRecentContextSince(
-          goal.accountId,
-          goal.sourceConversationId,
-          goal.latestSourceMessageSeq,
-        ).catch(() => "")
-      : "";
-
-    // ── Phase 1: lightweight evaluation ──
-    const { verdict, reason, usage } = await phase1Evaluate(goal, recentContext);
-
-    const tokenUpdates = tokenUpdatesFrom(goal, usage);
-
-    if (verdict === "resolve") {
-      return resolved(goal, now, reason, tokenUpdates);
-    }
-
-    if (verdict === "abandon" || goal.checkCount + 1 >= goal.maxChecks) {
-      const abandonReason =
-        goal.checkCount + 1 >= goal.maxChecks
-          ? `max checks reached (${goal.maxChecks})`
-          : reason;
-      return abandoned(goal, now, abandonReason, tokenUpdates);
-    }
-
-    if (verdict === "wait") {
-      return pendingWithBackoff(goal, now, reason, tokenUpdates);
-    }
-
-    // ── Phase 2: verdict === "act" → full execution ──
-    const executor = getChatExecutor();
-    const assets = getPromptAssets();
-    const execTemplate = assets.get(PROMPT_TEMPLATES.heartbeat_exec);
-
-    const phase2Prompt = renderTemplate(execTemplate, {
-      goalId: goal.goalId,
-      description: goal.description,
-      context: goal.context,
-      reason,
-      recentSection: recentContext ? `## 近期对话\n${recentContext}\n\n` : "",
-    }, { strict: true });
-
-    const execResult = await executor.execute({
-      accountId: goal.accountId,
-      conversationId: goal.sourceConversationId,
-      prompt: phase2Prompt,
-      runKind: "heartbeat",
-    });
-
-    if (execResult.status === "error") {
-      return pendingWithBackoff(goal, now, `phase2 error: ${execResult.error}`, tokenUpdates);
-    }
-
-    // Analyze Phase 2 result to determine next state
-    const resultText = execResult.text ?? "";
-    const needsUser =
-      /需要.*确认|请.*回复|等待.*输入|请告诉我|请提供/.test(resultText);
-
-    if (needsUser) {
-      return waitingUser(goal, now, resultText, tokenUpdates);
-    }
-
-    // Phase 2 completed an action — defer to next check to see if goal is done
-    return pendingWithBackoff(goal, now, resultText.slice(0, 500), tokenUpdates);
-  } catch (err) {
-    return pendingWithBackoff(goal, now, `error: ${(err as Error).message}`);
-  }
+  return parsePulseVerdict(result.text);
 }

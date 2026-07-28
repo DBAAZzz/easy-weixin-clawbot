@@ -23,6 +23,7 @@ import type {
   ImageContent,
   TextContent,
   ToolResultMessage,
+  TriggerMessage,
   UserMessage,
 } from "./types.js";
 
@@ -110,6 +111,19 @@ function userToModel(msg: UserMessage): UserModelMessage {
   return { role: "user", content: parts };
 }
 
+/** Prefix marking a turn as system-originated rather than user-spoken. */
+export const TRIGGER_PROMPT_PREFIX = "[系统触发·提醒]";
+
+/**
+ * Trigger turns reach the model as user messages so role alternation stays
+ * valid, but carry a prefix so the model does not later mistake them for
+ * something the user actually said.
+ */
+function triggerToModel(msg: TriggerMessage): UserModelMessage {
+  const text = msg.content.map((block) => block.text).join("\n");
+  return { role: "user", content: `${TRIGGER_PROMPT_PREFIX} ${text}` };
+}
+
 function assistantToModel(msg: AssistantMessage): AssistantModelMessage {
   const parts = msg.content.map((block) => {
     if (block.type === MESSAGE_CONTENT_TYPE.TEXT) {
@@ -161,9 +175,47 @@ function toolContentToOutput(
   return { type: "content", value: parts };
 }
 
+type AssistantParts = Exclude<AssistantModelMessage["content"], string>;
+
+function assistantParts(content: AssistantModelMessage["content"]): AssistantParts {
+  return typeof content === "string" ? [{ type: "text", text: content }] : content;
+}
+
+/**
+ * Collapse adjacent assistant messages into one.
+ *
+ * Proactive pushes (heartbeat, scheduler, RSS) append assistant messages that
+ * are not preceded by a user message, so stored history can hold consecutive
+ * assistants. Anthropic requires strictly alternating roles and rejects that
+ * shape, so merge them at the provider boundary.
+ *
+ * Assistant messages carrying tool calls are always separated by their tool
+ * results, so they never end up adjacent here.
+ */
+function mergeAdjacentAssistants(messages: ModelMessage[]): ModelMessage[] {
+  const merged: ModelMessage[] = [];
+
+  for (const msg of messages) {
+    const prev = merged[merged.length - 1];
+
+    if (msg.role !== "assistant" || prev?.role !== "assistant") {
+      merged.push(msg);
+      continue;
+    }
+
+    merged[merged.length - 1] = {
+      role: "assistant",
+      content: [...assistantParts(prev.content), ...assistantParts(msg.content)],
+    } satisfies AssistantModelMessage;
+  }
+
+  return merged;
+}
+
 /**
  * Convert project-internal AgentMessage[] to AI SDK ModelMessage[].
- * Groups consecutive toolResult messages into a single ToolModelMessage.
+ * Groups consecutive toolResult messages into a single ToolModelMessage,
+ * and merges adjacent assistant messages (see mergeAdjacentAssistants).
  */
 export function agentToModelMessages(messages: AgentMessage[]): ModelMessage[] {
   const result: ModelMessage[] = [];
@@ -189,13 +241,16 @@ export function agentToModelMessages(messages: AgentMessage[]): ModelMessage[] {
     } else if (msg.role === MESSAGE_ROLE.USER) {
       result.push(userToModel(msg));
       i++;
+    } else if (msg.role === MESSAGE_ROLE.TRIGGER) {
+      result.push(triggerToModel(msg));
+      i++;
     } else {
       result.push(assistantToModel(msg));
       i++;
     }
   }
 
-  return result;
+  return mergeAdjacentAssistants(result);
 }
 
 /**

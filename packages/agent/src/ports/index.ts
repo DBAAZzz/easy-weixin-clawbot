@@ -1,4 +1,4 @@
-export type { MessageStore, RestoredHistory, PersistMessageParams, MessagesSinceRow } from "./message-store.js";
+export type { MessageStore, RestoredHistory, PersistMessageParams } from "./message-store.js";
 export { setMessageStore, getMessageStore } from "./message-store.js";
 
 export type { UsageStore, RecordUsageParams } from "./usage-store.js";
@@ -34,7 +34,7 @@ export {
   getScheduledTaskHandler,
 } from "./scheduled-task-handler.js";
 
-export type { PushService } from "./push-service.js";
+export type { PushService, PushOptions } from "./push-service.js";
 export { setPushService, getPushService } from "./push-service.js";
 
 export type {

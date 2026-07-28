@@ -65,9 +65,6 @@ function createFakeMessageStore(): MessageStore & {
       rolledBack.push({ accountId, conversationId, count });
     },
     async clearMessages() {},
-    async getMessagesSince() {
-      return [];
-    },
   };
 }
 

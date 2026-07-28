@@ -1,26 +1,37 @@
 /**
- * Heartbeat Engine — polling tick + event-driven trigger.
+ * Heartbeat Engine — the agent's proactive pulse.
  *
- * Concurrency model:
- *   Layer 1: inflight Set — same goal never runs twice concurrently
- *   Layer 2: per-account serial queue — same account's goals run serially
- *   Layer 3: ConversationCache.withLock — Phase 2 execution via ChatExecutorPort (server layer)
+ * Once a minute it finds conversations due for self-reflection and asks the
+ * agent, given only its memory and how long things have been quiet, whether
+ * there is anything worth saying right now. Nothing is scheduled in advance:
+ * both the decision and the words are produced at that moment.
+ *
+ * Concurrency:
+ *   claimForEval is an optimistic UPDATE — only the worker that moves
+ *   nextEvalAt forward proceeds, which holds across processes.
+ *   A per-account queue keeps one person from receiving two at once.
  */
 
 import { createLogger } from "@clawbot/observability";
 import { getHeartbeatStore } from "../../ports/heartbeat-store.js";
 import { getPushService } from "../../ports/push-service.js";
-import { evaluateGoal } from "./evaluator.js";
-import type { GoalTransition } from "./types.js";
+import { getChatExecutor } from "../../ports/chat-executor.js";
+import { evaluatePulse, applyPulseGuards, localDateKey } from "./evaluator.js";
+import {
+  type PulseRow,
+  type PulseUpdate,
+  type PulseVerdict,
+  PULSE_TICK_BATCH_SIZE,
+  PULSE_MIN_MINUTES,
+  PULSE_PARSE_FAILURE_MINUTES,
+} from "./types.js";
 
 const logger = createLogger({ component: "heartbeat.engine" });
 
 const TICK_INTERVAL_MS = 60_000;
+const MINUTE_MS = 60_000;
 
 let tickTimer: ReturnType<typeof setInterval> | null = null;
-
-/** Goals currently being evaluated — prevents same goal from running concurrently. */
-const inflight = new Set<string>();
 
 /** Per-account serial execution queue. */
 const accountQueues = new Map<string, Promise<void>>();
@@ -33,7 +44,6 @@ function enqueueForAccount(accountId: string, fn: () => Promise<void>): void {
       logger.error("account queue error", { accountId, error: err });
     })
     .finally(() => {
-      // Clean up empty queue references
       if (accountQueues.get(accountId) === next) {
         accountQueues.delete(accountId);
       }
@@ -41,74 +51,132 @@ function enqueueForAccount(accountId: string, fn: () => Promise<void>): void {
   accountQueues.set(accountId, next);
 }
 
-// ── Transition applicator ──────────────────────────────────────────
+/**
+ * Say something in the user's real conversation.
+ *
+ * The prompt is an instruction to the agent, not the message itself — chat()
+ * composes the actual words with full history and tools available.
+ */
+async function speak(pulse: PulseRow, prompt: string): Promise<boolean> {
+  const result = await getChatExecutor().execute({
+    accountId: pulse.accountId,
+    conversationId: pulse.conversationId,
+    prompt,
+    runKind: "heartbeat",
+    inputRole: "trigger",
+    triggerMeta: { kind: "pulse" },
+  });
 
-async function applyTransition(transition: GoalTransition): Promise<void> {
-  const store = getHeartbeatStore();
-
-  // 1. Write goal state
-  await store.updateGoal(transition.goalId, transition.updates);
-
-  // 2. Push notification (if requested and available)
-  if (transition.requestPush) {
-    try {
-      const push = getPushService();
-      await push.sendProactiveMessage(
-        transition.requestPush.accountId,
-        transition.requestPush.conversationId,
-        transition.requestPush.text,
-      );
-    } catch (err) {
-      // Push failure does NOT affect goal state
-      logger.warn("push failed", { goalId: transition.goalId, error: err });
-    }
-  }
-}
-
-// ── Tick ────────────────────────────────────────────────────────────
-
-async function tick(): Promise<void> {
-  const store = getHeartbeatStore();
-  const now = new Date();
-
-  // 1. Expire overdue goals
-  const abandonedCount = await store.abandonExpired(now);
-  if (abandonedCount > 0) {
-    logger.info("abandoned expired goals", { count: abandonedCount });
-  }
-
-  // 2. Process resume signals (waiting_user → pending where resumeSignal is set)
-  const resumedCount = await store.processResumeSignals(now);
-  if (resumedCount > 0) {
-    logger.info("resumed goals from user replies", { count: resumedCount });
-  }
-
-  // 3. Find due goals
-  const dueGoals = await store.findDueGoals(now);
-
-  for (const goal of dueGoals) {
-    if (inflight.has(goal.goalId)) continue;
-
-    inflight.add(goal.goalId);
-    enqueueForAccount(goal.accountId, async () => {
-      try {
-        const transition = await evaluateGoal(goal);
-        await applyTransition(transition);
-        logger.info("goal transitioned", {
-          goalId: goal.goalId,
-          status: transition.newStatus,
-          lastCheckResult: transition.updates.lastCheckResult?.slice(0, 80),
-        });
-      } catch (err) {
-        logger.error("unhandled goal error", { goalId: goal.goalId, error: err });
-      } finally {
-        inflight.delete(goal.goalId);
-      }
+  if (result.status === "error") {
+    logger.warn("pulse chat failed", {
+      accountId: pulse.accountId,
+      conversationId: pulse.conversationId,
+      error: result.error,
     });
+    return false;
+  }
+
+  const text = result.text?.trim();
+  if (!text) {
+    logger.warn("pulse produced no text", {
+      accountId: pulse.accountId,
+      conversationId: pulse.conversationId,
+    });
+    return false;
+  }
+
+  try {
+    // chat() already persisted the assistant message in this conversation;
+    // recordHistory: false stops the push from writing it a second time.
+    await getPushService().sendProactiveMessage(
+      pulse.accountId,
+      pulse.conversationId,
+      text,
+      { recordHistory: false },
+    );
+    return true;
+  } catch (err) {
+    logger.warn("pulse push failed", {
+      accountId: pulse.accountId,
+      conversationId: pulse.conversationId,
+      error: err,
+    });
+    return false;
   }
 }
 
-// ── Public API ─────────────────────────────────────────────────────
+/** Asks whether to speak. Injectable so tests can drive the loop without an LLM. */
+export type PulseEvaluator = (pulse: PulseRow, now: Date) => Promise<PulseVerdict>;
+
+async function evaluateOne(
+  pulse: PulseRow,
+  now: Date,
+  evaluate: PulseEvaluator,
+): Promise<void> {
+  const store = getHeartbeatStore();
+
+  // Defer far enough that a crash mid-evaluation cannot spin on this row.
+  const deferTo = new Date(now.getTime() + PULSE_PARSE_FAILURE_MINUTES * MINUTE_MS);
+  const claimed = await store.claimForEval(pulse.id, pulse.nextEvalAt, deferTo);
+  if (!claimed) return;
+
+  const verdict = await evaluate(pulse, now);
+  const decision = applyPulseGuards(pulse, verdict, now);
+
+  const spoke = decision.speak && decision.prompt ? await speak(pulse, decision.prompt) : false;
+
+  const updates: PulseUpdate = spoke
+    ? {
+        nextEvalAt: decision.nextEvalAt,
+        quietStreak: 0,
+        lastSpokeAt: now,
+        spokenDateKey: localDateKey(now),
+        spokenToday:
+          (pulse.spokenDateKey === localDateKey(now) ? pulse.spokenToday : 0) + 1,
+      }
+    : {
+        nextEvalAt: decision.nextEvalAt,
+        quietStreak: pulse.quietStreak + 1,
+      };
+
+  await store.applyVerdict(pulse.id, updates);
+
+  logger.info("pulse evaluated", {
+    accountId: pulse.accountId,
+    conversationId: pulse.conversationId,
+    spoke,
+    blockedBy: decision.blockedBy,
+    reason: verdict.reason.slice(0, 80),
+    nextEvalAt: decision.nextEvalAt.toISOString(),
+  });
+}
+
+async function tick(evaluate: PulseEvaluator = evaluatePulse): Promise<void> {
+  const now = new Date();
+  const due = await getHeartbeatStore().findDuePulses(now, PULSE_TICK_BATCH_SIZE);
+
+  for (const pulse of due) {
+    enqueueForAccount(pulse.accountId, () => evaluateOne(pulse, now, evaluate));
+  }
+}
+
+/**
+ * Record user activity in a conversation. Creates the pulse row on first
+ * contact and pushes the next evaluation out — someone who just spoke to you
+ * does not need to be pinged.
+ */
+export async function notePulseActivity(
+  accountId: string,
+  conversationId: string,
+): Promise<void> {
+  const now = new Date();
+  await getHeartbeatStore().notePulseActivity(
+    accountId,
+    conversationId,
+    now,
+    new Date(now.getTime() + PULSE_MIN_MINUTES * MINUTE_MS),
+  );
+}
 
 export function startHeartbeat(): void {
   if (tickTimer) return;
@@ -132,27 +200,7 @@ export function stopHeartbeat(): void {
 }
 
 /**
- * Check for waiting_user goals after a user message in the source conversation.
- * Called from server/agent.ts post-chat hook.
- * Only writes events — does NOT immediately execute heartbeat.
+ * Exposed for tests — runs one scan without waiting for the interval, and
+ * optionally with a stand-in evaluator so no model is called.
  */
-export async function checkWaitingGoalsAsync(
-  accountId: string,
-  conversationId: string,
-  latestSeq: number,
-): Promise<void> {
-  const store = getHeartbeatStore();
-  const waiting = await store.findByAccountAndStatus(accountId, conversationId, "waiting_user");
-
-  if (waiting.length === 0) return;
-  if (waiting.length > 1) {
-    logger.warn("ambiguous waiting_user resume skipped", {
-      accountId,
-      conversationId,
-      count: waiting.length,
-    });
-    return;
-  }
-
-  await store.markUserReplied(waiting[0].goalId, latestSeq);
-}
+export { tick as runHeartbeatTick };

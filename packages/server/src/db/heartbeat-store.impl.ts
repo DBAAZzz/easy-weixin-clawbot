@@ -2,238 +2,77 @@
  * Prisma implementation of HeartbeatStore interface from @clawbot/agent.
  */
 
-import type {
-  HeartbeatStore,
-} from "@clawbot/agent/ports";
-import type {
-  GoalStatus,
-  PendingGoalRow,
-  CreateGoalInput,
-  UpdateGoalInput,
-} from "@clawbot/agent";
+import type { HeartbeatStore } from "@clawbot/agent/ports";
+import type { PulseRow, PulseUpdate } from "@clawbot/agent";
 import { getPrisma } from "./prisma.js";
 
-const GOAL_HARD_EXPIRY_MS = 7 * 24 * 3600_000;
+interface PrismaPulse {
+  id: bigint;
+  accountId: string;
+  conversationId: string;
+  nextEvalAt: Date;
+  lastUserAt: Date | null;
+  lastSpokeAt: Date | null;
+  quietStreak: number;
+  spokenDateKey: string | null;
+  spokenToday: number;
+}
 
-function toGoalRow(row: any): PendingGoalRow {
+function toPulseRow(row: PrismaPulse): PulseRow {
   return {
     id: row.id,
-    goalId: row.goalId,
     accountId: row.accountId,
-    sourceConversationId: row.sourceConversationId,
-    description: row.description,
-    context: row.context,
-    originType: row.originType,
-    originRef: row.originRef,
-    status: row.status,
-    nextCheckAt: row.nextCheckAt,
-    checkCount: row.checkCount,
-    maxChecks: row.maxChecks,
-    backoffMs: row.backoffMs,
-    latestSourceMessageSeq: row.latestSourceMessageSeq,
-    resumeSignal: row.resumeSignal,
-    lastCheckAt: row.lastCheckAt,
-    lastCheckResult: row.lastCheckResult,
-    resolution: row.resolution,
-    totalInputTokens: row.totalInputTokens,
-    totalOutputTokens: row.totalOutputTokens,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    expiresAt: row.expiresAt,
+    conversationId: row.conversationId,
+    nextEvalAt: row.nextEvalAt,
+    lastUserAt: row.lastUserAt,
+    lastSpokeAt: row.lastSpokeAt,
+    quietStreak: row.quietStreak,
+    spokenDateKey: row.spokenDateKey,
+    spokenToday: row.spokenToday,
   };
 }
 
 export class PrismaHeartbeatStore implements HeartbeatStore {
-  async createGoal(input: CreateGoalInput): Promise<PendingGoalRow> {
-    const prisma = getPrisma();
-    const now = new Date();
-    const delayMs = input.delayMs ?? 5 * 60_000;
-
-    const row = await prisma.pendingGoal.create({
-      data: {
-        accountId: input.accountId,
-        sourceConversationId: input.sourceConversationId,
-        description: input.description,
-        context: input.context,
-        originType: input.originType,
-        originRef: input.originRef,
-        status: "pending",
-        nextCheckAt: new Date(now.getTime() + delayMs),
-        maxChecks: input.maxChecks ?? 10,
-        backoffMs: delayMs,
-        expiresAt: new Date(now.getTime() + GOAL_HARD_EXPIRY_MS),
-      },
-    });
-
-    return toGoalRow(row);
-  }
-
-  async getByGoalId(goalId: string): Promise<PendingGoalRow | null> {
-    const prisma = getPrisma();
-    const row = await prisma.pendingGoal.findUnique({ where: { goalId } });
-    return row ? toGoalRow(row) : null;
-  }
-
-  async updateGoal(goalId: string, updates: UpdateGoalInput): Promise<void> {
-    const prisma = getPrisma();
-    await prisma.pendingGoal.update({
-      where: { goalId },
-      data: {
-        ...(updates.status !== undefined && { status: updates.status }),
-        ...(updates.nextCheckAt !== undefined && { nextCheckAt: updates.nextCheckAt }),
-        ...(updates.checkCount !== undefined && { checkCount: updates.checkCount }),
-        ...(updates.backoffMs !== undefined && { backoffMs: updates.backoffMs }),
-        ...(updates.latestSourceMessageSeq !== undefined && {
-          latestSourceMessageSeq: updates.latestSourceMessageSeq,
-        }),
-        ...(updates.resumeSignal !== undefined && { resumeSignal: updates.resumeSignal }),
-        ...(updates.lastCheckAt !== undefined && { lastCheckAt: updates.lastCheckAt }),
-        ...(updates.lastCheckResult !== undefined && { lastCheckResult: updates.lastCheckResult }),
-        ...(updates.resolution !== undefined && { resolution: updates.resolution }),
-        ...(updates.totalInputTokens !== undefined && {
-          totalInputTokens: updates.totalInputTokens,
-        }),
-        ...(updates.totalOutputTokens !== undefined && {
-          totalOutputTokens: updates.totalOutputTokens,
-        }),
-      },
-    });
-  }
-
-  async findDueGoals(now: Date): Promise<PendingGoalRow[]> {
-    const prisma = getPrisma();
-    const rows = await prisma.pendingGoal.findMany({
-      where: {
-        status: "pending",
-        nextCheckAt: { lte: now },
-      },
-      orderBy: { nextCheckAt: "asc" },
-      take: 20,
-    });
-    return rows.map(toGoalRow);
-  }
-
-  async findByAccountAndStatus(
+  async notePulseActivity(
     accountId: string,
     conversationId: string,
-    status: GoalStatus,
-  ): Promise<PendingGoalRow[]> {
-    const prisma = getPrisma();
-    const rows = await prisma.pendingGoal.findMany({
-      where: {
-        accountId,
-        sourceConversationId: conversationId,
-        status,
-      },
-    });
-    return rows.map(toGoalRow);
-  }
-
-  async countActiveGoals(accountId: string): Promise<number> {
-    const prisma = getPrisma();
-    return prisma.pendingGoal.count({
-      where: {
-        accountId,
-        status: { in: ["pending", "checking", "waiting_user"] },
-      },
+    now: Date,
+    nextEvalAt: Date,
+  ): Promise<void> {
+    await getPrisma().conversationPulse.upsert({
+      where: { accountId_conversationId: { accountId, conversationId } },
+      create: { accountId, conversationId, nextEvalAt, lastUserAt: now },
+      update: { nextEvalAt, lastUserAt: now },
     });
   }
 
-  async findSimilarGoal(
-    accountId: string,
-    conversationId: string,
-    description: string,
-  ): Promise<PendingGoalRow | null> {
-    const prisma = getPrisma();
-    // Simple substring match — good enough for dedup
-    const rows = await prisma.pendingGoal.findMany({
-      where: {
-        accountId,
-        sourceConversationId: conversationId,
-        status: { in: ["pending", "checking", "waiting_user"] },
-      },
+  async findDuePulses(now: Date, limit: number): Promise<PulseRow[]> {
+    const rows = await getPrisma().conversationPulse.findMany({
+      where: { nextEvalAt: { lte: now } },
+      orderBy: { nextEvalAt: "asc" },
+      take: limit,
     });
-
-    // Find one with high description overlap
-    const needle = description.toLowerCase();
-    for (const row of rows) {
-      const existing = row.description.toLowerCase();
-      if (existing.includes(needle) || needle.includes(existing)) {
-        return toGoalRow(row);
-      }
-    }
-    return null;
+    return rows.map(toPulseRow);
   }
 
-  async listGoals(accountId: string, includeTerminal = false): Promise<PendingGoalRow[]> {
-    const prisma = getPrisma();
-    const where: any = { accountId };
-    if (!includeTerminal) {
-      where.status = { in: ["pending", "checking", "waiting_user"] };
-    }
-    const rows = await prisma.pendingGoal.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: 50,
+  async claimForEval(id: bigint, expectedNextEvalAt: Date, deferTo: Date): Promise<boolean> {
+    const result = await getPrisma().conversationPulse.updateMany({
+      where: { id, nextEvalAt: expectedNextEvalAt },
+      data: { nextEvalAt: deferTo },
     });
-    return rows.map(toGoalRow);
+    return result.count === 1;
   }
 
-  async markUserReplied(goalId: string, messageSeq: number): Promise<void> {
-    const prisma = getPrisma();
-    await prisma.pendingGoal.update({
-      where: { goalId },
+  async applyVerdict(id: bigint, updates: PulseUpdate): Promise<void> {
+    await getPrisma().conversationPulse.update({
+      where: { id },
       data: {
-        resumeSignal: "user_replied",
-        latestSourceMessageSeq: messageSeq,
+        nextEvalAt: updates.nextEvalAt,
+        quietStreak: updates.quietStreak,
+        ...(updates.lastSpokeAt !== undefined && { lastSpokeAt: updates.lastSpokeAt }),
+        ...(updates.spokenDateKey !== undefined && { spokenDateKey: updates.spokenDateKey }),
+        ...(updates.spokenToday !== undefined && { spokenToday: updates.spokenToday }),
       },
     });
-  }
-
-  async processResumeSignals(now: Date): Promise<number> {
-    const prisma = getPrisma();
-    const result = await prisma.pendingGoal.updateMany({
-      where: {
-        status: "waiting_user",
-        resumeSignal: { not: null },
-      },
-      data: {
-        status: "pending",
-        nextCheckAt: now,
-        backoffMs: 5 * 60 * 1000, // Reset backoff on user reply
-      },
-    });
-    return result.count;
-  }
-
-  async abandonExpired(now: Date): Promise<number> {
-    const prisma = getPrisma();
-
-    // Abandon goals past expiresAt
-    const byExpiry = await prisma.pendingGoal.updateMany({
-      where: {
-        status: { in: ["pending", "checking", "waiting_user"] },
-        expiresAt: { not: null, lte: now },
-      },
-      data: {
-        status: "abandoned",
-        resolution: "expired",
-        lastCheckAt: now,
-      },
-    });
-
-    // Abandon goals that exceeded maxChecks
-    // (Prisma doesn't support field-to-field comparison in updateMany,
-    //  so we handle this in a raw query)
-    const byMaxChecks = await prisma.$executeRaw`
-      UPDATE pending_goals
-      SET status = 'abandoned',
-          resolution = 'max checks reached',
-          last_check_at = ${now}
-      WHERE status IN ('pending', 'waiting_user')
-        AND check_count >= max_checks
-    `;
-
-    return byExpiry.count + byMaxChecks;
   }
 }

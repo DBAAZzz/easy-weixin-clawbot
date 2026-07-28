@@ -25,7 +25,6 @@ import {
   setChatExecutor,
   setWebToolService,
   schedulerToolRegistry,
-  heartbeatToolRegistry,
   loadPromptAssets,
   setPromptAssets,
   validateTemplateVars,
@@ -131,7 +130,6 @@ export const toolRegistry = createCompositeToolRegistry(
   localToolRegistry,
   mcpToolRegistry,
   schedulerToolRegistry,
-  heartbeatToolRegistry,
   skillRuntimeToolRegistry,
 );
 

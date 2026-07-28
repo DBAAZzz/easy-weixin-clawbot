@@ -17,9 +17,6 @@ function createMessageStore(queue: PersistMessageParams[]): MessageStore {
     },
     async rollbackMessages() {},
     async clearMessages() {},
-    async getMessagesSince() {
-      return [];
-    },
   };
 }
 

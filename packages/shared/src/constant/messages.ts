@@ -2,6 +2,12 @@ export const MESSAGE_ROLE = {
   USER: "user",
   ASSISTANT: "assistant",
   TOOL_RESULT: "toolResult",
+  /**
+   * A system-originated instruction that produced the following assistant
+   * message — e.g. a fired reminder. Recorded so history shows why the agent
+   * spoke unprompted; sent to the model as a marked user turn.
+   */
+  TRIGGER: "trigger",
 } as const;
 
 export type MessageRole = (typeof MESSAGE_ROLE)[keyof typeof MESSAGE_ROLE];

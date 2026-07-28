@@ -1,25 +1,17 @@
 export {
   startHeartbeat,
   stopHeartbeat,
-  checkWaitingGoalsAsync,
+  runHeartbeatTick,
+  notePulseActivity,
 } from "./engine.js";
 
+export { parsePulseVerdict, applyPulseGuards } from "./evaluator.js";
+
+export type { PulseRow, PulseUpdate, PulseVerdict, PulseDecision } from "./types.js";
 export {
-  heartbeatToolRegistry,
-} from "./tool.js";
-
-export { evaluateGoal } from "./evaluator.js";
-export { reasonInternal } from "./reason-internal.js";
-
-export type {
-  GoalStatus,
-  GoalOrigin,
-  Verdict,
-  PendingGoalRow,
-  CreateGoalInput,
-  UpdateGoalInput,
-  GoalTransition,
-  HeartbeatExecutionRequest,
-  HeartbeatExecutionResult,
+  PULSE_MIN_MINUTES,
+  PULSE_MAX_MINUTES,
+  PULSE_MAX_PER_DAY,
+  PULSE_MIN_GAP_MINUTES,
+  PULSE_TICK_BATCH_SIZE,
 } from "./types.js";
-export { LIMITS, INITIAL_BACKOFF_MS, MAX_BACKOFF_MS, nextBackoff } from "./types.js";

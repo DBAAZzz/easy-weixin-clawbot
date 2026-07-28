@@ -11,8 +11,8 @@ import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk
 import {
   CommandRegistry,
   createHandoffAnchors,
-  checkWaitingGoalsAsync,
   isLLMProviderNotConfiguredError,
+  notePulseActivity,
 } from "@clawbot/agent";
 import type { ChatMedia as AgentChatMedia, RunContext } from "@clawbot/agent";
 import { getPushService, getSchedulerStore } from "@clawbot/agent/ports";
@@ -325,17 +325,16 @@ export function createAgent(accountId: string): Agent {
             });
           }
 
-          // Post-chat hook: notify heartbeat engine of new user/assistant messages
-          const latestSeq = chatEngine.conversations.currentSeq(accountId, effectiveConvId);
-          checkWaitingGoalsAsync(accountId, effectiveConvId, latestSeq).catch((err) => {
+          // Reset the proactive pulse: the user just spoke, so the agent has
+          // no reason to bubble up again soon.
+          void notePulseActivity(accountId, effectiveConvId).catch((err) => {
             agentLogger.warn(
               {
                 ...getErrorFields(err),
                 accountId,
                 conversationId: effectiveConvId,
-                seq: latestSeq,
               },
-              "心跳后置检查失败",
+              "更新会话节拍失败",
             );
           });
 

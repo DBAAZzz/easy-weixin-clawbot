@@ -25,20 +25,23 @@ function stripInjectedUserContext(text: string) {
     .trim();
 }
 
+function isPromptRole(role: string) {
+  return role === MESSAGE_ROLE.USER || role === MESSAGE_ROLE.TRIGGER;
+}
+
 function getTextBlocks(message: MessageRow): string[] {
   const blocks = getPayloadContent(message);
   if (blocks.length === 0 && message.content_text) {
-    const fallbackText =
-      message.role === MESSAGE_ROLE.USER
-        ? stripInjectedUserContext(message.content_text)
-        : message.content_text;
+    const fallbackText = isPromptRole(message.role)
+      ? stripInjectedUserContext(message.content_text)
+      : message.content_text;
     return fallbackText ? [fallbackText] : [];
   }
 
   return blocks
     .filter(isTextBlock)
     .map((block) =>
-      message.role === MESSAGE_ROLE.USER ? stripInjectedUserContext(block.text) : block.text.trim(),
+      isPromptRole(message.role) ? stripInjectedUserContext(block.text) : block.text.trim(),
     )
     .filter(Boolean);
 }
@@ -248,6 +251,17 @@ export const MessageBubble = memo(function MessageBubble({
 }) {
   const isUser = message.role === MESSAGE_ROLE.USER;
   const textBlocks = getTextBlocks(message);
+
+  if (message.role === MESSAGE_ROLE.TRIGGER) {
+    return (
+      <div className="flex justify-center py-1">
+        <span className="rounded-pill border border-line bg-glass-66 px-3 py-1 text-xs text-muted">
+          提醒触发 · {textBlocks.join(" ")}
+        </span>
+      </div>
+    );
+  }
+
   const imageBlocks = isUser ? getImageBlocks(message) : [];
   const hasContent = textBlocks.length > 0 || imageBlocks.length > 0;
   const hasProcess = !isUser && (thoughts.length > 0 || tools.length > 0);

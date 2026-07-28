@@ -1,0 +1,27 @@
+{
+  "grok-4.20-0309-non-reasoning": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 30000,
+    "supportsImageInput": true
+  },
+  "grok-4.20-0309-reasoning": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 30000,
+    "supportsImageInput": true
+  },
+  "grok-4.3": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 30000,
+    "supportsImageInput": true
+  },
+  "grok-4.5": {
+    "contextWindow": 500000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "grok-build-0.1": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  }
+}

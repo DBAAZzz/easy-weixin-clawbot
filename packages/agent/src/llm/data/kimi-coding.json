@@ -1,0 +1,22 @@
+{
+  "k3": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "k3-256k": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "kimi-for-coding": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "kimi-for-coding-highspeed": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-28T04:02:45.191Z",
+  "structureHash": "6dba4d54689584ea08dfadabce344f8adba4eca8f7881c5521c972a94247a66c",
+  "files": {
+    "anthropic.json": "25a2c5fbc07078513938ea2ac319a3ecaf5f4a4fffaa214e43d9238aef397fea",
+    "deepseek.json": "6e83e4a11eb5fa648617b140dc37e305c7997d28e5740a26d3774c7f9c8acbd4",
+    "google.json": "9b1a3feca3a281088a9fb2d43d299f1b473620a29df5ddc061b51d723751501d",
+    "groq.json": "e3bae73d824efdd0a96efcf5e25b2f61339953896c95a6eeeb474de436630428",
+    "kimi-coding.json": "a229e399b6aa1b317ebf6f0e9db0fdc4dfbbbc8df58aef8f2afb8d25c53b60fd",
+    "kimi.json": "e31a265e5b74ab7b256e2077d5c624fe8ddd41384a4045f1efe5196965893d93",
+    "mistral.json": "311e0c787235b3043f82d16441184597e0d27978a3fb9cb17691cb1da81163db",
+    "moonshot.json": "e31a265e5b74ab7b256e2077d5c624fe8ddd41384a4045f1efe5196965893d93",
+    "openai.json": "4a779936ce981aad23ce1a6ee4a511d40c38ea6b91bb4faece743f4a8465ceff",
+    "openrouter.json": "99a96d880e8215061d21bba08cc7246afd1dd70de407db58b7e394776aa49552",
+    "xai.json": "91e3292cb0941ccbeec545ee86c8cfc94e4da91d6007ec6af4173819de48844f",
+    "xiaomi-anthropic.json": "d74e461a542ff5282ed5691dd998809e204fbc951de3d5e59a276a7a5628ddaf",
+    "xiaomi.json": "d74e461a542ff5282ed5691dd998809e204fbc951de3d5e59a276a7a5628ddaf"
+  }
+}

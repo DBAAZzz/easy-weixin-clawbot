@@ -19,55 +19,9 @@ import { createMoonshotAI } from "@ai-sdk/moonshotai";
 import { createXai } from "@ai-sdk/xai";
 import { createGroq } from "@ai-sdk/groq";
 import { createMistral } from "@ai-sdk/mistral";
+import { resolveModelMeta } from "./model-meta.js";
 import type { ModelMeta } from "./types.js";
 
-// ── Default metadata per provider ──────────────────────────────────
-
-const PROVIDER_DEFAULTS: Record<string, ModelMeta> = {
-  anthropic: { contextWindow: 200_000, maxOutputTokens: 8192 },
-  openai: { contextWindow: 128_000, maxOutputTokens: 16384 },
-  google: { contextWindow: 1_000_000, maxOutputTokens: 8192 },
-  moonshot: { contextWindow: 128_000, maxOutputTokens: 4096 },
-  kimi: { contextWindow: 128_000, maxOutputTokens: 4096 },
-  "kimi-coding": { contextWindow: 128_000, maxOutputTokens: 4096 },
-  xiaomi: { contextWindow: 128_000, maxOutputTokens: 4096 },
-  "xiaomi-anthropic": { contextWindow: 128_000, maxOutputTokens: 4096 },
-  deepseek: {
-    contextWindow: 1_000_000,
-    maxOutputTokens: 384_000,
-    supportsImageInput: false,
-    requiresReasonedToolHistory: true,
-  },
-  openrouter: { contextWindow: 128_000, maxOutputTokens: 4096 },
-  xai: { contextWindow: 128_000, maxOutputTokens: 4096 },
-  groq: { contextWindow: 128_000, maxOutputTokens: 4096 },
-  mistral: { contextWindow: 128_000, maxOutputTokens: 4096 },
-};
-
-const MODEL_CAPABILITIES: Record<string, Partial<ModelMeta>> = {
-  "deepseek:deepseek-chat": { supportsImageInput: false },
-  "deepseek:deepseek-reasoner": { supportsImageInput: false },
-  "deepseek:deepseek-v4-flash": { supportsImageInput: false },
-
-  "openai:gpt-4.1": { supportsImageInput: true },
-  "openai:gpt-4.1-mini": { supportsImageInput: true },
-  "openai:gpt-4o": { supportsImageInput: true },
-  "openai:gpt-4o-mini": { supportsImageInput: true },
-  "openai:gpt-5": { supportsImageInput: true },
-  "openai:gpt-5-mini": { supportsImageInput: true },
-
-  "google:gemini-2.5-flash": { supportsImageInput: true },
-  "google:gemini-2.5-flash-lite": { supportsImageInput: true },
-  "google:gemini-2.0-flash": { supportsImageInput: true },
-  "google:gemini-1.5-flash": { supportsImageInput: true },
-  "google:gemini-1.5-pro": { supportsImageInput: true },
-
-  "anthropic:claude-3-5-haiku-latest": { supportsImageInput: true },
-  "anthropic:claude-3-5-sonnet-latest": { supportsImageInput: true },
-  "anthropic:claude-3-7-sonnet-latest": { supportsImageInput: true },
-};
-
-const FALLBACK_META: ModelMeta = { contextWindow: 128_000, maxOutputTokens: 4096 };
 const OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1";
 const MOONSHOT_DEFAULT_BASE_URL = "https://api.moonshot.cn/v1";
 const KIMI_CODING_DEFAULT_BASE_URL = "https://api.kimi.com/coding/v1";
@@ -194,10 +148,7 @@ export function createLanguageModel(
     model: rawModel as Parameters<typeof wrapLanguageModel>[0]["model"],
     middleware: createRetryObservabilityMiddleware(provider),
   });
-  const providerMeta = PROVIDER_DEFAULTS[provider] ?? FALLBACK_META;
-  const modelMeta = MODEL_CAPABILITIES[`${provider}:${modelId}`] ?? {};
-  const meta: ModelMeta = { ...providerMeta, ...modelMeta };
-  return { model, meta };
+  return { model, meta: resolveModelMeta(provider, modelId) };
 }
 
 // ── Internal ───────────────────────────────────────────────────────

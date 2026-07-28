@@ -111,9 +111,11 @@
     "build": "tsc",
     "dev": "tsc -w",
     "test": "tsx --conditions development --test 'test/**/*.test.ts'",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p test/tsconfig.json",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/tsconfig.json && tsc --noEmit -p scripts/tsconfig.json",
     "lint": "oxlint",
-    "lint:layers": "node scripts/check-layers.mjs"
+    "lint:layers": "node scripts/check-layers.mjs",
+    "generate:models": "NODE_USE_ENV_PROXY=1 tsx scripts/generate-models.ts",
+    "check:models": "tsx scripts/check-model-data.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.68",

@@ -1,0 +1,52 @@
+{
+  "kimi-k2-0711-preview": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "kimi-k2-0905-preview": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "kimi-k2-thinking": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "kimi-k2-thinking-turbo": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "kimi-k2-turbo-preview": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "kimi-k2.5": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "kimi-k2.6": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "kimi-k2.7-code": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "kimi-k2.7-code-highspeed": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "kimi-k3": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  }
+}

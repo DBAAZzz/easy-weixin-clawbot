@@ -58,8 +58,11 @@ budget = meta.contextWindow − meta.maxOutputTokens − (systemPrompt tokens + 
 
 `src/engine/conversation/context-window.ts:168`。三项含义：
 
-- `contextWindow` / `maxOutputTokens` 来自 provider 预设表 `PROVIDER_DEFAULTS`（`src/llm/provider-factory.ts:26`），未命中则用 `FALLBACK_META`（128k / 4096）。
+- `contextWindow` / `maxOutputTokens` 由 `resolveModelMeta()`（`src/llm/model-meta.ts`）按**模型**解析，数据来自 `src/llm/data/` 下由 models.dev 生成的目录。查表顺序：精确 id → 归一化 id（剥日期后缀 / `-latest` / `:free` 变体）→ `FALLBACK_MODEL_META`（128k / 4096），最后叠加 `model-overrides.ts` 的人工补丁。
+- `maxOutputTokens` **不会发给 provider**，它唯一的用途就是在这里当输出预留。上游常用 `output === context` 表示"输出不单独设限"，生成时会把预留收敛到「不超过模型能输出的量、不超过 32k、不超过窗口一半」三者最小值——否则预算直接为负，裁剪器会读成"全部丢弃"。
 - 固定开销 = system prompt + tools schema，由 Runner 估算后传入，裁剪函数本身不感知它们的内容。
+
+元数据是**每模型**而非每 provider 的：同一家的窗口能从 8k（小米的 TTS 模型）跨到 1M（mimo-v2.5），provider 平均值对它覆盖的绝大多数模型都是错的，而且错得不对称——猜大了是 provider 400，猜小了是静默过度裁剪。
 
 ### Token 计数是启发式，不是 tokenizer
 
@@ -155,6 +158,7 @@ Tape 压缩时 facts / preferences 故意**不**截断：它们的源 entry 会�
 ## 八、已知短板
 
 1. **历史从数据库全量加载**。`restoreHistory()`（`packages/server/src/db/messages.ts:381`）没有 `limit`，长会话冷启动会把全部消息拉进内存并 hydrate。裁剪只发生在"发给模型"这一层，正确性没问题，但加载耗时与内存占用随会话长度线性增长。
-2. **`contextWindow` 只能按 provider 粗粒度配置**。DB 里的模型配置只能覆盖 `supportsImageInput`（`buildModelFromConfig()` 的 `supportsImageInputOverride`），无法为具体模型指定窗口大小。同一 provider 下窗口差异大的模型会共用一个偏差值。
-3. **Token 估算与真实值存在偏差**。10% 安全边际覆盖常规情况，但纯 CJK 长文本或大量结构化 JSON 的 tool result 可能偏离更多。
-4. **Level 3 摘要压缩缺位**，早期上下文一旦滑出窗口就只剩 Tape 记忆里的结构化片段。
+2. **DB 配置无法覆盖窗口大小**。模型元数据已经是每模型粒度，但 DB 里的模型配置仍只能覆盖 `supportsImageInput`（`buildModelFromConfig()` 的 `supportsImageInputOverride`）。接自定义中转站或私有部署时，若模型不在生成目录里，只能落到 `FALLBACK_MODEL_META`，或改 `model-overrides.ts` 重新发版——用户无法在后台自助修正。补齐需要动 Prisma schema、server API 和 Web 表单。
+3. **生成目录会过期**。models.dev 新增模型不会自动同步，需要人工跑 `generate:models`。`check:models` 只校验产物完整性，不校验新鲜度——把新鲜度纳入 CI 会让上游一发新模型就红，那不是本仓的缺陷。
+4. **Token 估算与真实值存在偏差**。10% 安全边际覆盖常规情况，但纯 CJK 长文本或大量结构化 JSON 的 tool result 可能偏离更多。
+5. **Level 3 摘要压缩缺位**，早期上下文一旦滑出窗口就只剩 Tape 记忆里的结构化片段。

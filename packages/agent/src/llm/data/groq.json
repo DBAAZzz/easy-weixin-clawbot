@@ -1,0 +1,37 @@
+{
+  "llama-3.1-8b-instant": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "llama-3.3-70b-versatile": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "meta-llama/llama-4-scout-17b-16e-instruct": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 8192,
+    "supportsImageInput": true
+  },
+  "openai/gpt-oss-120b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "openai/gpt-oss-20b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "openai/gpt-oss-safeguard-20b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-32b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  }
+}

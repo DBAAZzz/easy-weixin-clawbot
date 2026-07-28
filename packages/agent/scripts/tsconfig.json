@@ -1,0 +1,18 @@
+{
+  // 编辑器和 `pnpm typecheck` 用的脚本项目配置，与 test/tsconfig.json 同理。
+  //
+  // 必须叫 tsconfig.json：VSCode 的 TS server 从文件向上查找的就是这个名字，
+  // 找不到就退回默认编译选项，node:* 之类的模块会误报 TS2591。
+  //
+  // 不能把 scripts 并进 ../tsconfig.json —— 那个是 composite 构建配置，
+  // packages/server 通过 references 引用它，rootDir/outDir 必须保持只含 src。
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "rootDir": ".."
+  },
+  "include": ["."]
+}

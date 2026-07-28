@@ -1,0 +1,147 @@
+{
+  "codestral-latest": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 4096,
+    "supportsImageInput": false
+  },
+  "devstral-2512": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "devstral-latest": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "devstral-medium-2507": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "devstral-medium-latest": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "devstral-small-2505": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "devstral-small-2507": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "labs-devstral-small-2512": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "magistral-medium-latest": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "magistral-small": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "ministral-3b-latest": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "ministral-8b-latest": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "mistral-large-2411": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "mistral-large-2512": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistral-large-latest": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistral-medium-2505": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistral-medium-2508": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistral-medium-2604": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistral-medium-latest": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistral-nemo": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "mistral-small-2506": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "mistral-small-2603": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistral-small-latest": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "open-mistral-7b": {
+    "contextWindow": 8000,
+    "maxOutputTokens": 4000,
+    "supportsImageInput": false
+  },
+  "open-mistral-nemo": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "open-mixtral-8x22b": {
+    "contextWindow": 64000,
+    "maxOutputTokens": 32000,
+    "supportsImageInput": false
+  },
+  "open-mixtral-8x7b": {
+    "contextWindow": 32000,
+    "maxOutputTokens": 16000,
+    "supportsImageInput": false
+  },
+  "pixtral-12b": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "pixtral-large-latest": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  }
+}

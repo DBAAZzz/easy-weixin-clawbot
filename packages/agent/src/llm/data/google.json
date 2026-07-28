@@ -1,0 +1,122 @@
+{
+  "deep-research-max-preview-04-2026": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "deep-research-preview-04-2026": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-2.0-flash": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 8192,
+    "supportsImageInput": true
+  },
+  "gemini-2.0-flash-lite": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 8192,
+    "supportsImageInput": true
+  },
+  "gemini-2.5-computer-use-preview-10-2025": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-2.5-flash": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-2.5-flash-lite": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-2.5-pro": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-3-flash-preview": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-3-pro-preview": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-3.1-flash-lite": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-3.1-flash-lite-image": {
+    "contextWindow": 65536,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-3.1-flash-lite-preview": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-3.1-flash-live-preview": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-3.1-pro-preview": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-3.1-pro-preview-customtools": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-3.5-flash": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-3.5-flash-lite": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-3.6-flash": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-flash-latest": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-flash-lite-latest": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemini-robotics-er-1.6-preview": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemma-4-26b-a4b-it": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "gemma-4-31b-it": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  }
+}

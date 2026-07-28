@@ -1,0 +1,1372 @@
+{
+  "ai21/jamba-large-1.7": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 4096,
+    "supportsImageInput": false
+  },
+  "aion-labs/aion-2.0": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "aion-labs/aion-3.0": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "aion-labs/aion-3.0-mini": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "amazon/nova-2-lite-v1": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "amazon/nova-lite-v1": {
+    "contextWindow": 300000,
+    "maxOutputTokens": 5120,
+    "supportsImageInput": true
+  },
+  "amazon/nova-micro-v1": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 5120,
+    "supportsImageInput": false
+  },
+  "amazon/nova-premier-v1": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32000,
+    "supportsImageInput": true
+  },
+  "amazon/nova-pro-v1": {
+    "contextWindow": 300000,
+    "maxOutputTokens": 5120,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-3-haiku": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 4096,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-fable-5": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-haiku-4.5": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-opus-4": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32000,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-opus-4.1": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32000,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-opus-4.5": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-opus-4.6": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-opus-4.7": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-opus-4.7-fast": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-opus-4.8": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-opus-4.8-fast": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-opus-5": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-opus-5-fast": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-sonnet-4": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-sonnet-4.5": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-sonnet-4.6": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "anthropic/claude-sonnet-5": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "arcee-ai/trinity-large-thinking": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "arcee-ai/virtuoso-large": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "bytedance-seed/seed-1.6": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "bytedance-seed/seed-1.6-flash": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "bytedance-seed/seed-2.0-lite": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "bytedance-seed/seed-2.0-mini": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "cohere/command-r-08-2024": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 4000,
+    "supportsImageInput": false
+  },
+  "cohere/command-r-plus-08-2024": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 4000,
+    "supportsImageInput": false
+  },
+  "cohere/north-mini-code:free": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "deepseek/deepseek-chat": {
+    "contextWindow": 163840,
+    "maxOutputTokens": 16000,
+    "supportsImageInput": false
+  },
+  "deepseek/deepseek-chat-v3-0324": {
+    "contextWindow": 163840,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "deepseek/deepseek-chat-v3.1": {
+    "contextWindow": 163840,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "deepseek/deepseek-r1": {
+    "contextWindow": 163840,
+    "maxOutputTokens": 16000,
+    "supportsImageInput": false
+  },
+  "deepseek/deepseek-r1-0528": {
+    "contextWindow": 163840,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "deepseek/deepseek-v3.1-terminus": {
+    "contextWindow": 163840,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "deepseek/deepseek-v3.2": {
+    "contextWindow": 163840,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "deepseek/deepseek-v3.2-exp": {
+    "contextWindow": 163840,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "deepseek/deepseek-v4-flash": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "deepseek/deepseek-v4-pro": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "google/gemini-2.5-flash": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-2.5-flash-lite": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-2.5-pro": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-2.5-pro-preview": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-2.5-pro-preview-05-06": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-3-flash-preview": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-3-pro-image": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-3.1-flash-lite": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-3.1-flash-lite-preview": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-3.1-pro-preview": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-3.1-pro-preview-customtools": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-3.5-flash": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-3.5-flash-lite": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemini-3.6-flash": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemma-3-12b-it": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "google/gemma-3-27b-it": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemma-4-26b-a4b-it": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemma-4-26b-a4b-it:free": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemma-4-31b-it": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "google/gemma-4-31b-it:free": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "ibm-granite/granite-4.1-8b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "inception/mercury-2": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "inclusionai/ling-2.6-1t": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "inclusionai/ling-2.6-flash": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "inclusionai/ling-3.0-flash:free": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "inclusionai/ring-2.6-1t": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "kwaipilot/kat-coder-air-v2.5": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "kwaipilot/kat-coder-pro-v2": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "kwaipilot/kat-coder-pro-v2.5": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "meituan/longcat-2.0": {
+    "contextWindow": 1048756,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "meta-llama/llama-3.1-70b-instruct": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "meta-llama/llama-3.1-8b-instruct": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "meta-llama/llama-3.3-70b-instruct": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "meta-llama/llama-4-maverick": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "meta-llama/llama-4-scout": {
+    "contextWindow": 1310720,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "meta/muse-spark-1.1": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "minimax/minimax-m1": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "minimax/minimax-m2": {
+    "contextWindow": 204800,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "minimax/minimax-m2.1": {
+    "contextWindow": 204800,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "minimax/minimax-m2.5": {
+    "contextWindow": 204800,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "minimax/minimax-m2.7": {
+    "contextWindow": 204800,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "minimax/minimax-m3": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistralai/codestral-2508": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "mistralai/devstral-2512": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "mistralai/ministral-14b-2512": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistralai/ministral-3b-2512": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistralai/ministral-8b-2512": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistralai/mistral-large": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "mistralai/mistral-large-2407": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "mistralai/mistral-large-2512": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistralai/mistral-medium-3": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistralai/mistral-medium-3-5": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistralai/mistral-medium-3.1": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistralai/mistral-nemo": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "mistralai/mistral-saba": {
+    "contextWindow": 32768,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "mistralai/mistral-small-2603": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "mistralai/mistral-small-3.2-24b-instruct": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "mistralai/mixtral-8x22b-instruct": {
+    "contextWindow": 65536,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "mistralai/voxtral-small-24b-2507": {
+    "contextWindow": 32000,
+    "maxOutputTokens": 16000,
+    "supportsImageInput": false
+  },
+  "moonshotai/kimi-k2": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "moonshotai/kimi-k2-0905": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "moonshotai/kimi-k2-thinking": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "moonshotai/kimi-k2.5": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "moonshotai/kimi-k2.6": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "moonshotai/kimi-k2.7-code": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "moonshotai/kimi-k3": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "nex-agi/nex-n2-mini": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "nex-agi/nex-n2-pro": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "nvidia/nemotron-3-nano-30b-a3b": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "nvidia/nemotron-3-nano-30b-a3b:free": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "nvidia/nemotron-3-super-120b-a12b": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "nvidia/nemotron-3-super-120b-a12b:free": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "nvidia/nemotron-3-ultra-550b-a55b": {
+    "contextWindow": 512288,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "nvidia/nemotron-3-ultra-550b-a55b:free": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "nvidia/nemotron-nano-12b-v2-vl:free": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "nvidia/nemotron-nano-9b-v2:free": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "openai/gpt-3.5-turbo": {
+    "contextWindow": 16385,
+    "maxOutputTokens": 4096,
+    "supportsImageInput": false
+  },
+  "openai/gpt-3.5-turbo-0613": {
+    "contextWindow": 4095,
+    "maxOutputTokens": 2047,
+    "supportsImageInput": false
+  },
+  "openai/gpt-3.5-turbo-16k": {
+    "contextWindow": 16385,
+    "maxOutputTokens": 4096,
+    "supportsImageInput": false
+  },
+  "openai/gpt-4": {
+    "contextWindow": 8191,
+    "maxOutputTokens": 4095,
+    "supportsImageInput": false
+  },
+  "openai/gpt-4-turbo": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 4096,
+    "supportsImageInput": true
+  },
+  "openai/gpt-4-turbo-preview": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 4096,
+    "supportsImageInput": false
+  },
+  "openai/gpt-4.1": {
+    "contextWindow": 1047576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-4.1-mini": {
+    "contextWindow": 1047576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-4.1-nano": {
+    "contextWindow": 1047576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-4o": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "openai/gpt-4o-2024-05-13": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 4096,
+    "supportsImageInput": true
+  },
+  "openai/gpt-4o-2024-08-06": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "openai/gpt-4o-2024-11-20": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "openai/gpt-4o-mini": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "openai/gpt-4o-mini-2024-07-18": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5-codex": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5-mini": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5-nano": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5-pro": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.1": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.1-chat": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32000,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.1-codex": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.1-codex-max": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.1-codex-mini": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.2": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.2-chat": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.2-codex": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.2-pro": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.3-chat": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.3-codex": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.4": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.4-mini": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.4-nano": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.4-pro": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.5": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.5-pro": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.6-luna": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.6-luna-pro": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.6-sol": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.6-sol-pro": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.6-terra": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-5.6-terra-pro": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-audio": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "openai/gpt-audio-mini": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "openai/gpt-chat-latest": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/gpt-oss-120b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "openai/gpt-oss-20b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "openai/gpt-oss-20b:free": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "openai/gpt-oss-safeguard-20b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "openai/o1": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/o3": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/o3-deep-research": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/o3-mini": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "openai/o3-mini-high": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "openai/o3-pro": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/o4-mini": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/o4-mini-deep-research": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openai/o4-mini-high": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openrouter/auto": {
+    "contextWindow": 2000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "openrouter/free": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 8000,
+    "supportsImageInput": true
+  },
+  "poolside/laguna-m.1": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "poolside/laguna-m.1:free": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "poolside/laguna-s-2.1": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "poolside/laguna-s-2.1:free": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "poolside/laguna-xs-2.1": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "poolside/laguna-xs-2.1:free": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen-2.5-72b-instruct": {
+    "contextWindow": 32768,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "qwen/qwen-2.5-7b-instruct": {
+    "contextWindow": 32768,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "qwen/qwen-plus": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen-plus-2025-07-28": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen-plus-2025-07-28:thinking": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-14b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 8192,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-235b-a22b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 8192,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-235b-a22b-2507": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-235b-a22b-thinking-2507": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-30b-a3b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-30b-a3b-instruct-2507": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32000,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-30b-a3b-thinking-2507": {
+    "contextWindow": 81920,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-32b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-8b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 8192,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-coder": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-coder-30b-a3b-instruct": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-coder-flash": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-coder-next": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-coder-plus": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-max": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-max-thinking": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-next-80b-a3b-instruct": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-next-80b-a3b-thinking": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3-vl-235b-a22b-instruct": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3-vl-235b-a22b-thinking": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3-vl-30b-a3b-instruct": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3-vl-30b-a3b-thinking": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3-vl-32b-instruct": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3-vl-8b-instruct": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3-vl-8b-thinking": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.5-122b-a10b": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.5-27b": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.5-35b-a3b": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.5-397b-a17b": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.5-9b": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.5-flash-02-23": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.5-plus-02-15": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.5-plus-20260420": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.6-27b": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.6-35b-a3b": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.6-flash": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.6-max-preview": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3.6-plus": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.7-flash": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "qwen/qwen3.7-max": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "qwen/qwen3.7-plus": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "rekaai/reka-edge": {
+    "contextWindow": 16384,
+    "maxOutputTokens": 8192,
+    "supportsImageInput": true
+  },
+  "relace/relace-search": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "sakana/fugu-ultra": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "sao10k/l3.1-euryale-70b": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "stepfun/step-3.5-flash": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "stepfun/step-3.7-flash": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "tencent/hy3": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "tencent/hy3-preview": {
+    "contextWindow": 262144,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "thedrummer/unslopnemo-12b": {
+    "contextWindow": 32768,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "thinkingmachines/inkling": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "upstage/solar-pro-3": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "x-ai/grok-4.20": {
+    "contextWindow": 2000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "x-ai/grok-4.3": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "x-ai/grok-4.5": {
+    "contextWindow": 500000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "x-ai/grok-build-0.1": {
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "xiaomi/mimo-v2.5": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "xiaomi/mimo-v2.5-pro": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "z-ai/glm-4.5": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "z-ai/glm-4.5-air": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "z-ai/glm-4.5v": {
+    "contextWindow": 65536,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": true
+  },
+  "z-ai/glm-4.6": {
+    "contextWindow": 204800,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "z-ai/glm-4.6v": {
+    "contextWindow": 131072,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "z-ai/glm-4.7": {
+    "contextWindow": 204800,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "z-ai/glm-4.7-flash": {
+    "contextWindow": 202752,
+    "maxOutputTokens": 16384,
+    "supportsImageInput": false
+  },
+  "z-ai/glm-5": {
+    "contextWindow": 204800,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "z-ai/glm-5-turbo": {
+    "contextWindow": 202752,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "z-ai/glm-5.1": {
+    "contextWindow": 204800,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "z-ai/glm-5.2": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": false
+  },
+  "z-ai/glm-5v-turbo": {
+    "contextWindow": 202752,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "~anthropic/claude-fable-latest": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "~anthropic/claude-haiku-latest": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "~anthropic/claude-opus-latest": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "~anthropic/claude-sonnet-latest": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "~google/gemini-flash-latest": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "~google/gemini-pro-latest": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "~moonshotai/kimi-latest": {
+    "contextWindow": 1048576,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "~openai/gpt-latest": {
+    "contextWindow": 1050000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "~openai/gpt-mini-latest": {
+    "contextWindow": 400000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "~x-ai/grok-latest": {
+    "contextWindow": 500000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  }
+}

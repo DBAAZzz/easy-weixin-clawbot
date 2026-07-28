@@ -68,9 +68,20 @@ test("deepseek provider uses openai-compatible chat transport", () => {
 
   assert.match((model as { provider?: string }).provider ?? "", /^deepseek/);
   assert.equal(meta.contextWindow, 1_000_000);
-  assert.equal(meta.maxOutputTokens, 384_000);
   assert.equal(meta.supportsImageInput, false);
-  assert.equal(meta.requiresReasonedToolHistory, true);
+});
+
+/**
+ * The flag is a property of DeepSeek's *thinking* endpoint, not of the account.
+ * Applying it provider-wide narrated deepseek-chat's tool history for nothing,
+ * which is the concrete cost of provider-grained metadata.
+ */
+test("deepseek reasoned-tool-history applies per model, not per provider", () => {
+  const chat = createLanguageModel("deepseek", "deepseek-chat", { apiKey: "test-key" });
+  const reasoner = createLanguageModel("deepseek", "deepseek-reasoner", { apiKey: "test-key" });
+
+  assert.equal(chat.meta.requiresReasonedToolHistory, undefined);
+  assert.equal(reasoner.meta.requiresReasonedToolHistory, true);
 });
 
 test("non-deepseek model metadata does not require reasoned tool history", () => {
@@ -81,7 +92,7 @@ test("non-deepseek model metadata does not require reasoned tool history", () =>
   assert.equal(meta.requiresReasonedToolHistory, undefined);
 });
 
-test("model capability table marks known vision models", () => {
+test("model catalog marks known vision models", () => {
   const { meta } = createLanguageModel("openai", "gpt-4.1-mini", {
     apiKey: "test-key",
   });

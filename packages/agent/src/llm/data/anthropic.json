@@ -1,0 +1,77 @@
+{
+  "claude-fable-5": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "claude-haiku-4-5": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "claude-haiku-4-5-20251001": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "claude-opus-4-1": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32000,
+    "supportsImageInput": true
+  },
+  "claude-opus-4-1-20250805": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32000,
+    "supportsImageInput": true
+  },
+  "claude-opus-4-5": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "claude-opus-4-5-20251101": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "claude-opus-4-6": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "claude-opus-4-7": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "claude-opus-4-8": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "claude-opus-5": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "claude-sonnet-4-5": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "claude-sonnet-4-5-20250929": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "claude-sonnet-4-6": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  },
+  "claude-sonnet-5": {
+    "contextWindow": 1000000,
+    "maxOutputTokens": 32768,
+    "supportsImageInput": true
+  }
+}

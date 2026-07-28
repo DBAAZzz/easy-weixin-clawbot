@@ -94,10 +94,16 @@ pnpm -F @clawbot/server prisma:migrate:deploy  # 应用未执行的 migration
 pnpm -F @clawbot/server prisma:migrate:status  # 查看 migration 状态
 pnpm -F @clawbot/server prisma:migrate:diff    # 生成 schema 变更 SQL（需人工审查后存入 migrations/）
 
-# 类型检查（单包）
+# 类型检查（单包）——优先用包自己的 typecheck 脚本
+# 直接 `exec tsc --noEmit` 用的是构建配置，include 通常只有 src，
+# 测试和脚本目录不在其中，改错了也查不出来
+pnpm -F @clawbot/agent typecheck    # src + test + scripts
 pnpm -F @clawbot/server exec tsc --noEmit
-pnpm -F @clawbot/agent exec tsc --noEmit
 pnpm -F @clawbot/web exec tsc --noEmit
+
+# 模型元数据（每模型粒度，数据源 models.dev）
+pnpm -F @clawbot/agent generate:models   # 重新生成 src/llm/data/
+pnpm -F @clawbot/agent check:models      # 校验生成产物未被手改
 ```
 
 ## 编码规范
@@ -219,11 +225,12 @@ activation: on-demand    # always-on | on-demand
 
 ## 提交前检查清单
 
-1. `pnpm -F <package> exec tsc --noEmit` 类型检查通过
+1. 类型检查通过：包有 `typecheck` 脚本就用它（覆盖 test/scripts），没有再退回 `pnpm -F <package> exec tsc --noEmit`
 2. 如修改了 Prisma schema → 已生成 migration 并运行 `prisma:migrate:deploy` + `prisma:generate`
 3. 如修改了 `agent` 包 → 确认未引入对 `server` 的依赖
 4. 如修改了前端 → 无 Tailwind 任意值
 5. 如新增/修改 Markdown 工具或技能 → frontmatter 字段完整
+6. 如修改了 `agent` 的模型元数据 → `pnpm -F @clawbot/agent check:models` 通过（生成产物不可手改）
 
 ## 子包专属规范
 

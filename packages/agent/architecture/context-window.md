@@ -158,7 +158,7 @@ Tape 压缩时 facts / preferences 故意**不**截断：它们的源 entry 会�
 ## 八、已知短板
 
 1. **历史从数据库全量加载**。`restoreHistory()`（`packages/server/src/db/messages.ts:381`）没有 `limit`，长会话冷启动会把全部消息拉进内存并 hydrate。裁剪只发生在"发给模型"这一层，正确性没问题，但加载耗时与内存占用随会话长度线性增长。
-2. **DB 配置无法覆盖窗口大小**。模型元数据已经是每模型粒度，但 DB 里的模型配置仍只能覆盖 `supportsImageInput`（`buildModelFromConfig()` 的 `supportsImageInputOverride`）。接自定义中转站或私有部署时，若模型不在生成目录里，只能落到 `FALLBACK_MODEL_META`，或改 `model-overrides.ts` 重新发版——用户无法在后台自助修正。补齐需要动 Prisma schema、server API 和 Web 表单。
+2. **窗口大小不开放给后台配置——这是选择，不是遗漏。** DB 里的模型配置只能覆盖 `supportsImageInput`（`buildModelFromConfig()` 的 `supportsImageInputOverride`），窗口和输出预留只认生成目录。代价是中转站、私有部署、以及"同一 model id 因套餐不同而窗口不同"这三类情况只能落到 `FALLBACK_MODEL_META`。本服务当前不面向非主流模型，所以不为此加 Prisma 字段和后台表单。如果将来这类用户变多，先量化 `FALLBACK_MODEL_META` 的命中率再决定，不要凭印象开工。
 3. **生成目录会过期**。models.dev 新增模型不会自动同步，需要人工跑 `generate:models`。`check:models` 只校验产物完整性，不校验新鲜度——把新鲜度纳入 CI 会让上游一发新模型就红，那不是本仓的缺陷。
 4. **Token 估算与真实值存在偏差**。10% 安全边际覆盖常规情况，但纯 CJK 长文本或大量结构化 JSON 的 tool result 可能偏离更多。
 5. **Level 3 摘要压缩缺位**，早期上下文一旦滑出窗口就只剩 Tape 记忆里的结构化片段。

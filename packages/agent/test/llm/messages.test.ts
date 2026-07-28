@@ -470,7 +470,7 @@ test("agentToModelMessages sends trigger turns as marked user messages", () => {
       role: "trigger",
       timestamp: 1,
       content: [{ type: "text", text: "问问他面试结果" }],
-      meta: { kind: "reminder", reminderId: "r-1" },
+      meta: { kind: "pulse" },
     },
     { role: "assistant", timestamp: 2, content: [{ type: "text", text: "面试怎么样？" }] },
   ];

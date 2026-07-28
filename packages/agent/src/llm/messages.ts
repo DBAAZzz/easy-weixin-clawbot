@@ -22,10 +22,12 @@ import type {
   AssistantMessage,
   ImageContent,
   TextContent,
+  ToolCallContent,
   ToolResultMessage,
   TriggerMessage,
   UserMessage,
 } from "./types.js";
+import { extractToolResultText } from "../shared/utils/chat-utils.js";
 
 // ── AgentMessage[] → AI SDK ModelMessage[] ─────────────────────────
 
@@ -254,12 +256,67 @@ export function agentToModelMessages(messages: AgentMessage[]): ModelMessage[] {
 }
 
 /**
- * DeepSeek v4 thinking mode rejects historical assistant tool calls that do not
- * include reasoning_content. Older non-thinking DeepSeek conversations can have
- * exactly that shape, so remove only the stale tool-call linkage before sending.
+ * Characters of a tool result carried into narration text. Beyond this the tail
+ * is dropped: narrated output is prose inside an assistant turn, and a very long
+ * one reads as a wall of serialized data rather than a record of what happened.
  */
-export function stripUnreasonedToolCallHistory(messages: AgentMessage[]): AgentMessage[] {
-  const strippedToolCallIds = new Set<string>();
+const NARRATED_TOOL_RESULT_MAX_CHARS = 2000;
+
+/**
+ * Render one tool round-trip as narration text.
+ *
+ * A missing result is stated rather than omitted — it means the call never came
+ * back (aborted run, dropped result), which the model should see as a fact about
+ * the conversation instead of inferring from a silent gap.
+ */
+function narrateToolCall(
+  call: ToolCallContent,
+  result: ToolResultMessage | undefined,
+): TextContent {
+  const args = JSON.stringify(call.arguments ?? {});
+  const head = `[已调用工具 ${call.name}(${args})`;
+
+  if (!result) {
+    return { type: MESSAGE_CONTENT_TYPE.TEXT, text: `${head}，未返回结果]` };
+  }
+
+  const raw = extractToolResultText(result);
+  const output =
+    raw.length > NARRATED_TOOL_RESULT_MAX_CHARS
+      ? `${raw.slice(0, NARRATED_TOOL_RESULT_MAX_CHARS)}…（结果已截断）`
+      : raw;
+
+  return {
+    type: MESSAGE_CONTENT_TYPE.TEXT,
+    text: `${head}，${result.isError ? "返回错误" : "返回"}：${output}]`,
+  };
+}
+
+/**
+ * Flatten tool round-trips that carry no reasoning into plain narration text.
+ *
+ * DeepSeek v4 thinking mode rejects historical assistant tool calls without
+ * reasoning_content. History reaches that shape whenever a conversation ran on a
+ * non-thinking model first — a routine result of switching a conversation's model,
+ * not just legacy data — so this has to stay correct for histories that keep
+ * growing, not merely tolerate old rows.
+ *
+ * Narrating rather than deleting is deliberate. Dropping the call leaves the
+ * assistant's own "let me look that up" with no visible outcome, and a model that
+ * cannot see its prior call simply makes it again — which strips again next
+ * round, looping until maxRounds. Narration keeps the record, and plain text is
+ * accepted by every provider, so it needs no per-provider wire-format guesswork.
+ */
+export function narrateUnreasonedToolCalls(messages: AgentMessage[]): AgentMessage[] {
+  // Indexed up front: a result is not guaranteed to sit adjacent to its call.
+  const resultsByCallId = new Map<string, ToolResultMessage>();
+  for (const msg of messages) {
+    if (msg.role === MESSAGE_ROLE.TOOL_RESULT && !resultsByCallId.has(msg.toolCallId)) {
+      resultsByCallId.set(msg.toolCallId, msg);
+    }
+  }
+
+  const narratedCallIds = new Set<string>();
   const result: AgentMessage[] = [];
 
   for (const msg of messages) {
@@ -270,22 +327,26 @@ export function stripUnreasonedToolCallHistory(messages: AgentMessage[]): AgentM
       );
 
       if (hasToolCall && !hasThinking) {
-        const content = msg.content.filter((block) => {
-          if (block.type !== MESSAGE_CONTENT_TYPE.TOOL_CALL) {
-            return true;
+        const content = msg.content.flatMap((block) => {
+          if (block.type === MESSAGE_CONTENT_TYPE.TOOL_CALL) {
+            narratedCallIds.add(block.id);
+            return [narrateToolCall(block, resultsByCallId.get(block.id))];
           }
-          strippedToolCallIds.add(block.id);
-          return false;
+          // Only blank thinking blocks can reach here (a non-blank one would have
+          // skipped this branch), and an empty reasoning part is the very thing
+          // the target model objects to. Drop them.
+          if (block.type === MESSAGE_CONTENT_TYPE.THINKING) {
+            return [];
+          }
+          return [block];
         });
 
-        if (content.length > 0) {
-          result.push({ ...msg, content });
-        }
+        result.push({ ...msg, content });
         continue;
       }
     }
 
-    if (msg.role === MESSAGE_ROLE.TOOL_RESULT && strippedToolCallIds.has(msg.toolCallId)) {
+    if (msg.role === MESSAGE_ROLE.TOOL_RESULT && narratedCallIds.has(msg.toolCallId)) {
       continue;
     }
 

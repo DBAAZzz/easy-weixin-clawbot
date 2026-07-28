@@ -18,8 +18,8 @@ import type {
 import {
   agentToModelMessages,
   mapModelResultToAssistantMessage,
+  narrateUnreasonedToolCalls,
   replaceImagesWithTextPlaceholders,
-  stripUnreasonedToolCallHistory,
 } from "../llm/messages.js";
 import { modelSupportsVision } from "../llm/model-meta.js";
 import {
@@ -240,13 +240,18 @@ function resolveEffectiveModel(
 }
 
 /**
- * Build the per-round message list sent to the model: strip unreasoned tool
+ * Build the per-round message list sent to the model: narrate unreasoned tool
  * history when required, and drop images for non-vision models. The original
  * `workingHistory` (and DB) is never mutated — trimming only affects the copy.
+ *
+ * History stays provider-neutral in the DB precisely because this runs per send:
+ * the same conversation may go to a model that needs narration today and back to
+ * one that wants the structured form tomorrow, and a flattened row could not be
+ * restored.
  */
 function buildPromptHistory(workingHistory: AgentMessage[], meta: ModelMeta): AgentMessage[] {
   let history = meta.requiresReasonedToolHistory
-    ? stripUnreasonedToolCallHistory(workingHistory)
+    ? narrateUnreasonedToolCalls(workingHistory)
     : workingHistory;
 
   if (!modelSupportsVision(meta)) {

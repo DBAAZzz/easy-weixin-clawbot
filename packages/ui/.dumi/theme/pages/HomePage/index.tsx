@@ -191,7 +191,6 @@ export default function HomePage() {
         <p className="clawbot-home-section-label">Component catalog</p>
         <div className="clawbot-home-catalog-heading">
           <h2>从动作到反馈，快速找到合适的组件。</h2>
-          <p>首页负责发现，组件页负责用法、示例与 API 契约。</p>
         </div>
 
         <div className="clawbot-home-categories">

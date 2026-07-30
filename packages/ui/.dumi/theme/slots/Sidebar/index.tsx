@@ -10,7 +10,7 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="dumi-default-sidebar">
+    <nav className="dumi-default-sidebar" aria-label="组件目录">
       {sidebar.map((item, index) => (
         <dl className="dumi-default-sidebar-group" key={String(index)}>
           {item.title ? <dt>{item.title}</dt> : null}
@@ -23,6 +23,6 @@ export default function Sidebar() {
           ))}
         </dl>
       ))}
-    </div>
+    </nav>
   );
 }

@@ -31,6 +31,7 @@ export default function DocLayout() {
   const [activateSidebar, updateActivateSidebar] = useState(false);
   const { frontmatter, toc } = useRouteMeta();
   const isHomepage = frontmatter.homepage === true;
+  const isComponentPage = pathname.startsWith("/components/");
   const showSidebar = frontmatter.sidebar !== false && Boolean(sidebar?.length);
   const showToc = frontmatter.toc !== false && toc.some((item) => item.depth > 1 && item.depth < 4);
 
@@ -51,6 +52,7 @@ export default function DocLayout() {
   return (
     <div
       className="dumi-default-doc-layout"
+      data-component-page={isComponentPage || undefined}
       data-mobile-sidebar-active={activateSidebar || undefined}
       onClick={() => updateActivateSidebar(false)}
     >
@@ -82,7 +84,10 @@ export default function DocLayout() {
           <Hero />
           <Features />
           {showSidebar ? (
-            <div className="dumi-default-doc-layout-mobile-bar">
+            <div
+              className="dumi-default-doc-layout-mobile-bar"
+              data-component-context={isComponentPage || undefined}
+            >
               <button
                 type="button"
                 className="dumi-default-sidebar-btn"
@@ -91,8 +96,20 @@ export default function DocLayout() {
                   updateActivateSidebar((value) => !value);
                 }}
               >
-                {intl.formatMessage({ id: "layout.sidebar.btn" })}
+                {isComponentPage ? (
+                  <>
+                    <span>Components</span>
+                    <strong>{frontmatter.title}</strong>
+                  </>
+                ) : (
+                  intl.formatMessage({ id: "layout.sidebar.btn" })
+                )}
               </button>
+              {isComponentPage && showToc ? (
+                <div className="clawbot-mobile-toc">
+                  <Toc />
+                </div>
+              ) : null}
             </div>
           ) : null}
           <main>
@@ -104,7 +121,6 @@ export default function DocLayout() {
             </Content>
             {showToc ? (
               <div className="dumi-default-doc-layout-toc-wrapper">
-                <h4>ON THIS PAGE</h4>
                 <Toc />
               </div>
             ) : null}

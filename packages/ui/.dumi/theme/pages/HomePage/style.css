@@ -1,5 +1,8 @@
 .clawbot-home {
   --home-border: #e5e5df;
+  --home-content-gutter: max(6vw, calc((100vw - var(--home-content-max-width)) / 2));
+  --home-content-inset: 32px;
+  --home-content-max-width: 1120px;
   --home-ink: #191a17;
   --home-muted: #6f716a;
   overflow: hidden;
@@ -40,14 +43,14 @@
     linear-gradient(to bottom, transparent 348px, #e8e8e3 348px, #e8e8e3 349px, transparent 349px),
     linear-gradient(
       to right,
-      transparent 6vw,
-      #eeeeea 6vw,
-      #eeeeea calc(6vw + 1px),
-      transparent calc(6vw + 1px),
-      transparent calc(100% - 6vw - 1px),
-      #eeeeea calc(100% - 6vw - 1px),
-      #eeeeea calc(100% - 6vw),
-      transparent calc(100% - 6vw)
+      transparent var(--home-content-gutter),
+      #eeeeea var(--home-content-gutter),
+      #eeeeea calc(var(--home-content-gutter) + 1px),
+      transparent calc(var(--home-content-gutter) + 1px),
+      transparent calc(100% - var(--home-content-gutter) - 1px),
+      #eeeeea calc(100% - var(--home-content-gutter) - 1px),
+      #eeeeea calc(100% - var(--home-content-gutter)),
+      transparent calc(100% - var(--home-content-gutter))
     );
 }
 
@@ -78,11 +81,11 @@
 }
 
 .clawbot-home-cross--left {
-  left: calc(6vw - 3px);
+  left: calc(var(--home-content-gutter) - 3px);
 }
 
 .clawbot-home-cross--right {
-  right: calc(6vw - 3px);
+  right: calc(var(--home-content-gutter) - 3px);
 }
 
 .clawbot-home-hero-copy {
@@ -98,24 +101,24 @@
 .clawbot-home-kicker {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin: 0;
-  padding: 4px 8px 4px 4px;
+  padding: 5px 11px 5px 5px;
   border: 1px solid #deded8;
   border-radius: 999px;
   background: rgb(255 255 255 / 78%);
   color: #6b6d66;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 400;
   box-shadow: 0 3px 14px rgb(20 20 17 / 3%);
 }
 
 .clawbot-home-kicker strong {
-  padding: 3px 7px;
+  padding: 4px 9px;
   border-radius: 999px;
   background: #242521;
   color: #fff;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.04em;
 }
@@ -538,7 +541,7 @@
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  padding: 28px 6vw;
+  padding: 28px var(--home-content-gutter);
   border-bottom: 1px solid var(--home-border);
   background: #fff;
 }
@@ -565,7 +568,7 @@
 }
 
 .clawbot-home-catalog {
-  padding: 92px 6vw 100px;
+  padding: 92px var(--home-content-gutter) 100px;
   scroll-margin-top: 88px;
 }
 
@@ -582,12 +585,16 @@
   text-transform: uppercase;
 }
 
+.clawbot-home-catalog > .clawbot-home-section-label {
+  margin-left: var(--home-content-inset);
+}
+
 .clawbot-home-catalog-heading {
   display: flex;
   align-items: end;
   justify-content: space-between;
   gap: 40px;
-  margin-top: 18px;
+  margin: 18px var(--home-content-inset) 0;
 }
 
 .clawbot-home-catalog-heading h2,
@@ -619,8 +626,8 @@
 }
 
 .clawbot-home-category {
-  min-height: 194px;
-  padding: 25px 24px;
+  min-height: 218px;
+  padding: 28px 26px;
   border-right: 1px solid #dcdcd6;
   border-bottom: 1px solid #dcdcd6;
   background: rgb(255 255 255 / 38%);
@@ -652,32 +659,32 @@
 }
 
 .clawbot-home-category > p {
-  min-height: 34px;
-  margin: 8px 0 17px;
+  min-height: 40px;
+  margin: 10px 0 20px;
   color: #8a8b84;
-  font-size: 10px;
-  line-height: 1.55;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .clawbot-home-component-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px 13px;
+  gap: 9px 18px;
 }
 
 .clawbot-home-component-links a {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   color: #4c4e48;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 400;
   text-decoration: none;
 }
 
 .clawbot-home-component-links a span {
   color: #b6b7b1;
-  font-size: 8px;
+  font-size: 10px;
   transition: transform 160ms ease;
 }
 
@@ -699,14 +706,14 @@
 .clawbot-home-principle-grid {
   background-image: linear-gradient(
     to right,
-    transparent 6vw,
-    #e9e9e4 6vw,
-    #e9e9e4 calc(6vw + 1px),
-    transparent calc(6vw + 1px),
-    transparent calc(100% - 6vw - 1px),
-    #e9e9e4 calc(100% - 6vw - 1px),
-    #e9e9e4 calc(100% - 6vw),
-    transparent calc(100% - 6vw)
+    transparent var(--home-content-gutter),
+    #e9e9e4 var(--home-content-gutter),
+    #e9e9e4 calc(var(--home-content-gutter) + 1px),
+    transparent calc(var(--home-content-gutter) + 1px),
+    transparent calc(100% - var(--home-content-gutter) - 1px),
+    #e9e9e4 calc(100% - var(--home-content-gutter) - 1px),
+    #e9e9e4 calc(100% - var(--home-content-gutter)),
+    transparent calc(100% - var(--home-content-gutter))
   );
 }
 
@@ -730,8 +737,10 @@
 .clawbot-home-principle > div:last-child {
   position: relative;
   z-index: 2;
-  max-width: 660px;
-  padding: 95px 6vw;
+  width: var(--home-content-max-width);
+  max-width: calc(100% - var(--home-content-gutter) - var(--home-content-gutter));
+  margin: 0 auto;
+  padding: 95px var(--home-content-inset);
 }
 
 .clawbot-home-principle h2 {
@@ -750,40 +759,40 @@
 .clawbot-home-footer {
   display: grid;
   grid-template-columns: 1.4fr 0.6fr 0.6fr;
-  gap: 56px;
-  padding: 56px 6vw 66px;
+  gap: 72px;
+  padding: 64px var(--home-content-gutter) 76px;
   border-radius: 30px 30px 0 0;
   background: #1c1d1a;
   color: #d8d9d4;
 }
 
 .clawbot-home-footer > div:first-child > p:last-child {
-  max-width: 390px;
-  margin: 14px 0 0;
+  max-width: 520px;
+  margin: 18px 0 0;
   color: #858781;
-  font-size: 10px;
-  line-height: 1.65;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .clawbot-home-footer-brand {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 11px;
   margin: 0;
   color: #fff;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 400;
   letter-spacing: -0.035em;
 }
 
 .clawbot-home-footer-brand span {
   display: grid;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   place-items: center;
   border-radius: 50%;
   background: linear-gradient(135deg, #ff7b58, #df4d2f);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .clawbot-home-footer nav,
@@ -794,17 +803,17 @@
 }
 
 .clawbot-home-footer strong {
-  margin: 3px 0 8px;
+  margin: 4px 0 10px;
   color: #f0f1ed;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 .clawbot-home-footer a,
 .clawbot-home-footer > div:last-child span {
-  margin-top: 10px;
+  margin-top: 12px;
   color: #858781;
-  font-size: 10px;
+  font-size: 13px;
   text-decoration: none;
 }
 
@@ -847,6 +856,10 @@
 }
 
 @media (max-width: 767px) {
+  .clawbot-home {
+    --home-content-inset: 0px;
+  }
+
   .clawbot-home-hero {
     min-height: 730px;
   }
@@ -873,7 +886,7 @@
   }
 
   .clawbot-home-kicker {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .clawbot-home-hero h1 {
@@ -971,6 +984,9 @@
   }
 
   .clawbot-home-principle > div:last-child {
+    width: auto;
+    max-width: none;
+    margin: 0;
     padding: 76px 20px 88px;
   }
 

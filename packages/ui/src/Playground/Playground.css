@@ -1,78 +1,122 @@
+:root {
+  --color-playground-stage: #fcfcfa;
+  --color-playground-deck: #f5f4f0;
+  --color-playground-line: #e5e2dc;
+  --color-playground-glow-warm: rgb(255 170 103 / 19%);
+  --color-playground-glow-gold: rgb(255 218 125 / 22%);
+}
+
 .clawbot-playground {
   position: relative;
-  min-height: 420px;
+  display: grid;
+  min-width: 0;
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: #fff;
+  background: var(--color-playground-stage);
 }
 
 .clawbot-playground__preview {
+  position: relative;
+  isolation: isolate;
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: center;
   min-width: 0;
-  min-height: 420px;
-  padding: 32px;
-  background:
-    linear-gradient(90deg, rgba(15, 23, 42, 0.028) 1px, transparent 1px),
-    linear-gradient(rgba(15, 23, 42, 0.028) 1px, transparent 1px), #fff;
-  background-size: 16px 16px;
+  min-height: 300px;
+  overflow: hidden;
+  padding: var(--spacing-13) var(--spacing-12);
+  background: var(--color-playground-stage);
+}
+
+.clawbot-playground__preview::before,
+.clawbot-playground__preview::after {
+  position: absolute;
+  z-index: -1;
+  width: 300px;
+  height: 220px;
+  border-radius: 50%;
+  content: "";
+  filter: blur(34px);
+  pointer-events: none;
+}
+
+.clawbot-playground__preview::before {
+  right: -96px;
+  bottom: -120px;
+  background: radial-gradient(ellipse, var(--color-playground-glow-warm), transparent 70%);
+}
+
+.clawbot-playground__preview::after {
+  bottom: -134px;
+  left: -88px;
+  background: radial-gradient(ellipse, var(--color-playground-glow-gold), transparent 70%);
+}
+
+.clawbot-playground__preview > * {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
 }
 
 .clawbot-playground__panel {
-  position: absolute;
-  top: 24px;
-  right: 24px;
+  position: relative;
   z-index: 2;
-  width: min(320px, calc(100% - 48px));
-  max-height: calc(100% - 48px);
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: var(--spacing-8);
+  width: auto;
+  max-height: none;
   box-sizing: border-box;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 18px;
-  background: rgba(250, 250, 248, 0.96);
-  box-shadow: 0 24px 64px rgba(20, 20, 18, 0.16);
-  overflow-y: auto;
-  backdrop-filter: blur(18px);
+  padding: var(--spacing-7) var(--spacing-8) var(--spacing-8);
+  overflow: visible;
+  border: 0;
+  border-top: 1px solid var(--color-playground-line);
+  border-radius: 0;
+  background: var(--color-playground-deck);
+  box-shadow: none;
 }
 
 .clawbot-playground__panel-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 18px 20px 10px;
+  gap: var(--spacing-4);
+  padding: var(--spacing-2) 0 0;
 }
 
 .clawbot-playground__title {
   margin: 0;
-  color: #2a2823;
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: 0;
+  color: var(--color-ink, #1a2128);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 
 .clawbot-playground__close {
   position: relative;
-  width: 24px;
-  height: 24px;
+  flex: 0 0 auto;
+  width: var(--spacing-8);
+  height: var(--spacing-8);
+  padding: 0;
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #817d75;
+  color: var(--color-muted, #66717c);
   cursor: pointer;
 }
 
 .clawbot-playground__close::before,
 .clawbot-playground__close::after {
-  content: "";
   position: absolute;
-  top: 11px;
-  left: 5px;
-  width: 14px;
-  height: 1.5px;
+  top: 9px;
+  left: 4px;
+  width: 12px;
+  height: 1px;
   border-radius: 999px;
-  background: currentColor;
+  background: currentcolor;
+  content: "";
 }
 
 .clawbot-playground__close::before {
@@ -84,61 +128,64 @@
 }
 
 .clawbot-playground__close:hover {
-  color: #2a2823;
+  color: var(--color-ink, #1a2128);
 }
 
 .clawbot-playground__open {
-  position: absolute;
-  top: 24px;
-  right: 24px;
+  position: relative;
   z-index: 2;
-  height: 34px;
-  padding: 0 14px;
-  border: 1px solid #dedbd6;
+  justify-self: end;
+  height: var(--spacing-11);
+  margin: var(--spacing-5) var(--spacing-7);
+  padding: 0 var(--spacing-6);
+  border: 1px solid var(--color-playground-line);
   border-radius: 999px;
-  background: rgba(250, 250, 248, 0.96);
-  box-shadow: 0 18px 42px rgba(20, 20, 18, 0.14);
-  color: #2a2823;
+  background: var(--color-playground-deck);
+  color: var(--color-ink, #1a2128);
   font: inherit;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  backdrop-filter: blur(18px);
 }
 
 .clawbot-playground__controls {
   display: grid;
-  gap: 15px;
-  padding: 16px 20px 20px;
+  grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
+  gap: var(--spacing-7);
+  min-width: 0;
+  padding: 0;
 }
 
 .clawbot-playground__field {
   display: grid;
-  gap: 8px;
+  align-content: start;
+  gap: var(--spacing-4);
+  min-width: 0;
 }
 
 .clawbot-playground__label {
-  color: #65615b;
-  font-size: 14px;
-  font-weight: 560;
+  overflow: hidden;
+  color: var(--color-muted-strong, #4a535b);
+  font-size: 11px;
+  font-weight: 500;
   line-height: 1.2;
-  letter-spacing: 0;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .clawbot-playground__input,
 .clawbot-playground__select-trigger {
   width: 100%;
-  height: 38px;
+  height: var(--spacing-11);
   box-sizing: border-box;
-  border: 1px solid #dfddd9;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow:
-    inset 0 1px 1px rgba(15, 23, 42, 0.03),
-    0 1px 4px rgba(15, 23, 42, 0.04);
-  color: #2a2823;
+  border: 1px solid var(--color-line-strong, rgb(26 33 40 / 16%));
+  border-radius: var(--radius-xs, 3px);
+  background: var(--color-surface-raised, #fff);
+  box-shadow: var(--shadow-btn-soft, 0 1px 2px rgb(18 28 38 / 5%));
+  color: var(--color-ink, #1a2128);
   font: inherit;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1;
   outline: none;
   transition:
@@ -147,24 +194,26 @@
 }
 
 .clawbot-playground__input {
-  padding: 0 12px;
+  padding: 0 var(--spacing-6);
 }
 
 .clawbot-playground__select-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 0 12px;
+  gap: var(--spacing-5);
+  padding: 0 var(--spacing-6);
   cursor: pointer;
 }
 
 .clawbot-playground__input:focus,
-.clawbot-playground__select-trigger:focus-visible {
-  border-color: #a8a49d;
-  box-shadow:
-    inset 0 1px 1px rgba(15, 23, 42, 0.03),
-    0 0 0 3px rgba(42, 40, 35, 0.08);
+.clawbot-playground__select-trigger:focus-visible,
+.clawbot-playground__close:focus-visible,
+.clawbot-playground__open:focus-visible,
+.clawbot-playground__switch:focus-visible {
+  border-color: var(--color-accent, #1d6e54);
+  box-shadow: var(--shadow-focus-accent, 0 0 0 3px rgb(29 110 84 / 20%));
+  outline: none;
 }
 
 .clawbot-playground__select-value {
@@ -177,9 +226,9 @@
 .clawbot-playground__select-icon {
   width: 0;
   height: 0;
-  border-top: 6px solid #88847d;
-  border-right: 5px solid transparent;
-  border-left: 5px solid transparent;
+  border-top: var(--spacing-3) solid var(--color-muted, #66717c);
+  border-right: var(--spacing-2) solid transparent;
+  border-left: var(--spacing-2) solid transparent;
   transition: transform 160ms ease;
 }
 
@@ -196,11 +245,11 @@
   max-height: 220px;
   overflow-y: auto;
   box-sizing: border-box;
-  border: 1px solid #dfddd9;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.98);
-  padding: 5px;
-  box-shadow: 0 18px 48px rgba(20, 20, 18, 0.16);
+  padding: var(--spacing-2);
+  border: 1px solid var(--color-line-strong, rgb(26 33 40 / 16%));
+  border-radius: var(--radius-card, 10px);
+  background: var(--color-panel-strong, rgb(255 255 255 / 94%));
+  box-shadow: var(--shadow-popover, 0 8px 30px -8px rgb(18 28 38 / 16%));
   backdrop-filter: blur(18px);
 }
 
@@ -208,46 +257,47 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  min-height: 34px;
-  padding: 0 10px;
-  border-radius: 8px;
-  color: #2a2823;
-  font-size: 13px;
+  gap: var(--spacing-5);
+  min-height: var(--spacing-11);
+  padding: 0 var(--spacing-5);
+  border-radius: var(--radius-xs, 3px);
+  color: var(--color-ink, #1a2128);
+  font-size: 12px;
   outline: none;
   cursor: pointer;
 }
 
 .clawbot-playground__select-item[data-highlighted] {
-  background: #f0efed;
+  background: var(--color-surface-sunken, #eef1f4);
 }
 
 .clawbot-playground__select-item[data-selected] {
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .clawbot-playground__select-indicator {
-  color: #2a2823;
-  font-size: 12px;
+  color: var(--color-ink, #1a2128);
+  font-size: 11px;
 }
 
 .clawbot-playground__switch-field {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--spacing-6);
+  min-height: var(--spacing-11);
 }
 
 .clawbot-playground__switch {
   display: inline-flex;
   align-items: center;
-  width: 42px;
-  height: 24px;
+  width: 38px;
+  height: var(--spacing-9);
   box-sizing: border-box;
-  border: 1px solid #bdbab5;
+  padding: var(--spacing-1);
+  border: 1px solid var(--color-line-strong, rgb(26 33 40 / 16%));
   border-radius: 999px;
-  background: #dfdedb;
-  padding: 2px;
+  background: var(--color-surface-sunken, #eef1f4);
   cursor: pointer;
   outline: none;
   transition:
@@ -256,51 +306,52 @@
     box-shadow 160ms ease;
 }
 
-.clawbot-playground__switch:focus-visible {
-  box-shadow: 0 0 0 3px rgba(42, 40, 35, 0.08);
-}
-
 .clawbot-playground__switch[data-checked] {
-  border-color: #2a2823;
-  background: #2a2823;
+  border-color: var(--color-ink, #1a2128);
+  background: var(--color-ink, #1a2128);
 }
 
 .clawbot-playground__switch-thumb {
-  width: 18px;
-  height: 18px;
+  width: var(--spacing-7);
+  height: var(--spacing-7);
   border-radius: 999px;
-  background: #fff;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.16),
-    0 2px 8px rgba(15, 23, 42, 0.18);
+  background: var(--color-surface-raised, #fff);
+  box-shadow: var(--shadow-btn, 0 1px 3px rgb(18 28 38 / 18%));
   transition: transform 160ms ease;
 }
 
 .clawbot-playground__switch-thumb[data-checked] {
-  transform: translateX(18px);
+  transform: translateX(16px);
 }
 
 @media (max-width: 720px) {
-  .clawbot-playground,
   .clawbot-playground__preview {
-    min-height: 540px;
-  }
-
-  .clawbot-playground__preview {
-    padding: 24px;
+    min-height: 260px;
+    padding: var(--spacing-12) var(--spacing-8);
   }
 
   .clawbot-playground__panel {
-    top: auto;
-    right: 16px;
-    bottom: 16px;
-    width: calc(100% - 32px);
-    border-radius: 16px;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-6);
+    padding: var(--spacing-7);
   }
 
-  .clawbot-playground__open {
-    top: auto;
-    right: 16px;
-    bottom: 16px;
+  .clawbot-playground__panel-header {
+    padding: 0;
+  }
+
+  .clawbot-playground__controls {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--spacing-6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clawbot-playground *,
+  .clawbot-playground *::before,
+  .clawbot-playground *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

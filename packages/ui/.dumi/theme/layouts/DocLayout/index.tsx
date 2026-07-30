@@ -7,6 +7,8 @@ import {
   useSidebarData,
   useSiteData,
 } from "dumi";
+import "@fontsource-variable/geist";
+import "@fontsource-variable/noto-sans-sc";
 import ContentFooter from "dumi/theme-default/slots/ContentFooter";
 import Features from "dumi/theme-default/slots/Features";
 import Footer from "dumi/theme-default/slots/Footer";
@@ -14,6 +16,7 @@ import Header from "dumi/theme-default/slots/Header";
 import Hero from "dumi/theme-default/slots/Hero";
 import { useEffect, useState } from "react";
 import Content from "../../slots/Content/index.js";
+import HomePage from "../../pages/HomePage/index.js";
 import Sidebar from "../../slots/Sidebar/index.js";
 import Toc from "../../slots/Toc/index.js";
 import "dumi/theme-default/layouts/DocLayout/index.less";
@@ -27,6 +30,7 @@ export default function DocLayout() {
   const { loading, hostname } = useSiteData();
   const [activateSidebar, updateActivateSidebar] = useState(false);
   const { frontmatter, toc } = useRouteMeta();
+  const isHomepage = frontmatter.homepage === true;
   const showSidebar = frontmatter.sidebar !== false && Boolean(sidebar?.length);
   const showToc = frontmatter.toc !== false && toc.some((item) => item.depth > 1 && item.depth < 4);
 
@@ -69,36 +73,44 @@ export default function DocLayout() {
         {hostname ? <link rel="canonical" href={hostname + pathname} /> : null}
       </Helmet>
       <Header />
-      <Hero />
-      <Features />
-      {showSidebar ? (
-        <div className="dumi-default-doc-layout-mobile-bar">
-          <button
-            type="button"
-            className="dumi-default-sidebar-btn"
-            onClick={(event) => {
-              event.stopPropagation();
-              updateActivateSidebar((value) => !value);
-            }}
-          >
-            {intl.formatMessage({ id: "layout.sidebar.btn" })}
-          </button>
-        </div>
-      ) : null}
-      <main>
-        {showSidebar ? <Sidebar /> : null}
-        <Content>
-          <article>{outlet}</article>
-          <ContentFooter />
-          <Footer />
-        </Content>
-        {showToc ? (
-          <div className="dumi-default-doc-layout-toc-wrapper">
-            <h4>ON THIS PAGE</h4>
-            <Toc />
-          </div>
-        ) : null}
-      </main>
+      {isHomepage ? (
+        <main className="clawbot-home-layout">
+          <HomePage />
+        </main>
+      ) : (
+        <>
+          <Hero />
+          <Features />
+          {showSidebar ? (
+            <div className="dumi-default-doc-layout-mobile-bar">
+              <button
+                type="button"
+                className="dumi-default-sidebar-btn"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  updateActivateSidebar((value) => !value);
+                }}
+              >
+                {intl.formatMessage({ id: "layout.sidebar.btn" })}
+              </button>
+            </div>
+          ) : null}
+          <main>
+            {showSidebar ? <Sidebar /> : null}
+            <Content>
+              <article>{outlet}</article>
+              <ContentFooter />
+              <Footer />
+            </Content>
+            {showToc ? (
+              <div className="dumi-default-doc-layout-toc-wrapper">
+                <h4>ON THIS PAGE</h4>
+                <Toc />
+              </div>
+            ) : null}
+          </main>
+        </>
+      )}
     </div>
   );
 }

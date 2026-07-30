@@ -1,19 +1,20 @@
 :root {
-  --clawbot-doc-header-height: 64px;
-  --clawbot-doc-sidebar-width: 240px;
-  --clawbot-doc-toc-width: 240px;
-  --clawbot-doc-content-width: 980px;
-  --clawbot-doc-bg: #f6f7f8;
-  --clawbot-doc-surface: #ffffff;
-  --clawbot-doc-surface-muted: #f2f4f5;
-  --clawbot-doc-border: #e3e7ea;
-  --clawbot-doc-border-strong: #d5dbe0;
-  --clawbot-doc-text: #24292f;
-  --clawbot-doc-muted: #626b76;
-  --clawbot-doc-subtle: #8a929c;
-  --clawbot-doc-primary: #2563eb;
-  --clawbot-doc-radius: 18px;
-  --clawbot-doc-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+  --clawbot-doc-header-height: 68px;
+  --clawbot-doc-sidebar-width: 232px;
+  --clawbot-doc-toc-width: 220px;
+  --clawbot-doc-content-width: 1020px;
+  --clawbot-doc-bg: #f3f2ee;
+  --clawbot-doc-surface: #fbfbf9;
+  --clawbot-doc-surface-muted: #f0efeb;
+  --clawbot-doc-border: #e2e1db;
+  --clawbot-doc-border-strong: #d5d3cc;
+  --clawbot-doc-text: #1c1d1a;
+  --clawbot-doc-muted: #666861;
+  --clawbot-doc-subtle: #8a8b84;
+  --clawbot-doc-primary: #df5c3d;
+  --clawbot-doc-radius: 16px;
+  --clawbot-doc-shadow: 0 20px 54px rgba(35, 31, 25, 0.07);
+  --clawbot-doc-font: "Geist Variable", "Noto Sans SC Variable", "PingFang SC", sans-serif;
 }
 
 html,
@@ -25,18 +26,21 @@ body,
 
 body {
   color: var(--clawbot-doc-text);
+  font-family: var(--clawbot-doc-font);
+  font-synthesis: none;
+  text-rendering: optimizelegibility;
 }
 
 .dumi-default-header {
-  border-bottom: 1px solid rgba(213, 219, 224, 0.72);
-  background: rgba(246, 247, 248, 0.82) !important;
+  border-bottom: 1px solid rgb(226 225 219 / 86%);
+  background: rgb(251 251 249 / 88%) !important;
   backdrop-filter: blur(18px) saturate(160%) !important;
 }
 
 .dumi-default-header-content {
   height: var(--clawbot-doc-header-height) !important;
-  max-width: none !important;
-  padding: 0 24px !important;
+  max-width: 1440px !important;
+  padding: 0 32px !important;
 }
 
 .dumi-default-header-left {
@@ -44,8 +48,26 @@ body {
 }
 
 .dumi-default-logo {
-  font-weight: 750 !important;
-  letter-spacing: 0 !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 9px;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.dumi-default-logo::before {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff7b58, #df4d2f);
+  color: #fff;
+  content: "✦";
+  font-size: 11px;
+  line-height: 1;
+  box-shadow: inset 0 0 0 1px rgb(104 29 11 / 12%);
 }
 
 .dumi-default-logo:not(:hover) {
@@ -53,32 +75,40 @@ body {
 }
 
 .dumi-default-navbar > li {
-  font-size: 15px !important;
+  font-size: 13px !important;
 }
 
 .dumi-default-navbar > li:not(:last-child) {
-  margin-inline-end: 28px !important;
+  margin-inline-end: 32px !important;
 }
 
 .dumi-default-navbar a,
 .dumi-default-navbar span {
   color: var(--clawbot-doc-muted) !important;
+  font-weight: 400 !important;
 }
 
 .dumi-default-navbar a.active,
 .dumi-default-navbar span.active {
   color: var(--clawbot-doc-text) !important;
+  font-weight: 500 !important;
 }
 
 .dumi-default-doc-layout {
-  background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 32rem),
-    var(--clawbot-doc-bg) !important;
+  background: var(--clawbot-doc-bg) !important;
 }
 
 .dumi-default-doc-layout > main {
   max-width: none !important;
   padding: 0 24px !important;
+}
+
+.dumi-default-doc-layout > main.clawbot-home-layout {
+  display: block !important;
+  width: 100%;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .dumi-default-sidebar {
@@ -129,9 +159,9 @@ body {
   max-width: var(--clawbot-doc-content-width) !important;
   margin: 24px auto 56px !important;
   padding: 48px !important;
-  border: 1px solid rgba(227, 231, 234, 0.9);
+  border: 1px solid rgb(226 225 219 / 92%);
   border-radius: var(--clawbot-doc-radius);
-  background: rgba(255, 255, 255, 0.86) !important;
+  background: rgb(251 251 249 / 94%) !important;
   box-shadow: var(--clawbot-doc-shadow);
 }
 
@@ -143,19 +173,21 @@ body {
   margin-top: 0 !important;
   color: var(--clawbot-doc-text) !important;
   font-size: 40px !important;
-  letter-spacing: 0 !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.045em !important;
 }
 
 .markdown h2 {
   margin-top: 40px !important;
   font-size: 22px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0 !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.025em !important;
 }
 
 .markdown p {
   color: var(--clawbot-doc-muted);
   font-size: 16px;
+  font-weight: 300;
 }
 
 .markdown table {
@@ -171,7 +203,7 @@ body {
 }
 
 .markdown thead {
-  background: rgba(246, 247, 248, 0.86);
+  background: rgb(240 239 235 / 86%);
 }
 
 .markdown th,
@@ -193,7 +225,7 @@ body {
 
 .markdown td code {
   border-radius: 6px;
-  background: #f0f1f2;
+  background: #eeede8;
   color: var(--clawbot-doc-text);
   font-size: 13px;
 }
@@ -242,9 +274,9 @@ body {
   margin: 0;
   color: var(--clawbot-doc-text);
   font-size: 40px;
-  font-weight: 750;
+  font-weight: 300;
   line-height: 1.12;
-  letter-spacing: 0;
+  letter-spacing: -0.045em;
 }
 
 .clawbot-api-header__description {
@@ -252,6 +284,7 @@ body {
   margin: 14px 0 0;
   color: var(--clawbot-doc-muted);
   font-size: 16px;
+  font-weight: 300;
   line-height: 1.7;
 }
 
@@ -277,8 +310,8 @@ body {
   min-height: 160px;
   padding: 40px !important;
   background:
-    linear-gradient(90deg, rgba(15, 23, 42, 0.028) 1px, transparent 1px),
-    linear-gradient(rgba(15, 23, 42, 0.028) 1px, transparent 1px), #fff;
+    linear-gradient(90deg, rgb(51 46 39 / 3%) 1px, transparent 1px),
+    linear-gradient(rgb(51 46 39 / 3%) 1px, transparent 1px), #fff;
   background-size: 16px 16px;
 }
 

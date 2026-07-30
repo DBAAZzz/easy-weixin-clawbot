@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "pnpm -C ../.. install --filter @clawbot/ui... --frozen-lockfile",
+  "buildCommand": "pnpm docs:build",
+  "outputDirectory": "docs-dist"
+}

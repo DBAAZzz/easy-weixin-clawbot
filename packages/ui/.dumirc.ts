@@ -10,9 +10,8 @@ type WebpackChainConfig = {
 };
 
 const nav: INavItem[] = [
-  { link: "/components/button", title: "Components" },
-  { link: "/components/input", title: "Data Entry" },
-  { link: "/components/dialog", title: "Feedback" },
+  { link: "/", title: "首页" },
+  { activePath: "/components", link: "/components/button", title: "组件" },
 ];
 
 const themeConfig = {
@@ -30,13 +29,13 @@ const themeConfig = {
   nav,
   prefersColor: {
     default: "light",
-    switch: true,
+    switch: false,
   },
   siteToken: {
-    contentMaxWidth: 980,
-    headerHeight: 64,
-    sidebarWidth: 240,
-    tocWidth: 240,
+    contentMaxWidth: 1020,
+    headerHeight: 68,
+    sidebarWidth: 232,
+    tocWidth: 220,
   },
   title: "Clawbot UI",
 };

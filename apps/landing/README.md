@@ -30,9 +30,11 @@ npm run serve   # 预览 dist/，http://127.0.0.1:8732/
 自带 `package-lock.json`。在 Vercel 上把 **Root Directory 设为 `apps/landing`**，
 其余交给 `vercel.json`（`npm ci` → `npm run build` → `dist/`）。
 
+线上地址：<https://web.ezwxclaw.top/>
+
 `index.html` 的 canonical、`og:url`、`og:image`，以及 `sitemap.xml`、`robots.txt`
-里的绝对 URL 都硬编码了站点域名。**换域名（绑定自定义域）时这四个文件要一起改**，
-否则社交卡片抓不到图、canonical 会把权重指到旧地址。
+里的绝对 URL 都硬编码了这个域名。**换域名时这三个文件要一起改**，否则社交卡片
+抓不到图、canonical 会把权重指到旧地址。
 
 `og-image.jpg` 是 1200×630 的首页截图，只被 `og:image` 和 `twitter:image` 引用，
 普通访客不会加载它。存成 JPEG 是因为部分抓取器（WhatsApp 等）不渲染 300KB

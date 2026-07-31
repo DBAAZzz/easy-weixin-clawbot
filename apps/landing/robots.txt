@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://easy-weixin-clawbot.vercel.app/sitemap.xml
+Sitemap: https://web.ezwxclaw.top/sitemap.xml

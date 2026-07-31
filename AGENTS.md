@@ -34,6 +34,8 @@ packages/
   exec/         ← @clawbot/exec    子进程执行统一出口（env 白名单、超时、进程组清杀）
   asset/        ← @clawbot/asset   资源存储（本地/S3）
   weixin-agent-sdk/ ← weixin-agent-sdk  微信协议 SDK
+apps/
+  landing/      ← easy-weixin-clawbot-site  官网静态页（不在 pnpm workspace 内）
 data/
   tools/        ← Markdown 工具定义（builtin/ + user/）
   skills/       ← Markdown 技能定义（builtin/ + user/）
@@ -43,6 +45,11 @@ data/
 docs/           ← 架构文档、设计规范、迭代计划
 scripts/        ← 辅助脚本
 ```
+
+`pnpm-workspace.yaml` 只包含 `packages/*`，**`apps/` 不在 workspace 内**。`apps/landing`
+是独立的 npm 项目，自带 `package-lock.json`，用 `npm` 而不是 `pnpm`：改它要 `cd apps/landing`
+再跑 `npm install` / `npm run build`，`pnpm -F` 过滤不到它，根目录的 `pnpm build` 也不会构建它。
+它单独部署到 Vercel（Root Directory 设为 `apps/landing`，配置见 `apps/landing/vercel.json`）。
 
 ## 项目内 Skills
 

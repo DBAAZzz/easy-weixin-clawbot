@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://easy-weixin-clawbot.vercel.app/sitemap.xml

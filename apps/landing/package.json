@@ -1,0 +1,18 @@
+{
+  "name": "easy-weixin-clawbot-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "easy-weixin-clawbot 官网。单页静态站，源码零构建；dev/serve 用自带的零依赖静态服务器，build 仅在部署前打包压缩。",
+  "scripts": {
+    "dev": "node serve.mjs --port 8731",
+    "build": "node build.mjs",
+    "serve": "node serve.mjs --port 8732 --dir dist"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
+  }
+}

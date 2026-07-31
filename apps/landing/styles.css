@@ -1,0 +1,1035 @@
+:root {
+  color-scheme: dark;
+
+  --ink: #14121a;
+  --ink-deep: #0e0d14;
+  --red: #e34949;
+  --red-lit: #f4665f;
+  --teal: #2fa894;
+  --rose: #e8629b;
+  --amber: #e8a33d;
+
+  --text: #f4eef0;
+  --text-dim: #b3a9b4;
+  --hairline: rgb(255 255 255 / 12%);
+  --panel: rgb(22 19 28 / 62%);
+
+  --shell: min(72rem, 100% - 3rem);
+  --font: ui-rounded, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font: 400 1rem/1.7 var(--font);
+  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 背景层：canvas 固定铺满，内容在其上滚动 ---------- */
+
+#bubble-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: auto;
+}
+
+/* 随滚动渐显的暗罩，保证下方章节的文字对比度。 */
+#scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 42%, transparent 0 28%, rgb(10 9 14 / 55%) 78%),
+    linear-gradient(180deg, rgb(14 13 20 / 10%), rgb(14 13 20 / 82%));
+  opacity: 0;
+  transition: opacity 120ms linear;
+}
+
+/* 扫描线原本是这里的一层 fixed 覆盖层（mix-blend-mode: overlay），
+   现在挪进了 composite 着色器——见 shaders.js 末尾。混合模式压在每帧都在变的
+   canvas 上会逼合成器每帧重做一次全屏 blend group，而在 shader 里它只是
+   一次 mod。 */
+
+/* ---------- 顶栏 ---------- */
+
+/* 全宽无边框。玻璃靠 mask 向下渐隐，不留任何硬边——有边就成了一条板子，
+   沉浸感就没了。内容仍然对齐 --shell 内容栏，靠左右内边距撑开。 */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1.05rem calc((100% - var(--shell)) / 2);
+  /* 这里原本有 backdrop-filter: blur(0.9rem) saturate(130%)。它的背景是每帧
+     都在变的 WebGL canvas，模糊结果永远无法缓存，等于每帧对整条顶栏重算一遍
+     模糊、再叠一层 mask。改成把渐变底色加实一档——顶栏本来就靠 mask 向下渐隐，
+     没有硬边，读起来仍然是「浮在画面上」而不是一块板子。 */
+  background: linear-gradient(
+    180deg,
+    rgb(18 16 24 / 74%),
+    rgb(18 16 24 / 10%)
+  );
+  mask-image: linear-gradient(180deg, #000 52%, rgb(0 0 0 / 45%) 78%, transparent);
+}
+
+.wordmark {
+  display: inline-flex;
+  gap: 0.55rem;
+  align-items: center;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+}
+
+.wordmark .dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0.9rem rgb(227 73 73 / 90%);
+}
+
+.topbar nav {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.topbar nav a {
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 160ms, background 160ms;
+}
+
+.topbar nav a:hover {
+  background: rgb(255 255 255 / 8%);
+  color: var(--text);
+}
+
+.topbar nav a.ghost {
+  border: 1px solid var(--hairline);
+  color: var(--text);
+}
+
+/* ---------- 通用容器 ---------- */
+
+main,
+footer {
+  position: relative;
+  z-index: 3;
+}
+
+/* 内容层默认不吃指针事件，否则首屏那一大片透明区域会挡住泡泡的鼠标跟随和
+   按压交互。只有真正需要交互或选中的元素才收回来。 */
+main,
+.hero,
+.hero .cta {
+  pointer-events: none;
+}
+
+a,
+button,
+#features,
+#quickstart,
+.hero h1,
+.hero .tagline,
+.hero .lede,
+.hero .eyebrow {
+  pointer-events: auto;
+}
+
+.hero {
+  width: var(--shell);
+  margin-inline: auto;
+}
+
+.label {
+  margin: 0 0 0.5rem;
+  color: var(--red-lit);
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ---------- Hero ---------- */
+
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* 顶栏改成悬浮胶囊后脱离文档流，首屏可以吃满整个视口。 */
+  min-height: 100svh;
+  /* 顶部留白比底部厚很多，把整块文字压到视觉中线以下——泡泡的脸大致在中线，
+     文字压低才不会正好糊在五官上。 */
+  padding-block: clamp(7rem, 20vh, 14rem) 5rem;
+  text-align: center;
+}
+
+/* 泡泡就在文字正后方，不垫一层底的话正文完全读不了。用椭圆径向渐变而不是
+   实心块，边缘化开才不会看出是个方框。 */
+.hero::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  /* 左右不能用负 inset 外扩：那会把 hero 的 scrollWidth 撑出视口，整页多一条
+     横向滚动条（窄屏最明显，但桌面端 viewport 略大于 --shell 时同样会中）。
+     改成把椭圆本身放大到等效尺寸——原来盒子宽 124%、椭圆 64%，等价于现在
+     盒子宽 100%、椭圆 79%（0.64 × 1.24），渐变化开的观感不变。 */
+  inset: 22% 0 2%;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 79% 54% at 50% 50%,
+    rgb(10 9 14 / 87%) 0%,
+    rgb(10 9 14 / 68%) 44%,
+    transparent 74%
+  );
+}
+
+.hero .tagline,
+.hero .lede,
+.hero .eyebrow,
+.hero .scroll-hint {
+  text-shadow: 0 1px 1.4rem rgb(8 7 12 / 92%), 0 0 0.5rem rgb(8 7 12 / 80%);
+}
+
+.eyebrow {
+  margin: 0 0 1.5rem;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2.4rem, 7vw, 4.6rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  background: linear-gradient(96deg, var(--amber), var(--red) 34%, var(--rose) 72%, var(--teal));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tagline {
+  margin: 0.9rem 0 0;
+  font-size: clamp(1.05rem, 2.4vw, 1.5rem);
+  font-weight: 600;
+}
+
+.lede {
+  max-width: 40rem;
+  margin: 1.1rem auto 0;
+  color: var(--text-dim);
+  text-wrap: pretty;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 2.2rem;
+}
+
+.btn {
+  padding: 0.72rem 1.5rem;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+  /* 同顶栏：这两颗按钮正压在动画 canvas 上，backdrop-filter 的模糊每帧都要
+     重算。.primary 本来就是不透明红底，模糊根本看不见；次要按钮改用半透明
+     底色，视觉差别只在于背后的泡泡是清晰的还是糊的。 */
+  background: rgb(20 17 26 / 42%);
+  transition: transform 160ms, background 160ms, box-shadow 160ms;
+}
+
+/* 底色不再是全透明，所以 hover 要在原底色上继续提亮，而不是换成一层淡白，
+   否则会比静止态更「空」。 */
+.btn:hover {
+  background: rgb(58 52 71 / 62%);
+  transform: translateY(-2px);
+}
+
+.btn.primary {
+  border-color: transparent;
+  background: var(--red);
+  box-shadow: 0 0.6rem 2rem rgb(227 73 73 / 38%);
+}
+
+.btn.primary:hover {
+  background: var(--red-lit);
+  box-shadow: 0 0.8rem 2.4rem rgb(244 102 95 / 52%);
+}
+
+.scroll-hint {
+  margin: 3.4rem 0 0;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  animation: drift 2.6s ease-in-out infinite;
+}
+
+@keyframes drift {
+  0%, 100% { opacity: 0.45; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(0.35rem); }
+}
+
+/* ---------- 内容区（平铺，不套卡片） ---------- */
+
+#quickstart {
+  width: var(--shell);
+  margin-inline: auto;
+  padding-block: 0 clamp(11rem, 22vh, 17rem);
+}
+
+.section-head {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3.4vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- 核心能力：能力围绕内核公转 ---------- */
+
+#features {
+  width: var(--shell);
+  margin-inline: auto;
+  padding-block: 2rem 6rem;
+}
+
+.orbit {
+  /* 内外圈反向转，相邻卡片的夹角一直在变；半径给不够就会周期性相撞。 */
+  --ring-out: clamp(14.5rem, 34vw, 23.5rem);
+  --ring-in: clamp(8.5rem, 18vw, 12rem);
+
+  position: relative;
+  aspect-ratio: 1;
+  width: min(100%, 58rem);
+  margin-inline: auto;
+}
+
+/* 两道轨道：外圈虚线、内圈实线，都压得很淡，只是暗示"公转"这件事。 */
+.orbit::before,
+.orbit::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  translate: -50% -50%;
+  /* 沿圆周做渐变：轨道不该是一根从头到尾一样粗的铁丝，而是一道有明有暗的
+     光痕。border 本身没法上渐变，所以用 conic 遮罩去调制它的不透明度。 */
+  mask-image: conic-gradient(
+    from 0deg,
+    #000 0%,
+    rgb(0 0 0 / 62%) 16%,
+    rgb(0 0 0 / 12%) 38%,
+    rgb(0 0 0 / 8%) 52%,
+    rgb(0 0 0 / 48%) 74%,
+    #000 92%,
+    #000 100%
+  );
+}
+
+/* 亮的那一段整体提了三倍，暗的那一段被遮罩压到几乎看不见——
+   平均下来不比原来抢眼，但有了明暗才有实感。 */
+.orbit::before {
+  width: calc(var(--ring-out) * 2);
+  height: calc(var(--ring-out) * 2);
+  border: 1px dashed rgb(255 236 236 / 32%);
+  animation: ring-sweep-cw 56s linear infinite;
+}
+
+.orbit::after {
+  width: calc(var(--ring-in) * 2);
+  height: calc(var(--ring-in) * 2);
+  border: 1px solid rgb(255 240 240 / 24%);
+  animation: ring-sweep-ccw 40s linear infinite;
+}
+
+/* 圆是旋转对称的，转它唯一看得见的就是遮罩和虚线花纹在扫——正是要的效果。
+   方向和周期跟各自轨道上的卫星一致。 */
+@keyframes ring-sweep-cw {
+  to { rotate: 360deg; }
+}
+
+@keyframes ring-sweep-ccw {
+  to { rotate: -360deg; }
+}
+
+.orbit:hover::before,
+.orbit:hover::after,
+.orbit:focus-within::before,
+.orbit:focus-within::after {
+  animation-play-state: paused;
+}
+
+/* 中心不放静态图标——挖一个透光的圆，让固定在背景层的 3D 泡泡直接透出来，
+   它本来就在画面正中。只补一圈红色辉光把它和轨道连起来。 */
+.orbit-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(9rem, 21vw, 13rem);
+  height: clamp(9rem, 21vw, 13rem);
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgb(227 73 73 / 16%) 0%,
+    rgb(227 73 73 / 6%) 46%,
+    transparent 70%
+  );
+  box-shadow: 0 0 5rem rgb(227 73 73 / 22%);
+}
+
+.orbit-ring {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* --spin 由动画驱动，是真正让卡片绕圈的量；--a 是每张卡片的固定相位。
+   注册成 <angle> 才能被 CSS 动画插值——未注册的自定义属性只会在中点硬跳。
+   浏览器不支持 @property 时 --spin 停在 0deg，八张卡片就静止在设计位置，
+   属于可接受的降级。 */
+/* inherits 必须是 true：射线画在 li::before 上，而动画跑在 li 上。
+   设成 false 的话伪元素只能拿到初始值 0deg，卡片转了、射线还指着原来的
+   方向，就再也对不准圆心了。 */
+@property --spin {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+.orbit-ring li {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* transform 从右往左生效：先把自身居中，再旋到角度上、推出半径，
+     最后反向旋回来让卡片始终保持水平（公转但不自转）。 */
+  transform:
+    rotate(calc(var(--a) + var(--spin)))
+    translateX(var(--r))
+    rotate(calc(-1 * (var(--a) + var(--spin))))
+    translate(-50%, -50%);
+}
+
+/* 内外圈反向转、周期也不同，像真实轨道那样内圈更快。
+   外圈整体再淡一档，做出"离内核越远、被抓得越松"的景深。 */
+.orbit-ring li.ring-out {
+  --r: var(--ring-out);
+  animation: orbit-cw 56s linear infinite;
+  opacity: 0.9;
+}
+
+.orbit-ring li.ring-in {
+  --r: var(--ring-in);
+  animation: orbit-ccw 40s linear infinite;
+  opacity: 1;
+}
+
+/* 悬停的那颗一定要拉回全实，否则读详情时还是发虚。 */
+.orbit-ring li:hover,
+.orbit-ring li:focus-within {
+  opacity: 1;
+}
+
+@keyframes orbit-cw {
+  to { --spin: 360deg; }
+}
+
+@keyframes orbit-ccw {
+  to { --spin: -360deg; }
+}
+
+/* 鼠标进入整个轨道就冻结全部公转——否则正在读的那张卡片会从指针底下溜走。 */
+.orbit:hover .orbit-ring li,
+.orbit:focus-within .orbit-ring li {
+  animation-play-state: paused;
+}
+
+/* 滚出视口就整块停掉，由 site.js 的观察器挂 data-paused。--spin 是注册过的
+   自定义属性，它的动画只能跑在主线程（合成器永远不接管），每帧要为 8 个 li
+   加 8 条 ::before 射线重新求值那串 calc transform。这活儿在看不见的时候
+   一直干下去，纯粹是在和 WebGL 循环抢主线程。 */
+.orbit[data-paused] .orbit-ring li,
+.orbit[data-paused]::before,
+.orbit[data-paused]::after {
+  animation-play-state: paused;
+}
+
+/* 引力射线：从卡片中心指回内核。li 已经被反向旋转回水平，所以这里再转
+   回 --a + 180deg 就是「朝向圆心」的世界方向，长度正好等于轨道半径。 */
+.orbit-ring li::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--r);
+  height: 1px;
+  /* 必须挡掉指针：射线最长有 17.5rem，会被算进 li 的悬停区，
+     压在别的卡片上方时就会「点 A 卡展开 B 卡」。 */
+  pointer-events: none;
+  transform: rotate(calc(var(--a) + var(--spin) + 180deg));
+  transform-origin: 0 50%;
+  background: linear-gradient(
+    90deg,
+    transparent 0 14%,
+    var(--pip) 52%,
+    transparent 88%
+  );
+  opacity: 0.16;
+  transition: opacity 160ms ease;
+}
+
+.orbit-ring li:hover::before,
+.orbit-ring li:focus-within::before {
+  opacity: 0.72;
+}
+
+/* 卡片要「浮」在轨道上而不是沉进背景：底色加实、加投影、顶边一道极细高光。 */
+.node {
+  position: relative;
+  width: max-content;
+  padding: 0.6rem 1.1rem 0.6rem 1.75rem;
+  /* 收起时是标准胶囊，圆到不能再圆。 */
+  border-radius: 999px;
+  /* 三层叠出实感：最上是极细横纹（呼应 shader 的抖动网点，给材质），
+     中间是径向渐变——中心几乎不透明、向外逐渐扩散变淡，
+     底下是一层实心兜底，保证文字永远有足够对比度。 */
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgb(255 255 255 / 4%) 0 1px,
+      transparent 1px 3px
+    ),
+    radial-gradient(
+      130% 170% at 50% 26%,
+      rgb(52 42 62 / 99%) 0%,
+      rgb(38 31 47 / 97%) 42%,
+      rgb(26 22 33 / 90%) 100%
+    ),
+    rgb(20 17 26 / 82%);
+  /* 四层投影，半径逐级放大、浓度逐级降低，光晕才是"扩散"出去而不是切一刀。 */
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 14%),
+    inset 0 -1px 0 rgb(0 0 0 / 30%),
+    0 0.12rem 0.4rem rgb(0 0 0 / 38%),
+    0 0.6rem 1.5rem rgb(0 0 0 / 40%),
+    0 1.5rem 3.6rem rgb(0 0 0 / 26%);
+  transition: background 150ms, transform 150ms, box-shadow 160ms, border-radius 150ms;
+}
+
+.node:focus-visible {
+  outline: 2px solid var(--pip);
+  outline-offset: 3px;
+}
+
+.node::before {
+  content: "";
+  position: absolute;
+  top: 1.12rem;
+  left: 0.85rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--pip);
+  box-shadow: 0 0 0.7rem var(--pip);
+}
+
+.node h3 {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 描述默认收起，悬停或键盘聚焦时展开。文字始终在 DOM 里，不影响收录。 */
+.node p {
+  margin: 0;
+  width: 0;
+  max-height: 0;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 150ms ease-out, opacity 110ms ease-out, margin 150ms ease-out;
+}
+
+.orbit-ring li:hover,
+.orbit-ring li:focus-within {
+  z-index: 5;
+}
+
+/* 悬停时整张卡片的光晕换成这条能力的配色，和背景泡泡的边缘辉光同色。 */
+.orbit-ring li:hover .node,
+.orbit-ring li:focus-within .node {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgb(255 255 255 / 4.5%) 0 1px,
+      transparent 1px 3px
+    ),
+    radial-gradient(
+      130% 170% at 50% 26%,
+      rgb(64 51 76 / 100%) 0%,
+      rgb(46 37 56 / 99%) 42%,
+      rgb(31 26 39 / 96%) 100%
+    ),
+    rgb(22 19 28 / 92%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--pip) 46%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 16%),
+    0 0.12rem 0.4rem rgb(0 0 0 / 40%),
+    0 0.6rem 1.5rem rgb(0 0 0 / 45%),
+    0 0 1.4rem color-mix(in srgb, var(--pip) 40%, transparent),
+    0 0 3.2rem color-mix(in srgb, var(--pip) 22%, transparent);
+  border-radius: 1.4rem;
+  transform: translateY(-3px);
+}
+
+.orbit-ring li:hover .node p,
+.orbit-ring li:focus-within .node p {
+  width: 12.5rem;
+  max-height: 7rem;
+  margin-top: 0.4rem;
+  opacity: 1;
+}
+
+/* 圆形排布在窄屏上必然打架，直接退回平铺列表。 */
+/* 断点从 52rem 提到 58rem：833-900px 这一段轨道半径已经被 vw 压到相邻卡片
+   会相撞（实测最小间距 2.8px），必须在撞之前就退回平铺列表。 */
+@media (width <= 58rem) {
+  .orbit {
+    aspect-ratio: auto;
+    width: 100%;
+  }
+
+  .orbit::before,
+  .orbit::after,
+  .orbit-core {
+    display: none;
+  }
+
+  .orbit-ring {
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  }
+
+  .orbit-ring li {
+    position: static;
+    transform: none;
+  }
+
+  .orbit-ring li::before {
+    display: none;
+  }
+
+  .node {
+    width: auto;
+    border-radius: 1.4rem;
+  }
+
+  .node p {
+    width: auto;
+    max-height: 7rem;
+    margin-top: 0.4rem;
+    opacity: 1;
+  }
+}
+
+/* ---------- 终端块：左右分栏 + 逐行打字 ---------- */
+
+.start-grid {
+  display: grid;
+  gap: 2.5rem;
+  align-items: start;
+  grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+}
+
+.terminal {
+  border-radius: 1rem;
+  background: rgb(10 9 14 / 88%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 7%),
+    0 1rem 3rem rgb(0 0 0 / 45%);
+  overflow: hidden;
+}
+
+.terminal-bar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.7rem 0.85rem 0.7rem 1rem;
+  background: rgb(255 255 255 / 3%);
+}
+
+.dots {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.dots i {
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 14%);
+}
+
+.dots i:first-child {
+  background: var(--red);
+}
+
+.term-title {
+  flex: 1;
+  color: var(--text-dim);
+  font: 0.78rem var(--mono);
+  letter-spacing: 0.08em;
+}
+
+.copy {
+  padding: 0.28rem 0.7rem;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 160ms, color 160ms, border-color 160ms;
+}
+
+.copy:hover {
+  background: rgb(255 255 255 / 8%);
+  color: var(--text);
+}
+
+.copy[data-copied] {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.term-body {
+  padding: 1.15rem 1.2rem 1.35rem;
+  overflow-x: auto;
+}
+
+.term-body code {
+  display: block;
+  color: #e6dfe6;
+  font: 0.86rem/2.1 var(--mono);
+}
+
+/* 命令全文一直在 DOM 里，打字只是把行宽从 0 裁开——所以随时可以选中、
+   复制，爬虫也读得到。JS 逐字写 textContent 就没有这个性质。 */
+.line {
+  display: block;
+  width: calc((var(--ch) + 2) * 1ch);
+  white-space: pre;
+  overflow: hidden;
+  /* 打字动画走 clip-path 而不是 width：steps(62) 意味着 62 次关键帧跳变，
+     动 width 就是 62 次重排，动 clip-path 只影响绘制。必须显式写出初始值，
+     否则 from 里的 inset() 没法和 none 插值。 */
+  clip-path: inset(0 0 0 0);
+}
+
+.line::before {
+  content: "$ ";
+  color: var(--red-lit);
+}
+
+.term-body.typing .line {
+  animation: type calc(var(--ch) * 38ms) var(--delay) both;
+}
+
+@keyframes type {
+  from { clip-path: inset(0 100% 0 0); }
+}
+
+/* 光标只跟着最后一行，等前面都打完再出现。 */
+.term-body.typing .line.last::after {
+  content: "";
+  display: inline-block;
+  width: 0.55ch;
+  height: 1.05em;
+  margin-left: 0.15ch;
+  translate: 0 0.2em;
+  background: var(--red-lit);
+  animation: caret 1.05s steps(1) infinite;
+  animation-delay: calc(var(--delay) + var(--ch) * 38ms);
+}
+
+@keyframes caret {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+/* 终端滚出视口后，打字和光标都没必要继续跑。 */
+.term-body[data-paused] .line,
+.term-body[data-paused] .line.last::after {
+  animation-play-state: paused;
+}
+
+/* ---------- 环境要求 ---------- */
+
+.requirements {
+  padding-top: 0.5rem;
+}
+
+.req-title {
+  margin: 0 0 1.1rem;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.requirements dl {
+  margin: 0;
+}
+
+.requirements dl div {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgb(255 255 255 / 7%);
+}
+
+.requirements dl div:first-child {
+  border-top: 1px solid rgb(255 255 255 / 7%);
+}
+
+.requirements dt {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.requirements dd {
+  margin: 0;
+  color: var(--red-lit);
+  font: 0.95rem var(--mono);
+}
+
+.req-note {
+  margin: 1.2rem 0 0;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+@media (width <= 58rem) {
+  .start-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+}
+
+/* ---------- 页脚 ---------- */
+
+/* 平铺多列，不套卡片：页脚是页面的收尾，不该再是一块浮起来的面板。 */
+footer {
+  width: var(--shell);
+  margin-inline: auto;
+  padding-block: clamp(4rem, 9vh, 6rem) 5.5rem;
+}
+
+.foot-grid {
+  display: grid;
+  gap: 2.75rem 2rem;
+  grid-template-columns: 1.5fr repeat(3, minmax(0, 1fr));
+}
+
+.foot-col {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+}
+
+.foot-title {
+  margin: 0 0 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.foot-col a {
+  padding: 0.3rem 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 160ms;
+}
+
+.foot-col a:hover {
+  color: var(--text);
+}
+
+.wordmark.static {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+}
+
+.muted {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+/* 靠留白和字号分隔，不用分割线——加了线就又把它框起来了。 */
+.disclaimer {
+  margin: 3.5rem 0 0;
+  color: rgb(179 169 180 / 72%);
+  font-size: 0.78rem;
+  line-height: 1.8;
+}
+
+@media (width <= 52rem) {
+  .foot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .foot-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------- 错误提示 ---------- */
+
+#webgl-error {
+  position: fixed;
+  z-index: 20;
+  inset: auto auto 1.5rem 50%;
+  width: min(28rem, calc(100% - 3rem));
+  margin: 0;
+  padding: 0.85rem 1.1rem;
+  transform: translateX(-50%);
+  border: 1px solid var(--hairline);
+  border-radius: 0.9rem;
+  background: rgb(40 24 40 / 92%);
+  font-size: 0.85rem;
+  text-align: center;
+  backdrop-filter: blur(1rem);
+}
+
+/* ---------- 进场动画 ---------- */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(1.6rem);
+  transition: opacity 700ms ease, transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal.shown {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .scroll-hint {
+    animation: none;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .orbit-ring li.ring-out,
+  .orbit-ring li.ring-in,
+  .orbit::before,
+  .orbit::after {
+    animation: none;
+  }
+}
+
+@media (width <= 40rem) {
+  :root {
+    --shell: calc(100% - 2rem);
+  }
+
+  .topbar nav a:not(.ghost) {
+    display: none;
+  }
+
+  .copy {
+    top: 0.7rem;
+  }
+
+  /* 最长那条命令是 62ch（git clone 那行），窄屏无论如何放不下。让它换行，
+     而不是留给 .term-body 自己横向滚——触屏上藏在盒子里的横向滚动条几乎
+     没人会去拨，命令后半截就等于看不见。 */
+  .term-body {
+    padding: 1rem 1rem 1.15rem;
+  }
+
+  .term-body code {
+    font-size: 0.78rem;
+    line-height: 1.85;
+  }
+
+  .line {
+    width: auto;
+    white-space: pre-wrap;
+    /* URL 里没有空格，不允许任意断点的话整条 git clone 仍然会溢出。 */
+    overflow-wrap: anywhere;
+    /* 续行缩进到 "$ " 之后，回折的部分和命令正文对齐。 */
+    padding-left: 2ch;
+    text-indent: -2ch;
+  }
+
+  /* 换行之后 clip-path 会把多行同时揭开，不再像逐字打字，索性关掉动画和
+     光标，直接显示完整命令。 */
+  .term-body.typing .line {
+    animation: none;
+    clip-path: none;
+  }
+
+  .term-body.typing .line.last::after {
+    content: none;
+  }
+}

@@ -1,0 +1,5 @@
+node_modules/
+
+# 构建产物。如果你打算直接把 dist 提交上去让 GitHub Pages 托管
+# （而不是用 Actions 构建），把下面这行删掉。
+dist/

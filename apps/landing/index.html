@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14121a">
+
+  <title>easy-weixin-clawbot · 多账号微信 AI Agent 管理平台</title>
+  <meta name="description" content="开源的多账号微信 AI Agent 管理平台。一个后台统一管理账号、记忆、工具、技能、RSS 订阅、任务中心与 Webhook，支持 MCP Server 扩展，Docker Compose 一键部署。">
+  <meta name="keywords" content="微信 AI Agent,微信机器人,多账号管理,AI Agent 平台,MCP Server,Webhook,开源,Docker Compose">
+  <meta name="author" content="DBAAZzz">
+  <link rel="canonical" href="https://easy-weixin-clawbot.vercel.app/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="easy-weixin-clawbot">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="easy-weixin-clawbot · 多账号微信 AI Agent 管理平台">
+  <meta property="og:description" content="一个后台统一管理多个微信 AI 账号——记忆、工具、技能、RSS、任务与 Webhook 全都在里面。Docker Compose 一键起。">
+  <meta property="og:url" content="https://easy-weixin-clawbot.vercel.app/">
+  <meta property="og:image" content="https://easy-weixin-clawbot.vercel.app/og-image.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="easy-weixin-clawbot 首页：红色泡泡背景上的标题与「多账号微信 AI Agent 管理平台」副标题">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="easy-weixin-clawbot · 多账号微信 AI Agent 管理平台">
+  <meta name="twitter:description" content="一个后台统一管理多个微信 AI 账号。Docker Compose 一键起。">
+  <meta name="twitter:image" content="https://easy-weixin-clawbot.vercel.app/og-image.jpg">
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='27' fill='%23e34949'/><ellipse cx='24' cy='30' rx='4' ry='7' fill='white'/><ellipse cx='40' cy='30' rx='4' ry='7' fill='white'/></svg>">
+  <link rel="stylesheet" href="./styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "easy-weixin-clawbot",
+    "description": "开源的多账号微信 AI Agent 管理平台，支持账号、记忆、工具、技能、RSS 订阅、任务中心与 Webhook 统一管理，可通过 MCP Server 扩展。",
+    "codeRepository": "https://github.com/DBAAZzz/easy-weixin-clawbot",
+    "programmingLanguage": "JavaScript",
+    "runtimePlatform": "Node.js",
+    "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+    "author": { "@type": "Person", "name": "DBAAZzz" },
+    "inLanguage": "zh-CN"
+  }
+  </script>
+</head>
+<body>
+  <canvas id="bubble-canvas" aria-hidden="true"></canvas>
+  <div id="scrim" aria-hidden="true"></div>
+
+  <p id="webgl-error" role="alert" hidden>
+    当前浏览器无法创建 WebGL2 上下文，背景动画已停用，页面内容不受影响。
+  </p>
+
+  <header class="topbar">
+    <a class="wordmark" href="#top">
+      <span class="dot" aria-hidden="true"></span>
+      easy-weixin-clawbot
+    </a>
+    <nav>
+      <a href="#features">能力</a>
+      <a href="#quickstart">快速开始</a>
+      <a href="https://easy-weixin-clawbot-web.vercel.app/" rel="noopener">组件库</a>
+      <a class="ghost" href="https://github.com/DBAAZzz/easy-weixin-clawbot" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <p class="eyebrow">开源 · GPL-3.0 · Docker Compose 一键部署</p>
+      <h1>easy-weixin-clawbot</h1>
+      <p class="tagline">多账号微信 AI Agent 管理平台</p>
+      <p class="lede">
+        一个后台，统一管理多个微信 AI 账号。账号、记忆、工具、技能、静态资源、
+        RSS 订阅、任务中心和 Webhook 全都在里面，还能用 MCP Server 继续扩。
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/DBAAZzz/easy-weixin-clawbot" rel="noopener">
+          在 GitHub 上查看
+        </a>
+        <a class="btn" href="#quickstart">快速开始</a>
+      </div>
+      <p class="scroll-hint" aria-hidden="true">向下滚动</p>
+    </section>
+
+    <section id="features">
+      <div class="section-head">
+        <p class="label">核心能力</p>
+        <h2>八种能力，围着同一个内核转</h2>
+      </div>
+
+      <div class="orbit" data-pause-offscreen>
+        <div class="orbit-core" aria-hidden="true"></div>
+
+        <ul class="orbit-ring">
+          <li class="ring-out" style="--a: -90deg; --pip: var(--red)">
+            <div class="node" tabindex="0">
+              <h3>账号管理</h3>
+              <p>多个微信 AI 账号统一接入，不用一个个开窗口盯着。</p>
+            </div>
+          </li>
+          <li class="ring-in" style="--a: -45deg; --pip: var(--amber)">
+            <div class="node" tabindex="0">
+              <h3>记忆</h3>
+              <p>为每个账号配置独立的长期记忆，对话上下文不串台。</p>
+            </div>
+          </li>
+          <li class="ring-out" style="--a: 0deg; --pip: var(--rose)">
+            <div class="node" tabindex="0">
+              <h3>工具</h3>
+              <p>给 Agent 挂载可调用的工具，能力按需组装。</p>
+            </div>
+          </li>
+          <li class="ring-in" style="--a: 45deg; --pip: var(--teal)">
+            <div class="node" tabindex="0">
+              <h3>技能</h3>
+              <p>把工具和提示词打包成可复用的技能，跨账号共享。</p>
+            </div>
+          </li>
+          <li class="ring-out" style="--a: 90deg; --pip: var(--red)">
+            <div class="node" tabindex="0">
+              <h3>静态资源</h3>
+              <p>图片、文件等素材集中托管，回复里直接引用。</p>
+            </div>
+          </li>
+          <li class="ring-in" style="--a: 135deg; --pip: var(--amber)">
+            <div class="node" tabindex="0">
+              <h3>RSS 订阅</h3>
+              <p>订阅源更新自动推进会话，做资讯播报很顺手。</p>
+            </div>
+          </li>
+          <li class="ring-out" style="--a: 180deg; --pip: var(--rose)">
+            <div class="node" tabindex="0">
+              <h3>任务中心</h3>
+              <p>定时任务与异步任务统一调度，执行状态可查。</p>
+            </div>
+          </li>
+          <li class="ring-in" style="--a: -135deg; --pip: var(--teal)">
+            <div class="node" tabindex="0">
+              <h3>Webhook &amp; MCP</h3>
+              <p>对外用 Webhook 集成，对内用 MCP Server 接协议扩展。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="quickstart">
+      <div class="section-head">
+        <p class="label">快速开始</p>
+        <h2>四行命令跑起来</h2>
+      </div>
+      <div class="start-grid">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="term-title">bash</span>
+            <button class="copy" type="button" data-copy-target="install-cmd">复制</button>
+          </div>
+          <div class="term-body" data-pause-offscreen><code id="install-cmd"><span class="line" style="--ch: 60; --delay: 0s; animation-timing-function: steps(62)">git clone https://github.com/DBAAZzz/easy-weixin-clawbot.git</span><span class="line" style="--ch: 22; --delay: 2.5s; animation-timing-function: steps(24)">cd easy-weixin-clawbot</span><span class="line" style="--ch: 20; --delay: 3.6s; animation-timing-function: steps(22)">cp .env.example .env</span><span class="line last" style="--ch: 28; --delay: 4.6s; animation-timing-function: steps(30)">docker compose up --build -d</span></code></div>
+        </div>
+
+        <aside class="requirements">
+          <p class="req-title">环境要求</p>
+          <dl>
+            <div><dt>Node.js</dt><dd>≥ 22</dd></div>
+            <div><dt>pnpm</dt><dd>≥ 10</dd></div>
+            <div><dt>Docker</dt><dd>Compose</dd></div>
+          </dl>
+          <p class="req-note">
+            装好上面三样，四行命令就能起来。
+          </p>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <p class="wordmark static">easy-weixin-clawbot</p>
+        <p class="muted">多账号微信 AI Agent 管理平台</p>
+      </div>
+
+      <nav class="foot-col" aria-label="项目">
+        <p class="foot-title">项目</p>
+        <a href="https://github.com/DBAAZzz/easy-weixin-clawbot" rel="noopener">GitHub 仓库</a>
+        <a href="https://github.com/DBAAZzz/easy-weixin-clawbot#readme" rel="noopener">README 文档</a>
+        <a href="https://easy-weixin-clawbot-web.vercel.app/" rel="noopener">Clawbot UI 组件库</a>
+        <a href="https://github.com/DBAAZzz/easy-weixin-clawbot/releases" rel="noopener">版本发布</a>
+        <a href="https://www.gnu.org/licenses/gpl-3.0.html" rel="noopener license">GPL-3.0 许可证</a>
+      </nav>
+
+      <nav class="foot-col" aria-label="参与">
+        <p class="foot-title">参与</p>
+        <a href="https://github.com/DBAAZzz/easy-weixin-clawbot/issues" rel="noopener">提 Issue</a>
+        <a href="https://github.com/DBAAZzz/easy-weixin-clawbot/pulls" rel="noopener">Pull Requests</a>
+        <a href="https://github.com/DBAAZzz/easy-weixin-clawbot/stargazers" rel="noopener">Star 这个项目</a>
+      </nav>
+
+      <nav class="foot-col" aria-label="本页">
+        <p class="foot-title">本页</p>
+        <a href="#features">核心能力</a>
+        <a href="#quickstart">快速开始</a>
+        <a href="#top">回到顶部</a>
+      </nav>
+    </div>
+
+    <p class="disclaimer">
+      本项目为开源软件，仅供学习与研究使用。使用者需自行遵守微信平台的相关规则与所在地法律法规，
+      由此产生的任何后果与本项目及其作者无关。
+    </p>
+  </footer>
+
+  <script type="module" src="./src/main.js"></script>
+  <script type="module" src="./src/site.js"></script>
+</body>
+</html>

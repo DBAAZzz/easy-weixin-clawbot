@@ -15,6 +15,10 @@ import {
   createSkillRuntimeToolSnapshot,
   createToolRegistry,
   createRuntimeProvisioner,
+  setConversationEventStore,
+  setAgentRunStore,
+  setMemoryEventStore,
+  setArtifactRevisionStore,
   setMessageStore,
   setUsageStore,
   setTapeStore,
@@ -33,6 +37,10 @@ import {
 import { createBuiltinToolSnapshot } from "@clawbot/agent/tools/builtins";
 import { mkdirSync } from "node:fs";
 import { ensurePrismaUrls } from "./db/prisma-env.js";
+import { PrismaConversationEventStore } from "./db/conversation-event-store.impl.js";
+import { PrismaAgentRunStore } from "./db/agent-run-store.impl.js";
+import { PrismaMemoryEventStore } from "./db/memory-event-store.impl.js";
+import { PrismaArtifactRevisionStore } from "./db/artifact-revision-store.impl.js";
 import { PrismaMessageStore } from "./db/message-store.impl.js";
 import { queueRecordUsage } from "./db/usage.js";
 import { PrismaTapeStore } from "./db/tape-store.impl.js";
@@ -143,6 +151,10 @@ const runner = createAgentRunner(
 
 // ── Port injection ─────────────────────────────────────────────────
 
+setConversationEventStore(new PrismaConversationEventStore());
+setAgentRunStore(new PrismaAgentRunStore());
+setMemoryEventStore(new PrismaMemoryEventStore());
+setArtifactRevisionStore(new PrismaArtifactRevisionStore());
 setMessageStore(new PrismaMessageStore());
 setUsageStore({ queueRecord: queueRecordUsage });
 setTapeStore(new PrismaTapeStore());

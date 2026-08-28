@@ -1,3 +1,21 @@
+export type {
+  ConversationEventStore,
+  ListConversationEventsInput,
+} from "./conversation-event-store.js";
+export {
+  setConversationEventStore,
+  getConversationEventStore,
+} from "./conversation-event-store.js";
+
+export type { AgentRunStore, ListAgentRunEventsInput } from "./agent-run-store.js";
+export { setAgentRunStore, getAgentRunStore } from "./agent-run-store.js";
+
+export type { MemoryEventStore, ListMemoryEventsInput } from "./memory-event-store.js";
+export { setMemoryEventStore, getMemoryEventStore } from "./memory-event-store.js";
+
+export type { ArtifactRevisionStore, ArtifactContentIdentity } from "./artifact-revision-store.js";
+export { setArtifactRevisionStore, getArtifactRevisionStore } from "./artifact-revision-store.js";
+
 export type { MessageStore, RestoredHistory, PersistMessageParams } from "./message-store.js";
 export { setMessageStore, getMessageStore } from "./message-store.js";
 

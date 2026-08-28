@@ -8,6 +8,8 @@
     "dev": "tsx watch --conditions development src/index.ts",
     "build": "tsc",
     "test": "tsx --conditions development --test 'src/**/*.test.ts'",
+    "test:fact-ledger-db": "tsx --conditions development --test 'test-integration/fact-ledger-stores.test.ts'",
+    "test:typecheck:integration": "tsc --noEmit -p test-integration/tsconfig.json",
     "start": "node dist/index.js",
     "assets:migrate-local-to-s3": "tsx --conditions development src/assets/migrate-local-to-s3.ts",
     "prisma:generate": "tsx src/prisma-cli.ts generate --schema prisma/schema.prisma",

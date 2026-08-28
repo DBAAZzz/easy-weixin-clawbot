@@ -146,20 +146,11 @@ JSON object key 顺序不影响语义比较和内容 hash；数组顺序保持�
 新增：
 
 ```ts
-type AppendConversationEventInput = Omit<
-  ConversationEvent,
-  "streamSeq" | "recordedAt"
->;
+type AppendConversationEventInput = Omit<ConversationEvent, "streamSeq" | "recordedAt">;
 
-type AppendAgentRunEventInput = Omit<
-  AgentRunEvent,
-  "runSeq" | "recordedAt"
->;
+type AppendAgentRunEventInput = Omit<AgentRunEvent, "runSeq" | "recordedAt">;
 
-type AppendMemoryEventInput = Omit<
-  MemoryEvent,
-  "memorySeq" | "recordedAt"
->;
+type AppendMemoryEventInput = Omit<MemoryEvent, "memorySeq" | "recordedAt">;
 
 type PutArtifactRevisionInput = Omit<ArtifactRevision, "createdAt">;
 ```
@@ -421,6 +412,7 @@ artifact_revisions
   kind                 TEXT        NOT NULL
   sha256               TEXT        NOT NULL
   schema_version       INTEGER     NOT NULL CHECK (schema_version > 0)
+  content_location     TEXT        NOT NULL
   inline_json          JSONB
   storage_ref          JSONB
   encryption_metadata  JSONB
@@ -431,13 +423,14 @@ artifact_revisions
 
 - `UNIQUE(kind, schema_version, sha256)`；
 - `sha256` 检查 `^[a-f0-9]{64}$`；
-- `num_nonnulls(inline_json, storage_ref) = 1`；
+- `content_location` 只能是 `inline` 或 `external`，并与 `inline_json/storage_ref` 的二选一约束一致；
+- 显式位置字段用于区分 SQL `NULL` 与合法的 inline JSON `null`，因为 Prisma 读取时两者都会映射为 JavaScript `null`；
 - `storage_ref` 的对象形态由 Agent 契约校验；
 - Artifact 不包含 `account_id`；使用关系由 Event 和 Manifest 引用表达。
 
 ### 9.8 Account 关系
 
-Conversation、Run、Memory head 和 event 的 `account_id` 引用 `accounts.id`，使用 `ON DELETE RESTRICT`：
+Conversation、Run、Memory head 的 `account_id` 直接引用 `accounts.id` 并使用 `ON DELETE RESTRICT`；event 通过包含 `account_id` 的复合外键引用对应 head，因此继承同一账号完整性约束且不重复建立冗余外键：
 
 - Phase 1 没有新事实写入，因此不改变当前账号删除行为；
 - Phase 2 开始写事实后，账号不能通过级联删除静默抹除账本；
@@ -644,24 +637,25 @@ Phase 1 不从 `messages`、Tape、Trace、Asset 或现有配置回填任何数�
 
 ### 16.2 Server 纯单元测试
 
-新增 `packages/server/src/db/fact-ledger/*.test.ts`：
+纯单元测试只覆盖不依赖数据库实现的逻辑和难以稳定构造的错误边界，不使用 fake Prisma 重演数据库事务：
 
 - Prisma row 到领域 Event 的时间、JSON 和 nullable 字段转换；
 - inline Artifact SHA 校验；
 - Conversation Event ID 等价比较排除 `receivedAt`，但仍包含 `idempotencyKey` 和其他业务字段；
 - idempotency 比较排除 eventId/receivedAt，但包含业务事实字段；
-- Run head 拒绝同一 `runId` 改绑 account 或 conversation stream；
-- P2002 转领域冲突，不泄漏 Prisma 错误；
+- Run、Memory 和 Artifact 的 ID 重试等价语义；
+- 意外 P2002 转领域冲突，不泄漏 Prisma 错误；
 - 未知版本抛 `UnsupportedFactLedgerSchemaVersionError`，当前版本坏行抛 corruption error，均不静默跳过。
 
-Agent 的 `canonical-json.test.ts` 覆盖对象 key 顺序、数组顺序、数字规范化、Unicode 边界和 SHA-256 稳定性。
+Migration 约束和 Store 事务行为由真实 PostgreSQL 集成测试验证，不通过正则匹配 SQL 文本或 fake Prisma 调用次数来拟合实现。Agent 的 `canonical-json.test.ts` 覆盖对象 key 顺序、数组顺序、数字规范化、Unicode 边界和 SHA-256 稳定性。
 
 ### 16.3 数据库集成测试
 
 增加以下显式入口：
 
 ```json
-"test:fact-ledger-db": "tsx --conditions development --test 'test-integration/fact-ledger-stores.test.ts'"
+"test:fact-ledger-db": "tsx --conditions development --test 'test-integration/fact-ledger-stores.test.ts'",
+"test:typecheck:integration": "tsc --noEmit -p test-integration/tsconfig.json"
 ```
 
 测试只接受 `FACT_LEDGER_TEST_DATABASE_URL` 指向名称以 `_fact_ledger_test` 结尾的 disposable PostgreSQL。未提供专用 URL 或数据库名不符合保护规则时直接失败；它不读取开发用 `DATABASE_URL` 作为回退。
@@ -678,7 +672,7 @@ Agent 的 `canonical-json.test.ts` 覆盖对象 key 顺序、数组顺序、数�
 8. UPDATE/DELETE 四张不可变表被 Trigger 拒绝；
 9. head 表可以正常更新，成功追加会刷新 `updated_at`；
 10. Artifact 全局内容去重；
-11. 分页的 after/through 边界准确；
+11. Conversation、Run 和 Memory 分页的 after/through 边界、升序和流隔离准确；
 12. recordedAt/createdAt 来自数据库；
 13. Account 删除在已有事实时被 RESTRICT。
 
@@ -703,6 +697,8 @@ Agent 的 `canonical-json.test.ts` 覆盖对象 key 顺序、数组顺序、数�
 ```text
 M packages/agent/src/shared/fact-ledger/contracts.ts
 A packages/agent/src/shared/fact-ledger/canonical-json.ts
+A packages/agent/src/shared/fact-ledger/json-value.ts
+A packages/agent/src/shared/fact-ledger/errors.ts
 M packages/agent/src/shared/fact-ledger/index.ts
 A packages/agent/src/ports/conversation-event-store.ts
 A packages/agent/src/ports/agent-run-store.ts
@@ -721,14 +717,16 @@ A packages/agent/test/fact-ledger/canonical-json.test.ts
 M packages/server/prisma/schema.prisma
 A packages/server/prisma/migrations/20260828120000_add_fact_ledger_phase_1/migration.sql
 A packages/server/src/db/fact-ledger/codec.ts
-A packages/server/src/db/fact-ledger/errors.ts
 A packages/server/src/db/fact-ledger/codec.test.ts
+A packages/server/src/db/fact-ledger/equivalence.ts
+A packages/server/src/db/fact-ledger/equivalence.test.ts
+A packages/server/src/db/fact-ledger/errors.ts
+A packages/server/src/db/fact-ledger/pagination.ts
+A packages/server/src/db/fact-ledger/pagination.test.ts
 A packages/server/src/db/conversation-event-store.impl.ts
 A packages/server/src/db/conversation-event-store.impl.test.ts
 A packages/server/src/db/agent-run-store.impl.ts
-A packages/server/src/db/agent-run-store.impl.test.ts
 A packages/server/src/db/memory-event-store.impl.ts
-A packages/server/src/db/memory-event-store.impl.test.ts
 A packages/server/src/db/artifact-revision-store.impl.ts
 A packages/server/src/db/artifact-revision-store.impl.test.ts
 A packages/server/test-integration/fact-ledger-stores.test.ts

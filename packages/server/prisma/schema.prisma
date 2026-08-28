@@ -24,6 +24,9 @@ model Account {
   credential     WeixinAccountCredential?
   allowFromList  WeixinAccountAllowFrom[]
   syncState      WeixinSyncState?
+  conversationStreamHeads ConversationStreamHead[]
+  agentRunHeads            AgentRunHead[]
+  memoryStreamHeads        MemoryStreamHead[]
 
   @@map("accounts")
 }
@@ -142,6 +145,128 @@ model Message {
   @@unique([accountId, conversationId, seq], map: "messages_account_id_conversation_id_seq_key")
   @@index([accountId, conversationId, id], map: "idx_messages_lookup")
   @@map("messages")
+}
+
+// Fact-ledger CHECK constraints, the partial idempotency index, and append-only
+// triggers live in the reviewed migration because Prisma cannot model them.
+model ConversationStreamHead {
+  accountId String   @map("account_id") @db.Text
+  streamId  String   @map("stream_id") @db.Text
+  lastSeq   Int      @default(0) @map("last_seq")
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  events    ConversationEvent[]
+
+  @@id([accountId, streamId])
+  @@map("conversation_stream_heads")
+}
+
+model ConversationEvent {
+  eventId        String   @id @map("event_id") @db.Text
+  accountId      String   @map("account_id") @db.Text
+  streamId       String   @map("stream_id") @db.Text
+  streamSeq      Int      @map("stream_seq")
+  eventType      String   @map("event_type") @db.Text
+  schemaVersion  Int      @map("schema_version")
+  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(6)
+  receivedAt     DateTime @map("received_at") @db.Timestamptz(6)
+  recordedAt     DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  actorKind      String   @map("actor_kind") @db.Text
+  actorId        String?  @map("actor_id") @db.Text
+  causationId    String?  @map("causation_id") @db.Text
+  correlationId  String?  @map("correlation_id") @db.Text
+  idempotencyKey String?  @map("idempotency_key") @db.Text
+  payload        Json
+  head            ConversationStreamHead @relation(fields: [accountId, streamId], references: [accountId, streamId], onDelete: Restrict)
+
+  @@unique([accountId, streamId, streamSeq], map: "conversation_events_stream_seq_key")
+  @@index([causationId], map: "idx_conversation_events_causation")
+  @@index([correlationId], map: "idx_conversation_events_correlation")
+  @@map("conversation_events")
+}
+
+model AgentRunHead {
+  runId                String   @id @map("run_id") @db.Text
+  accountId            String   @map("account_id") @db.Text
+  conversationStreamId String   @map("conversation_stream_id") @db.Text
+  lastSeq              Int      @default(0) @map("last_seq")
+  updatedAt            DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  account              Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  events               AgentRunEvent[]
+
+  @@unique([runId, accountId, conversationStreamId], map: "agent_run_heads_identity_key")
+  @@map("agent_run_heads")
+}
+
+model AgentRunEvent {
+  eventId              String   @id @map("event_id") @db.Text
+  runId                String   @map("run_id") @db.Text
+  runSeq               Int      @map("run_seq")
+  accountId            String   @map("account_id") @db.Text
+  conversationStreamId String   @map("conversation_stream_id") @db.Text
+  eventType            String   @map("event_type") @db.Text
+  schemaVersion        Int      @map("schema_version")
+  occurredAt           DateTime @map("occurred_at") @db.Timestamptz(6)
+  recordedAt           DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  causationId          String?  @map("causation_id") @db.Text
+  correlationId        String?  @map("correlation_id") @db.Text
+  payload              Json
+  head                 AgentRunHead @relation(fields: [runId, accountId, conversationStreamId], references: [runId, accountId, conversationStreamId], onDelete: Restrict)
+
+  @@unique([runId, runSeq], map: "agent_run_events_run_seq_key")
+  @@index([accountId, conversationStreamId, recordedAt], map: "idx_agent_run_events_conversation")
+  @@index([causationId], map: "idx_agent_run_events_causation")
+  @@index([correlationId], map: "idx_agent_run_events_correlation")
+  @@map("agent_run_events")
+}
+
+model MemoryStreamHead {
+  accountId String   @map("account_id") @db.Text
+  branch    String   @db.Text
+  lastSeq   Int      @default(0) @map("last_seq")
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  events    MemoryEvent[]
+
+  @@id([accountId, branch])
+  @@map("memory_stream_heads")
+}
+
+model MemoryEvent {
+  eventId       String   @id @map("event_id") @db.Text
+  accountId     String   @map("account_id") @db.Text
+  branch        String   @db.Text
+  memorySeq     Int      @map("memory_seq")
+  eventType     String   @map("event_type") @db.Text
+  schemaVersion Int      @map("schema_version")
+  occurredAt    DateTime @map("occurred_at") @db.Timestamptz(6)
+  recordedAt    DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  actorKind     String   @map("actor_kind") @db.Text
+  actorId       String?  @map("actor_id") @db.Text
+  causationId   String?  @map("causation_id") @db.Text
+  correlationId String?  @map("correlation_id") @db.Text
+  payload       Json
+  head          MemoryStreamHead @relation(fields: [accountId, branch], references: [accountId, branch], onDelete: Restrict)
+
+  @@unique([accountId, branch, memorySeq], map: "memory_events_branch_seq_key")
+  @@index([causationId], map: "idx_memory_events_causation")
+  @@index([correlationId], map: "idx_memory_events_correlation")
+  @@map("memory_events")
+}
+
+model ArtifactRevision {
+  artifactId         String   @id @map("artifact_id") @db.Text
+  kind               String   @db.Text
+  sha256             String   @db.Text
+  schemaVersion      Int      @map("schema_version")
+  contentLocation    String   @map("content_location") @db.Text
+  inlineJson         Json?    @map("inline_json")
+  storageRef         Json?    @map("storage_ref")
+  encryptionMetadata Json?    @map("encryption_metadata")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([kind, schemaVersion, sha256], map: "artifact_revisions_content_key")
+  @@map("artifact_revisions")
 }
 
 model WebhookToken {

@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { cloneJsonValue, isJsonValue, type JsonValue } from "./json-value.js";
+
+export type { JsonValue } from "./json-value.js";
 
 /** 当前代码能够直接校验和读取的事实账本契约版本。 */
 export const FACT_LEDGER_SCHEMA_VERSION = 1 as const;
@@ -79,8 +82,13 @@ export const ARTIFACT_KIND = {
 
 const idSchema = z.string().trim().min(1);
 const timestampSchema = z.string().datetime({ offset: true });
-const metadataSchema = z.record(z.string(), z.unknown());
-const jsonValueSchema = z.json();
+
+export const jsonValueSchema = z
+  .custom<JsonValue>(isJsonValue, {
+    message: "value must be finite, plain, acyclic I-JSON without lossy properties",
+  })
+  .transform(cloneJsonValue);
+const metadataSchema = z.record(z.string(), jsonValueSchema);
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
 
 /**
@@ -482,7 +490,7 @@ const memoryAssertionSchema = z
     category: z.enum(["fact", "preference", "decision"]),
     scope: z.enum(["global", "session"]),
     key: idSchema,
-    value: z.unknown(),
+    value: jsonValueSchema,
     confidence: z.number().min(0).max(1),
     sourceConversationEventIds: z.array(idSchema).min(1),
     sourceRunId: idSchema.optional(),
@@ -611,31 +619,42 @@ const storageRefSchema = z
  * 这里的 `schemaVersion` 表示该种制品自身的内容版本，不要求等于事实账本契约版本。
  * 小制品内联保存，大制品使用外部存储引用，两种位置必须且只能选择一种。
  */
-export const artifactRevisionSchema = z
+function validateArtifactLocation(
+  artifact: { inlineJson?: unknown; storageRef?: unknown },
+  ctx: z.RefinementCtx,
+): void {
+  const hasInline = artifact.inlineJson !== undefined;
+  const hasStorage = artifact.storageRef !== undefined;
+  if (hasInline === hasStorage) {
+    ctx.addIssue({
+      code: "custom",
+      message: "exactly one of inlineJson or storageRef is required",
+    });
+  }
+}
+
+const artifactRevisionBaseSchema = z
   .object({
     artifactId: idSchema,
     kind: z.enum(Object.values(ARTIFACT_KIND)),
     sha256: sha256Schema,
     schemaVersion: z.number().int().positive(),
-    inlineJson: z.unknown().optional(),
+    inlineJson: jsonValueSchema.optional(),
     storageRef: storageRefSchema.optional(),
     createdAt: timestampSchema,
     encryptionMetadata: metadataSchema.optional(),
   })
-  .strict()
-  .superRefine((artifact, ctx) => {
-    const hasInline = artifact.inlineJson !== undefined;
-    const hasStorage = artifact.storageRef !== undefined;
-    if (hasInline === hasStorage) {
-      ctx.addIssue({
-        code: "custom",
-        message: "exactly one of inlineJson or storageRef is required",
-      });
-    }
-  });
+  .strict();
 
-/** 核心契约允许持久化的 JSON 值。 */
-export type JsonValue = z.infer<typeof jsonValueSchema>;
+export const artifactRevisionSchema =
+  artifactRevisionBaseSchema.superRefine(validateArtifactLocation);
+
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+/** 解析一个可持久化的 JSON 值。 */
+export function parseJsonValue(input: unknown): JsonValue {
+  return jsonValueSchema.parse(input);
+}
 
 /** 渠道适配器校验并构造、核心仅按 opaque 审计数据保存的版本化信封。 */
 export type ChannelMetadata = z.infer<typeof channelMetadataSchema>;
@@ -655,6 +674,57 @@ export type ContextManifest = z.infer<typeof contextManifestSchema>;
 /** 已通过制品契约校验的不可变 revision。 */
 export type ArtifactRevision = z.infer<typeof artifactRevisionSchema>;
 
+/** Artifact kind 的领域联合类型。 */
+export type ArtifactKind = (typeof ARTIFACT_KIND)[keyof typeof ARTIFACT_KIND];
+
+export type AppendConversationEventInput = DistributiveOmit<
+  ConversationEvent,
+  "streamSeq" | "recordedAt"
+>;
+export type AppendAgentRunEventInput = DistributiveOmit<AgentRunEvent, "runSeq" | "recordedAt">;
+export type AppendMemoryEventInput = DistributiveOmit<MemoryEvent, "memorySeq" | "recordedAt">;
+export type PutArtifactRevisionInput = Omit<ArtifactRevision, "createdAt">;
+
+export interface AppendResult<T> {
+  value: T;
+  appended: boolean;
+}
+
+const appendConversationEventOptions = conversationEventSchema.options.map((schema) =>
+  schema.omit({ streamSeq: true, recordedAt: true }),
+);
+const appendAgentRunEventOptions = agentRunEventSchema.options.map((schema) =>
+  schema.omit({ runSeq: true, recordedAt: true }),
+);
+const appendMemoryEventOptions = memoryEventSchema.options.map((schema) =>
+  schema.omit({ memorySeq: true, recordedAt: true }),
+);
+
+export const appendConversationEventInputSchema = z.union(
+  appendConversationEventOptions as [
+    (typeof appendConversationEventOptions)[number],
+    (typeof appendConversationEventOptions)[number],
+    ...(typeof appendConversationEventOptions)[number][],
+  ],
+) as unknown as z.ZodType<AppendConversationEventInput>;
+export const appendAgentRunEventInputSchema = z.union(
+  appendAgentRunEventOptions as [
+    (typeof appendAgentRunEventOptions)[number],
+    (typeof appendAgentRunEventOptions)[number],
+    ...(typeof appendAgentRunEventOptions)[number][],
+  ],
+) as unknown as z.ZodType<AppendAgentRunEventInput>;
+export const appendMemoryEventInputSchema = z.union(
+  appendMemoryEventOptions as [
+    (typeof appendMemoryEventOptions)[number],
+    (typeof appendMemoryEventOptions)[number],
+    ...(typeof appendMemoryEventOptions)[number][],
+  ],
+) as unknown as z.ZodType<AppendMemoryEventInput>;
+export const putArtifactRevisionInputSchema = artifactRevisionBaseSchema
+  .omit({ createdAt: true })
+  .superRefine(validateArtifactLocation);
+
 /** 调用方尝试按当前代码读取未知事实账本版本时抛出的错误。 */
 export class UnsupportedFactLedgerSchemaVersionError extends Error {
   constructor(readonly schemaVersion: unknown) {
@@ -671,6 +741,31 @@ function assertCurrentSchemaVersion(input: unknown): void {
   if (schemaVersion !== FACT_LEDGER_SCHEMA_VERSION) {
     throw new UnsupportedFactLedgerSchemaVersionError(schemaVersion);
   }
+}
+
+/**
+ * 校验尚未由 Store 分配顺序和记录时间的 Conversation Event。
+ */
+export function parseAppendConversationEventInput(input: unknown): AppendConversationEventInput {
+  assertCurrentSchemaVersion(input);
+  return appendConversationEventInputSchema.parse(input);
+}
+
+/** 校验尚未由 Store 分配顺序和记录时间的 Agent Run Event。 */
+export function parseAppendAgentRunEventInput(input: unknown): AppendAgentRunEventInput {
+  assertCurrentSchemaVersion(input);
+  return appendAgentRunEventInputSchema.parse(input);
+}
+
+/** 校验尚未由 Store 分配顺序和记录时间的 Memory Event。 */
+export function parseAppendMemoryEventInput(input: unknown): AppendMemoryEventInput {
+  assertCurrentSchemaVersion(input);
+  return appendMemoryEventInputSchema.parse(input);
+}
+
+/** 校验尚未由 Store 分配创建时间的 Artifact revision。 */
+export function parsePutArtifactRevisionInput(input: unknown): PutArtifactRevisionInput {
+  return putArtifactRevisionInputSchema.parse(input);
 }
 
 /**

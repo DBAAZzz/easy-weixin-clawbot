@@ -4,12 +4,22 @@ export {
   AGENT_RUN_EVENT_TYPE,
   MEMORY_EVENT_TYPE,
   ARTIFACT_KIND,
+  jsonValueSchema,
   conversationEventSchema,
+  appendConversationEventInputSchema,
+  appendAgentRunEventInputSchema,
+  appendMemoryEventInputSchema,
+  putArtifactRevisionInputSchema,
   agentRunEventSchema,
   memoryEventSchema,
   contextManifestSchema,
   artifactRevisionSchema,
   UnsupportedFactLedgerSchemaVersionError,
+  parseJsonValue,
+  parseAppendConversationEventInput,
+  parseAppendAgentRunEventInput,
+  parseAppendMemoryEventInput,
+  parsePutArtifactRevisionInput,
   parseConversationEvent,
   parseAgentRunEvent,
   parseMemoryEvent,
@@ -19,10 +29,25 @@ export {
 
 export type {
   JsonValue,
+  ArtifactKind,
   ChannelMetadata,
+  AppendConversationEventInput,
+  AppendAgentRunEventInput,
+  AppendMemoryEventInput,
+  PutArtifactRevisionInput,
+  AppendResult,
   ConversationEvent,
   AgentRunEvent,
   MemoryEvent,
   ContextManifest,
   ArtifactRevision,
 } from "./contracts.js";
+
+export { canonicalizeJson, sha256CanonicalJson } from "./canonical-json.js";
+export {
+  FactLedgerIdConflictError,
+  FactLedgerIdempotencyConflictError,
+  FactLedgerContentHashMismatchError,
+  FactLedgerCorruptionError,
+  FactLedgerSequenceOverflowError,
+} from "./errors.js";

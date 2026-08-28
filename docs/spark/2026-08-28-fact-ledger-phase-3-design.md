@@ -1,6 +1,6 @@
 # Fact Ledger Phase 3：Session Boundary 与 Context Compiler Shadow Mode
 
-> 状态：Draft / 待 CR  
+> 状态：CR 修订完成 / 待实现确认
 > 日期：2026-08-28  
 > 前置：Phase 2 微信 ingress、dispatch receipt、legacy projection link 与 disposable PostgreSQL 集成测试已通过  
 > 范围：补齐 `/clear` 的显式 session boundary，建立只读 Conversation Events 的确定性 Context Compiler，并与旧请求做隔离的 shadow diff；不切换模型读取路径
@@ -10,7 +10,7 @@
 Phase 3 采用以下方案：
 
 1. 微信外部事实流继续保持 `streamId = senderId`，`/clear` 不创建新的外部 stream；
-2. `/clear` 成功后追加 `session_rotated`，其在同一 stream 中的位置就是权威 session boundary；
+2. `/clear` 的 legacy projection clear、route 删除、receipt command 标记与 `session_rotated` append 在同一 PostgreSQL 事务完成；其在同一 stream 中的位置就是权威 session boundary；
 3. Context Compiler 只显式读取 Conversation Event 的标准字段，不展开 `payload`，不读取 `channelMetadata`、dispatch receipt、projection link 或旧 `messages.payload`；
 4. Phase 3 的 attachment resolver 只接受标准 `attachmentRefs`，缺少 immutable Artifact 映射时显式输出 `unresolved`，不读取 CDN、AES、本地路径或旧 Asset；
 5. canonical context 只表达当前事实账本已经具备证据的内容。Phase 2 尚无完整 outbound/run facts，因此 Phase 3 不伪造 assistant/tool 历史；
@@ -45,7 +45,7 @@ Canonical + Legacy
 必须满足：
 
 1. `/clear` 不再依赖解析用户文本来推断 session boundary；
-2. 编译结果由 `accountId + streamId + eventCursor + compilerVersion + policy` 唯一决定；
+2. 编译结果由 `accountId + streamId + eventCursor + compilerVersion + policy + effectiveTime + timezone` 唯一决定；
 3. 仅 `channelMetadata` 不同的事件产生完全相同的 canonical context、Memory Extractor input 和 hash；
 4. Compiler 不读取 dispatch、projection link、旧 Message、微信 metadata 或本地媒体路径；
 5. future event 不得越过 `eventCursor` 进入结果；
@@ -128,7 +128,7 @@ Phase 3 不改变这个含义。`/clear` 是同一外部事实流内的上下文
 }
 ```
 
-`previousStreamId` 在 v1 契约中名字已经固定。对微信稳定 stream，它记录 boundary 所属的前序外部 stream，值与当前 `streamId` 相同；Compiler 不通过该字段寻找另一个 stream，只使用 boundary 的权威 `streamSeq`。
+`previousStreamId` 是 v1 历史兼容字段，不是路由依据。对微信稳定 stream，它记录 boundary 所属的前序外部 stream，值与当前 `streamId` 相同。Phase 3 必须同时在 fact-ledger contract 上补充该语义注释；Compiler 禁止读取它来寻找另一个 stream，只使用 boundary 的权威 `streamSeq`。
 
 Event ID 跨进程稳定：
 
@@ -156,18 +156,29 @@ interface WeixinIngressLifecycle {
 
 ```text
 validate processing receipt and source event
-  -> mark receipt command_name=clear
-  -> execute legacy clear
-  -> append deterministic session_rotated
+  -> resolve effective conversation
+  -> acquire effective conversation lock
+  -> wait for queued legacy message writes while holding lock
+  -> one PostgreSQL transaction:
+       mark receipt command_name=clear
+       lock and tombstone legacy projection links
+       delete legacy messages and reset conversation counters
+       delete session route
+       append deterministic session_rotated
+  -> evict effective conversation from in-memory cache
   -> return to SDK
   -> SDK sends clear confirmation
   -> settle command receipt completed/failed
   -> SDK may persist sync cursor
 ```
 
-这样即使确认消息发送失败，只要 clear side effect 已完成，boundary 仍然存在。boundary append 失败时 `invokeClear()` 失败，SDK 按业务错误处理并 settle failed；已完成的 clear 不自动重放，deterministic boundary 可由人工诊断，但 Phase 3 不自动把 failed receipt 重置为 pending。
+事务使用 server 内部 clear service，不通过会自行开启事务的 `MessageStore.clearMessages()` 或 `ConversationEventStore.append()` 组合。Phase 3 把二者的 SQL/codec 核心抽成接受 Prisma transaction client 的内部 helper，public Store 方法继续自行开启事务。stream sequence 冲突或可重试事务错误只能重试整个 clear transaction，不能只重试 append 部分。事务失败时数据库中的 legacy history、route、receipt command marker 和 boundary 全部不变，因此不存在“legacy 已清空但 boundary 缺失”的可提交状态。
 
-`weixin_ingress_dispatches` 增加 nullable `command_name`，Phase 3 只允许值 `clear`。`invokeClear()` 在副作用前条件更新该字段，便于 stuck 诊断；字段不保存用户原文或参数。进程在标记后任意位置崩溃时，管理员仍不能据此证明 clear 是否执行，因此继续使用 Phase 2 abandon-only recovery，不能自动重放。
+内存 cache 不属于数据库事务：事务前由 conversation lock 阻止并发 turn，事务提交后同步 `evict()`。进程若在 commit 后、evict 前崩溃，进程退出会自然丢弃 cache；若同步 evict 异常，则账号 runtime fail closed 并停止接收新 turn，禁止继续使用可能过期的内存历史。
+
+这样即使确认消息发送失败，只要 clear transaction 已完成，boundary 仍然存在。确认发送失败时 receipt 可 settle failed，但未来上下文边界仍然正确。
+
+`weixin_ingress_dispatches` 增加 nullable `command_name`，Phase 3 只允许值 `clear`。该字段与 clear/boundary 在同一事务写入，不保存用户原文或参数。
 
 `/echo` 和 `/toggle-debug` 不调用 `invokeClear()`，也不产生 boundary。
 
@@ -229,9 +240,20 @@ Phase 3 不新增 source attachment mapping 表，避免把旧 mutable Asset 误
 ### 7.1 类型
 
 ```ts
+interface CompileContextInputV1 {
+  accountId: string;
+  conversationStreamId: string;
+  eventCursor: number;
+  compilerVersion: "context-compiler-v1";
+  contextPolicyRevisionId: "context-policy-v1";
+  effectiveTime: string;
+  timezone: "Asia/Shanghai";
+}
+
 interface CanonicalContextV1 {
   schemaVersion: 1;
   compilerVersion: "context-compiler-v1";
+  contextPolicyRevisionId: "context-policy-v1";
   accountId: string;
   conversationStreamId: string;
   eventCursor: number;
@@ -262,6 +284,15 @@ interface CanonicalConversationEntryV1 {
 ```
 
 `runtimeContext` 是 request-local 编译输入，不写回 Conversation Event。Phase 3 使用 server 在 run 开始时一次性捕获的 `effectiveTime`；同一次 legacy 与 shadow 对比必须使用同一个值。
+
+完整编译输入身份明确为：
+
+```text
+accountId + streamId + eventCursor + compilerVersion + contextPolicyRevisionId
++ effectiveTime + timezone
+```
+
+缓存键、shadow 对账和未来历史重放都必须包含这些动态输入。不能只用 facts cursor 复用包含不同 effective time 的 hash。Phase 3 的 policy 先固定为 revision 常量 `context-policy-v1`，而不是未版本化对象。
 
 ### 7.2 允许读取的事件字段
 
@@ -326,20 +357,22 @@ Phase 3 不把当前 Tape Extractor 切换到该输入，也不调用 extraction
 
 ## 9. Agent 模块边界
 
-新增目录：
+纯 Compiler 与 legacy shadow adapter 分开放置：
 
 ```text
-packages/agent/src/context-compiler/
+packages/agent/src/context-compiler/       # L3
   types.ts
   conversation-reducer.ts
   attachment-resolver.ts
   compiler.ts
   memory-input.ts
   canonical-hash.ts
-  shadow/
-    legacy-normalizer.ts
-    diff.ts
-    observer.ts
+  diff-types.ts
+
+packages/agent/src/engine/context-shadow/  # L5
+  legacy-normalizer.ts
+  diff.ts
+  observer.ts
 ```
 
 职责：
@@ -349,11 +382,14 @@ packages/agent/src/context-compiler/
 - `compiler.ts`：通过 ConversationEventStore 读取事实并组装 Canonical Context；
 - `memory-input.ts`：从 canonical entries 构建 extraction input；
 - `canonical-hash.ts`：唯一 hash 入口；
-- `legacy-normalizer.ts`：只把旧 AgentMessage snapshot 变成可比较摘要；
-- `diff.ts`：固定类别结构化 diff；
-- `observer.ts`：异步执行 shadow，写 metrics/result sink。
+- `diff-types.ts`：不依赖 LLM 的 canonical summary/diff result 词汇；
+- engine `legacy-normalizer.ts`：把旧 AgentMessage snapshot 变成可比较摘要；
+- engine `diff.ts`：固定类别结构化 diff；
+- engine `observer.ts`：异步执行 shadow，写 metrics/result sink。
 
-Compiler 可以依赖 Agent Ports 和 shared fact-ledger contracts，不依赖 server、Prisma、微信 SDK 或 provider codec。
+Layer check 新增 `context-compiler: 3`。该层只能导入同层、L1 ports 与 L0 shared，禁止导入 `engine`、`capabilities`、`memory`、`llm`、`prompts` 和 `commands`，也不增加 upward type exemption。`AgentMessage` 的 value/type import 只存在于 L5 engine legacy adapter；engine 可以向下导入 L3 canonical 类型。
+
+Compiler 不依赖 server、Prisma、微信 SDK 或 provider codec。这样 legacy normalizer 不会污染纯 Compiler 的依赖边界。
 
 ## 10. Shadow 触发点
 
@@ -367,8 +403,10 @@ conversation lock acquired
   -> old user AgentMessage assembled and appended
   -> clone legacy AgentMessage[] snapshot
   -> capture source event cursor + effectiveTime
-  -> enqueue shadow observer
+  -> create pending shadow handle and start isolated compilation
   -> existing AgentRunner continues unchanged
+  -> runner success: publish shadow result asynchronously
+  -> runner failed/aborted/rolled back: discard pending result and count skipped
 ```
 
 Command 不触发 model-context shadow；`/clear` 只追加 boundary。Scheduler、Heartbeat、Webhook 和主动消息没有对应 Phase 2 canonical ingress，留待 Run Ledger 阶段。
@@ -379,13 +417,16 @@ Shadow observer 必须：
 
 - 接收 `structuredClone()` 后的 legacy snapshot，避免 runner 后续 mutation；
 - 使用 source event 的 `streamSeq` 作为 cursor；
-- 在独立异步任务执行；
+- 返回 pending handle，编译可在独立异步任务执行，但不能立即写 success result；
+- 只有 runner 得到可提交的成功状态且 turn 未 rollback 时，调用 `handle.publish()` 写入 result；
+- runner `error`、`aborted`、throw 或 rollback 时调用 `handle.discard("turn_failed")`，不写普通 diff result，只增加 skipped metric；
+- publish/discard 必须幂等，晚到的 compile promise 不能越过 discarded terminal state；
 - catch、记录分类并显式降级；
 - 不改变 runner 参数；
 - 不影响模型、发送、receipt settle 或 sync cursor；
 - shutdown 时有独立 drain，超时只报警，不阻塞无限退出。
 
-事实读取失败、unsupported event、resolver 失败或 result sink 失败都只标记 shadow error，不影响生产 chat。
+`max_rounds` 若现有业务把最后 assistant 内容作为有效回复，则视为成功；`complete` 视为成功；`error` 与 `aborted` 视为失败。模型配置缺失、engine 外层 fallback 和 user-message rollback 都必须 discard。事实读取失败、unsupported event、resolver 失败或 result sink 失败只标记 shadow error，不影响生产 chat。
 
 ## 11. Legacy diff 隔离
 
@@ -449,8 +490,11 @@ context_compiler_shadow_results
   source_event_id FK conversation_events RESTRICT
   account_id
   compiler_version
-  PK (source_event_id, compiler_version)
+  context_policy_revision_id
+  PK (source_event_id, compiler_version, context_policy_revision_id)
   event_cursor
+  effective_time
+  timezone
   canonical_context_hash
   canonical_memory_input_hash
   legacy_summary_hash
@@ -466,7 +510,8 @@ context_compiler_shadow_results
 
 - `diff_counts` 只允许固定类别和非负整数；应用 parser 与数据库 CHECK 双重校验；
 - 不保存 canonical body、legacy body、用户 text、metadata、Prompt、Tape 或本地路径；
-- `(source_event_id, compiler_version)` 为主键，同一 compiler 幂等，不同 compiler version 保留独立结果；
+- `(source_event_id, compiler_version, context_policy_revision_id)` 为主键，同一编译器与 policy 幂等，不同 revision 保留独立结果；
+- `effective_time` 与 `timezone` 必须持久化；同一主键重写时若动态输入不同，报 equivalence conflict，不能覆盖旧 hash；
 - account 必须通过复合 FK 与 source event 一致；
 - result 是运维 shadow projection，可更新，不是事实账本。
 
@@ -475,7 +520,7 @@ context_compiler_shadow_results
 新增低基数指标：
 
 ```text
-context_compiler_shadow_total{result=success|failed|disabled}
+context_compiler_shadow_total{result=success|failed|disabled|skipped_turn_failed}
 context_compiler_diff_total{category=<固定类别>}
 context_compiler_entries{side=canonical|legacy}
 context_compiler_unresolved_attachment_total
@@ -486,6 +531,7 @@ context_compiler_duration_ms
 
 - accountId；
 - sourceEventId；
+- contextPolicyRevisionId；
 - streamId；
 - eventCursor；
 - compilerVersion；
@@ -521,15 +567,17 @@ context_compiler_duration_ms
 
 ### 15.1 Boundary fail closed
 
-`/clear` 的 legacy clear 已成功但 boundary append 返回错误：
+Clear transaction 中任一步失败：
 
-- SDK 将本次业务 outcome settle 为 failed；
-- cursor 可以按 poison-message 规则推进；
-- 不自动再次执行 clear；
-- reconciliation 报告 `clear_boundary_missing`；
+- legacy Message 删除、projection tombstone、route 删除、receipt command marker 和 boundary append 全部回滚；
+- SDK 将本次业务 outcome 交给 settle 标记为 failed；
+- 只有 terminal failed settlement 成功持久化后，cursor 才按现有 poison-message 规则推进；settle 自身失败时 cursor 不推进；
+- canonical history 不会出现缺少 boundary 的已提交 clear；
 - 日志不含 command 原文。
 
-进程在 legacy clear 后、boundary append 或 failed settle 前崩溃时，receipt 保持 processing 且 cursor 不推进。这是仍然存在的明确 crash gap；Phase 3 不用自动重试制造重复副作用。
+事务提交后、receipt terminal settle 前崩溃时，clear 与 boundary 已同时存在，receipt 可能保持 processing。管理员使用 Phase 2 abandon-only recovery；由于 side effect 已有事实，不自动重发确认或再次执行 clear。
+
+Phase 4 生产读取切换设硬门禁：数据库不得存在 `command_name='clear'` 且 legacy projection 已清除但无 causation boundary 的异常状态。Phase 3 reconciliation 增加该不变量检查；一旦发现，禁止切换并提供仅管理员可用的 repair 命令。repair 只接受 source receipt ID，执行与正常 clear 相同的幂等事务，不接受自由文本 event 内容。正常 Phase 3 路径不应产生该状态，该工具用于历史数据或人工数据库操作后的恢复。
 
 ### 15.2 Compiler fail closed，shadow fail open
 
@@ -551,7 +599,7 @@ result sink 失败不重跑模型、不修改 event、不阻塞 reply。保留 m
 
 ## 16. 安全与隐私
 
-- Compiler 的函数签名不接受 channel metadata；
+- 纯 reducer、memory-input 和 hash 函数签名不接受 channel metadata；Store reader 返回完整 event 后，`compiler.ts` 必须通过逐类型显式 projector 立即收窄为内部 canonical fact，后续层不持有原 envelope；
 - legacy adapter 与 compiler 目录互不导入；
 - shadow 表不保存正文；
 - hash 只用于变化检测，不作为用户文本匿名化替代物对外暴露；
@@ -562,9 +610,10 @@ result sink 失败不重跑模型、不修改 event、不阻塞 reply。保留 m
 
 ### 17.1 Agent 纯单元测试
 
-- 同一 facts 与 cursor 产生稳定 Canonical Context/hash；
+- 同一完整 CompileContextInput 产生稳定 Canonical Context/hash；
+- 同一 facts/cursor 但不同 effectiveTime 产生不同 hash；
 - 不同 metadata、sender snapshot、channel message ID 不影响 canonical hash；
-- metadata 注入 `effectiveTime`、`tapeMemory`、`visualContext` 不影响输出；
+- `channelMetadata` 中伪造同名 `effectiveTime`、`tapeMemory`、`visualContext` 不影响输出；只有显式 CompileContextInput.effectiveTime 生效；
 - future event 不越过 cursor；
 - latest boundary 之前的 entries 被排除；
 - `/clear` inbound command event 不进入 boundary 后 session；
@@ -580,7 +629,7 @@ result sink 失败不重跑模型、不修改 event、不阻塞 reply。保留 m
 ### 17.2 Shadow diff 单元测试
 
 - 健康原文匹配产生 `match_user_text`；
-- old time/Tape/Vision/quoted display 被分类但不复制到 canonical；
+- old time/Tape/Vision/quoted display 被启发式分类但不复制到 canonical，且启发式结果不作为恢复证据；
 - assistant/tool 缺失被标记为 expected legacy-only；
 - unresolved attachment 分类稳定；
 - 未知差异进入 `unclassified_difference`；
@@ -590,28 +639,34 @@ result sink 失败不重跑模型、不修改 event、不阻塞 reply。保留 m
 
 - ledger `/clear` 通过 `invokeClear(receiptId, conversationId)` 执行；
 - `/echo` 和 `/toggle-debug` 不调用 `invokeClear`；
-- clear 或 boundary 失败 settle outcome 为 failed；
-- boundary append/settle 失败时 cursor 不推进；
+- clear transaction 失败时 legacy 删除和 boundary 同时回滚，settle outcome 为 failed；
+- 用调用顺序 spy 锁定 slash handler 严格 `await invokeClear()` 成功后才调用 `sendReply()`，二者不得并行或交换；
+- transaction/settle 的 cursor 行为符合现有 failed poison-message 规则；
 - duplicate receipt 不重复 clear、不重复 boundary、不重复回复。
 
 ### 17.4 Server 单元测试
 
 - deterministic boundary event ID 和 idempotency key；
-- `invokeClear` 先完成 legacy clear，再 append boundary；
-- boundary append 完成后 SDK 才发送确认并 settle receipt；
+- `invokeClear` 在同一 Prisma transaction 完成 legacy clear 与 boundary append；
+- transaction 完成后 SDK 才发送确认并 settle receipt；
+- runner failed/aborted/rollback 时 pending shadow 被 discard，result 表无普通 diff 行；
+- runner complete/max_rounds 成功时才 publish；
 - rollout disabled 不启动 shadow；
 - observer clone legacy history，runner mutation 不污染 snapshot；
 - shadow error 不影响 AgentRunner；
+- failed/aborted/rolled-back turn 只产生 skipped metric，不写普通 shadow result；
 - result parser 拒绝正文、未知 diff category 和额外字段。
 
 ### 17.5 Disposable PostgreSQL 集成测试
 
 - fresh deploy Phase 0–3 migrations；
-- `/clear` 在副作用前把 receipt 标记为 `command_name=clear`；
+- `/clear` 在同一事务把 receipt 标记为 `command_name=clear`；
+- clear transaction 任意注入失败都不提交 Message 删除、route 删除或 boundary；
 - `/clear` 产生一条 deterministic boundary，重投不重复；
 - boundary 与 source inbound causation 正确；
 - cursor 编译只读 throughSeq；
 - shadow result account/source event 复合 FK 生效；
+- 同一 result 主键但不同 effectiveTime 触发 equivalence conflict；
 - shadow result 不含正文列；
 - metadata-only event variation canonical hash 相同；
 - result upsert 不修改 Conversation Event；
@@ -658,14 +713,14 @@ result sink 失败不重跑模型、不修改 event、不阻塞 reply。保留 m
 
 Phase 3 完成必须同时满足：
 
-1. `/clear` 成功后存在显式、幂等、可因果追踪的 session boundary；
+1. `/clear` 的 legacy clear、route 删除和显式 session boundary 在同一数据库事务提交，且 boundary 幂等、可因果追踪；
 2. Compiler 只从 Conversation Events 标准字段构建 canonical entries；
 3. metadata-only variation 不影响 canonical context、Memory input 或 hash；
 4. cursor 和 boundary 语义由纯 reducer 与 PostgreSQL 集成测试覆盖；
 5. attachment source ref 与 immutable Artifact 身份明确分离；
 6. unresolved attachment 不通过旧路径猜测；
 7. shadow diff 单向隔离，旧 payload 不补 canonical；
-8. shadow 不调用模型、不改变生产请求、不阻塞业务；
+8. shadow 不调用模型、不改变生产请求、不阻塞业务，失败或 rollback turn 不写普通 diff result；
 9. result 和日志不保存正文或 secret；
 10. `unclassified_difference` 可观测；
 11. 生产读取继续来自旧 Message/Tape；
@@ -682,10 +737,11 @@ A packages/agent/src/context-compiler/attachment-resolver.ts
 A packages/agent/src/context-compiler/compiler.ts
 A packages/agent/src/context-compiler/memory-input.ts
 A packages/agent/src/context-compiler/canonical-hash.ts
-A packages/agent/src/context-compiler/shadow/legacy-normalizer.ts
-A packages/agent/src/context-compiler/shadow/diff.ts
-A packages/agent/src/context-compiler/shadow/observer.ts
+A packages/agent/src/context-compiler/diff-types.ts
 A packages/agent/src/context-compiler/index.ts
+A packages/agent/src/engine/context-shadow/legacy-normalizer.ts
+A packages/agent/src/engine/context-shadow/diff.ts
+A packages/agent/src/engine/context-shadow/observer.ts
 M packages/agent/src/index.ts
 M packages/agent/src/engine/chat-engine.ts
 M packages/agent/src/engine/turn.ts
@@ -709,6 +765,10 @@ M packages/weixin-agent-sdk/test/process-message.business.test.ts
 ```text
 A packages/server/src/weixin/session-boundary.ts
 A packages/server/src/weixin/session-boundary.test.ts
+A packages/server/src/db/clear-ingress-session.ts
+A packages/server/src/db/clear-ingress-session.test.ts
+M packages/server/src/db/conversation-event-store.impl.ts
+M packages/server/src/db/message-store.impl.ts
 M packages/server/src/weixin/ingress-controller.ts
 M packages/server/src/weixin/ingress-controller.test.ts
 A packages/server/src/db/context-compiler-shadow-rollout-store.ts
@@ -718,7 +778,7 @@ A packages/server/src/db/context-compiler-shadow-result-store.test.ts
 A packages/server/src/context-shadow-observer.ts
 A packages/server/src/context-shadow-observer.test.ts
 M packages/server/src/runtime.ts
-M packages/server/src/ai.ts
+M packages/server/src/agent.ts
 M packages/server/prisma/schema.prisma
 A packages/server/prisma/migrations/20260828200000_add_context_compiler_shadow_phase_3/migration.sql
 A packages/server/test-integration/context-compiler-shadow-phase-3.test.ts

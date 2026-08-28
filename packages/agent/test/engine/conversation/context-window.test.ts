@@ -356,7 +356,7 @@ function trigger(text: string): TriggerMessage {
     role: "trigger",
     content: [{ type: "text", text }],
     timestamp: 1,
-    meta: { kind: "reminder", reminderId: "r-1" },
+    meta: { kind: "pulse" },
   };
 }
 

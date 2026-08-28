@@ -358,6 +358,9 @@ importers:
       tsdown:
         specifier: ^0.22.13
         version: 0.22.13(@tsdown/css@0.22.13)(tsx@4.21.0)(typescript@7.0.2)(unrun@0.2.34)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

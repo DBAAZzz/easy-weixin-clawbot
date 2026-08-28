@@ -29,12 +29,15 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
+    "test": "tsx --test 'test/**/*.test.ts'",
+    "test:typecheck": "tsc --noEmit -p test/tsconfig.json",
     "prepublishOnly": "pnpm run build",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsdown": "^0.22.13",
+    "tsx": "^4.21.0",
     "typescript": "^7.0.2"
   }
 }

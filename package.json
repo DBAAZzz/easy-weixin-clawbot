@@ -13,6 +13,7 @@
     "check:fence": "bash scripts/check-child-process-fence.sh",
     "test:agent": "pnpm -F @clawbot/agent test",
     "test:server": "pnpm -F @clawbot/server test",
+    "test:weixin-sdk": "pnpm -F @clawbot/weixin-agent-sdk test",
     "start": "pnpm -F @clawbot/server start",
     "wxLogin": "pnpm -F @clawbot/server login"
   }

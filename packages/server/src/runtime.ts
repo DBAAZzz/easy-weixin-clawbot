@@ -4,6 +4,8 @@ import { credentialStore, syncStateStore } from "./credentials/index.js";
 import { getActiveAccountIds as getNonDeprecatedAccountIds, upsertAccount } from "./db/accounts.js";
 import { drainMessageQueue } from "./db/messages.js";
 import { drainUsageQueue } from "./db/usage.js";
+import { WeixinIngressRolloutStore } from "./db/weixin-ingress-rollout-store.js";
+import { createWeixinIngressLifecycle } from "./weixin/ingress-controller.js";
 import { createModuleLogger, log } from "./logger.js";
 
 type RunningAccount = {
@@ -49,7 +51,9 @@ export function createBotRuntime(): BotRuntime {
 
         await upsertAccount(accountId);
 
-        // Load sync buf from DB
+        // Load rollout once per account start; a restart applies operator changes.
+        const ingressEnabled = await new WeixinIngressRolloutStore().isEnabled(accountId);
+        const agent = createAgent(accountId);
         const syncBuf = await syncStateStore.load(accountId);
 
         await monitorWeixinProvider({
@@ -57,14 +61,19 @@ export function createBotRuntime(): BotRuntime {
           cdnBaseUrl: getDefaultCdnBaseUrl(),
           token: credential.token,
           accountId,
-          agent: createAgent(accountId),
+          agent,
           abortSignal: abortController.signal,
           syncBufInitial: syncBuf,
-          onSyncBufUpdate: (buf) => {
-            void syncStateStore.save(accountId, buf).catch((err) => {
-              log.error(`syncStateStore.save(${accountId})`, err);
-            });
-          },
+          onSyncBufUpdate: (buf) => syncStateStore.save(accountId, buf),
+          ...(ingressEnabled
+            ? {
+                ingressLifecycle: createWeixinIngressLifecycle({
+                  accountId,
+                  rolloutEnabled: ingressEnabled,
+                  agent,
+                }),
+              }
+            : {}),
         });
       } catch (error) {
         if (!abortController.signal.aborted) {

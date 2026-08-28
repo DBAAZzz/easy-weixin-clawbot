@@ -68,6 +68,8 @@ export interface ChatTurnInput {
   inputRole?: "user" | "trigger";
   /** Required when inputRole is "trigger". */
   triggerMeta?: TriggerMeta;
+  /** Source fact for the user message persistence link; never enters model-visible content. */
+  sourceConversationEventId?: string;
 }
 
 function finalizeReply(
@@ -190,6 +192,7 @@ function appendMessage(
   ctx: RunContext,
   history: AgentMessage[],
   message: AgentMessage,
+  sourceConversationEventId?: string,
 ): void {
   history.push(message);
   getMessageStore().queuePersistMessage({
@@ -197,6 +200,7 @@ function appendMessage(
     conversationId: ctx.conversationId,
     message,
     seq: cache.nextSeq(ctx.accountId, ctx.conversationId),
+    sourceConversationEventId,
   });
 }
 
@@ -406,7 +410,7 @@ export async function runChatTurn(
         inputRole: input.inputRole,
         triggerMeta: input.triggerMeta,
       });
-      appendMessage(cache, ctx, history, userMessage);
+      appendMessage(cache, ctx, history, userMessage, input.sourceConversationEventId);
 
       const tracker = createMessageTracker(cache, ctx, history, log, createUsageRequestId());
 

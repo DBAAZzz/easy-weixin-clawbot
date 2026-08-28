@@ -51,6 +51,10 @@ export {
   contextMessagesDropped,
   messageQueueDepth,
   activeConversations,
+  weixinIngressIdentityTotal,
+  weixinIngressAppendTotal,
+  weixinIngressDispatchTotal,
+  weixinIngressReconcileTotal,
 } from "./metrics/index.js";
 export type { Counter, Histogram, Gauge } from "./metrics/index.js";
 

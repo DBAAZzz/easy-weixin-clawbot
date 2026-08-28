@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import type { Agent, ChatRequest } from "../agent/interface.js";
+import type { Agent, ChatRequest, WeixinIngressLifecycle } from "../agent/interface.js";
 import { sendTyping } from "../api/api.js";
 import type { WeixinMessage, MessageItem } from "../api/types.js";
 import { MessageItemType, TypingStatus } from "../api/types.js";
@@ -51,7 +51,12 @@ export type ProcessMessageDeps = {
   workDirs?: WeixinSdkWorkDirs;
   log: (msg: string) => void;
   errLog: (msg: string) => void;
+  ingressLifecycle?: WeixinIngressLifecycle;
+  receiptId?: string;
+  receivedAtMs?: number;
 };
+
+export type ProcessMessageOutcome = "chat" | "command" | "failed";
 
 /** Extract raw text from item_list (for slash command detection). */
 function extractTextBody(itemList?: MessageItem[]): string {
@@ -107,9 +112,9 @@ function findMediaItem(itemList?: MessageItem[]): MessageItem | undefined {
 export async function processOneMessage(
   full: WeixinMessage,
   deps: ProcessMessageDeps,
-): Promise<void> {
+): Promise<ProcessMessageOutcome> {
   const workDirs = deps.workDirs ?? resolveWeixinSdkWorkDirs();
-  const receivedAt = Date.now();
+  const receivedAt = deps.receivedAtMs ?? Date.now();
   const textBody = extractTextBody(full.item_list);
 
   // --- Slash commands ---
@@ -130,7 +135,7 @@ export async function processOneMessage(
       receivedAt,
       full.create_time_ms,
     );
-    if (slashResult.handled) return;
+    if (slashResult.handled) return slashResult.failed ? "failed" : "command";
   }
 
   // --- Store context token ---
@@ -210,7 +215,9 @@ export async function processOneMessage(
 
   // --- Call agent & send reply ---
   try {
-    const response = await deps.agent.chat(request);
+    const response = deps.ingressLifecycle && deps.receiptId
+      ? await deps.ingressLifecycle.invokeAgent({ receiptId: deps.receiptId, request })
+      : await deps.agent.chat(request);
 
     if (response.media) {
       let filePath: string;
@@ -237,16 +244,18 @@ export async function processOneMessage(
         opts: { baseUrl: deps.baseUrl, token: deps.token, contextToken },
       });
     }
+    return "chat";
   } catch (err) {
     logger.error(`processOneMessage: agent or send failed: ${err instanceof Error ? err.stack ?? err.message : JSON.stringify(err)}`);
-    void sendWeixinErrorNotice({
+    await sendWeixinErrorNotice({
       to,
       contextToken,
       message: `⚠️ 处理消息失败：${err instanceof Error ? err.message : JSON.stringify(err)}`,
       baseUrl: deps.baseUrl,
       token: deps.token,
       errLog: deps.errLog,
-    });
+    }).catch(() => undefined);
+    return "failed";
   } finally {
     // --- Typing indicator (cancel) ---
     if (typingTimer) clearInterval(typingTimer);

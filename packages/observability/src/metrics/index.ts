@@ -18,4 +18,8 @@ export {
   contextMessagesDropped,
   messageQueueDepth,
   activeConversations,
+  weixinIngressIdentityTotal,
+  weixinIngressAppendTotal,
+  weixinIngressDispatchTotal,
+  weixinIngressReconcileTotal,
 } from "./agent-metrics.js";

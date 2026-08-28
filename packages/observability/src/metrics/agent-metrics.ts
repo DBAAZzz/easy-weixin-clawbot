@@ -122,3 +122,27 @@ export const activeConversations = registry.createGauge({
   help: "Currently active conversations",
   labelNames: [],
 });
+
+export const weixinIngressIdentityTotal = registry.createCounter({
+  name: "weixin_ingress_identity_total",
+  help: "Validated Weixin ingress identities",
+  labelNames: ["source"],
+});
+
+export const weixinIngressAppendTotal = registry.createCounter({
+  name: "weixin_ingress_append_total",
+  help: "Conversation event append results for Weixin ingress",
+  labelNames: ["result"],
+});
+
+export const weixinIngressDispatchTotal = registry.createCounter({
+  name: "weixin_ingress_dispatch_total",
+  help: "Weixin ingress dispatch outcomes",
+  labelNames: ["result"],
+});
+
+export const weixinIngressReconcileTotal = registry.createCounter({
+  name: "weixin_ingress_reconcile_total",
+  help: "Weixin ingress reconciliation results",
+  labelNames: ["result"],
+});

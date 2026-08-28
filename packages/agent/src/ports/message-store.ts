@@ -18,6 +18,8 @@ export interface PersistMessageParams {
   message: AgentMessage;
   seq: number;
   mediaSourcePath?: string;
+  /** Durable source link for an externally received user turn. Never copied into AgentMessage. */
+  sourceConversationEventId?: string;
 }
 
 export interface MessageStore {

@@ -223,10 +223,16 @@ async function generateTitleIfNeeded(
   await setConversationTitleIfEmpty(accountId, conversationId, title);
 }
 
+export interface ServerWeixinAgent extends Agent {
+  chatFromIngress(req: ChatRequest, sourceConversationEventId: string): Promise<ChatResponse>;
+}
+
 /** Create an Agent bound to a specific WeChat account. */
-export function createAgent(accountId: string): Agent {
-  return {
-    async chat(req: ChatRequest): Promise<ChatResponse> {
+export function createAgent(accountId: string): ServerWeixinAgent {
+  async function chat(
+    req: ChatRequest,
+    sourceConversationEventId?: string,
+  ): Promise<ChatResponse> {
       log.recv(accountId, req.conversationId, req.text, req.media?.type);
       // Save contextToken to database for proactive push
       if (req.contextToken) {
@@ -305,7 +311,12 @@ export function createAgent(accountId: string): Agent {
           };
           const reply = await withSpan("conversation.lock", {}, async () =>
             chatEngine.conversations.withLock(accountId, effectiveConvId, async () =>
-              chatEngine.chat(ctx, { text: req.text, media, startedAt }),
+              chatEngine.chat(ctx, {
+                text: req.text,
+                media,
+                startedAt,
+                sourceConversationEventId,
+              }),
             ),
           );
 
@@ -368,17 +379,26 @@ export function createAgent(accountId: string): Agent {
           }
         }
       });
+  }
+
+  return {
+    chat(req) {
+      return chat(req);
     },
 
-    clearSession(wechatConvId: string) {
+    chatFromIngress(req, sourceConversationEventId) {
+      return chat(req, sourceConversationEventId);
+    },
+
+    async clearSession(wechatConvId: string) {
       const k = `${accountId}::${wechatConvId}`;
       const effective = sessionCache.get(k) ?? wechatConvId;
       log.clear(accountId, wechatConvId);
-      chatEngine.conversations.clear(accountId, effective);
-      sessionCache.delete(k);
-      void deleteRoute(accountId, wechatConvId).catch((err) => {
-        log.error(`deleteRoute(${accountId}/${wechatConvId})`, err);
+      await chatEngine.conversations.withLock(accountId, effective, async () => {
+        await chatEngine.conversations.clear(accountId, effective);
       });
+      sessionCache.delete(k);
+      await deleteRoute(accountId, wechatConvId);
     },
   };
 }

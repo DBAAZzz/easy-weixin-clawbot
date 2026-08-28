@@ -15,6 +15,7 @@ import { sendMessageWeixin } from "./send.js";
 export interface SlashCommandResult {
   /** 是否是斜杠指令（true 表示已处理，不需要继续走 AI） */
   handled: boolean;
+  failed?: boolean;
 }
 
 export interface SlashCommandContext {
@@ -26,7 +27,7 @@ export interface SlashCommandContext {
   log: (msg: string) => void;
   errLog: (msg: string) => void;
   /** Called when /clear is invoked to reset the agent session. */
-  onClear?: () => void;
+  onClear?: () => void | Promise<void>;
 }
 
 /** 发送回复消息 */
@@ -99,7 +100,7 @@ export async function handleSlashCommand(
         return { handled: true };
       }
       case "/clear": {
-        ctx.onClear?.();
+        await ctx.onClear?.();
         await sendReply(ctx, "✅ 会话已清除，重新开始对话");
         return { handled: true };
       }
@@ -113,6 +114,6 @@ export async function handleSlashCommand(
     } catch {
       // 发送错误消息也失败了，只能记日志
     }
-    return { handled: true };
+    return { handled: true, failed: true };
   }
 }

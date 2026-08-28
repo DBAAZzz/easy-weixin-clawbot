@@ -27,6 +27,9 @@ model Account {
   conversationStreamHeads ConversationStreamHead[]
   agentRunHeads            AgentRunHead[]
   memoryStreamHeads        MemoryStreamHead[]
+  weixinIngressDispatches  WeixinIngressDispatch[]
+  weixinIngressRollout     WeixinIngressRollout?
+  legacyProjectionLinks    LegacyMessageProjectionLink[]
 
   @@map("accounts")
 }
@@ -141,6 +144,7 @@ model Message {
   mediaType      String?  @map("media_type") @db.Text
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  projectionLink LegacyMessageProjectionLink?
 
   @@unique([accountId, conversationId, seq], map: "messages_account_id_conversation_id_seq_key")
   @@index([accountId, conversationId, id], map: "idx_messages_lookup")
@@ -194,11 +198,63 @@ model ConversationEvent {
   idempotencyKey String?  @map("idempotency_key") @db.Text
   payload        Json
   head            ConversationStreamHead @relation(fields: [accountId, streamId], references: [accountId, streamId], onDelete: Restrict)
+  ingressDispatch WeixinIngressDispatch?
+  projectionLink  LegacyMessageProjectionLink?
 
   @@unique([accountId, streamId, streamSeq], map: "conversation_events_stream_seq_key")
+  @@unique([eventId, accountId], map: "conversation_events_event_account_key")
   @@index([causationId], map: "idx_conversation_events_causation")
   @@index([correlationId], map: "idx_conversation_events_correlation")
   @@map("conversation_events")
+}
+
+model WeixinIngressDispatch {
+  eventId           String    @id @map("event_id") @db.Text
+  accountId         String    @map("account_id") @db.Text
+  status            String    @default("pending") @db.Text
+  outcome           String?   @db.Text
+  attemptCount      Int       @default(0) @map("attempt_count")
+  claimedAt         DateTime? @map("claimed_at") @db.Timestamptz(6)
+  completedAt       DateTime? @map("completed_at") @db.Timestamptz(6)
+  errorCode         String?   @map("error_code") @db.Text
+  recoveryOperator String?   @map("recovery_operator") @db.Text
+  recoveryReason   String?   @map("recovery_reason") @db.Text
+  recoveredAt      DateTime? @map("recovered_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  event             ConversationEvent @relation(fields: [eventId, accountId], references: [eventId, accountId], onDelete: Restrict)
+  account           Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@unique([eventId, accountId], map: "weixin_ingress_dispatches_event_account_key")
+  @@index([accountId, status], map: "idx_weixin_ingress_dispatches_account_status")
+  @@index([status, claimedAt], map: "idx_weixin_ingress_dispatches_stuck")
+  @@map("weixin_ingress_dispatches")
+}
+
+model WeixinIngressRollout {
+  accountId String   @id @map("account_id") @db.Text
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("weixin_ingress_rollouts")
+}
+
+model LegacyMessageProjectionLink {
+  eventId       String    @id @map("event_id") @db.Text
+  accountId     String    @map("account_id") @db.Text
+  conversationId String  @map("conversation_id") @db.Text
+  messageSeq    Int       @map("message_seq")
+  messageId     BigInt?   @unique @map("message_id")
+  state         String    @default("persisted") @db.Text
+  linkedAt      DateTime  @default(now()) @map("linked_at") @db.Timestamptz(6)
+  clearedAt     DateTime? @map("cleared_at") @db.Timestamptz(6)
+  event         ConversationEvent @relation(fields: [eventId], references: [eventId], onDelete: Restrict)
+  account       Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  message       Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([accountId, conversationId], map: "idx_legacy_projection_links_conversation")
+  @@map("legacy_message_projection_links")
 }
 
 model AgentRunHead {

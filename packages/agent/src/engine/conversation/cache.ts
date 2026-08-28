@@ -26,7 +26,7 @@ export interface ConversationCache {
   /** Evict a conversation from memory only — DB is untouched. */
   evict(accountId: string, conversationId: string): void;
   /** Evict from memory and clear DB — used when a conversation is corrupted/reset. */
-  clear(accountId: string, conversationId: string): void;
+  clear(accountId: string, conversationId: string): Promise<void>;
   /** Remove the last N messages from both in-memory history and DB. */
   rollback(accountId: string, conversationId: string, count: number): Promise<void>;
   appendAssistantText(accountId: string, conversationId: string, text: string): Promise<void>;
@@ -205,14 +205,9 @@ export function createConversationCache(opts: ConversationCacheOptions = {}): Co
     if (lruIdx !== -1) lruOrder.splice(lruIdx, 1);
   }
 
-  function clear(accountId: string, conversationId: string): void {
+  async function clear(accountId: string, conversationId: string): Promise<void> {
     evict(accountId, conversationId);
-
-    // Also clear from DB so corrupted messages don't get reloaded
-    const messageStore = getMessageStore();
-    messageStore.clearMessages(accountId, conversationId).catch((err) => {
-      console.error(`[conversation] clearMessages DB error (${accountId}/${conversationId}):`, err);
-    });
+    await getMessageStore().clearMessages(accountId, conversationId);
   }
 
   async function rollback(accountId: string, conversationId: string, count: number): Promise<void> {

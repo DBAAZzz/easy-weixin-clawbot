@@ -287,12 +287,12 @@ FactLedgerSequenceOverflowError
 - `FactLedgerIdConflictError`：同一 Event/Artifact ID 对应不同内容；
 - `FactLedgerIdempotencyConflictError`：同一 Conversation 幂等键对应不同业务事实；
 - `FactLedgerContentHashMismatchError`：inline Artifact 的 canonical JSON 实际 hash 与声明值不同；
-- `FactLedgerCorruptionError`：数据库已有行无法通过当前 schema 解析；
+- `FactLedgerCorruptionError`：当前 schema version 的数据库行无法通过对应结构校验；
 - `FactLedgerSequenceOverflowError`：head 已达到 PostgreSQL `INTEGER` 的最大值。
 
 错误消息不得包含完整 payload、用户正文、Artifact 内容或 encryption metadata。错误可以携带 ID、流身份和冲突类型等非内容诊断字段。
 
-未知 schema version 继续使用 Phase 0 的 `UnsupportedFactLedgerSchemaVersionError`。
+读取边界先检查 schema version：高于或不同于当前版本时原样抛出 Phase 0 的 `UnsupportedFactLedgerSchemaVersionError`；只有 schema version 是当前版本但字段、payload 或约束不合法时，Adapter 才包装为 `FactLedgerCorruptionError`。禁止把未来版本误报为数据损坏。
 
 ## 9. 数据库模型
 
@@ -334,7 +334,7 @@ conversation_events
 
 - `UNIQUE(account_id, stream_id, stream_seq)`；
 - partial unique：`UNIQUE(account_id, idempotency_key) WHERE idempotency_key IS NOT NULL`；
-- user/agent actor 必须有 `actor_id`；
+- 数据库显式增加 `CHECK (actor_kind = 'system' OR actor_id IS NOT NULL)`，确保 user/agent actor 必须有 `actor_id`；
 - `(account_id, stream_id, stream_seq)` 顺序读取索引由 unique index 覆盖；
 - `causation_id`、`correlation_id` 单独建立非唯一索引；
 - `event_type, occurred_at` 不在 Phase 1 建索引，当前无对应读取 API。
@@ -350,7 +350,7 @@ agent_run_heads
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 ```
 
-同一个 `runId` 首次 append 后不能绑定到其他账号或 conversation stream。
+同一个 `runId` 首次 append 后不能绑定到其他账号或 conversation stream。Run head 的 conflict update 条件必须同时匹配已有 `account_id` 和 `conversation_stream_id`，不能只检查序号上限。
 
 ### 9.4 Agent Run Event
 
@@ -410,7 +410,7 @@ memory_events
 约束与索引：
 
 - `UNIQUE(account_id, branch, memory_seq)`；
-- actor ID 约束与 Conversation Event 相同；
+- 与 Conversation Event 相同，数据库显式增加 `CHECK (actor_kind = 'system' OR actor_id IS NOT NULL)`；
 - `causation_id`、`correlation_id` 建非唯一索引。
 
 ### 9.7 Artifact Revision
@@ -453,11 +453,25 @@ Artifact 没有 Account 外键。
 2. 查询 Event ID 或幂等键是否已存在；
 3. 如果是等价重复，返回 `{ appended: false }`；
 4. 如果冲突，抛领域错误；
-5. 使用参数化 SQL 执行 `INSERT ... ON CONFLICT ... DO UPDATE`，并在更新条件中要求 `last_seq < 2147483647`；
-6. `RETURNING last_seq` 无结果时抛 `FactLedgerSequenceOverflowError`；
+5. 使用参数化 SQL 执行 `INSERT ... ON CONFLICT ... DO UPDATE`，设置 `last_seq = last_seq + 1, updated_at = CURRENT_TIMESTAMP`，并在更新条件中要求 `last_seq < 2147483647`；
+6. Run head 的更新条件额外要求 `account_id = EXCLUDED.account_id AND conversation_stream_id = EXCLUDED.conversation_stream_id`；`RETURNING` 无结果时在同一事务读取 head，身份不一致抛 `FactLedgerIdConflictError`，否则抛 `FactLedgerSequenceOverflowError`；
 7. 插入事件，省略 `recordedAt` 让数据库填充；
 8. 将返回行解析成严格领域 Event；
 9. 提交事务。
+
+Run head 使用以下等价条件，实施时必须保留全部谓词：
+
+```sql
+ON CONFLICT (run_id) DO UPDATE
+SET last_seq = agent_run_heads.last_seq + 1,
+    updated_at = CURRENT_TIMESTAMP
+WHERE agent_run_heads.last_seq < 2147483647
+  AND agent_run_heads.account_id = EXCLUDED.account_id
+  AND agent_run_heads.conversation_stream_id = EXCLUDED.conversation_stream_id
+RETURNING last_seq;
+```
+
+Conversation 与 Memory head 同样在 conflict update 时刷新 `updated_at`，其流身份已经完整包含在复合主键中。
 
 若两个并发请求在步骤 2 都未发现记录：
 
@@ -480,9 +494,11 @@ Artifact 没有 Account 外键。
 
 同一 `eventId`：
 
-- 比较除数据库分配字段外的完整 Append Input；
-- 完全等价返回已有事件；
-- 任一字段不同抛 `FactLedgerIdConflictError`。
+- Conversation Event 比较时排除数据库分配字段和 `receivedAt`；Run/Memory 只排除数据库分配字段；
+- 其余字段完全等价时返回第一次保存的事件，第一次 `receivedAt` 保持权威；
+- 其余任一字段不同抛 `FactLedgerIdConflictError`。
+
+`receivedAt` 表示本地接收尝试时间，稳定 Event ID 的重投可能产生新的接收时间，因此不应把它当成逻辑事件身份。`idempotencyKey` 仍参与 Event ID 比较。
 
 ### 11.2 Conversation 平台幂等键
 
@@ -576,7 +592,8 @@ Phase 1 不提供运行时 bypass。未来 retention 或合规清理必须通过
 - `limit` 调用方必填并限制为 `1..500`；
 - 空结果返回 `[]`；
 - `getById` 找不到返回 `null`；
-- 任何读取行解析失败都抛 `FactLedgerCorruptionError`，禁止跳过坏行继续返回不完整事实。
+- 读取先执行版本判断：未知版本抛 `UnsupportedFactLedgerSchemaVersionError`；当前版本结构损坏才抛 `FactLedgerCorruptionError`；
+- 两类解析失败都禁止跳过坏行后继续返回不完整事实。
 
 Phase 1 不提供按时间、event type、correlation 扫描的 Port API。数据库保留必要因果索引，等审计页面有明确查询需求时再扩展。
 
@@ -631,10 +648,11 @@ Phase 1 不从 `messages`、Tape、Trace、Asset 或现有配置回填任何数�
 
 - Prisma row 到领域 Event 的时间、JSON 和 nullable 字段转换；
 - inline Artifact SHA 校验；
-- Event ID 等价重试与冲突比较；
+- Conversation Event ID 等价比较排除 `receivedAt`，但仍包含 `idempotencyKey` 和其他业务字段；
 - idempotency 比较排除 eventId/receivedAt，但包含业务事实字段；
+- Run head 拒绝同一 `runId` 改绑 account 或 conversation stream；
 - P2002 转领域冲突，不泄漏 Prisma 错误；
-- 坏数据库行抛 corruption error，不静默跳过。
+- 未知版本抛 `UnsupportedFactLedgerSchemaVersionError`，当前版本坏行抛 corruption error，均不静默跳过。
 
 Agent 的 `canonical-json.test.ts` 覆盖对象 key 顺序、数组顺序、数字规范化、Unicode 边界和 SHA-256 稳定性。
 
@@ -652,16 +670,17 @@ Agent 的 `canonical-json.test.ts` 覆盖对象 key 顺序、数组顺序、数�
 
 1. 50 个并发 Conversation append 得到连续且唯一的 `1..50`；
 2. Run 和 Memory 各自按流独立分配序号；
-3. 不同流可以并发追加，互不阻塞逻辑结果；
-4. 同一幂等键并发写入只产生一条事件；
-5. 幂等冲突抛领域错误；
-6. 失败插入会回滚 head 增量；
-7. UPDATE/DELETE 四张不可变表被 Trigger 拒绝；
-8. head 表可以正常更新；
-9. Artifact 全局内容去重；
-10. 分页的 after/through 边界准确；
-11. recordedAt/createdAt 来自数据库；
-12. Account 删除在已有事实时被 RESTRICT。
+3. 同一 `runId` 改绑 account 或 conversation stream 会失败且不消耗序号；
+4. 不同流可以并发追加，互不阻塞逻辑结果；
+5. 同一幂等键并发写入只产生一条事件；
+6. 幂等冲突抛领域错误；
+7. 失败插入会回滚 head 增量；
+8. UPDATE/DELETE 四张不可变表被 Trigger 拒绝；
+9. head 表可以正常更新，成功追加会刷新 `updated_at`；
+10. Artifact 全局内容去重；
+11. 分页的 after/through 边界准确；
+12. recordedAt/createdAt 来自数据库；
+13. Account 删除在已有事实时被 RESTRICT。
 
 测试数据库必须可整体丢弃。由于 append-only Trigger 有意阻止逐行清理，测试结束不尝试 delete fixtures。
 
@@ -705,10 +724,13 @@ A packages/server/src/db/fact-ledger/codec.ts
 A packages/server/src/db/fact-ledger/errors.ts
 A packages/server/src/db/fact-ledger/codec.test.ts
 A packages/server/src/db/conversation-event-store.impl.ts
+A packages/server/src/db/conversation-event-store.impl.test.ts
 A packages/server/src/db/agent-run-store.impl.ts
+A packages/server/src/db/agent-run-store.impl.test.ts
 A packages/server/src/db/memory-event-store.impl.ts
+A packages/server/src/db/memory-event-store.impl.test.ts
 A packages/server/src/db/artifact-revision-store.impl.ts
-A packages/server/src/db/fact-ledger-stores.test.ts
+A packages/server/src/db/artifact-revision-store.impl.test.ts
 A packages/server/test-integration/fact-ledger-stores.test.ts
 A packages/server/test-integration/tsconfig.json
 M packages/server/src/ai.ts
@@ -777,16 +799,18 @@ Phase 1 完成必须同时满足：
 
 1. 三类 Store 和 Artifact Store 均可通过 Agent Port 调用；
 2. 三类序号由数据库事务分配，单流严格递增；
-3. 并发写入、事务失败和进程重试不产生重复事实或序号空洞；
-4. Conversation 幂等键满足“一致返回旧值、冲突明确失败”；
-5. Artifact 在全系统按内容键去重；
-6. 所有 JSONB 输入均通过 JSON 契约；
-7. 四张不可变表的 UPDATE/DELETE 被数据库拒绝；
-8. 所有读结果经过当前 schema 严格解析；
-9. migration 只新增对象，不回填、不切换路径；
-10. 现有业务可观察行为与 Phase 0 基线一致；
-11. 文档、schema、migration、Port 和实现命名一致；
-12. 工作区类型检查、分层检查和测试全部通过。
+3. Run head 不能被同一 `runId` 改绑 account 或 conversation stream；
+4. 并发写入、事务失败和进程重试不产生重复事实或序号空洞；
+5. Conversation 幂等键满足“一致返回旧值、冲突明确失败”；
+6. Artifact 在全系统按内容键去重；
+7. 所有 JSONB 输入均通过 JSON 契约；
+8. 四张不可变表的 UPDATE/DELETE 被数据库拒绝；
+9. 未知版本与当前版本损坏使用不同错误边界；
+10. 所有读结果经过当前 schema 严格解析；
+11. migration 只新增对象，不回填、不切换路径；
+12. 现有业务可观察行为与 Phase 0 基线一致；
+13. 文档、schema、migration、Port 和实现命名一致；
+14. 工作区类型检查、分层检查和测试全部通过。
 
 ## 22. Phase 2 入口
 

@@ -147,6 +147,22 @@ model Message {
   @@map("messages")
 }
 
+model ConversationSummary {
+  id             BigInt   @id @default(autoincrement())
+  accountId      String   @map("account_id") @db.Text
+  conversationId String   @map("conversation_id") @db.Text
+  seqStart       Int      @map("seq_start")
+  seqEnd         Int      @map("seq_end")
+  summary        String   @db.Text
+  model          String   @db.Text
+  promptVersion  Int      @map("prompt_version")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([accountId, conversationId, seqStart])
+  @@index([accountId, conversationId, seqEnd])
+  @@map("conversation_summaries")
+}
+
 // Fact-ledger CHECK constraints, the partial idempotency index, and append-only
 // triggers live in the reviewed migration because Prisma cannot model them.
 model ConversationStreamHead {

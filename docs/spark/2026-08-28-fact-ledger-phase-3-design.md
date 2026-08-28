@@ -1,6 +1,6 @@
 # Fact Ledger Phase 3：Session Boundary 与 Context Compiler Shadow Mode
 
-> 状态：CR 修订完成 / 待实现确认
+> 状态：CR2 修订完成 / 可进入实施
 > 日期：2026-08-28  
 > 前置：Phase 2 微信 ingress、dispatch receipt、legacy projection link 与 disposable PostgreSQL 集成测试已通过  
 > 范围：补齐 `/clear` 的显式 session boundary，建立只读 Conversation Events 的确定性 Context Compiler，并与旧请求做隔离的 shadow diff；不切换模型读取路径
@@ -385,7 +385,49 @@ packages/agent/src/engine/context-shadow/  # L5
 - `diff-types.ts`：不依赖 LLM 的 canonical summary/diff result 词汇；
 - engine `legacy-normalizer.ts`：把旧 AgentMessage snapshot 变成可比较摘要；
 - engine `diff.ts`：固定类别结构化 diff；
-- engine `observer.ts`：异步执行 shadow，写 metrics/result sink。
+- engine `observer.ts`：异步执行 shadow，通过 Agent Port 写 metrics/result sink。
+
+### 9.1 Shadow result Port 与 rollout composition
+
+Agent 新增持久化 Port：
+
+```ts
+// packages/agent/src/ports/context-compiler-shadow-result-store.ts
+export interface ContextCompilerShadowResultRecord {
+  sourceEventId: string;
+  accountId: string;
+  compilerVersion: string;
+  contextPolicyRevisionId: string;
+  eventCursor: number;
+  effectiveTime: string;
+  timezone: string;
+  canonicalContextHash?: string;
+  canonicalMemoryInputHash?: string;
+  legacySummaryHash?: string;
+  canonicalEntryCount?: number;
+  legacyEntryCount?: number;
+  diffCounts: ContextCompilerShadowDiffCounts;
+  status: "success" | "failed";
+  errorCode?: string;
+}
+
+export interface ContextCompilerShadowResultStore {
+  createOrVerifyEquivalent(result: ContextCompilerShadowResultRecord): Promise<void>;
+}
+```
+
+Port 文件拥有 fixed diff category、持久化 DTO 和 equivalence error 契约，不导入 L3 类型，因此不需要新增 `ports -> context-compiler` upward exemption。L5 observer 只依赖该 Port；Server 的 Prisma implementation 实现它。Agent 不能导入 server store。
+
+这里刻意不增加 Agent rollout store Port。Rollout 是 Server 账号 runtime 的部署配置，不是 Context Compiler 领域能力：
+
+```text
+server runtime
+  -> PrismaContextCompilerShadowRolloutStore.isEnabled(accountId) once at startup
+  -> enabled: construct/inject L5 shadow observer with result-store Port
+  -> disabled: do not construct observer
+```
+
+因此 engine 不查询 rollout，也不依赖 Prisma rollout implementation。若未来需要运行中动态开关，再单独定义配置 resolver Port；Phase 3 不为未使用的依赖预留接口。
 
 Layer check 新增 `context-compiler: 3`。该层只能导入同层、L1 ports 与 L0 shared，禁止导入 `engine`、`capabilities`、`memory`、`llm`、`prompts` 和 `commands`，也不增加 upward type exemption。`AgentMessage` 的 value/type import 只存在于 L5 engine legacy adapter；engine 可以向下导入 L3 canonical 类型。
 
@@ -481,7 +523,7 @@ context_compiler_shadow_rollouts
   updated_at database time
 ```
 
-账号 runtime 启动时读取一次，修改后通过现有 restart 生效。
+账号 runtime 启动时通过 Server-owned `PrismaContextCompilerShadowRolloutStore` 读取一次，修改后通过现有 restart 生效。该 store 不注入 Agent；disabled 时 runtime 不构造 shadow observer。
 
 新增 mutable 运维表：
 
@@ -511,7 +553,10 @@ context_compiler_shadow_results
 - `diff_counts` 只允许固定类别和非负整数；应用 parser 与数据库 CHECK 双重校验；
 - 不保存 canonical body、legacy body、用户 text、metadata、Prompt、Tape 或本地路径；
 - `(source_event_id, compiler_version, context_policy_revision_id)` 为主键，同一编译器与 policy 幂等，不同 revision 保留独立结果；
-- `effective_time` 与 `timezone` 必须持久化；同一主键重写时若动态输入不同，报 equivalence conflict，不能覆盖旧 hash；
+- result store 实现 Agent `ContextCompilerShadowResultStore` Port；
+- `createOrVerifyEquivalent()` 先尝试 create；主键冲突后读取现有完整 identity/hash/counts/status 并做严格等价比较，等价则成功返回；任一字段不同则抛稳定 `ContextCompilerShadowResultEquivalenceError`；
+- 禁止使用无条件 `ON CONFLICT DO UPDATE`；
+- `effective_time` 与 `timezone` 必须持久化；同一主键但动态输入不同必须报 equivalence conflict，不能覆盖旧 hash；
 - account 必须通过复合 FK 与 source event 一致；
 - result 是运维 shadow projection，可更新，不是事实账本。
 
@@ -655,7 +700,9 @@ result sink 失败不重跑模型、不修改 event、不阻塞 reply。保留 m
 - observer clone legacy history，runner mutation 不污染 snapshot；
 - shadow error 不影响 AgentRunner；
 - failed/aborted/rolled-back turn 只产生 skipped metric，不写普通 shadow result；
-- result parser 拒绝正文、未知 diff category 和额外字段。
+- result parser 拒绝正文、未知 diff category 和额外字段；
+- result Port 首次 create 成功、完全等价重放成功、任一 identity/hash/count/status 不同均抛 equivalence error；
+- rollout disabled 时 runtime 不构造 observer，证明 engine 不查询 rollout store。
 
 ### 17.5 Disposable PostgreSQL 集成测试
 
@@ -684,7 +731,22 @@ result sink 失败不重跑模型、不修改 event、不阻塞 reply。保留 m
 - Agent layer check；
 - Prisma validate、fresh migration deploy 和 status。
 
-## 18. Rollout
+## 18. 文件级实施顺序
+
+原子 clear 重构必须先独立完成并通过回归，不能与 Compiler 一次性混写：
+
+1. 为现有 `MessageStore.clearMessages()` 与 `ConversationEventStore.append()` 补 characterization tests，固定 tombstone、counter、route、sequence、幂等和错误语义；
+2. 抽取仅 Server 内部可见、接受 Prisma transaction client 的 message-clear 与 event-append helper；public Store 调用 helper 后行为必须与改前完全一致；
+3. 实现 `clearIngressSession()` 单事务 service，增加每个事务步骤的 fault-injection integration test，证明任一步失败均无部分提交；
+4. 接入 SDK `invokeClear()`，用调用顺序 spy 固定 transaction 成功后才发送确认；
+5. 实现 L3 reducer、attachment resolver、Compiler、memory input 和 metadata-invariance 测试；
+6. 实现 Agent result-store Port、Server Prisma result/rollout stores，以及 create-or-verify-equivalent 冲突测试；
+7. 实现 L5 legacy adapter、diff 和 pending observer handle，再接入 `runChatTurn` success/discard lifecycle；
+8. 最后接 runtime startup rollout、metrics、reconciliation 和 disposable PostgreSQL 全链路测试。
+
+每一步单独保持 typecheck、layer check 和 Phase 0–2 回归通过。第 3 步未完成前不得接入 `/clear` 新 lifecycle；第 6 步未完成前 observer 不允许写数据库。
+
+## 19. Rollout
 
 上线顺序：
 
@@ -709,7 +771,7 @@ result sink 失败不重跑模型、不修改 event、不阻塞 reply。保留 m
 
 回滚：关闭 `context_compiler_shadow_rollouts` 并 restart 账号。已写 boundary 和 hash-only result 保留；旧聊天读取路径不变。
 
-## 19. 验收标准
+## 20. 验收标准
 
 Phase 3 完成必须同时满足：
 
@@ -726,7 +788,7 @@ Phase 3 完成必须同时满足：
 11. 生产读取继续来自旧 Message/Tape；
 12. Phase 0、1、2 全部回归继续通过。
 
-## 20. 预计文件范围
+## 21. 预计文件范围
 
 ### Agent
 
@@ -739,6 +801,7 @@ A packages/agent/src/context-compiler/memory-input.ts
 A packages/agent/src/context-compiler/canonical-hash.ts
 A packages/agent/src/context-compiler/diff-types.ts
 A packages/agent/src/context-compiler/index.ts
+A packages/agent/src/ports/context-compiler-shadow-result-store.ts
 A packages/agent/src/engine/context-shadow/legacy-normalizer.ts
 A packages/agent/src/engine/context-shadow/diff.ts
 A packages/agent/src/engine/context-shadow/observer.ts
@@ -746,6 +809,7 @@ M packages/agent/src/index.ts
 M packages/agent/src/engine/chat-engine.ts
 M packages/agent/src/engine/turn.ts
 A packages/agent/test/context-compiler/*.test.ts
+A packages/agent/test/context-shadow/*.test.ts
 M packages/agent/scripts/check-layers.mjs
 ```
 
@@ -792,7 +856,7 @@ M packages/observability/src/metrics/index.ts
 M packages/observability/src/index.ts
 ```
 
-## 21. Phase 4 入口
+## 22. Phase 4 入口
 
 Phase 4 在 Phase 3 的纯 reducer 和读取边界上增加 Run Ledger 与正式 Context Manifest：
 

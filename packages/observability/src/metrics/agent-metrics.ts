@@ -146,3 +146,35 @@ export const weixinIngressReconcileTotal = registry.createCounter({
   help: "Weixin ingress reconciliation results",
   labelNames: ["result"],
 });
+
+export const contextCompilerShadowTotal = registry.createCounter({
+  name: "context_compiler_shadow_total",
+  help: "Context compiler shadow outcomes",
+  labelNames: ["result"],
+});
+
+export const contextCompilerDiffTotal = registry.createCounter({
+  name: "context_compiler_diff_total",
+  help: "Context compiler fixed-category differences",
+  labelNames: ["category"],
+});
+
+export const contextCompilerEntries = registry.createHistogram({
+  name: "context_compiler_entries",
+  help: "Context entry counts by comparison side",
+  labelNames: ["side"],
+  buckets: [0, 1, 2, 5, 10, 20, 50, 100, 200],
+});
+
+export const contextCompilerUnresolvedAttachmentTotal = registry.createCounter({
+  name: "context_compiler_unresolved_attachment_total",
+  help: "Unresolved canonical attachments",
+  labelNames: [],
+});
+
+export const contextCompilerDurationMs = registry.createHistogram({
+  name: "context_compiler_duration_ms",
+  help: "Context compiler shadow duration",
+  labelNames: [],
+  buckets: [1, 5, 10, 25, 50, 100, 250, 500, 1000, 5000],
+});

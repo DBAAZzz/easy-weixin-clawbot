@@ -19,19 +19,30 @@ test("controller appends, claims, resolves source event, and settles", async () 
   let stored: ConversationEvent | null = null;
   let appendCount = 0;
   let claimed = true;
-  let invokedSource: string | undefined;
+  let invokedSource: Pick<ConversationEvent, "eventId"> | undefined;
+  let cleared: [string, string] | undefined;
   let settled: [string, string, string | undefined] | undefined;
   const eventStore: ConversationEventStore = {
     async append(event) {
       appendCount += 1;
-      stored = { ...event, streamSeq: 1, recordedAt: "2026-08-28T00:00:00.000Z" } as ConversationEvent;
+      stored = {
+        ...event,
+        streamSeq: 1,
+        recordedAt: "2026-08-28T00:00:00.000Z",
+      } as ConversationEvent;
       return { value: stored, appended: true };
     },
-    async getById() { return stored; },
-    async listStream() { return stored ? [stored] : []; },
+    async getById() {
+      return stored;
+    },
+    async listStream() {
+      return stored ? [stored] : [];
+    },
   };
   const dispatchStore = {
-    async createAndClaim() { return claimed; },
+    async createAndClaim() {
+      return claimed;
+    },
     async get(eventId: string) {
       return {
         eventId,
@@ -49,10 +60,15 @@ test("controller appends, claims, resolves source event, and settles", async () 
     },
   };
   const agent: ServerWeixinAgent = {
-    async chat() { throw new Error("legacy chat must not be used"); },
-    async chatFromIngress(_request, sourceEventId) {
-      invokedSource = sourceEventId;
+    async chat() {
+      throw new Error("legacy chat must not be used");
+    },
+    async chatFromIngress(_request, source) {
+      invokedSource = source;
       return { text: "ok" };
+    },
+    async clearFromIngress(receiptId, wechatConversationId) {
+      cleared = [receiptId, wechatConversationId];
     },
   };
   const lifecycle = createWeixinIngressLifecycle({
@@ -70,9 +86,15 @@ test("controller appends, claims, resolves source event, and settles", async () 
     receiptId: accepted.receiptId,
     request: { conversationId: "user-1", text: "hello" },
   });
-  assert.equal(invokedSource, accepted.receiptId);
+  assert.equal(invokedSource?.eventId, accepted.receiptId);
   await lifecycle.settle({ receiptId: accepted.receiptId, outcome: "chat" });
   assert.deepEqual(settled, [accepted.receiptId, "chat", undefined]);
+
+  await lifecycle.invokeClear({
+    receiptId: accepted.receiptId,
+    conversationId: "user-1",
+  });
+  assert.deepEqual(cleared, [accepted.receiptId, "user-1"]);
 
   claimed = false;
   assert.equal((await lifecycle.accept(input)).disposition, "skip");

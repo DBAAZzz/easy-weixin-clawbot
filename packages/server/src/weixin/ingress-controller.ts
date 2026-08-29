@@ -8,10 +8,7 @@ import {
   weixinIngressDispatchTotal,
   weixinIngressIdentityTotal,
 } from "@clawbot/observability";
-import type {
-  ValidatedWeixinInbound,
-  WeixinIngressLifecycle,
-} from "@clawbot/weixin-agent-sdk";
+import type { ValidatedWeixinInbound, WeixinIngressLifecycle } from "@clawbot/weixin-agent-sdk";
 import type { ServerWeixinAgent } from "../agent.js";
 import { PrismaConversationEventStore } from "../db/conversation-event-store.impl.js";
 import { WeixinIngressDispatchStore } from "../db/weixin-ingress-dispatch-store.js";
@@ -45,18 +42,16 @@ export function createWeixinIngressLifecycle(deps: {
       try {
         const appended = await eventStore.append(eventInput);
         weixinIngressAppendTotal.inc({ result: appended.appended ? "appended" : "duplicate" });
-        const claimed = await dispatchStore.createAndClaim(
-          appended.value.eventId,
-          deps.accountId,
-        );
+        const claimed = await dispatchStore.createAndClaim(appended.value.eventId, deps.accountId);
         if (!claimed) weixinIngressDispatchTotal.inc({ result: "skipped" });
         return {
           receiptId: appended.value.eventId,
           disposition: claimed ? "process" : "skip",
         };
       } catch (error) {
-        const conflict = error instanceof FactLedgerIdConflictError
-          || error instanceof FactLedgerIdempotencyConflictError;
+        const conflict =
+          error instanceof FactLedgerIdConflictError ||
+          error instanceof FactLedgerIdempotencyConflictError;
         weixinIngressAppendTotal.inc({ result: conflict ? "conflict" : "failed" });
         if (conflict) weixinIngressIdentityTotal.inc({ source: "conflict" });
         throw error;
@@ -68,7 +63,19 @@ export function createWeixinIngressLifecycle(deps: {
       if (!receipt || receipt.accountId !== deps.accountId || receipt.status !== "processing") {
         throw new Error("invalid_ingress_receipt");
       }
-      return deps.agent.chatFromIngress(request, receipt.eventId);
+      const source = await eventStore.getById(receipt.eventId);
+      if (!source || source.accountId !== deps.accountId) {
+        throw new Error("invalid_ingress_source_event");
+      }
+      return deps.agent.chatFromIngress(request, source);
+    },
+
+    async invokeClear({ receiptId, conversationId }) {
+      const receipt = await dispatchStore.get(receiptId);
+      if (!receipt || receipt.accountId !== deps.accountId || receipt.status !== "processing") {
+        throw new Error("invalid_ingress_receipt");
+      }
+      await deps.agent.clearFromIngress(receipt.eventId, conversationId);
     },
 
     async settle({ receiptId, outcome, errorCode }) {

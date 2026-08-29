@@ -195,6 +195,7 @@ const sessionStartedPayloadSchema = z
 
 const sessionRotatedPayloadSchema = z
   .object({
+    /** Compatibility-only history field; consumers use the boundary event's streamSeq. */
     previousStreamId: idSchema,
     reason: z.string(),
   })

@@ -20,7 +20,7 @@ import { isPrismaUniqueConstraintError } from "./fact-ledger/errors.js";
 import { sequenceRange, validateSequencePage } from "./fact-ledger/pagination.js";
 import { getPrisma } from "./prisma.js";
 
-async function allocateConversationSeq(
+export async function allocateConversationSeq(
   tx: Prisma.TransactionClient,
   accountId: string,
   streamId: string,
@@ -39,6 +39,65 @@ async function allocateConversationSeq(
   return row.lastSeq;
 }
 
+function resolveIdRetry(
+  stored: ConversationEvent,
+  input: AppendConversationEventInput,
+): AppendResult<ConversationEvent> {
+  if (!conversationEventMatchesIdRetry(stored, input)) {
+    throw new FactLedgerIdConflictError("conversation_event", input.eventId);
+  }
+  return { value: stored, appended: false };
+}
+
+function resolveIdempotencyRetry(
+  stored: ConversationEvent,
+  input: AppendConversationEventInput,
+): AppendResult<ConversationEvent> {
+  if (!conversationEventMatchesIdempotencyRetry(stored, input)) {
+    throw new FactLedgerIdempotencyConflictError(input.accountId, input.idempotencyKey!);
+  }
+  return { value: stored, appended: false };
+}
+
+/** Internal transaction-aware append core. Callers own retries and commit boundaries. */
+export async function appendConversationEventInTransaction(
+  tx: Prisma.TransactionClient,
+  rawInput: AppendConversationEventInput,
+): Promise<AppendResult<ConversationEvent>> {
+  const input = parseAppendConversationEventInput(rawInput);
+  const existingById = await tx.conversationEvent.findUnique({ where: { eventId: input.eventId } });
+  if (existingById) return resolveIdRetry(conversationEventFromRow(existingById), input);
+
+  if (input.idempotencyKey) {
+    const existingByKey = await tx.conversationEvent.findFirst({
+      where: { accountId: input.accountId, idempotencyKey: input.idempotencyKey },
+    });
+    if (existingByKey)
+      return resolveIdempotencyRetry(conversationEventFromRow(existingByKey), input);
+  }
+
+  const streamSeq = await allocateConversationSeq(tx, input.accountId, input.streamId);
+  const row = await tx.conversationEvent.create({
+    data: {
+      eventId: input.eventId,
+      accountId: input.accountId,
+      streamId: input.streamId,
+      streamSeq,
+      eventType: input.eventType,
+      schemaVersion: input.schemaVersion,
+      occurredAt: new Date(input.occurredAt),
+      receivedAt: new Date(input.receivedAt),
+      actorKind: input.actor.kind,
+      actorId: input.actor.id,
+      causationId: input.causationId,
+      correlationId: input.correlationId,
+      idempotencyKey: input.idempotencyKey,
+      payload: toPrismaJson(input.payload as JsonValue),
+    },
+  });
+  return { value: conversationEventFromRow(row), appended: true };
+}
+
 export class PrismaConversationEventStore implements ConversationEventStore {
   constructor(private readonly injectedPrisma?: PrismaClient) {}
 
@@ -51,40 +110,7 @@ export class PrismaConversationEventStore implements ConversationEventStore {
 
     try {
       return await this.prisma.$transaction(async (tx) => {
-        const existingById = await tx.conversationEvent.findUnique({
-          where: { eventId: input.eventId },
-        });
-        if (existingById) return this.resolveIdRetry(conversationEventFromRow(existingById), input);
-
-        if (input.idempotencyKey) {
-          const existingByKey = await tx.conversationEvent.findFirst({
-            where: { accountId: input.accountId, idempotencyKey: input.idempotencyKey },
-          });
-          if (existingByKey) {
-            return this.resolveIdempotencyRetry(conversationEventFromRow(existingByKey), input);
-          }
-        }
-
-        const streamSeq = await allocateConversationSeq(tx, input.accountId, input.streamId);
-        const row = await tx.conversationEvent.create({
-          data: {
-            eventId: input.eventId,
-            accountId: input.accountId,
-            streamId: input.streamId,
-            streamSeq,
-            eventType: input.eventType,
-            schemaVersion: input.schemaVersion,
-            occurredAt: new Date(input.occurredAt),
-            receivedAt: new Date(input.receivedAt),
-            actorKind: input.actor.kind,
-            actorId: input.actor.id,
-            causationId: input.causationId,
-            correlationId: input.correlationId,
-            idempotencyKey: input.idempotencyKey,
-            payload: toPrismaJson(input.payload as JsonValue),
-          },
-        });
-        return { value: conversationEventFromRow(row), appended: true };
+        return appendConversationEventInTransaction(tx, input);
       });
     } catch (error) {
       if (!isPrismaUniqueConstraintError(error)) throw error;
@@ -115,20 +141,14 @@ export class PrismaConversationEventStore implements ConversationEventStore {
     stored: ConversationEvent,
     input: AppendConversationEventInput,
   ): AppendResult<ConversationEvent> {
-    if (!conversationEventMatchesIdRetry(stored, input)) {
-      throw new FactLedgerIdConflictError("conversation_event", input.eventId);
-    }
-    return { value: stored, appended: false };
+    return resolveIdRetry(stored, input);
   }
 
   private resolveIdempotencyRetry(
     stored: ConversationEvent,
     input: AppendConversationEventInput,
   ): AppendResult<ConversationEvent> {
-    if (!conversationEventMatchesIdempotencyRetry(stored, input)) {
-      throw new FactLedgerIdempotencyConflictError(input.accountId, input.idempotencyKey!);
-    }
-    return { value: stored, appended: false };
+    return resolveIdempotencyRetry(stored, input);
   }
 
   private async resolveConcurrentDuplicate(

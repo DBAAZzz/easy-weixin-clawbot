@@ -30,6 +30,8 @@ model Account {
   weixinIngressDispatches  WeixinIngressDispatch[]
   weixinIngressRollout     WeixinIngressRollout?
   legacyProjectionLinks    LegacyMessageProjectionLink[]
+  contextCompilerShadowRollout ContextCompilerShadowRollout?
+  contextCompilerShadowResults ContextCompilerShadowResult[]
 
   @@map("accounts")
 }
@@ -200,6 +202,7 @@ model ConversationEvent {
   head            ConversationStreamHead @relation(fields: [accountId, streamId], references: [accountId, streamId], onDelete: Restrict)
   ingressDispatch WeixinIngressDispatch?
   projectionLink  LegacyMessageProjectionLink?
+  contextCompilerShadowResults ContextCompilerShadowResult[]
 
   @@unique([accountId, streamId, streamSeq], map: "conversation_events_stream_seq_key")
   @@unique([eventId, accountId], map: "conversation_events_event_account_key")
@@ -217,6 +220,7 @@ model WeixinIngressDispatch {
   claimedAt         DateTime? @map("claimed_at") @db.Timestamptz(6)
   completedAt       DateTime? @map("completed_at") @db.Timestamptz(6)
   errorCode         String?   @map("error_code") @db.Text
+  commandName       String?   @map("command_name") @db.Text
   recoveryOperator String?   @map("recovery_operator") @db.Text
   recoveryReason   String?   @map("recovery_reason") @db.Text
   recoveredAt      DateTime? @map("recovered_at") @db.Timestamptz(6)
@@ -229,6 +233,41 @@ model WeixinIngressDispatch {
   @@index([accountId, status], map: "idx_weixin_ingress_dispatches_account_status")
   @@index([status, claimedAt], map: "idx_weixin_ingress_dispatches_stuck")
   @@map("weixin_ingress_dispatches")
+}
+
+model ContextCompilerShadowRollout {
+  accountId String   @id @map("account_id") @db.Text
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("context_compiler_shadow_rollouts")
+}
+
+model ContextCompilerShadowResult {
+  sourceEventId              String   @map("source_event_id") @db.Text
+  accountId                  String   @map("account_id") @db.Text
+  compilerVersion            String   @map("compiler_version") @db.Text
+  contextPolicyRevisionId    String   @map("context_policy_revision_id") @db.Text
+  eventCursor                Int      @map("event_cursor")
+  effectiveTime              DateTime @map("effective_time") @db.Timestamptz(6)
+  timezone                   String   @db.Text
+  canonicalContextHash       String?  @map("canonical_context_hash") @db.Text
+  canonicalMemoryInputHash   String?  @map("canonical_memory_input_hash") @db.Text
+  legacySummaryHash          String?  @map("legacy_summary_hash") @db.Text
+  canonicalEntryCount        Int?     @map("canonical_entry_count")
+  legacyEntryCount           Int?     @map("legacy_entry_count")
+  diffCounts                 Json     @map("diff_counts")
+  status                     String   @db.Text
+  errorCode                  String?  @map("error_code") @db.Text
+  createdAt                  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  event                      ConversationEvent @relation(fields: [sourceEventId, accountId], references: [eventId, accountId], onDelete: Restrict)
+  account                    Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@id([sourceEventId, compilerVersion, contextPolicyRevisionId])
+  @@index([accountId, status], map: "idx_context_compiler_shadow_results_account_status")
+  @@map("context_compiler_shadow_results")
 }
 
 model WeixinIngressRollout {

@@ -28,6 +28,7 @@ const dispatchStore = new WeixinIngressDispatchStore(prisma);
 const agent: ServerWeixinAgent = {
   chat: async () => ({ text: "ok" }),
   chatFromIngress: async () => ({ text: "ok" }),
+  clearFromIngress: async () => {},
 };
 const lifecycle = createWeixinIngressLifecycle({
   accountId,
@@ -48,13 +49,15 @@ function inbound(index: number): ValidatedWeixinInbound {
     clientId: `client-${nonce}`,
     occurredAtMs: 1_777_000_000_000 + index,
     receivedAtMs: 1_777_000_001_000 + index,
-    items: [{
-      index: 0,
-      type: 1,
-      text: `message ${index}`,
-      isMedia: false,
-      hasReferencedMedia: false,
-    }],
+    items: [
+      {
+        index: 0,
+        type: 1,
+        text: `message ${index}`,
+        isMedia: false,
+        hasReferencedMedia: false,
+      },
+    ],
   };
 }
 
@@ -100,10 +103,16 @@ test("Weixin ingress Phase 2 database invariants", async (t) => {
   await t.test("an append-to-receipt crash gap is repaired by redelivery", async () => {
     const input = inbound(2);
     const event = await eventStore.append(mapWeixinInboundEvent(accountId, input));
-    assert.equal(await prisma.weixinIngressDispatch.count({ where: { eventId: event.value.eventId } }), 0);
+    assert.equal(
+      await prisma.weixinIngressDispatch.count({ where: { eventId: event.value.eventId } }),
+      0,
+    );
     const accepted = await lifecycle.accept(input);
     assert.equal(accepted.disposition, "process");
-    assert.equal(await prisma.weixinIngressDispatch.count({ where: { eventId: event.value.eventId } }), 1);
+    assert.equal(
+      await prisma.weixinIngressDispatch.count({ where: { eventId: event.value.eventId } }),
+      1,
+    );
   });
 
   await t.test("terminal and processing receipts never reclaim", async () => {
@@ -112,7 +121,11 @@ test("Weixin ingress Phase 2 database invariants", async (t) => {
     assert.equal((await lifecycle.accept(inbound(3))).disposition, "skip");
 
     const failed = await lifecycle.accept(inbound(4));
-    await lifecycle.settle({ receiptId: failed.receiptId, outcome: "failed", errorCode: "test_failure" });
+    await lifecycle.settle({
+      receiptId: failed.receiptId,
+      outcome: "failed",
+      errorCode: "test_failure",
+    });
     assert.equal((await lifecycle.accept(inbound(4))).disposition, "skip");
 
     const processing = await lifecycle.accept(inbound(5));
@@ -122,73 +135,89 @@ test("Weixin ingress Phase 2 database invariants", async (t) => {
 
   await t.test("dispatch account must match the source event in the database", async () => {
     const event = await eventStore.append(mapWeixinInboundEvent(accountId, inbound(6)));
-    await assert.rejects(() => prisma.weixinIngressDispatch.create({
-      data: { eventId: event.value.eventId, accountId: otherAccountId },
-    }));
+    await assert.rejects(() =>
+      prisma.weixinIngressDispatch.create({
+        data: { eventId: event.value.eventId, accountId: otherAccountId },
+      }),
+    );
   });
 
-  await t.test("projection links are unique, account-safe, and reconcile normal links separately", async () => {
-    const linked = await lifecycle.accept(inbound(7));
-    await lifecycle.settle({ receiptId: linked.receiptId, outcome: "chat" });
-    await createProjection(linked.receiptId, 700);
-    await assert.rejects(() => createProjection(linked.receiptId, 701));
-    await assert.rejects(() => prisma.$transaction(async (tx) => {
-      const foreignMessage = await tx.message.create({
-        data: {
-          accountId: otherAccountId,
-          conversationId: `user-${nonce}`,
-          seq: 1,
-          role: "user",
-          payload: { role: "user", content: [] },
-        },
-      });
-      await tx.legacyMessageProjectionLink.create({
-        data: {
-          eventId: linked.receiptId,
-          accountId: otherAccountId,
-          conversationId: `user-${nonce}`,
-          messageSeq: 1,
-          messageId: foreignMessage.id,
-        },
-      });
-    }));
+  await t.test(
+    "projection links are unique, account-safe, and reconcile normal links separately",
+    async () => {
+      const linked = await lifecycle.accept(inbound(7));
+      await lifecycle.settle({ receiptId: linked.receiptId, outcome: "chat" });
+      await createProjection(linked.receiptId, 700);
+      await assert.rejects(() => createProjection(linked.receiptId, 701));
+      await assert.rejects(() =>
+        prisma.$transaction(async (tx) => {
+          const foreignMessage = await tx.message.create({
+            data: {
+              accountId: otherAccountId,
+              conversationId: `user-${nonce}`,
+              seq: 1,
+              role: "user",
+              payload: { role: "user", content: [] },
+            },
+          });
+          await tx.legacyMessageProjectionLink.create({
+            data: {
+              eventId: linked.receiptId,
+              accountId: otherAccountId,
+              conversationId: `user-${nonce}`,
+              messageSeq: 1,
+              messageId: foreignMessage.id,
+            },
+          });
+        }),
+      );
 
-    const nonInbound = await eventStore.append({
-      eventId: `session-event-${nonce}`,
-      accountId,
-      streamId: `user-${nonce}`,
-      eventType: "session_started",
-      schemaVersion: 1,
-      occurredAt: "2026-08-28T00:00:00.000Z",
-      receivedAt: "2026-08-28T00:00:00.001Z",
-      actor: { kind: "system" },
-      payload: { channel: "weixin", channelConversationId: `user-${nonce}` },
-    });
-    await assert.rejects(() => prisma.$transaction(async (tx) => {
-      const message = await tx.message.create({
-        data: {
-          accountId,
-          conversationId: `user-${nonce}`,
-          seq: 702,
-          role: "user",
-          payload: { role: "user", content: [] },
-        },
+      const nonInbound = await eventStore.append({
+        eventId: `session-event-${nonce}`,
+        accountId,
+        streamId: `user-${nonce}`,
+        eventType: "session_started",
+        schemaVersion: 1,
+        occurredAt: "2026-08-28T00:00:00.000Z",
+        receivedAt: "2026-08-28T00:00:00.001Z",
+        actor: { kind: "system" },
+        payload: { channel: "weixin", channelConversationId: `user-${nonce}` },
       });
-      await tx.legacyMessageProjectionLink.create({
-        data: {
-          eventId: nonInbound.value.eventId,
-          accountId,
-          conversationId: `user-${nonce}`,
-          messageSeq: 702,
-          messageId: message.id,
-        },
-      });
-    }));
+      await assert.rejects(() =>
+        prisma.$transaction(async (tx) => {
+          const message = await tx.message.create({
+            data: {
+              accountId,
+              conversationId: `user-${nonce}`,
+              seq: 702,
+              role: "user",
+              payload: { role: "user", content: [] },
+            },
+          });
+          await tx.legacyMessageProjectionLink.create({
+            data: {
+              eventId: nonInbound.value.eventId,
+              accountId,
+              conversationId: `user-${nonce}`,
+              messageSeq: 702,
+              messageId: message.id,
+            },
+          });
+        }),
+      );
 
-    const report = await reconcileWeixinIngress(accountId, { graceSeconds: 0, stuckSeconds: 0 }, prisma);
-    assert.ok(report.summary.linked >= 1);
-    assert.equal(report.issues.some((issue) => issue.eventId === linked.receiptId), false);
-  });
+      const report = await reconcileWeixinIngress(
+        accountId,
+        { graceSeconds: 0, stuckSeconds: 0 },
+        prisma,
+      );
+      assert.ok(report.summary.linked >= 1);
+      assert.equal(
+        report.issues.some((issue) => issue.eventId === linked.receiptId),
+        false,
+      );
+    },
+  );
 
   await t.test("reconciliation reports missing and stuck while commands need no link", async () => {
     const command = await lifecycle.accept(inbound(8));
@@ -202,51 +231,73 @@ test("Weixin ingress Phase 2 database invariants", async (t) => {
       WHERE "event_id" = ${stuck.receiptId}
     `;
 
-    const report = await reconcileWeixinIngress(accountId, { graceSeconds: 0, stuckSeconds: 300 }, prisma);
-    assert.ok(report.issues.some((issue) => issue.eventId === missing.receiptId && issue.result === "missing"));
-    assert.ok(report.issues.some((issue) => issue.eventId === stuck.receiptId && issue.result === "stuck"));
-    assert.equal(report.issues.some((issue) => issue.eventId === command.receiptId), false);
-  });
-
-  await t.test("message/link commit is atomic and clear waits for queued writes before tombstoning", async () => {
-    const cleared = await lifecycle.accept(inbound(11));
-    await lifecycle.settle({ receiptId: cleared.receiptId, outcome: "chat" });
-    queuePersistMessage({
+    const report = await reconcileWeixinIngress(
       accountId,
-      conversationId: `user-${nonce}`,
-      seq: 1100,
-      sourceConversationEventId: cleared.receiptId,
-      message: {
-        role: MESSAGE_ROLE.USER,
-        content: [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: "message 11" }],
-        timestamp: Date.now(),
-      },
-    });
-    await new PrismaMessageStore().clearMessages(accountId, `user-${nonce}`);
-
-    const link = await prisma.legacyMessageProjectionLink.findUniqueOrThrow({
-      where: { eventId: cleared.receiptId },
-    });
-    assert.equal(link.state, "cleared");
-    assert.equal(link.messageId, null);
-    assert.ok(link.clearedAt);
-    assert.equal(await prisma.message.count({
-      where: { accountId, conversationId: `user-${nonce}`, seq: 1100 },
-    }), 0);
-
-    const conversation = await prisma.conversation.findUniqueOrThrow({
-      where: {
-        accountId_conversationId: {
-          accountId,
-          conversationId: `user-${nonce}`,
-        },
-      },
-    });
-    assert.equal(conversation.messageCount, 0);
-    assert.equal(conversation.lastMessageAt, null);
-
-    const report = await reconcileWeixinIngress(accountId, { graceSeconds: 0 }, prisma);
-    assert.ok(report.summary.cleared >= 1);
-    assert.equal(report.issues.some((issue) => issue.eventId === cleared.receiptId), false);
+      { graceSeconds: 0, stuckSeconds: 300 },
+      prisma,
+    );
+    assert.ok(
+      report.issues.some(
+        (issue) => issue.eventId === missing.receiptId && issue.result === "missing",
+      ),
+    );
+    assert.ok(
+      report.issues.some((issue) => issue.eventId === stuck.receiptId && issue.result === "stuck"),
+    );
+    assert.equal(
+      report.issues.some((issue) => issue.eventId === command.receiptId),
+      false,
+    );
   });
+
+  await t.test(
+    "message/link commit is atomic and clear waits for queued writes before tombstoning",
+    async () => {
+      const cleared = await lifecycle.accept(inbound(11));
+      await lifecycle.settle({ receiptId: cleared.receiptId, outcome: "chat" });
+      queuePersistMessage({
+        accountId,
+        conversationId: `user-${nonce}`,
+        seq: 1100,
+        sourceConversationEventId: cleared.receiptId,
+        message: {
+          role: MESSAGE_ROLE.USER,
+          content: [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: "message 11" }],
+          timestamp: Date.now(),
+        },
+      });
+      await new PrismaMessageStore().clearMessages(accountId, `user-${nonce}`);
+
+      const link = await prisma.legacyMessageProjectionLink.findUniqueOrThrow({
+        where: { eventId: cleared.receiptId },
+      });
+      assert.equal(link.state, "cleared");
+      assert.equal(link.messageId, null);
+      assert.ok(link.clearedAt);
+      assert.equal(
+        await prisma.message.count({
+          where: { accountId, conversationId: `user-${nonce}`, seq: 1100 },
+        }),
+        0,
+      );
+
+      const conversation = await prisma.conversation.findUniqueOrThrow({
+        where: {
+          accountId_conversationId: {
+            accountId,
+            conversationId: `user-${nonce}`,
+          },
+        },
+      });
+      assert.equal(conversation.messageCount, 0);
+      assert.equal(conversation.lastMessageAt, null);
+
+      const report = await reconcileWeixinIngress(accountId, { graceSeconds: 0 }, prisma);
+      assert.ok(report.summary.cleared >= 1);
+      assert.equal(
+        report.issues.some((issue) => issue.eventId === cleared.receiptId),
+        false,
+      );
+    },
+  );
 });

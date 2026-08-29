@@ -24,12 +24,7 @@ export {
   withSpan,
   withSpanSync,
 } from "./trace/index.js";
-export type {
-  SpanData,
-  SpanContext,
-  SpanAttributes,
-  TraceSummary,
-} from "./trace/index.js";
+export type { SpanData, SpanContext, SpanAttributes, TraceSummary } from "./trace/index.js";
 
 // ── Metrics ──
 export {
@@ -55,23 +50,21 @@ export {
   weixinIngressAppendTotal,
   weixinIngressDispatchTotal,
   weixinIngressReconcileTotal,
+  contextCompilerShadowTotal,
+  contextCompilerDiffTotal,
+  contextCompilerEntries,
+  contextCompilerUnresolvedAttachmentTotal,
+  contextCompilerDurationMs,
 } from "./metrics/index.js";
 export type { Counter, Histogram, Gauge } from "./metrics/index.js";
 
 // ── Sampling ──
-export {
-  shouldPersistTrace,
-  defaultSamplingConfig,
-} from "./sampling/index.js";
+export { shouldPersistTrace, defaultSamplingConfig } from "./sampling/index.js";
 export type { SamplingConfig } from "./sampling/index.js";
 
 // ── Storage ──
 export { TraceQueue } from "./storage/index.js";
-export type {
-  TraceWriter,
-  TraceQueueItem,
-  QueueOptions,
-} from "./storage/index.js";
+export type { TraceWriter, TraceQueueItem, QueueOptions } from "./storage/index.js";
 
 // ── Sanitize ──
 export { sanitize, builtinRules } from "./sanitize/index.js";

@@ -7,6 +7,17 @@ export {
   getConversationEventStore,
 } from "./conversation-event-store.js";
 
+export type {
+  ContextCompilerShadowResultStore,
+  ContextCompilerShadowResultRecord,
+  ContextCompilerShadowResultDiffCounts,
+  ContextCompilerShadowResultDiffCategory,
+} from "./context-compiler-shadow-result-store.js";
+export {
+  CONTEXT_COMPILER_SHADOW_RESULT_DIFF_CATEGORIES,
+  ContextCompilerShadowResultEquivalenceError,
+} from "./context-compiler-shadow-result-store.js";
+
 export type { AgentRunStore, ListAgentRunEventsInput } from "./agent-run-store.js";
 export { setAgentRunStore, getAgentRunStore } from "./agent-run-store.js";
 
@@ -47,10 +58,7 @@ export type {
   ScheduledTaskHandlerResult,
   ScheduledTaskExecutionContext,
 } from "./scheduled-task-handler.js";
-export {
-  setScheduledTaskHandler,
-  getScheduledTaskHandler,
-} from "./scheduled-task-handler.js";
+export { setScheduledTaskHandler, getScheduledTaskHandler } from "./scheduled-task-handler.js";
 
 export type { PushService, PushOptions } from "./push-service.js";
 export { setPushService, getPushService } from "./push-service.js";

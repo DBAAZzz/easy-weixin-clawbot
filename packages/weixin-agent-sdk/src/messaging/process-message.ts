@@ -130,7 +130,13 @@ export async function processOneMessage(
         accountId: deps.accountId,
         log: deps.log,
         errLog: deps.errLog,
-        onClear: () => deps.agent.clearSession?.(conversationId),
+        onClear: () =>
+          deps.ingressLifecycle && deps.receiptId
+            ? deps.ingressLifecycle.invokeClear({
+                receiptId: deps.receiptId,
+                conversationId,
+              })
+            : deps.agent.clearSession?.(conversationId),
       },
       receivedAt,
       full.create_time_ms,
@@ -215,18 +221,16 @@ export async function processOneMessage(
 
   // --- Call agent & send reply ---
   try {
-    const response = deps.ingressLifecycle && deps.receiptId
-      ? await deps.ingressLifecycle.invokeAgent({ receiptId: deps.receiptId, request })
-      : await deps.agent.chat(request);
+    const response =
+      deps.ingressLifecycle && deps.receiptId
+        ? await deps.ingressLifecycle.invokeAgent({ receiptId: deps.receiptId, request })
+        : await deps.agent.chat(request);
 
     if (response.media) {
       let filePath: string;
       const mediaUrl = response.media.url;
       if (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) {
-        filePath = await downloadRemoteImageToTemp(
-          mediaUrl,
-          workDirs.mediaOutboundDir,
-        );
+        filePath = await downloadRemoteImageToTemp(mediaUrl, workDirs.mediaOutboundDir);
       } else {
         filePath = path.isAbsolute(mediaUrl) ? mediaUrl : path.resolve(mediaUrl);
       }
@@ -246,7 +250,9 @@ export async function processOneMessage(
     }
     return "chat";
   } catch (err) {
-    logger.error(`processOneMessage: agent or send failed: ${err instanceof Error ? err.stack ?? err.message : JSON.stringify(err)}`);
+    logger.error(
+      `processOneMessage: agent or send failed: ${err instanceof Error ? (err.stack ?? err.message) : JSON.stringify(err)}`,
+    );
     await sendWeixinErrorNotice({
       to,
       contextToken,

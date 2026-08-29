@@ -36,21 +36,45 @@ export async function reconcileWeixinIngress(
     include: { message: true },
   });
   const linksByEvent = new Map(links.map((link) => [link.eventId, link]));
+  const clearReceiptIds = rows
+    .filter((row) => row.commandName === "clear")
+    .map((row) => row.eventId);
+  const clearBoundaries =
+    clearReceiptIds.length === 0
+      ? []
+      : await prisma.conversationEvent.findMany({
+          where: {
+            accountId,
+            eventType: "session_rotated",
+            causationId: { in: clearReceiptIds },
+          },
+          select: { causationId: true },
+        });
+  const clearReceiptsWithBoundary = new Set(
+    clearBoundaries.flatMap((event) => (event.causationId ? [event.causationId] : [])),
+  );
   const observations: Observation[] = [];
 
   for (const row of rows) {
     const link = linksByEvent.get(row.eventId);
+    if (row.commandName === "clear" && !clearReceiptsWithBoundary.has(row.eventId)) {
+      observations.push({ eventId: row.eventId, accountId, result: "unexpected" });
+      continue;
+    }
     if (row.status === "processing" && row.claimedAt && now - row.claimedAt.getTime() >= stuckMs) {
       observations.push({ eventId: row.eventId, accountId, result: "stuck" });
       continue;
     }
     if (row.status === "failed") {
-      if (!row.errorCode) observations.push({ eventId: row.eventId, accountId, result: "unexpected" });
+      if (!row.errorCode)
+        observations.push({ eventId: row.eventId, accountId, result: "unexpected" });
       continue;
     }
     if (row.status !== "completed") continue;
     if (row.outcome === "command") {
-      if (link) observations.push({ eventId: row.eventId, accountId, result: "unexpected" });
+      if (link) {
+        observations.push({ eventId: row.eventId, accountId, result: "unexpected" });
+      }
       continue;
     }
     if (row.outcome !== "chat") {
@@ -66,8 +90,11 @@ export async function reconcileWeixinIngress(
     if (link.state === "cleared" && link.messageId === null && link.clearedAt) {
       observations.push({ eventId: row.eventId, accountId, result: "cleared" });
     } else if (
-      link.state === "persisted" && link.messageId !== null && link.message?.role === "user" &&
-      row.event.eventType === "inbound_message_received" && row.event.accountId === accountId
+      link.state === "persisted" &&
+      link.messageId !== null &&
+      link.message?.role === "user" &&
+      row.event.eventType === "inbound_message_received" &&
+      row.event.accountId === accountId
     ) {
       observations.push({ eventId: row.eventId, accountId, result: "linked" });
     } else {
@@ -90,9 +117,9 @@ export async function reconcileWeixinIngress(
     summary,
     issues: observations.filter(
       (observation): observation is ReconciliationIssue =>
-        observation.result === "missing"
-        || observation.result === "unexpected"
-        || observation.result === "stuck",
+        observation.result === "missing" ||
+        observation.result === "unexpected" ||
+        observation.result === "stuck",
     ),
   };
 }

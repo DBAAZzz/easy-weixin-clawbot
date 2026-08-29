@@ -22,8 +22,13 @@ test("accept runs before business processing and skip performs no work", async (
       order.push(`accept:${input.seq}`);
       return { receiptId: `event-${input.seq}`, disposition: input.seq === 1 ? "skip" : "process" };
     },
-    async invokeAgent() { return {}; },
-    async settle({ receiptId, outcome }) { order.push(`settle:${receiptId}:${outcome}`); },
+    async invokeAgent() {
+      return {};
+    },
+    async invokeClear() {},
+    async settle({ receiptId, outcome }) {
+      order.push(`settle:${receiptId}:${outcome}`);
+    },
   };
   const cursor = await dispatchWeixinBatch({
     messages: [message(1), message(2)],
@@ -34,56 +39,99 @@ test("accept runs before business processing and skip performs no work", async (
       order.push(`process:${context.receiptId}`);
       return "chat";
     },
-    async onSyncBufUpdate() { order.push("cursor"); },
+    async onSyncBufUpdate() {
+      order.push("cursor");
+    },
   });
   assert.equal(processCount, 1);
   assert.equal(cursor, "next");
   assert.deepEqual(order, [
-    "accept:1", "accept:2", "process:event-2", "settle:event-2:chat", "cursor",
+    "accept:1",
+    "accept:2",
+    "process:event-2",
+    "settle:event-2:chat",
+    "cursor",
   ]);
 });
 
 test("append or claim failure prevents cursor persistence", async () => {
   let cursorWrites = 0;
   const lifecycle: WeixinIngressLifecycle = {
-    async accept() { throw new Error("append_failed"); },
-    async invokeAgent() { return {}; },
+    async accept() {
+      throw new Error("append_failed");
+    },
+    async invokeAgent() {
+      return {};
+    },
+    async invokeClear() {},
     async settle() {},
   };
-  await assert.rejects(() => dispatchWeixinBatch({
-    messages: [message(1)],
-    nextSyncBuf: "next",
-    ingressLifecycle: lifecycle,
-    async processMessage() { return "chat"; },
-    async onSyncBufUpdate() { cursorWrites += 1; },
-  }), /append_failed/);
+  await assert.rejects(
+    () =>
+      dispatchWeixinBatch({
+        messages: [message(1)],
+        nextSyncBuf: "next",
+        ingressLifecycle: lifecycle,
+        async processMessage() {
+          return "chat";
+        },
+        async onSyncBufUpdate() {
+          cursorWrites += 1;
+        },
+      }),
+    /append_failed/,
+  );
   assert.equal(cursorWrites, 0);
 });
 
 test("settle failure is surfaced without advancing the cursor", async () => {
   let cursorWrites = 0;
   const lifecycle: WeixinIngressLifecycle = {
-    async accept() { return { receiptId: "event-1", disposition: "process" }; },
-    async invokeAgent() { return {}; },
-    async settle() { throw new Error("settle_failed"); },
+    async accept() {
+      return { receiptId: "event-1", disposition: "process" };
+    },
+    async invokeAgent() {
+      return {};
+    },
+    async invokeClear() {},
+    async settle() {
+      throw new Error("settle_failed");
+    },
   };
-  await assert.rejects(() => dispatchWeixinBatch({
-    messages: [message(1)],
-    nextSyncBuf: "next",
-    ingressLifecycle: lifecycle,
-    async processMessage() { return "chat"; },
-    async onSyncBufUpdate() { cursorWrites += 1; },
-  }), /settle_failed/);
+  await assert.rejects(
+    () =>
+      dispatchWeixinBatch({
+        messages: [message(1)],
+        nextSyncBuf: "next",
+        ingressLifecycle: lifecycle,
+        async processMessage() {
+          return "chat";
+        },
+        async onSyncBufUpdate() {
+          cursorWrites += 1;
+        },
+      }),
+    /settle_failed/,
+  );
   assert.equal(cursorWrites, 0);
 });
 
 test("cursor persistence is awaited and failure is surfaced", async () => {
   let processed = false;
-  await assert.rejects(() => dispatchWeixinBatch({
-    messages: [message(1)],
-    nextSyncBuf: "next",
-    async processMessage() { processed = true; return "chat"; },
-    async onSyncBufUpdate() { throw new Error("cursor_failed"); },
-  }), /cursor_failed/);
+  await assert.rejects(
+    () =>
+      dispatchWeixinBatch({
+        messages: [message(1)],
+        nextSyncBuf: "next",
+        async processMessage() {
+          processed = true;
+          return "chat";
+        },
+        async onSyncBufUpdate() {
+          throw new Error("cursor_failed");
+        },
+      }),
+    /cursor_failed/,
+  );
   assert.equal(processed, true);
 });

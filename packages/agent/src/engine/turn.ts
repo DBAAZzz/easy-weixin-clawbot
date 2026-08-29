@@ -11,20 +11,12 @@ import type {
   VisualContext,
 } from "../llm/types.js";
 import { randomUUID } from "node:crypto";
-import {
-  MESSAGE_CONTENT_TYPE,
-  MESSAGE_ROLE,
-  MESSAGE_STOP_REASON,
-} from "@clawbot/shared";
+import { MESSAGE_CONTENT_TYPE, MESSAGE_ROLE, MESSAGE_STOP_REASON } from "@clawbot/shared";
 import { withSpan, getTraceId } from "@clawbot/observability";
 import type { AgentRunner, RunCallbacks, RunResult } from "./runner.js";
 import { runLogger, type RunContext } from "./context.js";
 import type { ConversationCache } from "./conversation/cache.js";
-import {
-  resolveConfiguredModel,
-  resolveModel,
-  type ResolvedModel,
-} from "../llm/model-resolver.js";
+import { resolveConfiguredModel, resolveModel, type ResolvedModel } from "../llm/model-resolver.js";
 import type { ChatResponse, ChatMedia } from "../shared/types.js";
 import type { DebugFlags } from "../commands/debug.js";
 import { getMessageStore } from "../ports/message-store.js";
@@ -46,6 +38,10 @@ import {
   extractToolResultText,
   isEmptyAssistantMessage,
 } from "../shared/utils/chat-utils.js";
+import type {
+  ContextShadowObserver,
+  PendingContextShadowHandle,
+} from "./context-shadow/observer.js";
 
 export interface ChatLog {
   llm(accountId: string, round: number): void;
@@ -70,6 +66,14 @@ export interface ChatTurnInput {
   triggerMeta?: TriggerMeta;
   /** Source fact for the user message persistence link; never enters model-visible content. */
   sourceConversationEventId?: string;
+  /** Request-local clock captured once and shared with legacy and shadow compilation. */
+  effectiveTime?: string;
+  contextShadow?: {
+    observer: ContextShadowObserver;
+    sourceEventId: string;
+    conversationStreamId: string;
+    eventCursor: number;
+  };
 }
 
 function finalizeReply(
@@ -138,13 +142,14 @@ async function buildUserMessage(
     chatModel: ResolvedModel;
     inputRole?: "user" | "trigger";
     triggerMeta?: TriggerMeta;
+    effectiveTime: string;
   },
 ): Promise<AgentMessage> {
-  const { text, media, memoryContext, chatModel, inputRole, triggerMeta } = params;
+  const { text, media, memoryContext, chatModel, inputRole, triggerMeta, effectiveTime } = params;
 
   const assembledText = assembleUserContext(PROMPT_PROFILES.chat, {
     tapeMemory: memoryContext || undefined,
-    time: new Date(),
+    time: new Date(effectiveTime),
     userText: text || "(no text)",
   });
 
@@ -379,6 +384,7 @@ export async function runChatTurn(
 ): Promise<ChatResponse> {
   const { runner, log, cache, debugFlags } = deps;
   const startedAt = input.startedAt ?? Date.now();
+  const effectiveTime = input.effectiveTime ?? new Date(startedAt).toISOString();
 
   // A turn mutates the shared in-memory history (append, and rollback on error),
   // so the caller must already hold this conversation's lock. The lock stays
@@ -409,36 +415,77 @@ export async function runChatTurn(
         chatModel,
         inputRole: input.inputRole,
         triggerMeta: input.triggerMeta,
+        effectiveTime,
       });
       appendMessage(cache, ctx, history, userMessage, input.sourceConversationEventId);
 
-      const tracker = createMessageTracker(cache, ctx, history, log, createUsageRequestId());
-
-      const result = await runner.run(
-        history,
-        tracker.callbacks,
-        ctx.signal,
-        {
-          model: chatModel.model,
-          meta: chatModel.meta,
-        },
-        ctx,
-      );
-
-      if (result.status !== "aborted") {
-        log.done(ctx.accountId, tracker.state.rounds, Date.now() - startedAt);
+      let shadowHandle: PendingContextShadowHandle | undefined;
+      if (input.contextShadow) {
+        try {
+          shadowHandle = input.contextShadow.observer.start({
+            sourceEventId: input.contextShadow.sourceEventId,
+            accountId: ctx.accountId,
+            conversationStreamId: input.contextShadow.conversationStreamId,
+            eventCursor: input.contextShadow.eventCursor,
+            effectiveTime,
+            timezone: "Asia/Shanghai",
+            compilerVersion: "context-compiler-v1",
+            contextPolicyRevisionId: "context-policy-v1",
+            legacyMessages: history,
+          });
+        } catch (error) {
+          // The observer guards itself; this net keeps any throw from a
+          // third-party start() from failing the production turn.
+          runLogger(ctx).warn("context shadow start failed; continuing turn", { err: error });
+        }
       }
 
-      return handleRunResult(ctx, {
-        cache,
-        debugFlags,
-        result,
-        userText: input.text,
-        chatModel,
-        startedAt,
-        rounds: tracker.state.rounds,
-        messagesAddedInRun: tracker.state.messagesAddedInRun,
-      });
+      const tracker = createMessageTracker(cache, ctx, history, log, createUsageRequestId());
+
+      let result: RunResult;
+      try {
+        result = await runner.run(
+          history,
+          tracker.callbacks,
+          ctx.signal,
+          {
+            model: chatModel.model,
+            meta: chatModel.meta,
+          },
+          ctx,
+        );
+      } catch (error) {
+        shadowHandle?.discard("turn_failed");
+        throw error;
+      }
+
+      try {
+        if (result.status !== "aborted") {
+          log.done(ctx.accountId, tracker.state.rounds, Date.now() - startedAt);
+        }
+
+        const response = await handleRunResult(ctx, {
+          cache,
+          debugFlags,
+          result,
+          userText: input.text,
+          chatModel,
+          startedAt,
+          rounds: tracker.state.rounds,
+          messagesAddedInRun: tracker.state.messagesAddedInRun,
+        });
+        const committed =
+          result.status === "max_rounds" ||
+          (result.status === "completed" &&
+            (Boolean(extractAssistantText(result.finalMessage)) ||
+              result.finalMessage.stopReason === MESSAGE_STOP_REASON.STOP));
+        if (committed) void shadowHandle?.publish();
+        else shadowHandle?.discard("turn_failed");
+        return response;
+      } catch (error) {
+        shadowHandle?.discard("turn_failed");
+        throw error;
+      }
     },
   );
 }

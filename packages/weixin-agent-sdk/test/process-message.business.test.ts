@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import test from "node:test";
 import type { AddressInfo } from "node:net";
-import type { Agent, ChatRequest } from "../src/agent/interface.js";
+import type { Agent, ChatRequest, WeixinIngressLifecycle } from "../src/agent/interface.js";
 import type { WeixinMessage } from "../src/api/types.js";
 import { MessageItemType } from "../src/api/types.js";
 import { processOneMessage } from "../src/messaging/process-message.js";
@@ -116,6 +116,95 @@ test("用户发送 /clear 时，会清除对应会话、回复确认，并且不
       item_list?: Array<{ text_item?: { text?: string } }>;
     };
     assert.equal(message.item_list?.[0]?.text_item?.text, "✅ 会话已清除，重新开始对话");
+  } finally {
+    await api.close();
+  }
+});
+
+test("ledger /clear 严格等待 invokeClear 成功后才发送确认", async () => {
+  const api = await startWeixinApi();
+  let releaseClear!: () => void;
+  const clearGate = new Promise<void>((resolve) => {
+    releaseClear = resolve;
+  });
+  const invoked: Array<[string, string]> = [];
+  const lifecycle: WeixinIngressLifecycle = {
+    async accept() {
+      return { receiptId: "event-1", disposition: "process" };
+    },
+    async invokeAgent() {
+      throw new Error("model must not run");
+    },
+    async invokeClear({ receiptId, conversationId }) {
+      invoked.push([receiptId, conversationId]);
+      await clearGate;
+    },
+    async settle() {},
+  };
+  const processing = processOneMessage(inboundText("/clear"), {
+    accountId: "account-1",
+    agent: {
+      async chat() {
+        throw new Error("legacy model must not run");
+      },
+    },
+    baseUrl: api.baseUrl,
+    cdnBaseUrl: api.baseUrl,
+    log: silentLog,
+    errLog: silentLog,
+    ingressLifecycle: lifecycle,
+    receiptId: "event-1",
+  });
+  try {
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(invoked, [["event-1", "wx-user-1"]]);
+    assert.equal(api.requests.length, 0);
+    releaseClear();
+    assert.equal(await processing, "command");
+    assert.equal(api.requests.length, 1);
+  } finally {
+    releaseClear();
+    await processing.catch(() => undefined);
+    await api.close();
+  }
+});
+
+test("/echo and /toggle-debug never invoke the clear lifecycle", async () => {
+  const api = await startWeixinApi();
+  let clearCalls = 0;
+  const lifecycle: WeixinIngressLifecycle = {
+    async accept() {
+      return { receiptId: "event-1", disposition: "process" };
+    },
+    async invokeAgent() {
+      throw new Error("model must not run");
+    },
+    async invokeClear() {
+      clearCalls += 1;
+    },
+    async settle() {},
+  };
+  try {
+    for (const command of ["/echo hello", "/toggle-debug"]) {
+      assert.equal(
+        await processOneMessage(inboundText(command), {
+          accountId: "account-no-clear",
+          agent: {
+            async chat() {
+              throw new Error("legacy model must not run");
+            },
+          },
+          baseUrl: api.baseUrl,
+          cdnBaseUrl: api.baseUrl,
+          log: silentLog,
+          errLog: silentLog,
+          ingressLifecycle: lifecycle,
+          receiptId: "event-1",
+        }),
+        "command",
+      );
+    }
+    assert.equal(clearCalls, 0);
   } finally {
     await api.close();
   }

@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  contextCompilerShadowTotal,
   getActiveTrace,
   runWithTrace,
   withSpan,
@@ -15,6 +16,7 @@ import {
   notePulseActivity,
 } from "@clawbot/agent";
 import type { ChatMedia as AgentChatMedia, RunContext } from "@clawbot/agent";
+import type { ContextShadowObserver, ConversationEvent } from "@clawbot/agent";
 import { getPushService, getSchedulerStore } from "@clawbot/agent/ports";
 import { chatEngine } from "./ai.js";
 import { getAssetService } from "./assets/index.js";
@@ -28,6 +30,7 @@ import { createModuleLogger, getErrorFields, log } from "./logger.js";
 import { observabilityService } from "./observability/service.js";
 import { TTS_CACHE_DIR } from "./paths.js";
 import { getTTSProvider } from "./services/tts/index.js";
+import { clearIngressSession } from "./db/clear-ingress-session.js";
 
 /**
  * Populated once at startup by index.ts — every command is registered there so
@@ -51,12 +54,7 @@ async function detectImageMimeFromPath(filePath: string): Promise<string | undef
   ) {
     return "image/png";
   }
-  if (
-    header.length >= 6 &&
-    header[0] === 0x47 &&
-    header[1] === 0x49 &&
-    header[2] === 0x46
-  ) {
+  if (header.length >= 6 && header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46) {
     return "image/gif";
   }
   if (
@@ -83,7 +81,7 @@ async function attachAssetIdToMedia(
   if (!media) return undefined;
   const mimeType =
     media.type === "image"
-      ? (await detectImageMimeFromPath(media.filePath)) ?? media.mimeType
+      ? ((await detectImageMimeFromPath(media.filePath)) ?? media.mimeType)
       : media.mimeType;
   const asset = await getAssetService().createFromFile({
     accountId,
@@ -165,10 +163,7 @@ async function synthesizeReply(text: string): Promise<string | undefined> {
     );
     return filePath;
   } catch (err) {
-    agentLogger.error(
-      { ...getErrorFields(err) },
-      "TTS 合成失败，将回退为纯文本回复",
-    );
+    agentLogger.error({ ...getErrorFields(err) }, "TTS 合成失败，将回退为纯文本回复");
     return undefined;
   }
 }
@@ -224,161 +219,210 @@ async function generateTitleIfNeeded(
 }
 
 export interface ServerWeixinAgent extends Agent {
-  chatFromIngress(req: ChatRequest, sourceConversationEventId: string): Promise<ChatResponse>;
+  chatFromIngress(
+    req: ChatRequest,
+    source: Pick<ConversationEvent, "eventId" | "streamId" | "streamSeq">,
+  ): Promise<ChatResponse>;
+  clearFromIngress(receiptId: string, wechatConversationId: string): Promise<void>;
 }
 
 /** Create an Agent bound to a specific WeChat account. */
-export function createAgent(accountId: string): ServerWeixinAgent {
+export function createAgent(
+  accountId: string,
+  options: { contextShadowObserver?: ContextShadowObserver } = {},
+): ServerWeixinAgent {
   async function chat(
     req: ChatRequest,
-    sourceConversationEventId?: string,
+    source?: Pick<ConversationEvent, "eventId" | "streamId" | "streamSeq">,
   ): Promise<ChatResponse> {
-      log.recv(accountId, req.conversationId, req.text, req.media?.type);
-      // Save contextToken to database for proactive push
-      if (req.contextToken) {
-        void updateContextToken(accountId, req.conversationId, req.contextToken).catch((err) => {
-          log.error(`updateContextToken(${accountId}/${req.conversationId})`, err);
-        });
+    let shadowStarted = false;
+    const trackedShadowObserver = options.contextShadowObserver
+      ? ({
+          start(input: Parameters<ContextShadowObserver["start"]>[0]) {
+            shadowStarted = true;
+            return options.contextShadowObserver!.start(input);
+          },
+          skipTurnFailed() {
+            options.contextShadowObserver!.skipTurnFailed();
+          },
+          drain() {
+            return options.contextShadowObserver!.drain();
+          },
+        } satisfies ContextShadowObserver)
+      : undefined;
+    log.recv(accountId, req.conversationId, req.text, req.media?.type);
+    // Save contextToken to database for proactive push
+    if (req.contextToken) {
+      void updateContextToken(accountId, req.conversationId, req.contextToken).catch((err) => {
+        log.error(`updateContextToken(${accountId}/${req.conversationId})`, err);
+      });
 
-        void deliverUnpushedRuns(accountId, req.conversationId).catch((err) => {
-          log.error(`deliverUnpushedRuns(${accountId}/${req.conversationId})`, err);
-        });
-      }
+      void deliverUnpushedRuns(accountId, req.conversationId).catch((err) => {
+        log.error(`deliverUnpushedRuns(${accountId}/${req.conversationId})`, err);
+      });
+    }
 
-      const startedAt = Date.now();
-      const effectiveConvId = await getEffectiveConvId(accountId, req.conversationId);
+    const startedAt = Date.now();
+    const effectiveConvId = await getEffectiveConvId(accountId, req.conversationId);
 
-      return runWithTrace(accountId, effectiveConvId, async () => {
-        try {
-          withSpanSync(
-            "message.receive",
-            {
-              hasMedia: Boolean(req.media),
-              textLength: req.text.length,
-              promptSnapshot: req.text,
-            },
-            () => undefined,
-          );
+    return runWithTrace(accountId, effectiveConvId, async () => {
+      try {
+        withSpanSync(
+          "message.receive",
+          {
+            hasMedia: Boolean(req.media),
+            textLength: req.text.length,
+            promptSnapshot: req.text,
+          },
+          () => undefined,
+        );
 
-          // 内置命令拦截（不经过 LLM）
-          const dispatched = withSpanSync(
-            "command.dispatch",
-            { textLength: req.text.length },
-            (span) => {
-              const result = commandRegistry.tryDispatch(req.text);
-              span.addAttributes({
-                matched: Boolean(result),
-                commandName: result?.command.name ?? "none",
-              });
-              return result;
-            },
-          );
-
-          if (dispatched) {
-            const reply = await withSpan(
-              "command.execute",
-              { commandName: dispatched.command.name },
-              async () =>
-                dispatched.command.execute({
-                  accountId,
-                  conversationId: effectiveConvId,
-                  args: dispatched.args,
-                  startedAt,
-                  commands: commandRegistry.list(),
-                  rotateSession: () =>
-                    rotateSession(accountId, req.conversationId).then(() => undefined),
-                }),
-            );
-
-            return withSpanSync(
-              "message.send",
-              { hasText: Boolean(reply.text), hasMedia: Boolean(reply.media), completionSnapshot: reply.text ?? "" },
-              () => {
-                log.send(accountId, req.conversationId, reply.text ?? "");
-                return reply;
-              },
-            );
-          }
-
-          const media = await withSpan("asset.ingest", { hasMedia: Boolean(req.media) }, () =>
-            attachAssetIdToMedia(accountId, effectiveConvId, req.media),
-          );
-          const ctx: RunContext = {
-            accountId,
-            conversationId: effectiveConvId,
-            targetConversationId: req.conversationId,
-            runKind: "chat",
-          };
-          const reply = await withSpan("conversation.lock", {}, async () =>
-            chatEngine.conversations.withLock(accountId, effectiveConvId, async () =>
-              chatEngine.chat(ctx, {
-                text: req.text,
-                media,
-                startedAt,
-                sourceConversationEventId,
-              }),
-            ),
-          );
-
-          if (reply.text?.trim()) {
-            void generateTitleIfNeeded(accountId, effectiveConvId, {
-              userText: req.text,
-              assistantText: reply.text,
-            }).catch((err) => {
-              agentLogger.warn(
-                {
-                  ...getErrorFields(err),
-                  accountId,
-                  conversationId: effectiveConvId,
-                },
-                "会话标题生成失败",
-              );
+        // 内置命令拦截（不经过 LLM）
+        const dispatched = withSpanSync(
+          "command.dispatch",
+          { textLength: req.text.length },
+          (span) => {
+            const result = commandRegistry.tryDispatch(req.text);
+            span.addAttributes({
+              matched: Boolean(result),
+              commandName: result?.command.name ?? "none",
             });
-          }
+            return result;
+          },
+        );
 
-          // Reset the proactive pulse: the user just spoke, so the agent has
-          // no reason to bubble up again soon.
-          void notePulseActivity(accountId, effectiveConvId).catch((err) => {
-            agentLogger.warn(
-              {
-                ...getErrorFields(err),
+        if (dispatched) {
+          const reply = await withSpan(
+            "command.execute",
+            { commandName: dispatched.command.name },
+            async () =>
+              dispatched.command.execute({
                 accountId,
                 conversationId: effectiveConvId,
-              },
-              "更新会话节拍失败",
-            );
-          });
+                args: dispatched.args,
+                startedAt,
+                commands: commandRegistry.list(),
+                rotateSession: () =>
+                  rotateSession(accountId, req.conversationId).then(() => undefined),
+              }),
+          );
 
           return withSpanSync(
             "message.send",
-            { hasText: Boolean(reply.text), hasMedia: Boolean(reply.media), completionSnapshot: reply.text ?? "" },
+            {
+              hasText: Boolean(reply.text),
+              hasMedia: Boolean(reply.media),
+              completionSnapshot: reply.text ?? "",
+            },
             () => {
               log.send(accountId, req.conversationId, reply.text ?? "");
               return reply;
             },
           );
-        } catch (err) {
-          if (isLLMProviderNotConfiguredError(err)) {
+        }
+
+        const media = await withSpan("asset.ingest", { hasMedia: Boolean(req.media) }, () =>
+          attachAssetIdToMedia(accountId, effectiveConvId, req.media),
+        );
+        const ctx: RunContext = {
+          accountId,
+          conversationId: effectiveConvId,
+          targetConversationId: req.conversationId,
+          runKind: "chat",
+        };
+        // Phase 3 shadow covers only ingress chats; count disabled turns here so
+        // the metric stays turn-level comparable with enabled accounts.
+        if (source && !trackedShadowObserver) {
+          contextCompilerShadowTotal.inc({ result: "disabled" });
+        }
+        const reply = await withSpan("conversation.lock", {}, async () =>
+          chatEngine.conversations.withLock(accountId, effectiveConvId, async () =>
+            chatEngine.chat(ctx, {
+              text: req.text,
+              media,
+              startedAt,
+              effectiveTime: new Date(startedAt).toISOString(),
+              sourceConversationEventId: source?.eventId,
+              ...(trackedShadowObserver && source
+                ? {
+                    contextShadow: {
+                      observer: trackedShadowObserver,
+                      sourceEventId: source.eventId,
+                      conversationStreamId: source.streamId,
+                      eventCursor: source.streamSeq,
+                    },
+                  }
+                : {}),
+            }),
+          ),
+        );
+
+        if (reply.text?.trim()) {
+          void generateTitleIfNeeded(accountId, effectiveConvId, {
+            userText: req.text,
+            assistantText: reply.text,
+          }).catch((err) => {
             agentLogger.warn(
               {
                 ...getErrorFields(err),
                 accountId,
                 conversationId: effectiveConvId,
               },
-              "LLM Provider 尚未配置",
+              "会话标题生成失败",
             );
-            return { text: err.userMessage };
-          }
-
-          log.error(`chat(${accountId}/${req.conversationId})`, err);
-          return { text: "抱歉，出了点问题，请稍后再试。" };
-        } finally {
-          const trace = getActiveTrace();
-          if (trace && trace.getSpans().length > 0) {
-            observabilityService.queuePersistTrace(trace.summarize(), trace.getSpans());
-          }
+          });
         }
-      });
+
+        // Reset the proactive pulse: the user just spoke, so the agent has
+        // no reason to bubble up again soon.
+        void notePulseActivity(accountId, effectiveConvId).catch((err) => {
+          agentLogger.warn(
+            {
+              ...getErrorFields(err),
+              accountId,
+              conversationId: effectiveConvId,
+            },
+            "更新会话节拍失败",
+          );
+        });
+
+        return withSpanSync(
+          "message.send",
+          {
+            hasText: Boolean(reply.text),
+            hasMedia: Boolean(reply.media),
+            completionSnapshot: reply.text ?? "",
+          },
+          () => {
+            log.send(accountId, req.conversationId, reply.text ?? "");
+            return reply;
+          },
+        );
+      } catch (err) {
+        if (source && options.contextShadowObserver && !shadowStarted) {
+          options.contextShadowObserver.skipTurnFailed();
+        }
+        if (isLLMProviderNotConfiguredError(err)) {
+          agentLogger.warn(
+            {
+              ...getErrorFields(err),
+              accountId,
+              conversationId: effectiveConvId,
+            },
+            "LLM Provider 尚未配置",
+          );
+          return { text: err.userMessage };
+        }
+
+        log.error(`chat(${accountId}/${req.conversationId})`, err);
+        return { text: "抱歉，出了点问题，请稍后再试。" };
+      } finally {
+        const trace = getActiveTrace();
+        if (trace && trace.getSpans().length > 0) {
+          observabilityService.queuePersistTrace(trace.summarize(), trace.getSpans());
+        }
+      }
+    });
   }
 
   return {
@@ -386,8 +430,24 @@ export function createAgent(accountId: string): ServerWeixinAgent {
       return chat(req);
     },
 
-    chatFromIngress(req, sourceConversationEventId) {
-      return chat(req, sourceConversationEventId);
+    chatFromIngress(req, source) {
+      return chat(req, source);
+    },
+
+    async clearFromIngress(receiptId, wechatConversationId) {
+      const key = `${accountId}::${wechatConversationId}`;
+      const effectiveConversationId = await getEffectiveConvId(accountId, wechatConversationId);
+      log.clear(accountId, wechatConversationId);
+      await chatEngine.conversations.withLock(accountId, effectiveConversationId, async () => {
+        await clearIngressSession({
+          accountId,
+          receiptId,
+          wechatConversationId,
+          effectiveConversationId,
+        });
+        chatEngine.conversations.evict(accountId, effectiveConversationId);
+        sessionCache.delete(key);
+      });
     },
 
     async clearSession(wechatConvId: string) {

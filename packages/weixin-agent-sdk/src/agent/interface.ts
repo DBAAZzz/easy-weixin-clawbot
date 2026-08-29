@@ -38,6 +38,7 @@ export interface WeixinIngressLifecycle {
     disposition: "process" | "skip";
   }>;
   invokeAgent(input: { receiptId: string; request: ChatRequest }): Promise<ChatResponse>;
+  invokeClear(input: { receiptId: string; conversationId: string }): Promise<void>;
   settle(input: {
     receiptId: string;
     outcome: "chat" | "command" | "failed";

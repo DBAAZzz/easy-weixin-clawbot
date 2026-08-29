@@ -1,5 +1,6 @@
 import { disconnectPrisma } from "./db/prisma.js";
 import { WeixinIngressDispatchStore } from "./db/weixin-ingress-dispatch-store.js";
+import { repairIngressClear } from "./db/clear-ingress-session.js";
 
 function option(name: string): string | undefined {
   const index = process.argv.indexOf(name);
@@ -17,16 +18,29 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "resolve") {
-    if (option("--action") !== "mark-failed") throw new Error("only --action mark-failed is allowed");
+    if (option("--action") !== "mark-failed")
+      throw new Error("only --action mark-failed is allowed");
     const eventId = option("--event-id");
     const operator = option("--operator");
     const reason = option("--reason");
-    if (!eventId || !operator || !reason) throw new Error("event-id, operator and reason are required");
+    if (!eventId || !operator || !reason)
+      throw new Error("event-id, operator and reason are required");
     await store.markFailedByOperator(eventId, operator, reason);
     console.log(JSON.stringify({ eventId, status: "failed", errorCode: "operator_abandoned" }));
     return;
   }
-  throw new Error("usage: ingress-admin.ts stuck|resolve");
+  if (command === "repair-clear") {
+    const eventId = option("--event-id");
+    const operator = option("--operator");
+    const reason = option("--reason");
+    if (!eventId || !operator || !reason) {
+      throw new Error("event-id, operator and reason are required");
+    }
+    const result = await repairIngressClear(eventId, { operator, reason });
+    console.log(JSON.stringify({ eventId, operator, ...result }));
+    return;
+  }
+  throw new Error("usage: ingress-admin.ts stuck|resolve|repair-clear");
 }
 
 main()

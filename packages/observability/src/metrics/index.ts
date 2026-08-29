@@ -22,4 +22,9 @@ export {
   weixinIngressAppendTotal,
   weixinIngressDispatchTotal,
   weixinIngressReconcileTotal,
+  contextCompilerShadowTotal,
+  contextCompilerDiffTotal,
+  contextCompilerEntries,
+  contextCompilerUnresolvedAttachmentTotal,
+  contextCompilerDurationMs,
 } from "./agent-metrics.js";

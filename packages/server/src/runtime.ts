@@ -7,6 +7,9 @@ import { drainUsageQueue } from "./db/usage.js";
 import { WeixinIngressRolloutStore } from "./db/weixin-ingress-rollout-store.js";
 import { createWeixinIngressLifecycle } from "./weixin/ingress-controller.js";
 import { createModuleLogger, log } from "./logger.js";
+import { PrismaContextCompilerShadowRolloutStore } from "./db/context-compiler-shadow-rollout-store.js";
+import { createServerContextShadowObserver } from "./context-shadow-observer.js";
+import type { ContextShadowObserver } from "@clawbot/agent";
 
 type RunningAccount = {
   abortController: AbortController;
@@ -23,6 +26,19 @@ export interface BotRuntime {
 
 const runtimeLogger = createModuleLogger("runtime");
 
+async function drainContextShadow(observer: ContextShadowObserver): Promise<void> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<"timeout">((resolve) => {
+    timeout = setTimeout(() => resolve("timeout"), 5_000);
+    timeout.unref?.();
+  });
+  const result = await Promise.race([observer.drain().then(() => "drained" as const), timedOut]);
+  if (timeout) clearTimeout(timeout);
+  if (result === "timeout") {
+    runtimeLogger.warn({}, "Context compiler shadow drain timed out");
+  }
+}
+
 export function createBotRuntime(): BotRuntime {
   const startedAt = Date.now();
   const running = new Map<string, RunningAccount>();
@@ -38,14 +54,12 @@ export function createBotRuntime(): BotRuntime {
   ): Promise<void> {
     return (async () => {
       runtimeLogger.info({ accountId }, "开始启动账号运行时");
+      let contextShadowObserver: ContextShadowObserver | undefined;
 
       try {
         const credential = await credentialStore.getDecrypted(accountId);
         if (!credential) {
-          runtimeLogger.warn(
-            { accountId },
-            "账号缺少已绑定凭据，跳过启动",
-          );
+          runtimeLogger.warn({ accountId }, "账号缺少已绑定凭据，跳过启动");
           return;
         }
 
@@ -53,7 +67,11 @@ export function createBotRuntime(): BotRuntime {
 
         // Load rollout once per account start; a restart applies operator changes.
         const ingressEnabled = await new WeixinIngressRolloutStore().isEnabled(accountId);
-        const agent = createAgent(accountId);
+        const shadowEnabled = await new PrismaContextCompilerShadowRolloutStore().isEnabled(
+          accountId,
+        );
+        contextShadowObserver = shadowEnabled ? createServerContextShadowObserver() : undefined;
+        const agent = createAgent(accountId, { contextShadowObserver });
         const syncBuf = await syncStateStore.load(accountId);
 
         await monitorWeixinProvider({
@@ -80,6 +98,7 @@ export function createBotRuntime(): BotRuntime {
           log.error(`start(${accountId})`, error);
         }
       } finally {
+        if (contextShadowObserver) await drainContextShadow(contextShadowObserver);
         // Only retract our own registration. A newer launch may already own this
         // accountId (restart during teardown), and deleting its entry would leave
         // a live session unreachable — and a later ensureAccountStarted would then
@@ -89,10 +108,7 @@ export function createBotRuntime(): BotRuntime {
         }
 
         if (!abortController.signal.aborted) {
-          runtimeLogger.info(
-            { accountId },
-            "账号连接已断开",
-          );
+          runtimeLogger.info({ accountId }, "账号连接已断开");
         }
       }
     })();
@@ -136,7 +152,7 @@ export function createBotRuntime(): BotRuntime {
 
   async function shutdown(): Promise<void> {
     const startPromises = [...running.values()].map((entry) => entry.startPromise);
-    for (const id of [...running.keys()]) {
+    for (const id of running.keys()) {
       stopAccount(id);
     }
     await Promise.allSettled(startPromises);

@@ -31,10 +31,7 @@ export {
   LLM_PROVIDER_NOT_CONFIGURED_USER_MESSAGE,
 } from "./llm/model-resolver.js";
 
-export type {
-  ChatMedia,
-  ChatResponse,
-} from "./shared/types.js";
+export type { ChatMedia, ChatResponse } from "./shared/types.js";
 
 export type {
   AgentConfig,
@@ -73,18 +70,17 @@ export { detectSkillRuntime } from "./capabilities/skills/runtime-detector.js";
 export { createSkillRuntimeToolSnapshot } from "./capabilities/skills/runtime-tools.js";
 export { normalizeFrontmatter } from "./capabilities/skills/normalizer.js";
 export type { NormalizeResult } from "./capabilities/skills/normalizer.js";
-export { createRuntimeProvisioner, readManagedMeta } from "./capabilities/skills/runtime-provisioner.js";
+export {
+  createRuntimeProvisioner,
+  readManagedMeta,
+} from "./capabilities/skills/runtime-provisioner.js";
 export type {
   RuntimeProvisioner,
   ProvisionPlan,
   ProvisionLog,
   ManagedMeta,
 } from "./capabilities/skills/runtime-provisioner.js";
-export type {
-  ToolCatalogItem,
-  ToolRegistry,
-  ToolSnapshot,
-} from "./capabilities/tools/types.js";
+export type { ToolCatalogItem, ToolRegistry, ToolSnapshot } from "./capabilities/tools/types.js";
 export { createToolRegistry } from "./capabilities/tools/registry.js";
 export { createCompositeToolRegistry } from "./capabilities/tools/composite-registry.js";
 export {
@@ -136,6 +132,10 @@ export {
 export type {
   ConversationEventStore,
   ListConversationEventsInput,
+  ContextCompilerShadowResultStore,
+  ContextCompilerShadowResultRecord,
+  ContextCompilerShadowResultDiffCounts,
+  ContextCompilerShadowResultDiffCategory,
   AgentRunStore,
   ListAgentRunEventsInput,
   MemoryEventStore,
@@ -176,6 +176,40 @@ export type {
   WebFetchResponse,
   WebToolService,
 } from "./ports/index.js";
+export {
+  CONTEXT_COMPILER_SHADOW_RESULT_DIFF_CATEGORIES,
+  ContextCompilerShadowResultEquivalenceError,
+} from "./ports/index.js";
+
+// ── Context Compiler shadow v1 ────────────────────────────────────
+export {
+  CONTEXT_COMPILER_VERSION,
+  CONTEXT_POLICY_REVISION_ID,
+  CONTEXT_TIMEZONE,
+  ContextCompilerError,
+  CONTEXT_COMPILER_SHADOW_DIFF_CATEGORIES,
+  createContextCompilerV1,
+  reduceConversationEvents,
+  unresolvedAttachmentArtifactResolver,
+  buildCanonicalMemoryExtractionInput,
+  hashCanonicalValue,
+  emptyContextCompilerShadowDiffCounts,
+} from "./context-compiler/index.js";
+export type {
+  CompileContextInputV1,
+  CanonicalAttachment,
+  CanonicalConversationEntryV1,
+  CanonicalContextV1,
+  CompiledContextV1,
+  ContextCompilerDiagnostic,
+  ContextCompilerDiagnosticCode,
+  ResolvedAttachmentArtifact,
+  AttachmentArtifactResolver,
+  ContextCompilerV1,
+  CanonicalMemoryExtractionInputV1,
+  ContextCompilerShadowDiffCategory,
+  ContextCompilerShadowDiffCounts,
+} from "./context-compiler/index.js";
 
 // ── Tape (memory system) ────────────────────────────────────────────
 export {
@@ -235,6 +269,19 @@ export type {
 // ── Chat orchestration ──────────────────────────────────────────────
 export { createChatEngine, type ChatEngine, type ChatLog } from "./engine/chat-engine.js";
 export { type RunContext, toolContextFrom } from "./engine/context.js";
+export {
+  createContextShadowObserver,
+  normalizeLegacyContext,
+  diffCanonicalAndLegacy,
+} from "./engine/context-shadow/index.js";
+export type {
+  ContextShadowObserver,
+  ContextShadowObserverMetrics,
+  PendingContextShadowHandle,
+  LegacyContextSummary,
+  LegacyUserSummaryEntry,
+  ContextShadowDiffResult,
+} from "./engine/context-shadow/index.js";
 
 // ── Prompt system ───────────────────────────────────────────────────
 export type {
@@ -308,4 +355,9 @@ export type {
 } from "./shared/fact-ledger/index.js";
 
 // ── Errors ──────────────────────────────────────────────────────────
-export { AgentError, TimeoutError, ModelResolutionError, SkillProvisionError } from "./shared/errors.js";
+export {
+  AgentError,
+  TimeoutError,
+  ModelResolutionError,
+  SkillProvisionError,
+} from "./shared/errors.js";

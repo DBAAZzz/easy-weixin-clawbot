@@ -12,8 +12,35 @@ import {
 } from "./messages.js";
 import { createModuleLogger, getErrorFields } from "../logger.js";
 import { getPrisma } from "./prisma.js";
+import type { Prisma } from "@prisma/client";
 
 const messageStoreLogger = createModuleLogger("message-store");
+
+/** Internal clear core used by both MessageStore and the atomic ingress clear service. */
+export async function clearMessagesInTransaction(
+  tx: Prisma.TransactionClient,
+  accountId: string,
+  conversationId: string,
+): Promise<number> {
+  await tx.$queryRaw`
+    SELECT "id" FROM "messages"
+    WHERE "account_id" = ${accountId} AND "conversation_id" = ${conversationId}
+    FOR UPDATE
+  `;
+  await tx.$executeRaw`
+    UPDATE "legacy_message_projection_links"
+    SET "state" = 'cleared', "message_id" = NULL, "cleared_at" = CURRENT_TIMESTAMP
+    WHERE "account_id" = ${accountId}
+      AND "conversation_id" = ${conversationId}
+      AND "state" = 'persisted'
+  `;
+  const result = await tx.message.deleteMany({ where: { accountId, conversationId } });
+  await tx.conversation.updateMany({
+    where: { accountId, conversationId },
+    data: { messageCount: 0, lastMessageAt: null },
+  });
+  return result.count;
+}
 
 export class PrismaMessageStore implements MessageStore {
   async restoreHistory(accountId: string, conversationId: string): Promise<RestoredHistory> {
@@ -64,29 +91,8 @@ export class PrismaMessageStore implements MessageStore {
   async clearMessages(accountId: string, conversationId: string): Promise<void> {
     await waitForConversationMessageWrites(accountId, conversationId);
     const deletedCount = await getPrisma().$transaction(async (tx) => {
-      await tx.$queryRaw`
-        SELECT "id" FROM "messages"
-        WHERE "account_id" = ${accountId} AND "conversation_id" = ${conversationId}
-        FOR UPDATE
-      `;
-      await tx.$executeRaw`
-        UPDATE "legacy_message_projection_links"
-        SET "state" = 'cleared', "message_id" = NULL, "cleared_at" = CURRENT_TIMESTAMP
-        WHERE "account_id" = ${accountId}
-          AND "conversation_id" = ${conversationId}
-          AND "state" = 'persisted'
-      `;
-      const result = await tx.message.deleteMany({ where: { accountId, conversationId } });
-      await tx.conversation.updateMany({
-        where: { accountId, conversationId },
-        data: { messageCount: 0, lastMessageAt: null },
-      });
-      return result.count;
+      return clearMessagesInTransaction(tx, accountId, conversationId);
     });
-    messageStoreLogger.info(
-      { accountId, conversationId, deletedCount },
-      "已清空会话消息",
-    );
+    messageStoreLogger.info({ accountId, conversationId, deletedCount }, "已清空会话消息");
   }
-
 }

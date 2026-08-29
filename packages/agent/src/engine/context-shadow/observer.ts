@@ -43,7 +43,7 @@ export interface ContextShadowObserver {
     effectiveTime: string;
     timezone: "Asia/Shanghai";
     compilerVersion: "context-compiler-v1";
-    contextPolicyRevisionId: "context-policy-v1";
+    contextPolicyRevisionId: "context-policy-v2";
     legacyMessages: AgentMessage[];
   }): PendingContextShadowHandle;
   skipTurnFailed(): void;

@@ -40,7 +40,8 @@ export type {
   RunCallbacks,
   RunResult,
 } from "./engine/runner.js";
-export { createAgentRunner } from "./engine/runner.js";
+export { createAgentRunner, buildRoundRequest, serializeMessage } from "./engine/runner.js";
+export type { RunnerLedger, RoundRequestSnapshot } from "./engine/runner.js";
 export type {
   SkillActivation,
   SkillCatalogItem,
@@ -138,6 +139,8 @@ export type {
   ContextCompilerShadowResultDiffCategory,
   AgentRunStore,
   ListAgentRunEventsInput,
+  ListRunEventsByStreamInput,
+  ArtifactContentSink,
   MemoryEventStore,
   ListMemoryEventsInput,
   ArtifactRevisionStore,
@@ -185,11 +188,19 @@ export {
 export {
   CONTEXT_COMPILER_VERSION,
   CONTEXT_POLICY_REVISION_ID,
+  CONTEXT_POLICY_REVISION_ID_V2,
   CONTEXT_TIMEZONE,
   ContextCompilerError,
   CONTEXT_COMPILER_SHADOW_DIFF_CATEGORIES,
   createContextCompilerV1,
   reduceConversationEvents,
+  reduceRunFacts,
+  compareCanonicalEntries,
+  extractArtifactText,
+  buildTriggerSeqIndex,
+  buildCanonicalRequestDocument,
+  buildContextManifestDocument,
+  hashCanonicalRequestDocument,
   unresolvedAttachmentArtifactResolver,
   buildCanonicalMemoryExtractionInput,
   hashCanonicalValue,
@@ -197,6 +208,7 @@ export {
 } from "./context-compiler/index.js";
 export type {
   CompileContextInputV1,
+  ContextPolicyRevisionId,
   CanonicalAttachment,
   CanonicalConversationEntryV1,
   CanonicalContextV1,
@@ -209,7 +221,35 @@ export type {
   CanonicalMemoryExtractionInputV1,
   ContextCompilerShadowDiffCategory,
   ContextCompilerShadowDiffCounts,
+  ReduceRunFactsInput,
+  RunFactReduction,
+  CanonicalRequestDocumentV1,
+  CanonicalRequestTrimV1,
+  BuildContextManifestInput,
 } from "./context-compiler/index.js";
+
+// ── Run Ledger (Phase 4) ────────────────────────────────────────────
+export {
+  createRunLedgerRecorder,
+  bootstrapRunLedger,
+  putDocumentArtifact,
+  createRunId,
+  createCallId,
+  createDeliveryId,
+  createManifestId,
+  createRunEventId,
+  createOutboundFactEventId,
+  toStableErrorCode,
+  INLINE_ARTIFACT_LIMIT_BYTES,
+} from "./engine/run-ledger/index.js";
+export type {
+  RunLedgerRecorder,
+  RunLedgerMetrics,
+  RunLedgerRecorderOptions,
+  RunStartInput,
+  ArtifactPutResult,
+  ArtifactPutterDeps,
+} from "./engine/run-ledger/index.js";
 
 // ── Tape (memory system) ────────────────────────────────────────────
 export {

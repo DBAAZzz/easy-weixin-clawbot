@@ -32,6 +32,7 @@ model Account {
   legacyProjectionLinks    LegacyMessageProjectionLink[]
   contextCompilerShadowRollout ContextCompilerShadowRollout?
   contextCompilerShadowResults ContextCompilerShadowResult[]
+  runLedgerRollout             RunLedgerRollout?
 
   @@map("accounts")
 }
@@ -242,6 +243,15 @@ model ContextCompilerShadowRollout {
   account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@map("context_compiler_shadow_rollouts")
+}
+
+model RunLedgerRollout {
+  accountId String   @id @map("account_id") @db.Text
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("run_ledger_rollouts")
 }
 
 model ContextCompilerShadowResult {

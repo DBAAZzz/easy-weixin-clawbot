@@ -41,8 +41,11 @@ export async function dispatchWeixinBatch(input: WeixinBatchDispatchInput): Prom
     if (input.ingressLifecycle && receiptId) {
       await input.ingressLifecycle.settle({
         receiptId,
-        outcome,
-        ...(outcome === "failed" ? { errorCode: "business_processing_failed" } : {}),
+        outcome: outcome.status,
+        ...(outcome.status === "failed"
+          ? { errorCode: outcome.errorCode ?? "business_processing_failed" }
+          : {}),
+        ...(outcome.deliveryReport ? { deliveryReport: outcome.deliveryReport } : {}),
       });
     }
   }

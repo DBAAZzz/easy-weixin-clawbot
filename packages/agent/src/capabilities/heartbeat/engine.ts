@@ -151,8 +151,11 @@ async function evaluateOne(
   });
 }
 
-async function tick(evaluate: PulseEvaluator = evaluatePulse): Promise<void> {
-  const now = new Date();
+async function tick(
+  evaluate: PulseEvaluator = evaluatePulse,
+  /** Injectable clock so tests can escape quiet hours deterministically. */
+  now: Date = new Date(),
+): Promise<void> {
   const due = await getHeartbeatStore().findDuePulses(now, PULSE_TICK_BATCH_SIZE);
 
   for (const pulse of due) {

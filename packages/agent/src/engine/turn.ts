@@ -42,6 +42,10 @@ import type {
   ContextShadowObserver,
   PendingContextShadowHandle,
 } from "./context-shadow/observer.js";
+import { createDeliveryId, toStableErrorCode } from "./run-ledger/ids.js";
+import type { RunLedgerRecorder } from "./run-ledger/recorder.js";
+import type { RunnerLedger } from "./runner.js";
+import type { CompiledContextV1 } from "../context-compiler/types.js";
 
 export interface ChatLog {
   llm(accountId: string, round: number): void;
@@ -73,6 +77,13 @@ export interface ChatTurnInput {
     sourceEventId: string;
     conversationStreamId: string;
     eventCursor: number;
+  };
+  /** Run Ledger wiring for ingress chat turns (Phase 4). Recorder is per-run. */
+  runLedger?: {
+    recorder: RunLedgerRecorder;
+    compileContext: () => Promise<CompiledContextV1>;
+    conversationStreamId: string;
+    sourceEventId: string;
   };
 }
 
@@ -430,13 +441,32 @@ export async function runChatTurn(
             effectiveTime,
             timezone: "Asia/Shanghai",
             compilerVersion: "context-compiler-v1",
-            contextPolicyRevisionId: "context-policy-v1",
+            contextPolicyRevisionId: "context-policy-v2",
             legacyMessages: history,
           });
         } catch (error) {
           // The observer guards itself; this net keeps any throw from a
           // third-party start() from failing the production turn.
           runLogger(ctx).warn("context shadow start failed; continuing turn", { err: error });
+        }
+      }
+
+      // Run Ledger (Phase 4): run_started is an inline queue write before the
+      // runner starts; its failure degrades the run and the turn proceeds.
+      let runnerLedger: RunnerLedger | undefined;
+      if (input.runLedger) {
+        const { recorder } = input.runLedger;
+        const started = await recorder.start({
+          conversationStreamId: input.runLedger.conversationStreamId,
+          sourceEventId: input.runLedger.sourceEventId,
+          occurredAt: new Date().toISOString(),
+        });
+        if (started && !recorder.isDegraded()) {
+          runnerLedger = {
+            recorder,
+            compileContext: input.runLedger.compileContext,
+            effectiveTime,
+          };
         }
       }
 
@@ -453,9 +483,11 @@ export async function runChatTurn(
             meta: chatModel.meta,
           },
           ctx,
+          runnerLedger,
         );
       } catch (error) {
         shadowHandle?.discard("turn_failed");
+        await input.runLedger?.recorder.finishInterrupted({ reason: toStableErrorCode(error) });
         throw error;
       }
 
@@ -481,9 +513,30 @@ export async function runChatTurn(
               result.finalMessage.stopReason === MESSAGE_STOP_REASON.STOP));
         if (committed) void shadowHandle?.publish();
         else shadowHandle?.discard("turn_failed");
+
+        if (input.runLedger) {
+          const { recorder, sourceEventId } = input.runLedger;
+          if (committed) {
+            // run_completed precedes delivery_requested in the queue (design §5.2).
+            await recorder.finishCompleted({
+              rounds: tracker.state.rounds,
+              finalResponseArtifactId: recorder.getFinalResponseArtifactId(),
+            });
+            await recorder.recordDeliveryRequested({
+              deliveryId: createDeliveryId(ctx.accountId, sourceEventId),
+            });
+          } else {
+            // Design §5.3: aborted turns are their own reason — only a
+            // completed-but-rolled-back turn is "turn_rolled_back".
+            await recorder.finishInterrupted({
+              reason: result.status === "aborted" ? "aborted" : "turn_rolled_back",
+            });
+          }
+        }
         return response;
       } catch (error) {
         shadowHandle?.discard("turn_failed");
+        await input.runLedger?.recorder.finishInterrupted({ reason: toStableErrorCode(error) });
         throw error;
       }
     },

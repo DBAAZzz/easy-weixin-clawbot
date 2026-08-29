@@ -43,6 +43,13 @@ export interface WeixinIngressLifecycle {
     receiptId: string;
     outcome: "chat" | "command" | "failed";
     errorCode?: string;
+    /** Platform delivery outcome; recorded as outbound facts by the server (Phase 4). */
+    deliveryReport?: {
+      ok: boolean;
+      channelMessageId?: string;
+      textSent?: string;
+      error?: string;
+    };
   }): Promise<void>;
 }
 

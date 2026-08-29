@@ -8,6 +8,7 @@ import {
   type AppendResult,
   type JsonValue,
   type ListAgentRunEventsInput,
+  type ListRunEventsByStreamInput,
 } from "@clawbot/agent";
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { agentRunEventFromRow, toPrismaJson } from "./fact-ledger/codec.js";
@@ -96,6 +97,33 @@ export class PrismaAgentRunStore implements AgentRunStore {
     const rows = await this.prisma.agentRunEvent.findMany({
       where: { runId: input.runId, runSeq: sequenceRange(input) },
       orderBy: { runSeq: "asc" },
+      take: input.limit,
+    });
+    return rows.map(agentRunEventFromRow);
+  }
+
+  async listRunEventsByStream(input: ListRunEventsByStreamInput): Promise<AgentRunEvent[]> {
+    if (!Number.isInteger(input.limit) || input.limit <= 0) {
+      throw new Error("invalid_run_events_by_stream_limit");
+    }
+    const after = input.after
+      ? {
+          OR: [
+            { recordedAt: { gt: new Date(input.after.recordedAt) } },
+            {
+              recordedAt: new Date(input.after.recordedAt),
+              eventId: { gt: input.after.eventId },
+            },
+          ],
+        }
+      : undefined;
+    const rows = await this.prisma.agentRunEvent.findMany({
+      where: {
+        accountId: input.accountId,
+        conversationStreamId: input.conversationStreamId,
+        ...(after ?? {}),
+      },
+      orderBy: [{ recordedAt: "asc" }, { eventId: "asc" }],
       take: input.limit,
     });
     return rows.map(agentRunEventFromRow);

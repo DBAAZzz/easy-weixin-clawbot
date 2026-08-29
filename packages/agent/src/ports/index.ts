@@ -18,8 +18,13 @@ export {
   ContextCompilerShadowResultEquivalenceError,
 } from "./context-compiler-shadow-result-store.js";
 
-export type { AgentRunStore, ListAgentRunEventsInput } from "./agent-run-store.js";
+export type {
+  AgentRunStore,
+  ListAgentRunEventsInput,
+  ListRunEventsByStreamInput,
+} from "./agent-run-store.js";
 export { setAgentRunStore, getAgentRunStore } from "./agent-run-store.js";
+export type { ArtifactContentSink } from "./artifact-content-sink.js";
 
 export type { MemoryEventStore, ListMemoryEventsInput } from "./memory-event-store.js";
 export { setMemoryEventStore, getMemoryEventStore } from "./memory-event-store.js";

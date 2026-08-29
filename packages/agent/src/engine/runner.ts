@@ -36,6 +36,11 @@ import {
 } from "@clawbot/observability";
 import { fitToContextWindow, type TrimResult } from "./conversation/context-window.js";
 import { estimateTextTokens } from "../llm/token-estimator.js";
+import type { CompiledContextV1 } from "../context-compiler/types.js";
+import { buildCanonicalRequestDocument } from "../context-compiler/manifest.js";
+import { ARTIFACT_KIND, type ArtifactKind } from "../shared/fact-ledger/contracts.js";
+import type { RunLedgerRecorder } from "./run-ledger/recorder.js";
+import { bootstrapRunLedger, type RunLedgerBootstrapResult } from "./run-ledger/bootstrap.js";
 import type { SkillRegistry } from "../capabilities/skills/types.js";
 import type { ToolRegistry, ToolContent, ToolContext } from "../capabilities/tools/types.js";
 import { toolContextFrom, type RunContext } from "./context.js";
@@ -91,7 +96,73 @@ export interface AgentRunner {
     signal?: AbortSignal,
     modelOverride?: ModelOverride,
     runContext?: RunContext,
+    ledger?: RunnerLedger,
   ): Promise<RunResult>;
+}
+
+/**
+ * Run-ledger wiring for one run (Phase 4 design §5/§9). The recorder and the
+ * v2 compile closure are built per turn; the runner owns round-request
+ * construction so the manifest's round-1 document and the actual model call
+ * come from the same code path (design §9.3).
+ */
+export interface RunnerLedger {
+  recorder: RunLedgerRecorder;
+  compileContext: () => Promise<CompiledContextV1>;
+  effectiveTime: string;
+}
+
+/** Serialized snapshot of one round's model-visible request (design §8). */
+export interface RoundRequestSnapshot {
+  round: number;
+  system: string;
+  messages: AgentMessage[];
+  tools: ReadonlyArray<{ name: string; description: string; parameters: unknown }>;
+  trim: TrimResult;
+  fixedOverheadTokens: number;
+}
+
+function safeSerialize(value: unknown): unknown {
+  try {
+    return JSON.parse(JSON.stringify(value)) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Single source of the per-round request: system prompt assembly, tool-call
+ * history shaping and context-window trim. The runner loop and the manifest
+ * bootstrap both go through this function — never duplicate it.
+ */
+export function buildRoundRequest(input: {
+  round: number;
+  baseSystemPrompt: string;
+  skills: SkillRegistry | undefined;
+  workingHistory: AgentMessage[];
+  meta: ModelMeta;
+  tools: ReadonlyArray<{ name: string; description: string; parameters: unknown }>;
+  toolsSchemaTokens: number;
+}): RoundRequestSnapshot {
+  const fullSystemPrompt = assembleSystemPrompt(
+    PROMPT_PROFILES.chat,
+    input.baseSystemPrompt,
+    input.skills,
+  );
+  const fixedOverheadTokens = estimateTextTokens(fullSystemPrompt) + input.toolsSchemaTokens;
+  const trimResult = fitToContextWindow(buildPromptHistory(input.workingHistory, input.meta), {
+    contextWindowTokens: input.meta.contextWindow,
+    outputReserveTokens: input.meta.maxOutputTokens,
+    fixedOverheadTokens,
+  });
+  return {
+    round: input.round,
+    system: fullSystemPrompt,
+    messages: trimResult.messages,
+    tools: input.tools,
+    trim: trimResult,
+    fixedOverheadTokens,
+  };
 }
 
 function isToolCall(block: AssistantMessage["content"][number]): block is ToolCallContent {
@@ -121,7 +192,8 @@ function toErrorText(error: unknown): string {
   return String(error);
 }
 
-function serializeMessage(message: AgentMessage): unknown {
+/** Structural serialization of one agent message for snapshots and artifacts. */
+export function serializeMessage(message: AgentMessage): unknown {
   if (message.role === MESSAGE_ROLE.USER) {
     return {
       role: message.role,
@@ -417,6 +489,7 @@ export function createAgentRunner(
     signal?: AbortSignal,
     modelOverride?: ModelOverride,
     runContext?: RunContext,
+    ledger?: RunnerLedger,
   ): Promise<RunResult> {
     const { model: effectiveModel, meta: effectiveMeta, modelId: effectiveModelId } =
       resolveEffectiveModel(config, modelOverride);
@@ -443,6 +516,129 @@ export function createAgentRunner(
     const toolsSchemaTokens = estimateTextTokens(toolsSchemaText);
     const aiSdkTools = buildAiSdkTools(currentTools);
 
+    // Run-ledger bootstrap (design §9): round-1 request is built here so the
+    // manifest document and the actual round-1 call share one code path.
+    let ledgerReady = false;
+    let manifestId: string | undefined;
+    let round1RequestArtifactId: string | undefined;
+    let modelRevisionId: string | undefined;
+    let toolRevisionIds = new Map<string, string>();
+    let precomputedRound1: RoundRequestSnapshot | undefined;
+    let requestDocFor: ((request: RoundRequestSnapshot) => unknown) | undefined;
+    let pinSkillRevision: ((name: string) => Promise<string | null>) | undefined;
+
+    if (ledger && !ledger.recorder.isDegraded()) {
+      precomputedRound1 = buildRoundRequest({
+        round: 1,
+        baseSystemPrompt,
+        skills,
+        workingHistory,
+        meta: effectiveMeta,
+        tools: currentTools,
+        toolsSchemaTokens,
+      });
+      const collectSkillInputs = () => {
+        const inputs = new Map<string, { name: string; version?: string; body: string }>();
+        for (const skill of skills.current().alwaysOn) {
+          inputs.set(skill.name, { name: skill.name, body: skill.body });
+        }
+        for (const name of new Set([
+          ...collectLoadedSkillNames(workingHistory),
+          ...skillRuntime.loadedSkillNames(),
+        ])) {
+          if (inputs.has(name)) continue;
+          const compiled = skills.getOnDemandSkill(name);
+          if (compiled) {
+            inputs.set(compiled.source.name, {
+              name: compiled.source.name,
+              version: compiled.source.version,
+              body: compiled.source.body,
+            });
+          }
+        }
+        return [...inputs.values()];
+      };
+      pinSkillRevision = async (name: string): Promise<string | null> => {
+        const compiled = skills.getOnDemandSkill(name);
+        if (!compiled) return null;
+        const artifact = await ledger.recorder.putArtifact(ARTIFACT_KIND.SKILL_REVISION, {
+          name: compiled.source.name,
+          version: compiled.source.version,
+          body: compiled.source.body,
+        });
+        return artifact?.artifactId ?? null;
+      };
+      requestDocFor = (request: RoundRequestSnapshot) =>
+        buildCanonicalRequestDocument({
+          runId: ledger.recorder.runId,
+          round: request.round,
+          modelRevisionId: modelRevisionId ?? "unknown",
+          system: request.system,
+          messages: request.trim.messages.map(serializeMessage),
+          tools: request.tools.map((tool) => ({
+            name: tool.name,
+            description: tool.description,
+            parameters: safeSerialize(tool.parameters),
+          })),
+          trim: {
+            trimLevel: request.trim.trimLevel,
+            originalTokens: request.trim.originalTokens,
+            trimmedTokens: request.trim.trimmedTokens,
+            droppedMessages: request.trim.droppedMessageCount,
+            fixedOverheadTokens: request.fixedOverheadTokens,
+          },
+        });
+
+      let bootstrap: RunLedgerBootstrapResult;
+      try {
+        bootstrap = await bootstrapRunLedger({
+          recorder: ledger.recorder,
+          compileContext: ledger.compileContext,
+          round1Request: {
+            round: 1,
+            system: precomputedRound1.system,
+            messages: precomputedRound1.trim.messages.map(serializeMessage),
+            tools: precomputedRound1.tools.map((tool) => ({
+              name: tool.name,
+              description: tool.description,
+              parameters: safeSerialize(tool.parameters),
+            })),
+            trim: {
+              trimLevel: precomputedRound1.trim.trimLevel,
+              originalTokens: precomputedRound1.trim.originalTokens,
+              trimmedTokens: precomputedRound1.trim.trimmedTokens,
+              droppedMessages: precomputedRound1.trim.droppedMessageCount,
+              fixedOverheadTokens: precomputedRound1.fixedOverheadTokens,
+            },
+          },
+          prompt: { key: PROMPT_PROFILES.chat.systemPromptKey, body: baseSystemPrompt },
+          skills: collectSkillInputs(),
+          tools: currentTools.map((tool) => ({
+            name: tool.name,
+            description: tool.description,
+            parameters: safeSerialize(tool.parameters),
+          })),
+          model: {
+            modelId: effectiveModelId,
+            purpose: "chat",
+            contextWindow: effectiveMeta.contextWindow,
+            maxOutputTokens: effectiveMeta.maxOutputTokens,
+            supportsImageInput: effectiveMeta.supportsImageInput,
+            requiresReasonedToolHistory: effectiveMeta.requiresReasonedToolHistory,
+          },
+          effectiveTime: ledger.effectiveTime,
+        });
+      } catch (error) {
+        ledger.recorder.degrade(error, "bootstrap");
+        bootstrap = { ready: false, toolRevisionIds: new Map() };
+      }
+      ledgerReady = bootstrap.ready;
+      manifestId = bootstrap.manifestId;
+      round1RequestArtifactId = bootstrap.round1RequestArtifactId;
+      modelRevisionId = bootstrap.modelRevisionId;
+      toolRevisionIds = bootstrap.toolRevisionIds;
+    }
+
     for (let round = 1; round <= maxRounds; round += 1) {
       if (signal?.aborted) {
         return { status: "aborted" };
@@ -451,16 +647,31 @@ export function createAgentRunner(
       callbacks.onRoundStart?.(round);
 
       // system prompt 每轮重新 assemble，是因为 on-demand skill 可能在上一轮被 use_skill 加载，
-      // 下一轮就需要把新技能正文注入 system prompt。
-      const fullSystemPrompt = assembleSystemPrompt(PROMPT_PROFILES.chat, baseSystemPrompt, skills);
-      const fixedOverheadTokens = estimateTextTokens(fullSystemPrompt) + toolsSchemaTokens;
+      // 下一轮就需要把新技能正文注入 system prompt。Round 1 reuses the manifest's precomputed
+      // request so the ledger document and the actual call cannot diverge.
+      const request =
+        round === 1 && precomputedRound1
+          ? precomputedRound1
+          : buildRoundRequest({
+              round,
+              baseSystemPrompt,
+              skills,
+              workingHistory,
+              meta: effectiveMeta,
+              tools: currentTools,
+              toolsSchemaTokens,
+            });
+      recordTrimMetrics(request.trim);
 
-      const trimResult = fitToContextWindow(buildPromptHistory(workingHistory, effectiveMeta), {
-        contextWindowTokens: effectiveMeta.contextWindow,
-        outputReserveTokens: effectiveMeta.maxOutputTokens,
-        fixedOverheadTokens,
-      });
-      recordTrimMetrics(trimResult);
+      if (ledger && ledgerReady && manifestId) {
+        ledger.recorder.recordModelCallStarted({
+          round,
+          manifestId,
+          ...(round === 1 && round1RequestArtifactId
+            ? { requestArtifactId: round1RequestArtifactId }
+            : { requestDoc: requestDocFor!(request) }),
+        });
+      }
 
       const llmStartedAt = Date.now();
       let response: AssistantMessage;
@@ -468,12 +679,12 @@ export function createAgentRunner(
         response = await callModel({
           model: effectiveModel,
           modelId: effectiveModelId,
-          system: fullSystemPrompt,
-          messages: agentToModelMessages(trimResult.messages),
+          system: request.system,
+          messages: agentToModelMessages(request.trim.messages),
           tools: aiSdkTools,
           signal,
           round,
-          trimResult,
+          trimResult: request.trim,
           maxRetries,
         });
       } catch (error) {
@@ -482,8 +693,15 @@ export function createAgentRunner(
           return { status: "aborted" };
         }
         llmErrorsTotal.inc({ error_type: "error" });
+        ledger?.recorder.recordModelCallFailed({ round, error });
         throw error;
       }
+
+      ledger?.recorder.recordModelCallCompleted({
+        round,
+        stopReason: response.stopReason ?? MESSAGE_STOP_REASON.STOP,
+        responseDoc: serializeMessage(response),
+      });
 
       llmLatencyMs.observe({ model: response.model ?? "unknown" }, Date.now() - llmStartedAt);
       if (response.stopReason === "error") {
@@ -503,9 +721,51 @@ export function createAgentRunner(
       // 同一轮模型可能返回多个 tool-call，这里并行执行。
       // 每个结果都会被包装成 toolResult message，再追加回 workingHistory 供下一轮 LLM 继续推理。
       const toolResults = await Promise.all(
-        toolCalls.map((toolCall) =>
-          executeToolCall(toolCall, { tools, skillRuntime, signal, timeoutMs, runContext }),
-        ),
+        toolCalls.map(async (toolCall) => {
+          const toolRevisionId = toolRevisionIds.get(toolCall.name);
+          if (ledger && ledgerReady) {
+            if (toolRevisionId === undefined) {
+              // Unpinned tool revision is an internal wiring bug — degrade the
+              // ledger run instead of writing an event with a fabricated id.
+              ledger.recorder.degrade(new Error("tool_revision_unpinned"), `tool:${toolCall.name}`);
+            } else {
+              ledger.recorder.recordToolCallRequested({
+                round,
+                toolCallId: toolCall.id,
+                toolName: toolCall.name,
+                toolRevisionId,
+                argumentsDoc: safeSerialize(toolCall.arguments),
+              });
+            }
+          }
+
+          const result = await executeToolCall(toolCall, { tools, skillRuntime, signal, timeoutMs, runContext });
+
+          if (ledger && ledgerReady) {
+            const resultDoc = serializeMessage(result);
+            if (result.isError) {
+              ledger.recorder.recordToolCallFailed({
+                toolCallId: toolCall.id,
+                resultDoc,
+                error: new Error("tool_execution_failed"),
+              });
+            } else {
+              ledger.recorder.recordToolCallCompleted({ toolCallId: toolCall.id, resultDoc });
+              if (toolCall.name === USE_SKILL_TOOL.name) {
+                ledger.recorder.recordSkillLoaded({
+                  round,
+                  skillName:
+                    typeof toolCall.arguments.skill_name === "string"
+                      ? toolCall.arguments.skill_name.trim()
+                      : "",
+                  causationToolCallId: toolCall.id,
+                  pinSkillRevision: pinSkillRevision!,
+                });
+              }
+            }
+          }
+          return result;
+        }),
       );
 
       for (const toolResult of toolResults) {

@@ -1,4 +1,4 @@
-import type { CanonicalContextV1 } from "./types.js";
+import type { CanonicalContextV1, CanonicalConversationEntryV1 } from "./types.js";
 
 export interface CanonicalMemoryExtractionInputV1 {
   schemaVersion: 1;
@@ -14,6 +14,13 @@ export function buildCanonicalMemoryExtractionInput(
 ): CanonicalMemoryExtractionInputV1 {
   return {
     schemaVersion: 1,
-    entries: context.entries.map(({ eventId, role, text }) => ({ eventId, role, text })),
+    // Tool results never enter memory extraction input (Phase 4 design §10.7);
+    // a no-op for policy v1, whose entries are user/assistant only.
+    entries: context.entries
+      .filter(
+        (entry): entry is CanonicalConversationEntryV1 & { role: "user" | "assistant" } =>
+          entry.role !== "tool",
+      )
+      .map(({ eventId, role, text }) => ({ eventId, role, text })),
   };
 }

@@ -53,6 +53,7 @@ test("reconciliation keeps healthy links in summary and returns only actionable 
     weixinIngressDispatch: { findMany: async () => rows },
     legacyMessageProjectionLink: { findMany: async () => links },
     conversationEvent: { findMany: async () => [] },
+    agentRunEvent: { findMany: async () => [] },
   } as unknown as PrismaClient;
 
   const report = await reconcileWeixinIngress(
@@ -84,10 +85,17 @@ test("reconciliation rejects a completed clear receipt without its causation bou
     },
   ];
   let boundaries: Array<{ causationId: string | null }> = [];
+  let deliveredFacts: Array<{ eventId: string; causationId: string | null; streamId: string }> = [];
   const prisma = {
     weixinIngressDispatch: { findMany: async () => rows },
     legacyMessageProjectionLink: { findMany: async () => [] },
-    conversationEvent: { findMany: async () => boundaries },
+    conversationEvent: {
+      findMany: async (args: { where: { eventType?: string } }) => {
+        if (args.where.eventType === "outbound_message_delivered") return deliveredFacts;
+        return boundaries;
+      },
+    },
+    agentRunEvent: { findMany: async () => [] },
   } as unknown as PrismaClient;
 
   const missing = await reconcileWeixinIngress("account-1", {}, prisma);

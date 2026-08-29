@@ -16,7 +16,7 @@ import { createContextShadowObserver } from "../../src/engine/context-shadow/obs
 const canonicalContext: CanonicalContextV1 = {
   schemaVersion: 1,
   compilerVersion: "context-compiler-v1",
-  contextPolicyRevisionId: "context-policy-v1",
+  contextPolicyRevisionId: "context-policy-v2",
   accountId: "account-1",
   conversationStreamId: "stream-1",
   eventCursor: 1,
@@ -80,6 +80,7 @@ function createHarness(): Harness {
         context: canonicalContext,
         diagnostics: [] as ContextCompilerDiagnostic[],
         canonicalContextHash: "a".repeat(64),
+        conversationEventIds: [],
       };
     },
   };
@@ -120,7 +121,7 @@ function startShadow(harness: Harness, messages: AgentMessage[]) {
     effectiveTime: "2026-08-28T08:00:00.000+08:00",
     timezone: "Asia/Shanghai",
     compilerVersion: "context-compiler-v1",
-    contextPolicyRevisionId: "context-policy-v1",
+    contextPolicyRevisionId: "context-policy-v2",
     legacyMessages: messages,
   });
 }
@@ -253,7 +254,7 @@ test("drain waits for pending published work", async () => {
     effectiveTime: "2026-08-28T08:00:00.000+08:00",
     timezone: "Asia/Shanghai",
     compilerVersion: "context-compiler-v1",
-    contextPolicyRevisionId: "context-policy-v1",
+    contextPolicyRevisionId: "context-policy-v2",
     legacyMessages: [userMessage("one")],
   });
   const second = harness.observer.start({
@@ -264,7 +265,7 @@ test("drain waits for pending published work", async () => {
     effectiveTime: "2026-08-28T08:00:00.000+08:00",
     timezone: "Asia/Shanghai",
     compilerVersion: "context-compiler-v1",
-    contextPolicyRevisionId: "context-policy-v1",
+    contextPolicyRevisionId: "context-policy-v2",
     legacyMessages: [userMessage("two")],
   });
   await Promise.all([first.publish(), second.publish()]);
@@ -288,6 +289,7 @@ test("drain waits for discarded compilation work without publishing it", async (
           context: canonicalContext,
           diagnostics: [],
           canonicalContextHash: "a".repeat(64),
+          conversationEventIds: [],
         };
       },
     },
@@ -305,7 +307,7 @@ test("drain waits for discarded compilation work without publishing it", async (
     effectiveTime: "2026-08-28T08:00:00.000+08:00",
     timezone: "Asia/Shanghai",
     compilerVersion: "context-compiler-v1",
-    contextPolicyRevisionId: "context-policy-v1",
+    contextPolicyRevisionId: "context-policy-v2",
     legacyMessages: [userMessage("one")],
   });
   handle.discard("turn_failed");

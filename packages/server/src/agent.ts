@@ -3,6 +3,11 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   contextCompilerShadowTotal,
+  contextManifestTotal,
+  artifactPutTotal,
+  runLedgerTotal,
+  runLedgerEventTotal,
+  runLedgerInlineLatencyMs,
   getActiveTrace,
   runWithTrace,
   withSpan,
@@ -11,15 +16,28 @@ import {
 import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk";
 import {
   CommandRegistry,
+  CONTEXT_COMPILER_VERSION,
+  CONTEXT_POLICY_REVISION_ID_V2,
+  CONTEXT_TIMEZONE,
+  createDeliveryId,
   createHandoffAnchors,
+  createRunId,
+  createRunLedgerRecorder,
+  createContextCompilerV1,
+  getAgentRunStore,
+  getArtifactRevisionStore,
   isLLMProviderNotConfiguredError,
   notePulseActivity,
+  type RunLedgerMetrics,
 } from "@clawbot/agent";
 import type { ChatMedia as AgentChatMedia, RunContext } from "@clawbot/agent";
 import type { ContextShadowObserver, ConversationEvent } from "@clawbot/agent";
 import { getPushService, getSchedulerStore } from "@clawbot/agent/ports";
-import { chatEngine } from "./ai.js";
+import { chatEngine, skillRegistry } from "./ai.js";
 import { getAssetService } from "./assets/index.js";
+import { PrismaConversationEventStore } from "./db/conversation-event-store.impl.js";
+import { createLocalArtifactContentSink } from "./db/artifact-content-sink.js";
+import { FACT_LEDGER_ARTIFACTS_DIR } from "./paths.js";
 import {
   getConversationTitle,
   setConversationTitleIfEmpty,
@@ -226,11 +244,43 @@ export interface ServerWeixinAgent extends Agent {
   clearFromIngress(receiptId: string, wechatConversationId: string): Promise<void>;
 }
 
+/** Run-ledger metrics adapter shared by all account agents. */
+const runLedgerMetrics: RunLedgerMetrics = {
+  total(result) {
+    runLedgerTotal.inc({ result });
+  },
+  event(eventType) {
+    runLedgerEventTotal.inc({ event_type: eventType });
+  },
+  inlineLatencyMs(duration) {
+    runLedgerInlineLatencyMs.observe({}, duration);
+  },
+  artifactPut(kind, result) {
+    artifactPutTotal.inc({ kind, result });
+  },
+  manifest(result) {
+    contextManifestTotal.inc({ result });
+  },
+};
+
+const factLedgerContentSink = createLocalArtifactContentSink(FACT_LEDGER_ARTIFACTS_DIR);
+
 /** Create an Agent bound to a specific WeChat account. */
 export function createAgent(
   accountId: string,
-  options: { contextShadowObserver?: ContextShadowObserver } = {},
+  options: {
+    contextShadowObserver?: ContextShadowObserver;
+    /** Startup snapshot from RunLedgerRolloutStore (Phase 4). */
+    runLedgerEnabled?: boolean;
+  } = {},
 ): ServerWeixinAgent {
+  const runLedgerCompiler = createContextCompilerV1({
+    conversationEventStore: new PrismaConversationEventStore(),
+    agentRunStore: getAgentRunStore(),
+    artifactRevisionStore: getArtifactRevisionStore(),
+    contentSink: factLedgerContentSink,
+  });
+
   async function chat(
     req: ChatRequest,
     source?: Pick<ConversationEvent, "eventId" | "streamId" | "streamSeq">,
@@ -263,6 +313,9 @@ export function createAgent(
     }
 
     const startedAt = Date.now();
+    // Request-local clock captured once and shared by legacy path, shadow and
+    // run-ledger compilation (Phase 4 design §2).
+    const effectiveTime = new Date(startedAt).toISOString();
     const effectiveConvId = await getEffectiveConvId(accountId, req.conversationId);
 
     return runWithTrace(accountId, effectiveConvId, async () => {
@@ -335,13 +388,46 @@ export function createAgent(
         if (source && !trackedShadowObserver) {
           contextCompilerShadowTotal.inc({ result: "disabled" });
         }
+        // Phase 4 Run Ledger: per-turn recorder, gated by the startup rollout
+        // snapshot. Disabled turns are counted so the metric stays turn-level.
+        const runLedgerInput =
+          source && options.runLedgerEnabled
+            ? {
+                recorder: createRunLedgerRecorder({
+                  agentRunStore: getAgentRunStore(),
+                  artifactRevisionStore: getArtifactRevisionStore(),
+                  contentSink: factLedgerContentSink,
+                  accountId,
+                  runId: createRunId(accountId, source.eventId),
+                  metrics: runLedgerMetrics,
+                  onError(fields) {
+                    agentLogger.warn({ ...fields, accountId }, "run ledger degraded");
+                  },
+                }),
+                compileContext: () =>
+                  runLedgerCompiler.compile({
+                    accountId,
+                    conversationStreamId: source.streamId,
+                    eventCursor: source.streamSeq,
+                    compilerVersion: CONTEXT_COMPILER_VERSION,
+                    contextPolicyRevisionId: CONTEXT_POLICY_REVISION_ID_V2,
+                    effectiveTime,
+                    timezone: CONTEXT_TIMEZONE,
+                  }),
+                conversationStreamId: source.streamId,
+                sourceEventId: source.eventId,
+              }
+            : undefined;
+        if (source && !options.runLedgerEnabled) {
+          runLedgerTotal.inc({ result: "disabled" });
+        }
         const reply = await withSpan("conversation.lock", {}, async () =>
           chatEngine.conversations.withLock(accountId, effectiveConvId, async () =>
             chatEngine.chat(ctx, {
               text: req.text,
               media,
               startedAt,
-              effectiveTime: new Date(startedAt).toISOString(),
+              effectiveTime,
               sourceConversationEventId: source?.eventId,
               ...(trackedShadowObserver && source
                 ? {
@@ -353,6 +439,7 @@ export function createAgent(
                     },
                   }
                 : {}),
+              ...(runLedgerInput && source ? { runLedger: runLedgerInput } : {}),
             }),
           ),
         );

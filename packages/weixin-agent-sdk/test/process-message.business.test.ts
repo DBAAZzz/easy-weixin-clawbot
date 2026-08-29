@@ -160,7 +160,7 @@ test("ledger /clear 严格等待 invokeClear 成功后才发送确认", async ()
     assert.deepEqual(invoked, [["event-1", "wx-user-1"]]);
     assert.equal(api.requests.length, 0);
     releaseClear();
-    assert.equal(await processing, "command");
+    assert.deepEqual(await processing, { status: "command" });
     assert.equal(api.requests.length, 1);
   } finally {
     releaseClear();
@@ -186,7 +186,7 @@ test("/echo and /toggle-debug never invoke the clear lifecycle", async () => {
   };
   try {
     for (const command of ["/echo hello", "/toggle-debug"]) {
-      assert.equal(
+      assert.deepEqual(
         await processOneMessage(inboundText(command), {
           accountId: "account-no-clear",
           agent: {
@@ -201,7 +201,7 @@ test("/echo and /toggle-debug never invoke the clear lifecycle", async () => {
           ingressLifecycle: lifecycle,
           receiptId: "event-1",
         }),
-        "command",
+        { status: "command" },
       );
     }
     assert.equal(clearCalls, 0);

@@ -19,13 +19,19 @@ import { PULSE_MIN_MINUTES } from "../../src/capabilities/heartbeat/types.js";
 
 const HOUR_MS = 3600_000;
 
+/**
+ * Fixed clock inside the awake window (14:00 Asia/Shanghai) — the suite would
+ * otherwise fail whenever CI runs during quiet hours (23:00–08:00).
+ */
+const NOW = new Date("2026-08-28T14:00:00.000+08:00");
+
 function makePulse(overrides: Partial<PulseRow> = {}): PulseRow {
   return {
     id: 1n,
     accountId: "acc-1",
     conversationId: "conv-1",
-    nextEvalAt: new Date(Date.now() - 60_000),
-    lastUserAt: new Date(Date.now() - 6 * HOUR_MS),
+    nextEvalAt: new Date(NOW.getTime() - 60_000),
+    lastUserAt: new Date(NOW.getTime() - 6 * HOUR_MS),
     lastSpokeAt: null,
     quietStreak: 2,
     spokenDateKey: null,
@@ -114,7 +120,7 @@ const STAYS_QUIET = async () => verdict({ speak: false, prompt: null, nextEvalIn
 test("a pulse the tick could not claim is not evaluated", async () => {
   const harness = install({ due: [makePulse()], claimable: new Set() });
 
-  await runHeartbeatTick(SPEAKS);
+  await runHeartbeatTick(SPEAKS, NOW);
   await settle();
 
   assert.deepEqual(harness.claims, [1n]);
@@ -125,7 +131,7 @@ test("a pulse the tick could not claim is not evaluated", async () => {
 test("speaking runs chat in the real conversation as a pulse trigger", async () => {
   const harness = install({ due: [makePulse()] });
 
-  await runHeartbeatTick(SPEAKS);
+  await runHeartbeatTick(SPEAKS, NOW);
   await settle();
 
   assert.equal(harness.chatCalls.length, 1);
@@ -140,7 +146,7 @@ test("speaking runs chat in the real conversation as a pulse trigger", async () 
 test("speaking pushes without recording history a second time", async () => {
   const harness = install({ due: [makePulse()] });
 
-  await runHeartbeatTick(SPEAKS);
+  await runHeartbeatTick(SPEAKS, NOW);
   await settle();
 
   assert.equal(harness.pushCalls.length, 1);
@@ -150,7 +156,7 @@ test("speaking pushes without recording history a second time", async () => {
 test("speaking resets the quiet streak and bumps the daily count", async () => {
   const harness = install({ due: [makePulse({ quietStreak: 3 })] });
 
-  await runHeartbeatTick(SPEAKS);
+  await runHeartbeatTick(SPEAKS, NOW);
   await settle();
 
   const [{ updates }] = harness.verdicts;
@@ -162,7 +168,7 @@ test("speaking resets the quiet streak and bumps the daily count", async () => {
 test("staying quiet increments the streak and never pushes", async () => {
   const harness = install({ due: [makePulse({ quietStreak: 2 })] });
 
-  await runHeartbeatTick(STAYS_QUIET);
+  await runHeartbeatTick(STAYS_QUIET, NOW);
   await settle();
 
   assert.equal(harness.chatCalls.length, 0);
@@ -176,7 +182,7 @@ test("a failed chat counts as staying quiet and is not retried", async () => {
     chatResult: { status: "error", error: "provider down" },
   });
 
-  await runHeartbeatTick(SPEAKS);
+  await runHeartbeatTick(SPEAKS, NOW);
   await settle();
 
   assert.equal(harness.chatCalls.length, 1);
@@ -191,7 +197,7 @@ test("an empty reply pushes nothing", async () => {
     chatResult: { status: "completed", text: "   " },
   });
 
-  await runHeartbeatTick(SPEAKS);
+  await runHeartbeatTick(SPEAKS, NOW);
   await settle();
 
   assert.equal(harness.pushCalls.length, 0);
@@ -200,7 +206,7 @@ test("an empty reply pushes nothing", async () => {
 test("a failed push does not throw out of the tick", async () => {
   const harness = install({ due: [makePulse()], pushThrows: true });
 
-  await runHeartbeatTick(SPEAKS);
+  await runHeartbeatTick(SPEAKS, NOW);
   await settle();
 
   assert.equal(harness.chatCalls.length, 1);
@@ -224,7 +230,7 @@ test("pulses for one account are evaluated serially", async () => {
     ],
   });
 
-  await runHeartbeatTick(slowQuiet);
+  await runHeartbeatTick(slowQuiet, NOW);
   await new Promise((resolve) => setTimeout(resolve, 80));
 
   assert.deepEqual(order, [

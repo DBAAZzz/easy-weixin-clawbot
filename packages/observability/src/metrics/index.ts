@@ -27,4 +27,9 @@ export {
   contextCompilerEntries,
   contextCompilerUnresolvedAttachmentTotal,
   contextCompilerDurationMs,
+  runLedgerTotal,
+  runLedgerEventTotal,
+  runLedgerInlineLatencyMs,
+  artifactPutTotal,
+  contextManifestTotal,
 } from "./agent-metrics.js";

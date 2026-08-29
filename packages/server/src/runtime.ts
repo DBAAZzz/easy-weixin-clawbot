@@ -8,6 +8,7 @@ import { WeixinIngressRolloutStore } from "./db/weixin-ingress-rollout-store.js"
 import { createWeixinIngressLifecycle } from "./weixin/ingress-controller.js";
 import { createModuleLogger, log } from "./logger.js";
 import { PrismaContextCompilerShadowRolloutStore } from "./db/context-compiler-shadow-rollout-store.js";
+import { RunLedgerRolloutStore } from "./db/run-ledger-rollout-store.js";
 import { createServerContextShadowObserver } from "./context-shadow-observer.js";
 import type { ContextShadowObserver } from "@clawbot/agent";
 
@@ -70,8 +71,9 @@ export function createBotRuntime(): BotRuntime {
         const shadowEnabled = await new PrismaContextCompilerShadowRolloutStore().isEnabled(
           accountId,
         );
+        const runLedgerEnabled = await new RunLedgerRolloutStore().isEnabled(accountId);
         contextShadowObserver = shadowEnabled ? createServerContextShadowObserver() : undefined;
-        const agent = createAgent(accountId, { contextShadowObserver });
+        const agent = createAgent(accountId, { contextShadowObserver, runLedgerEnabled });
         const syncBuf = await syncStateStore.load(accountId);
 
         await monitorWeixinProvider({

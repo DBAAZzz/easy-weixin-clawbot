@@ -56,7 +56,23 @@ export type ProcessMessageDeps = {
   receivedAtMs?: number;
 };
 
-export type ProcessMessageOutcome = "chat" | "command" | "failed";
+/** Delivery report produced by the actual platform sends (Phase 4 design §6.2). */
+export interface ProcessMessageDeliveryReport {
+  ok: boolean;
+  /** Platform message id of the last successful send (the SDK client id). */
+  channelMessageId?: string;
+  /** The converted text actually handed to the platform. */
+  textSent?: string;
+  /** Stable failure marker; never carries reply content. */
+  error?: string;
+}
+
+export interface ProcessMessageOutcome {
+  status: "chat" | "command" | "failed";
+  errorCode?: string;
+  /** Present only when a reply send was actually attempted. */
+  deliveryReport?: ProcessMessageDeliveryReport;
+}
 
 /** Extract raw text from item_list (for slash command detection). */
 function extractTextBody(itemList?: MessageItem[]): string {
@@ -141,7 +157,9 @@ export async function processOneMessage(
       receivedAt,
       full.create_time_ms,
     );
-    if (slashResult.handled) return slashResult.failed ? "failed" : "command";
+    if (slashResult.handled) {
+      return { status: slashResult.failed ? "failed" : "command" };
+    }
   }
 
   // --- Store context token ---
@@ -220,35 +238,57 @@ export async function processOneMessage(
   }
 
   // --- Call agent & send reply ---
+  let deliveryReport: ProcessMessageDeliveryReport | undefined;
   try {
     const response =
       deps.ingressLifecycle && deps.receiptId
         ? await deps.ingressLifecycle.invokeAgent({ receiptId: deps.receiptId, request })
         : await deps.agent.chat(request);
 
-    if (response.media) {
-      let filePath: string;
-      const mediaUrl = response.media.url;
-      if (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) {
-        filePath = await downloadRemoteImageToTemp(mediaUrl, workDirs.mediaOutboundDir);
+    const textSent = response.text ? markdownToPlainText(response.text) : undefined;
+    try {
+      let channelMessageId: string | undefined;
+      if (response.media) {
+        let filePath: string;
+        const mediaUrl = response.media.url;
+        if (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) {
+          filePath = await downloadRemoteImageToTemp(mediaUrl, workDirs.mediaOutboundDir);
+        } else {
+          filePath = path.isAbsolute(mediaUrl) ? mediaUrl : path.resolve(mediaUrl);
+        }
+        const sent = await sendWeixinMediaFile({
+          filePath,
+          to,
+          text: textSent ?? "",
+          opts: { baseUrl: deps.baseUrl, token: deps.token, contextToken },
+          cdnBaseUrl: deps.cdnBaseUrl,
+        });
+        channelMessageId = sent.messageId;
+      } else if (response.text) {
+        const sent = await sendMessageWeixin({
+          to,
+          text: textSent ?? "",
+          opts: { baseUrl: deps.baseUrl, token: deps.token, contextToken },
+        });
+        channelMessageId = sent.messageId;
       } else {
-        filePath = path.isAbsolute(mediaUrl) ? mediaUrl : path.resolve(mediaUrl);
+        // Nothing was sent on the platform — no delivery fact to report.
+        return { status: "chat" };
       }
-      await sendWeixinMediaFile({
-        filePath,
-        to,
-        text: response.text ? markdownToPlainText(response.text) : "",
-        opts: { baseUrl: deps.baseUrl, token: deps.token, contextToken },
-        cdnBaseUrl: deps.cdnBaseUrl,
-      });
-    } else if (response.text) {
-      await sendMessageWeixin({
-        to,
-        text: markdownToPlainText(response.text),
-        opts: { baseUrl: deps.baseUrl, token: deps.token, contextToken },
-      });
+      deliveryReport = {
+        ok: true,
+        channelMessageId,
+        ...(textSent ? { textSent } : {}),
+      };
+    } catch (sendErr) {
+      deliveryReport = {
+        ok: false,
+        ...(textSent ? { textSent } : {}),
+        error: "reply_send_failed",
+      };
+      throw sendErr;
     }
-    return "chat";
+    return { status: "chat", deliveryReport };
   } catch (err) {
     logger.error(
       `processOneMessage: agent or send failed: ${err instanceof Error ? (err.stack ?? err.message) : JSON.stringify(err)}`,
@@ -261,7 +301,11 @@ export async function processOneMessage(
       token: deps.token,
       errLog: deps.errLog,
     }).catch(() => undefined);
-    return "failed";
+    return {
+      status: "failed",
+      errorCode: "business_processing_failed",
+      ...(deliveryReport ? { deliveryReport } : {}),
+    };
   } finally {
     // --- Typing indicator (cancel) ---
     if (typingTimer) clearInterval(typingTimer);

@@ -37,7 +37,7 @@ test("accept runs before business processing and skip performs no work", async (
     async processMessage(_message, context) {
       processCount += 1;
       order.push(`process:${context.receiptId}`);
-      return "chat";
+      return { status: "chat" };
     },
     async onSyncBufUpdate() {
       order.push("cursor");
@@ -73,7 +73,7 @@ test("append or claim failure prevents cursor persistence", async () => {
         nextSyncBuf: "next",
         ingressLifecycle: lifecycle,
         async processMessage() {
-          return "chat";
+          return { status: "chat" };
         },
         async onSyncBufUpdate() {
           cursorWrites += 1;
@@ -105,7 +105,7 @@ test("settle failure is surfaced without advancing the cursor", async () => {
         nextSyncBuf: "next",
         ingressLifecycle: lifecycle,
         async processMessage() {
-          return "chat";
+          return { status: "chat" };
         },
         async onSyncBufUpdate() {
           cursorWrites += 1;
@@ -125,7 +125,7 @@ test("cursor persistence is awaited and failure is surfaced", async () => {
         nextSyncBuf: "next",
         async processMessage() {
           processed = true;
-          return "chat";
+          return { status: "chat" };
         },
         async onSyncBufUpdate() {
           throw new Error("cursor_failed");

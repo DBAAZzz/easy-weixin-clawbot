@@ -33,8 +33,12 @@ export function diffCanonicalAndLegacy(
     0,
     legacy.assistantEntryCount - canonicalAssistantEntryCount,
   );
-  // Canonical v1 has no tool run facts, so every legacy tool entry is legacy-only.
-  counts.legacy_only_tool_entry = legacy.toolEntryCount;
+  // Phase 4 (policy v2) adds run-derived tool entries; v1 contexts have none,
+  // which makes the subtraction a no-op there.
+  const canonicalToolEntryCount = canonical.entries.filter(
+    (entry) => entry.role === "tool",
+  ).length;
+  counts.legacy_only_tool_entry = Math.max(0, legacy.toolEntryCount - canonicalToolEntryCount);
   counts.canonical_unresolved_attachment = canonical.entries.reduce(
     (total, entry) =>
       total +

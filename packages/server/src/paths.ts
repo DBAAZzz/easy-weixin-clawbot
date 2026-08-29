@@ -13,3 +13,4 @@ export const TTS_CACHE_DIR = resolve(DATA_DIR, "tts-cache");
 export const DOWNLOADS_DIR = resolve(DATA_DIR, "downloads");
 export const SKILLS_BUILTIN_DIR = resolve(DATA_DIR, "skills", "builtin");
 export const SKILLS_USER_DIR = resolve(DATA_DIR, "skills", "user");
+export const FACT_LEDGER_ARTIFACTS_DIR = resolve(DATA_DIR, "fact-ledger-artifacts");

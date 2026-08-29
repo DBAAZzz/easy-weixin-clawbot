@@ -8,6 +8,8 @@ import { ContextCompilerError } from "./types.js";
 
 export interface ReducedConversationFacts {
   sessionBoundaryEventId?: string;
+  /** `streamSeq` of the boundary event; entries start strictly after it. */
+  sessionBoundaryStreamSeq?: number;
   entries: Array<CanonicalConversationEntryV1 & { attachmentSourceRefs: string[] }>;
   diagnostics: ContextCompilerDiagnostic[];
 }
@@ -115,6 +117,7 @@ export function reduceConversationEvents(
   const boundary = boundaryIndex >= 0 ? events[boundaryIndex] : undefined;
   return {
     ...(boundary ? { sessionBoundaryEventId: boundary.eventId } : {}),
+    ...(boundary ? { sessionBoundaryStreamSeq: boundary.streamSeq } : {}),
     entries,
     diagnostics,
   };

@@ -178,3 +178,34 @@ export const contextCompilerDurationMs = registry.createHistogram({
   labelNames: [],
   buckets: [1, 5, 10, 25, 50, 100, 250, 500, 1000, 5000],
 });
+
+export const runLedgerTotal = registry.createCounter({
+  name: "run_ledger_total",
+  help: "Run ledger outcomes per run",
+  labelNames: ["result"],
+});
+
+export const runLedgerEventTotal = registry.createCounter({
+  name: "run_ledger_event_total",
+  help: "Run ledger events appended by type",
+  labelNames: ["event_type"],
+});
+
+export const runLedgerInlineLatencyMs = registry.createHistogram({
+  name: "run_ledger_inline_latency_ms",
+  help: "Inline run-ledger write latency (run_started, manifest, context_compiled, delivery_requested)",
+  labelNames: [],
+  buckets: [1, 5, 10, 25, 50, 100, 250, 500, 1000],
+});
+
+export const artifactPutTotal = registry.createCounter({
+  name: "artifact_put_total",
+  help: "Artifact revision puts by kind and result",
+  labelNames: ["kind", "result"],
+});
+
+export const contextManifestTotal = registry.createCounter({
+  name: "context_manifest_total",
+  help: "Context manifest builds per run",
+  labelNames: ["result"],
+});

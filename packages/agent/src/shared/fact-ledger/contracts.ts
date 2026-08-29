@@ -310,6 +310,8 @@ const modelCallStartedPayloadSchema = z
     callId: idSchema,
     round: z.number().int().positive(),
     manifestId: idSchema,
+    /** Phase 4: content-addressed CANONICAL_REQUEST artifact for this exact call input. */
+    requestArtifactId: idSchema.optional(),
   })
   .strict();
 

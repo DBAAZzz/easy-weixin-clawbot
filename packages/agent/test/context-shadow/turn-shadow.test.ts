@@ -111,7 +111,7 @@ const noopLog: ChatLog = { llm() {}, tool() {}, done() {} };
 const canonicalContext: CanonicalContextV1 = {
   schemaVersion: 1,
   compilerVersion: "context-compiler-v1",
-  contextPolicyRevisionId: "context-policy-v1",
+  contextPolicyRevisionId: "context-policy-v2",
   accountId: "acc",
   conversationStreamId: "stream-1",
   eventCursor: 1,
@@ -149,6 +149,7 @@ function createShadow(harness: ShadowHarness) {
         context: canonicalContext,
         diagnostics: [] as ContextCompilerDiagnostic[],
         canonicalContextHash: "a".repeat(64),
+        conversationEventIds: [],
       };
     },
   };

@@ -143,6 +143,48 @@ test("assistant entries already covered by canonical facts are not legacy-only",
   assert.doesNotMatch(JSON.stringify(diff), /extra|reply/);
 });
 
+test("tool entries already covered by canonical facts are not legacy-only (policy v2)", () => {
+  const withToolFacts: CanonicalContextV1 = {
+    ...canonical,
+    entries: [
+      ...canonical.entries,
+      {
+        eventId: "run-1:2",
+        streamSeq: 1,
+        role: "tool",
+        occurredAt: "2026-08-28T00:00:02.000Z",
+        text: "tool output",
+        attachments: [],
+        runId: "run-1",
+        runSeq: 2,
+      },
+    ],
+  };
+  const legacy = normalizeLegacyContext([
+    {
+      role: MESSAGE_ROLE.USER,
+      timestamp: 1,
+      content: [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: "hello" }],
+    },
+    {
+      role: MESSAGE_ROLE.ASSISTANT,
+      timestamp: 2,
+      content: [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: "reply" }],
+    },
+    {
+      role: MESSAGE_ROLE.TOOL_RESULT,
+      timestamp: 3,
+      toolCallId: "call-1",
+      toolName: "test-tool",
+      isError: false,
+      content: [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: "tool output" }],
+    },
+  ]);
+  const diff = diffCanonicalAndLegacy(withToolFacts, legacy);
+  // One legacy tool entry is already covered by the canonical run fact.
+  assert.equal(diff.counts.legacy_only_tool_entry, 0);
+});
+
 test("visual fallback wrappers are classified without entering canonical content", () => {
   const legacy = normalizeLegacyContext([
     {

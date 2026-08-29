@@ -55,6 +55,11 @@ export {
   contextCompilerEntries,
   contextCompilerUnresolvedAttachmentTotal,
   contextCompilerDurationMs,
+  runLedgerTotal,
+  runLedgerEventTotal,
+  runLedgerInlineLatencyMs,
+  artifactPutTotal,
+  contextManifestTotal,
 } from "./metrics/index.js";
 export type { Counter, Histogram, Gauge } from "./metrics/index.js";
 

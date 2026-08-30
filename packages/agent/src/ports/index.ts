@@ -26,7 +26,11 @@ export type {
 export { setAgentRunStore, getAgentRunStore } from "./agent-run-store.js";
 export type { ArtifactContentSink } from "./artifact-content-sink.js";
 
-export type { MemoryEventStore, ListMemoryEventsInput } from "./memory-event-store.js";
+export type {
+  MemoryEventStore,
+  ListMemoryEventsInput,
+  MemoryAssertionCategory,
+} from "./memory-event-store.js";
 export { setMemoryEventStore, getMemoryEventStore } from "./memory-event-store.js";
 
 export type { ArtifactRevisionStore, ArtifactContentIdentity } from "./artifact-revision-store.js";

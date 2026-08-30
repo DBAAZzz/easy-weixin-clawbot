@@ -33,6 +33,7 @@ model Account {
   contextCompilerShadowRollout ContextCompilerShadowRollout?
   contextCompilerShadowResults ContextCompilerShadowResult[]
   runLedgerRollout             RunLedgerRollout?
+  attachmentArtifacts          ConversationAttachmentArtifact[]
 
   @@map("accounts")
 }
@@ -280,6 +281,21 @@ model ContextCompilerShadowResult {
   @@map("context_compiler_shadow_results")
 }
 
+/// Phase 5: attachment source ref → immutable MEDIA_ASSET 制品映射。
+/// ref 派生含 accountId，天然账户隔离；同 ref 重复资产化幂等（upsert）。
+model ConversationAttachmentArtifact {
+  accountId  String   @map("account_id") @db.Text
+  sourceRef  String   @map("source_ref") @db.Text
+  artifactId String   @map("artifact_id") @db.Text
+  mimeType   String?  @map("mime_type") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, sourceRef])
+  @@index([artifactId], map: "idx_attachment_artifacts_artifact")
+  @@map("conversation_attachment_artifacts")
+}
+
 model WeixinIngressRollout {
   accountId String   @id @map("account_id") @db.Text
   enabled   Boolean  @default(false)
@@ -367,9 +383,15 @@ model MemoryEvent {
   causationId   String?  @map("causation_id") @db.Text
   correlationId String?  @map("correlation_id") @db.Text
   payload       Json
+
+  // Phase 5 冗余列：仅 memory_asserted 行写入，服务 findLiveAssertionByKey 索引查询
+  category      String?  @db.Text
+  key           String?  @db.Text
+
   head          MemoryStreamHead @relation(fields: [accountId, branch], references: [accountId, branch], onDelete: Restrict)
 
   @@unique([accountId, branch, memorySeq], map: "memory_events_branch_seq_key")
+  @@index([accountId, branch, category, key, memorySeq], map: "idx_memory_events_live_lookup")
   @@index([causationId], map: "idx_memory_events_causation")
   @@index([correlationId], map: "idx_memory_events_correlation")
   @@map("memory_events")
@@ -687,6 +709,9 @@ model TapeAnchor {
 
   // Last Entry eid covered by this anchor (recall incremental start point)
   lastEntryEid   String?  @map("last_entry_eid") @db.Uuid
+
+  // Phase 5: SUMMARY artifact backing this checkpoint (null for legacy anchors)
+  summaryArtifactId String? @map("summary_artifact_id") @db.Text
 
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)

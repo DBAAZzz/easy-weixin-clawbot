@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 import {
   contextCompilerShadowTotal,
@@ -19,7 +20,6 @@ import {
   CONTEXT_COMPILER_VERSION,
   CONTEXT_POLICY_REVISION_ID_V2,
   CONTEXT_TIMEZONE,
-  createDeliveryId,
   createHandoffAnchors,
   createRunId,
   createRunLedgerRecorder,
@@ -33,10 +33,12 @@ import {
 import type { ChatMedia as AgentChatMedia, RunContext } from "@clawbot/agent";
 import type { ContextShadowObserver, ConversationEvent } from "@clawbot/agent";
 import { getPushService, getSchedulerStore } from "@clawbot/agent/ports";
-import { chatEngine, skillRegistry } from "./ai.js";
+import { chatEngine } from "./ai.js";
 import { getAssetService } from "./assets/index.js";
 import { PrismaConversationEventStore } from "./db/conversation-event-store.impl.js";
 import { createLocalArtifactContentSink } from "./db/artifact-content-sink.js";
+import { recordAttachmentArtifactMapping } from "./db/conversation-attachment-artifacts.js";
+import { createPrismaAttachmentArtifactResolver } from "./db/prisma-attachment-artifact-resolver.js";
 import { FACT_LEDGER_ARTIFACTS_DIR } from "./paths.js";
 import {
   getConversationTitle,
@@ -95,6 +97,8 @@ async function attachAssetIdToMedia(
   accountId: string,
   conversationId: string,
   media: ChatRequest["media"],
+  /** Phase 5：媒体消息的 attachment source ref（ingress 媒体才有）。 */
+  sourceRef?: string,
 ): Promise<AgentChatMedia | undefined> {
   if (!media) return undefined;
   const mimeType =
@@ -109,6 +113,40 @@ async function attachAssetIdToMedia(
     kind: media.type,
     originalFilename: media.fileName,
   });
+
+  // Phase 5：媒体制品化 + source ref 映射（设计 §7.1）。文件字节内容寻址，
+  // 字节经 content sink 外置；失败只损失 resolved 能力（回落 unresolved），
+  // 不影响资产创建与消息处理。
+  if (sourceRef) {
+    try {
+      const fileBytes = new Uint8Array(await readFile(media.filePath));
+      const fileSha256 = createHash("sha256").update(fileBytes).digest("hex");
+      const artifactId = `media-asset-v1:${fileSha256}`;
+      const storageRef = await factLedgerContentSink.put(
+        `media_asset/${fileSha256}.bin`,
+        fileBytes,
+      );
+      await getArtifactRevisionStore().put({
+        artifactId,
+        kind: "media_asset",
+        sha256: fileSha256,
+        schemaVersion: 1,
+        storageRef,
+      });
+      await recordAttachmentArtifactMapping({
+        accountId,
+        sourceRef,
+        artifactId,
+        mimeType,
+      });
+    } catch (err) {
+      agentLogger.warn(
+        { ...getErrorFields(err), accountId, conversationId },
+        "media artifact mapping failed; attachment stays unresolved",
+      );
+    }
+  }
+
   return {
     ...media,
     mimeType,
@@ -239,7 +277,10 @@ async function generateTitleIfNeeded(
 export interface ServerWeixinAgent extends Agent {
   chatFromIngress(
     req: ChatRequest,
-    source: Pick<ConversationEvent, "eventId" | "streamId" | "streamSeq">,
+    source: Pick<
+      ConversationEvent,
+      "eventId" | "streamId" | "streamSeq" | "eventType" | "payload"
+    >,
   ): Promise<ChatResponse>;
   clearFromIngress(receiptId: string, wechatConversationId: string): Promise<void>;
 }
@@ -279,11 +320,17 @@ export function createAgent(
     agentRunStore: getAgentRunStore(),
     artifactRevisionStore: getArtifactRevisionStore(),
     contentSink: factLedgerContentSink,
+    attachmentArtifactResolver: createPrismaAttachmentArtifactResolver({
+      artifactRevisionStore: getArtifactRevisionStore(),
+    }),
   });
 
   async function chat(
     req: ChatRequest,
-    source?: Pick<ConversationEvent, "eventId" | "streamId" | "streamSeq">,
+    source?: Pick<
+      ConversationEvent,
+      "eventId" | "streamId" | "streamSeq" | "eventType" | "payload"
+    >,
   ): Promise<ChatResponse> {
     let shadowStarted = false;
     const trackedShadowObserver = options.contextShadowObserver
@@ -374,8 +421,19 @@ export function createAgent(
           );
         }
 
+        // Pick 会破坏判别联合的窄化，这里显式取 inbound 媒体的第一个 ref
+        const sourceRefForMedia =
+          source?.eventType === "inbound_message_received"
+            ? (source.payload as { attachmentRefs?: string[] }).attachmentRefs?.[0]
+            : undefined;
         const media = await withSpan("asset.ingest", { hasMedia: Boolean(req.media) }, () =>
-          attachAssetIdToMedia(accountId, effectiveConvId, req.media),
+          attachAssetIdToMedia(
+            accountId,
+            effectiveConvId,
+            req.media,
+            // Phase 5：只有 ingress 媒体消息才有 source ref 可映射
+            sourceRefForMedia,
+          ),
         );
         const ctx: RunContext = {
           accountId,
@@ -404,7 +462,12 @@ export function createAgent(
                     agentLogger.warn({ ...fields, accountId }, "run ledger degraded");
                   },
                 }),
-                compileContext: () =>
+                compileContext: (hints: {
+                  coverageHints?: {
+                    memoryFacts?: boolean;
+                    immutableMediaArtifacts?: boolean;
+                  };
+                }) =>
                   runLedgerCompiler.compile({
                     accountId,
                     conversationStreamId: source.streamId,
@@ -413,6 +476,10 @@ export function createAgent(
                     contextPolicyRevisionId: CONTEXT_POLICY_REVISION_ID_V2,
                     effectiveTime,
                     timezone: CONTEXT_TIMEZONE,
+                    // Phase 5：hints 一路透传，coverage 与 manifest 保持一致
+                    ...(hints.coverageHints
+                      ? { coverageHints: hints.coverageHints }
+                      : {}),
                   }),
                 conversationStreamId: source.streamId,
                 sourceEventId: source.eventId,

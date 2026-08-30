@@ -42,6 +42,10 @@ import type {
   ContextShadowObserver,
   PendingContextShadowHandle,
 } from "./context-shadow/observer.js";
+import { ARTIFACT_KIND } from "../shared/fact-ledger/contracts.js";
+import { putDocumentArtifact } from "./run-ledger/revisions.js";
+import { getArtifactRevisionStore } from "../ports/artifact-revision-store.js";
+import { getPromptAssets } from "../prompts/port.js";
 import { createDeliveryId, toStableErrorCode } from "./run-ledger/ids.js";
 import type { RunLedgerRecorder } from "./run-ledger/recorder.js";
 import type { RunnerLedger } from "./runner.js";
@@ -81,7 +85,10 @@ export interface ChatTurnInput {
   /** Run Ledger wiring for ingress chat turns (Phase 4). Recorder is per-run. */
   runLedger?: {
     recorder: RunLedgerRecorder;
-    compileContext: () => Promise<CompiledContextV1>;
+    /** Phase 5：接收 coverage hints 并透传给 compiler（hints 链路不可断）。 */
+    compileContext: (hints: {
+      coverageHints?: { memoryFacts?: boolean; immutableMediaArtifacts?: boolean };
+    }) => Promise<CompiledContextV1>;
     conversationStreamId: string;
     sourceEventId: string;
   };
@@ -305,25 +312,72 @@ function createMessageTracker(
  */
 function scheduleMemoryExtraction(
   ctx: RunContext,
-  params: { userText: string; assistantText: string; chatModel: ResolvedModel },
+  params: {
+    userText: string;
+    assistantText: string;
+    chatModel: ResolvedModel;
+    /** Phase 5：账本证据链（ingress turn 且账本启用时才有）。 */
+    evidence?: { sourceEventId?: string; runId?: string };
+  },
 ): void {
-  const { userText, assistantText, chatModel } = params;
+  const { userText, assistantText, chatModel, evidence } = params;
   const { accountId, conversationId } = ctx;
   const logger = runLogger(ctx);
 
   void resolveConfiguredModel(accountId, conversationId, "extraction")
-    .then((extractionModel) => {
+    .then(async (extractionModel) => {
       const effectiveExtractionModel = extractionModel ?? chatModel;
       logger.info("tape extraction model resolved", {
         source: extractionModel ? "configured-extraction" : "chat-fallback",
         model: effectiveExtractionModel.modelId,
       });
+
+      // Phase 5：固定 extractor 模型与 prompt 的 revision（证据链成对必填）。
+      // 任一失败 → 证据链不完整 → fact-writer 放弃写事件，Tape 照常。
+      let extractionModelRevisionId: string | undefined;
+      let extractionPromptRevisionId: string | undefined;
+      if (evidence?.sourceEventId && evidence.runId) {
+        try {
+          const modelRevision = await putDocumentArtifact(
+            { artifactRevisionStore: getArtifactRevisionStore() },
+            ARTIFACT_KIND.MODEL_CONFIG_REVISION,
+            {
+              modelId: effectiveExtractionModel.modelId,
+              purpose: "extraction",
+              contextWindow: effectiveExtractionModel.meta.contextWindow,
+              maxOutputTokens: effectiveExtractionModel.meta.maxOutputTokens,
+              supportsImageInput: effectiveExtractionModel.meta.supportsImageInput,
+              requiresReasonedToolHistory: effectiveExtractionModel.meta.requiresReasonedToolHistory,
+            },
+          );
+          const promptKey = PROMPT_PROFILES.memory_extract.systemPromptKey;
+          const promptRevision = await putDocumentArtifact(
+            { artifactRevisionStore: getArtifactRevisionStore() },
+            ARTIFACT_KIND.PROMPT_REVISION,
+            { key: promptKey, body: getPromptAssets().get(promptKey) },
+          );
+          extractionModelRevisionId = modelRevision.artifactId;
+          extractionPromptRevisionId = promptRevision.artifactId;
+        } catch (err) {
+          logger.warn("extraction revision pin failed; ledger events skipped", { err });
+        }
+      }
+
       fireExtractAndRecord(
         effectiveExtractionModel.model,
         accountId,
         conversationId,
         { userText, assistantText },
         `agent:${effectiveExtractionModel.modelId}`,
+        undefined,
+        evidence?.sourceEventId && evidence.runId
+          ? {
+              sourceEventId: evidence.sourceEventId,
+              runId: evidence.runId,
+              extractionModelRevisionId,
+              extractionPromptRevisionId,
+            }
+          : undefined,
       );
     })
     .catch((err) => logger.warn("extraction model resolve failed", { err }));
@@ -344,10 +398,21 @@ async function handleRunResult(
     startedAt: number;
     rounds: number;
     messagesAddedInRun: number;
+    /** Phase 5：记忆账本证据链（ingress turn 才有）。 */
+    memoryEvidence?: { sourceEventId?: string; runId?: string };
   },
 ): Promise<ChatResponse> {
-  const { cache, debugFlags, result, userText, chatModel, startedAt, rounds, messagesAddedInRun } =
-    params;
+  const {
+    cache,
+    debugFlags,
+    result,
+    userText,
+    chatModel,
+    startedAt,
+    rounds,
+    messagesAddedInRun,
+    memoryEvidence,
+  } = params;
   const { accountId, conversationId } = ctx;
   const debug = { ctx, startedAt, rounds };
 
@@ -366,7 +431,12 @@ async function handleRunResult(
         await cache.rollback(accountId, conversationId, messagesAddedInRun);
       } else {
         // Both run asynchronously *after* the finalizeReply() return below.
-        scheduleMemoryExtraction(ctx, { userText, assistantText: replyText, chatModel });
+        scheduleMemoryExtraction(ctx, {
+          userText,
+          assistantText: replyText,
+          chatModel,
+          evidence: memoryEvidence,
+        });
 
         // Compact if threshold reached
         withSpan("tape.compact", { branch: conversationId }, () =>
@@ -462,10 +532,24 @@ export async function runChatTurn(
           occurredAt: new Date().toISOString(),
         });
         if (started && !recorder.isDegraded()) {
+          // Phase 5：buildUserMessage 产出的视觉观察固化为 VISUAL_OBSERVATION
+          // 制品（inline，小文档）；失败只损失 manifest 字段。
+          const visualObservationIds: string[] = [];
+          for (const visualContext of userMessage.role === MESSAGE_ROLE.USER
+            ? (userMessage.visualContext ?? [])
+            : []) {
+            const artifact = await recorder.putArtifact(
+              ARTIFACT_KIND.VISUAL_OBSERVATION,
+              visualContext,
+            );
+            if (artifact) visualObservationIds.push(artifact.artifactId);
+          }
           runnerLedger = {
             recorder,
             compileContext: input.runLedger.compileContext,
             effectiveTime,
+            sessionBranch: ctx.conversationId,
+            visualObservationIds,
           };
         }
       }
@@ -505,6 +589,12 @@ export async function runChatTurn(
           startedAt,
           rounds: tracker.state.rounds,
           messagesAddedInRun: tracker.state.messagesAddedInRun,
+          // Phase 5：只有账本真正启动成功（runnerLedger 已建立）的 run 才能
+          // 作为记忆证据链——degraded/未启动的 runId 会制造孤儿引用。
+          memoryEvidence: {
+            sourceEventId: input.sourceConversationEventId,
+            runId: runnerLedger?.recorder.runId,
+          },
         });
         const committed =
           result.status === "max_rounds" ||

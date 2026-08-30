@@ -78,6 +78,14 @@ export interface BuildContextManifestInput {
   trimDecision: CanonicalRequestTrimV1;
   /** sha256 of the round-1 canonical request document. */
   canonicalRequestHash: string;
+  /** Phase 5：MEMORY_SNAPSHOT 制品 id（snapshot put 失败时缺省）。 */
+  memoryArtifactId?: string;
+  /** Phase 5：compile 时刻两个 branch 的 watermark（"wm-v1:<g>/<s>"）。 */
+  memoryEventWatermark?: string;
+  /** Phase 5：已制品化的 checkpoint SUMMARY 制品。 */
+  summaryArtifactIds?: string[];
+  /** Phase 5：本 run buildUserMessage 产出的视觉观察制品。 */
+  visualObservationIds?: string[];
 }
 
 export function buildContextManifestDocument(
@@ -90,9 +98,10 @@ export function buildContextManifestDocument(
     contextPolicyRevisionId: input.contextPolicyRevisionId,
     conversationEventIds: [...input.conversationEventIds],
     runEventIds: [...input.runEventIds],
-    summaryArtifactIds: [],
-    memoryEventWatermark: "unavailable-v1",
-    visualObservationIds: [],
+    summaryArtifactIds: [...(input.summaryArtifactIds ?? [])],
+    memoryEventWatermark: input.memoryEventWatermark ?? "unavailable-v1",
+    ...(input.memoryArtifactId ? { memoryArtifactId: input.memoryArtifactId } : {}),
+    visualObservationIds: [...(input.visualObservationIds ?? [])],
     modelRevisionId: input.modelRevisionId,
     promptRevisionId: input.promptRevisionId,
     skillRevisionIds: [...input.skillRevisionIds],

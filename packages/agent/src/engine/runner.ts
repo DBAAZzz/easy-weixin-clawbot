@@ -11,7 +11,6 @@ import type {
   ImageContent,
   ToolCallContent,
   ToolResultMessage,
-  TextContent,
   LanguageModel,
   ModelMeta,
 } from "../llm/types.js";
@@ -38,7 +37,7 @@ import { fitToContextWindow, type TrimResult } from "./conversation/context-wind
 import { estimateTextTokens } from "../llm/token-estimator.js";
 import type { CompiledContextV1 } from "../context-compiler/types.js";
 import { buildCanonicalRequestDocument } from "../context-compiler/manifest.js";
-import { ARTIFACT_KIND, type ArtifactKind } from "../shared/fact-ledger/contracts.js";
+import { ARTIFACT_KIND } from "../shared/fact-ledger/contracts.js";
 import type { RunLedgerRecorder } from "./run-ledger/recorder.js";
 import { bootstrapRunLedger, type RunLedgerBootstrapResult } from "./run-ledger/bootstrap.js";
 import type { SkillRegistry } from "../capabilities/skills/types.js";
@@ -108,8 +107,14 @@ export interface AgentRunner {
  */
 export interface RunnerLedger {
   recorder: RunLedgerRecorder;
-  compileContext: () => Promise<CompiledContextV1>;
+  compileContext: (hints: {
+    coverageHints?: { memoryFacts?: boolean; immutableMediaArtifacts?: boolean };
+  }) => Promise<CompiledContextV1>;
   effectiveTime: string;
+  /** Phase 5：memory watermark / snapshot / summary 的 session branch。 */
+  sessionBranch: string;
+  /** Phase 5：本 run 的视觉观察制品 ids（turn 层 pin 后传入 manifest）。 */
+  visualObservationIds: string[];
 }
 
 /** Serialized snapshot of one round's model-visible request (design §8). */
@@ -594,6 +599,8 @@ export function createAgentRunner(
         bootstrap = await bootstrapRunLedger({
           recorder: ledger.recorder,
           compileContext: ledger.compileContext,
+          sessionBranch: ledger.sessionBranch,
+          visualObservationIds: ledger.visualObservationIds,
           round1Request: {
             round: 1,
             system: precomputedRound1.system,

@@ -127,6 +127,10 @@ function createTapeStore(options?: { rememberedPreference?: string }): TapeStore
     async purgeCompacted() {
       return 0;
     },
+    async listAnchors() {
+      return [];
+    },
+    async attachAnchorSummary() {},
   };
 }
 

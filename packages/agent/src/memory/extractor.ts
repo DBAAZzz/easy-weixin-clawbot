@@ -16,8 +16,10 @@ import {
 import { withSpan } from "@clawbot/observability";
 import { z } from "zod";
 import { recall } from "./service.js";
-import { queueRecordEntry } from "./queue.js";
+import { queueMemoryFactWrite } from "./queue.js";
 import { GLOBAL_BRANCH } from "./constants.js";
+import { canonicalizeJson } from "../shared/fact-ledger/canonical-json.js";
+import type { MemoryFactEvidence } from "./fact-writer.js";
 import type { RecordParams, Fragment, TapeState } from "./types.js";
 import { getPromptAssets } from "../prompts/port.js";
 import { renderTemplate } from "../prompts/assembler.js";
@@ -126,11 +128,12 @@ async function callExtractor(
 
 /**
  * Convert extracted memories to RecordParams grouped by branch.
+ * Phase 5：同时携带原始 memory，供队列任务构建账本事件。
  */
 function toRecordParams(
   memories: ExtractedMemory[],
   actor: string,
-): Array<{ scope: "global" | "session"; params: RecordParams }> {
+): Array<{ scope: "global" | "session"; params: RecordParams; memory: ExtractedMemory }> {
   return memories.map((mem) => {
     const fragment: Fragment = {
       kind: "text",
@@ -146,6 +149,7 @@ function toRecordParams(
 
     return {
       scope: mem.scope,
+      memory: mem,
       params: {
         category: mem.category,
         actor,
@@ -159,12 +163,17 @@ function toRecordParams(
 /**
  * Run memory extraction and queue writes. Fire-and-forget — errors are logged, not thrown.
  *
+ * Phase 5：`evidence` 携带对话出处 / runId / extraction revision 制品 id，
+ * 使同一提取产物在 Tape 之外以 memory_asserted 落入事实账本；evidence 缺失
+ * （非 ingress turn 或账本关闭）时保持 Phase 4 行为（只写 Tape）。
+ *
  * @param model - LLM model to use for extraction
  * @param accountId - Account ID
  * @param sessionBranch - Session conversation ID (branch)
  * @param turn - The conversation turn to extract from
  * @param actor - Actor identifier (e.g. "agent:claude-sonnet-4-20250514")
  * @param apiKey - Optional API key
+ * @param evidence - 账本证据链（Phase 5）
  */
 export function fireExtractAndRecord(
   model: LanguageModel,
@@ -173,6 +182,7 @@ export function fireExtractAndRecord(
   turn: ConversationTurn,
   actor: string,
   apiKey?: string,
+  evidence?: MemoryFactEvidence,
 ): void {
   // Skip extraction for very short turns (unlikely to contain memorable info)
   if (turn.userText.length < 5 && turn.assistantText.length < 20) return;
@@ -198,11 +208,34 @@ export function fireExtractAndRecord(
 
         if (memories.length === 0) return;
 
-        const records = toRecordParams(memories, actor);
+        // 批内去重（设计 §5.1）：同一 (category, key, value) 只保留 confidence
+        // 最高的一条——同一 run 内不会为同一事实写两条断言事件。
+        const deduped = new Map<string, ExtractedMemory>();
+        for (const memory of memories) {
+          const dedupeKey = `${memory.category}\u0000${memory.key}\u0000${canonicalizeJson(memory.value)}`;
+          const existing = deduped.get(dedupeKey);
+          if (!existing || memory.confidence > existing.confidence) {
+            deduped.set(dedupeKey, memory);
+          }
+        }
 
-        for (const { scope, params } of records) {
+        const records = toRecordParams([...deduped.values()], actor);
+
+        for (const { scope, params, memory } of records) {
           const branch = scope === "global" ? GLOBAL_BRANCH : sessionBranch;
-          queueRecordEntry(accountId, branch, params);
+          queueMemoryFactWrite({
+            accountId,
+            branch,
+            params,
+            fact: {
+              scope,
+              category: memory.category,
+              key: memory.key,
+              value: memory.value,
+              confidence: memory.confidence,
+              evidence: evidence ?? {},
+            },
+          });
         }
 
         console.log(

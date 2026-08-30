@@ -143,6 +143,7 @@ export type {
   ArtifactContentSink,
   MemoryEventStore,
   ListMemoryEventsInput,
+  MemoryAssertionCategory,
   ArtifactRevisionStore,
   ArtifactContentIdentity,
   MessageStore,
@@ -232,6 +233,8 @@ export type {
 export {
   createRunLedgerRecorder,
   bootstrapRunLedger,
+  readMemoryCoverage,
+  readSummaryArtifactIds,
   putDocumentArtifact,
   createRunId,
   createCallId,
@@ -261,6 +264,14 @@ export {
   fireExtractAndRecord,
   queueRecordEntry,
   getPendingTapeWriteCount,
+  deriveMemoryAssertionEventId,
+  deriveMemorySupersededEventId,
+  writeMemoryFactToLedger,
+  lookupPreviousValue,
+  branchForScope,
+  buildSummaryDocument,
+  putSummaryArtifact,
+  appendMemoryAnchorCreated,
 } from "./memory/index.js";
 export type {
   TapeState,

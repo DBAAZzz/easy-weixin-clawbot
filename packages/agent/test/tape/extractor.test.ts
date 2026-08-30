@@ -141,6 +141,12 @@ class InMemoryTapeStore implements TapeStore {
   async purgeCompacted(): Promise<number> {
     return 0;
   }
+
+  async listAnchors(): Promise<TapeAnchorRow[]> {
+    return [];
+  }
+
+  async attachAnchorSummary(): Promise<void> {}
 }
 
 async function waitFor(assertion: () => void | Promise<void>, timeoutMs = 1_000): Promise<void> {

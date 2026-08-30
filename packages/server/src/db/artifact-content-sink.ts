@@ -17,7 +17,8 @@ const sinkLogger = createModuleLogger("artifact-content-sink");
 export function createLocalArtifactContentSink(baseDir: string): ArtifactContentSink {
   const root = resolve(baseDir);
   const pathForKey = (key: string): string => {
-    if (!/^[a-z0-9_]+\/[a-f0-9]{64}\.json$/.test(key)) {
+    // Phase 5：media bytes 用 .bin，其余制品文档用 .json
+    if (!/^[a-z0-9_]+\/[a-f0-9]{64}\.(json|bin)$/.test(key)) {
       throw new Error("invalid_artifact_content_sink_key");
     }
     const target = resolve(root, key);

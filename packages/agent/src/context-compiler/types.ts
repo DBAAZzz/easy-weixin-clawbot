@@ -16,6 +16,15 @@ export interface CompileContextInputV1 {
   contextPolicyRevisionId: ContextPolicyRevisionId;
   effectiveTime: string;
   timezone: typeof CONTEXT_TIMEZONE;
+  /**
+   * Phase 5：bootstrap 用实际产出驱动的 coverage 提示。
+   * memoryFacts = MEMORY_SNAPSHOT 真实写入；immutableMediaArtifacts 缺省时由
+   * 编译器按 entries 中的 resolved attachment 推导。
+   */
+  coverageHints?: {
+    memoryFacts?: boolean;
+    immutableMediaArtifacts?: boolean;
+  };
 }
 
 export interface ResolvedAttachmentArtifact {
@@ -74,10 +83,10 @@ export interface CanonicalContextV1 {
     conversationFacts: boolean;
     assistantRunFacts: boolean;
     toolRunFacts: boolean;
-    /** Memory facts stay closed until Phase 5. */
-    memoryFacts: false;
-    /** Media artifact mapping stays closed until Phase 5. */
-    immutableMediaArtifacts: false;
+    /** Phase 5：MEMORY_SNAPSHOT 真实写入时为 true（bootstrap 驱动）。 */
+    memoryFacts: boolean;
+    /** Phase 5：manifest 实际引用了不可变媒体制品时为 true。 */
+    immutableMediaArtifacts: boolean;
   };
 }
 

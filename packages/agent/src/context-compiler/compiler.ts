@@ -254,8 +254,11 @@ export function createContextCompilerV1(deps: {
           conversationFacts: true,
           assistantRunFacts: policyV2,
           toolRunFacts: policyV2,
-          memoryFacts: false,
-          immutableMediaArtifacts: false,
+          // Phase 5：memory 由 bootstrap 实际产出驱动；media 缺省按 resolver
+          // 实际解析结果推导（bootstrap 可用 visualObservationIds 覆盖）。
+          memoryFacts: input.coverageHints?.memoryFacts ?? false,
+          immutableMediaArtifacts:
+            input.coverageHints?.immutableMediaArtifacts ?? resolved.size > 0,
         },
       };
       return {

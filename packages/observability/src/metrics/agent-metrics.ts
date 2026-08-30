@@ -209,3 +209,39 @@ export const contextManifestTotal = registry.createCounter({
   help: "Context manifest builds per run",
   labelNames: ["result"],
 });
+
+export const memoryEventTotal = registry.createCounter({
+  name: "memory_event_total",
+  help: "Memory fact ledger writes per outcome",
+  labelNames: ["result"],
+});
+
+export const memorySupersededTotal = registry.createCounter({
+  name: "memory_superseded_total",
+  help: "Memory superseded events per outcome",
+  labelNames: ["result"],
+});
+
+export const mediaArtifactTotal = registry.createCounter({
+  name: "media_artifact_total",
+  help: "MEDIA_ASSET artifact puts per result",
+  labelNames: ["result"],
+});
+
+export const mediaMappingTotal = registry.createCounter({
+  name: "media_mapping_total",
+  help: "Attachment source-ref mapping writes per result",
+  labelNames: ["result"],
+});
+
+export const visualObservationTotal = registry.createCounter({
+  name: "visual_observation_total",
+  help: "VISUAL_OBSERVATION artifacts pinned per run",
+  labelNames: [],
+});
+
+export const summaryArtifactTotal = registry.createCounter({
+  name: "summary_artifact_total",
+  help: "SUMMARY artifacts created by compaction",
+  labelNames: [],
+});

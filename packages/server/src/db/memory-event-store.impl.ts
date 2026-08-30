@@ -6,6 +6,7 @@ import {
   type AppendResult,
   type JsonValue,
   type ListMemoryEventsInput,
+  type MemoryAssertionCategory,
   type MemoryEvent,
   type MemoryEventStore,
 } from "@clawbot/agent";
@@ -65,6 +66,15 @@ export class PrismaMemoryEventStore implements MemoryEventStore {
             causationId: input.causationId,
             correlationId: input.correlationId,
             payload: toPrismaJson(input.payload as JsonValue),
+            // Phase 5 冗余列：仅 memory_asserted 行填充，服务 findLiveAssertionByKey
+            category:
+              input.eventType === "memory_asserted"
+                ? (input.payload as { category: string }).category
+                : null,
+            key:
+              input.eventType === "memory_asserted"
+                ? (input.payload as { key: string }).key
+                : null,
           },
         });
         return { value: memoryEventFromRow(row), appended: true };
@@ -94,6 +104,27 @@ export class PrismaMemoryEventStore implements MemoryEventStore {
       take: input.limit,
     });
     return rows.map(memoryEventFromRow);
+  }
+
+  async headSeq(accountId: string, branch: string): Promise<number> {
+    const head = await this.prisma.memoryStreamHead.findUnique({
+      where: { accountId_branch: { accountId, branch } },
+      select: { lastSeq: true },
+    });
+    return head?.lastSeq ?? 0;
+  }
+
+  async findLiveAssertionByKey(
+    accountId: string,
+    branch: string,
+    category: MemoryAssertionCategory,
+    key: string,
+  ): Promise<MemoryEvent | null> {
+    const row = await this.prisma.memoryEvent.findFirst({
+      where: { accountId, branch, category, key },
+      orderBy: { memorySeq: "desc" },
+    });
+    return row ? memoryEventFromRow(row) : null;
   }
 
   private resolveRetry(

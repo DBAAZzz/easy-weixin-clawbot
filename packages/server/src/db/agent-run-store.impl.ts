@@ -121,7 +121,7 @@ export class PrismaAgentRunStore implements AgentRunStore {
       where: {
         accountId: input.accountId,
         conversationStreamId: input.conversationStreamId,
-        ...(after ?? {}),
+        ...after,
       },
       orderBy: [{ recordedAt: "asc" }, { eventId: "asc" }],
       take: input.limit,

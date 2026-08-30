@@ -100,7 +100,35 @@ export class PrismaTapeStore implements TapeStore {
       snapshot: anchor.snapshot,
       lastEntryEid: anchor.lastEntryEid,
       createdAt: anchor.createdAt,
+      summaryArtifactId: anchor.summaryArtifactId,
     };
+  }
+
+  async listAnchors(accountId: string, branch: string, limit: number): Promise<TapeAnchorRow[]> {
+    const anchors = await getPrisma().tapeAnchor.findMany({
+      where: { accountId, branch },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+    return anchors.map((anchor) => ({
+      aid: anchor.aid,
+      snapshot: anchor.snapshot,
+      lastEntryEid: anchor.lastEntryEid,
+      createdAt: anchor.createdAt,
+      summaryArtifactId: anchor.summaryArtifactId,
+    }));
+  }
+
+  async attachAnchorSummary(
+    accountId: string,
+    branch: string,
+    aid: string,
+    summaryArtifactId: string,
+  ): Promise<void> {
+    await getPrisma().tapeAnchor.update({
+      where: { aid },
+      data: { summaryArtifactId },
+    });
   }
 
   async createAnchor(params: CreateAnchorParams): Promise<string> {

@@ -10,7 +10,14 @@ import {
 } from "../../context-compiler/manifest.js";
 import { ARTIFACT_KIND } from "../../shared/fact-ledger/contracts.js";
 import { createManifestId } from "./ids.js";
+import type { TapeStore } from "../../ports/tape-store.js";
+import type { MemoryEventStore } from "../../ports/memory-event-store.js";
 import type { RunLedgerRecorder } from "./recorder.js";
+import {
+  readMemoryCoverage,
+  readSummaryArtifactIds,
+  type MemoryCoverageResult,
+} from "./memory-bootstrap.js";
 
 /**
  * Manifest bootstrap (Phase 4 design §9): compile → pin revisions →
@@ -36,7 +43,9 @@ export interface RoundRequestInputV1 {
 
 export interface BootstrapRunLedgerInput {
   recorder: RunLedgerRecorder;
-  compileContext: () => Promise<CompiledContextV1>;
+  compileContext: (hints: {
+    coverageHints?: { memoryFacts?: boolean; immutableMediaArtifacts?: boolean };
+  }) => Promise<CompiledContextV1>;
   /** Round-1 request, serialized exactly as the runner will send it (design §9.3). */
   round1Request: RoundRequestInputV1;
   prompt: { key: string; body: string };
@@ -56,6 +65,13 @@ export interface BootstrapRunLedgerInput {
     requiresReasonedToolHistory?: boolean;
   };
   effectiveTime: string;
+  /** Phase 5：session branch（memory watermark / snapshot / summary 读取用）。 */
+  sessionBranch: string;
+  /** Phase 5：buildUserMessage 产出的视觉观察制品 ids（已由 turn 层 pin）。 */
+  visualObservationIds?: string[];
+  /** Phase 5：记忆/summary 读取依赖（缺省时字段回退，不影响 run）。 */
+  memoryEventStore?: MemoryEventStore;
+  tapeStore?: TapeStore;
 }
 
 export interface RunLedgerBootstrapResult {
@@ -72,7 +88,43 @@ export async function bootstrapRunLedger(
   const { recorder } = input;
   const toolRevisionIds = new Map<string, string>();
 
-  const compiled = await recorder.enqueueWrite(() => input.compileContext());
+  // Phase 5：记忆 coverage 先于编译读取，且在 enqueueWrite 串行域内执行——
+  // 与 run_started / 后续写入保持全序（设计 §6）。失败自动回退，不影响 run。
+  const fallbackCoverage: MemoryCoverageResult = { watermark: "unavailable-v1" };
+  const memoryCoverage: MemoryCoverageResult = input.memoryEventStore
+    ? ((await recorder.enqueueWrite(() =>
+        readMemoryCoverage({
+          accountId: recorder.accountId,
+          runId: recorder.runId,
+          sessionBranch: input.sessionBranch,
+          memoryEventStore: input.memoryEventStore!,
+          putArtifact: (kind, document, options) =>
+            recorder.putArtifact(kind, document, options),
+        }),
+      )) ?? fallbackCoverage)
+    : fallbackCoverage;
+  const summaryArtifactIds =
+    (await recorder.enqueueWrite(() =>
+      input.tapeStore
+        ? readSummaryArtifactIds({
+            accountId: recorder.accountId,
+            sessionBranch: input.sessionBranch,
+            tapeStore: input.tapeStore,
+          })
+        : Promise.resolve([] as string[]),
+    )) ?? [];
+
+  const compiled = await recorder.enqueueWrite(() =>
+    input.compileContext({
+      coverageHints: {
+        memoryFacts: memoryCoverage.memoryArtifactId !== undefined,
+        immutableMediaArtifacts:
+          input.visualObservationIds !== undefined && input.visualObservationIds.length > 0
+            ? true
+            : undefined,
+      },
+    }),
+  );
   if (!compiled || recorder.isDegraded()) return { ready: false, toolRevisionIds };
 
   const revisions = await recorder.enqueueWrite(async () => {
@@ -158,6 +210,12 @@ export async function bootstrapRunLedger(
       timezone: CONTEXT_TIMEZONE,
       trimDecision: input.round1Request.trim,
       canonicalRequestHash: requestArtifact.sha256,
+      memoryEventWatermark: memoryCoverage.watermark,
+      ...(memoryCoverage.memoryArtifactId
+        ? { memoryArtifactId: memoryCoverage.memoryArtifactId }
+        : {}),
+      summaryArtifactIds,
+      visualObservationIds: [...(input.visualObservationIds ?? [])],
     });
     const manifestArtifact = await recorder.putArtifact(
       ARTIFACT_KIND.CONTEXT_MANIFEST,

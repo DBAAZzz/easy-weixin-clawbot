@@ -60,6 +60,12 @@ export {
   runLedgerInlineLatencyMs,
   artifactPutTotal,
   contextManifestTotal,
+  memoryEventTotal,
+  memorySupersededTotal,
+  mediaArtifactTotal,
+  mediaMappingTotal,
+  visualObservationTotal,
+  summaryArtifactTotal,
 } from "./metrics/index.js";
 export type { Counter, Histogram, Gauge } from "./metrics/index.js";
 

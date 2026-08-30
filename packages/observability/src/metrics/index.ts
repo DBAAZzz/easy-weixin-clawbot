@@ -32,4 +32,10 @@ export {
   runLedgerInlineLatencyMs,
   artifactPutTotal,
   contextManifestTotal,
+  memoryEventTotal,
+  memorySupersededTotal,
+  mediaArtifactTotal,
+  mediaMappingTotal,
+  visualObservationTotal,
+  summaryArtifactTotal,
 } from "./agent-metrics.js";

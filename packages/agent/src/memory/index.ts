@@ -26,6 +26,23 @@ export type { MemoryPromptOptions } from "./service.js";
 export { queueRecordEntry, getPendingTapeWriteCount } from "./queue.js";
 
 export { fireExtractAndRecord } from "./extractor.js";
+export {
+  deriveMemoryAssertionEventId,
+  deriveMemorySupersededEventId,
+  writeMemoryFactToLedger,
+  lookupPreviousValue,
+  branchForScope,
+  type MemoryFactInput,
+  type MemoryFactEvidence,
+  type MemoryFactLedgerResult,
+} from "./fact-writer.js";
+export {
+  buildSummaryDocument,
+  summaryArtifactId,
+  putSummaryArtifact,
+  appendMemoryAnchorCreated,
+  type SummaryDocumentInput,
+} from "./summary-artifacts.js";
 
 export type {
   TapeGraphNode,

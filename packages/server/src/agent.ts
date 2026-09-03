@@ -14,7 +14,7 @@ import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk
 import {
   CommandRegistry,
   CONTEXT_COMPILER_VERSION,
-  CONTEXT_POLICY_REVISION_ID_V3,
+  CONTEXT_POLICY_REVISION_ID_V4,
   CONTEXT_TIMEZONE,
   createHandoffAnchors,
   createRunId,
@@ -289,6 +289,11 @@ export function createAgent(
     runLedgerEnabled?: boolean;
     /** Phase 6：startup snapshot of read_path（rollout 关闭时无意义）。 */
     contextReadPath?: "legacy" | "dual" | "canonical";
+    /**
+     * Phase 7：startup snapshot of memory_read_path（rollout 关闭时无意义；
+     * clean/suspended 写模式经 projection-write resolver 全局生效，不经此处）。
+     */
+    memoryReadPath?: "tape" | "dual" | "events";
   } = {},
 ): ServerWeixinAgent {
   const runLedgerCompiler = createServerRunLedgerCompiler();
@@ -441,9 +446,10 @@ export function createAgent(
                     conversationStreamId: source.streamId,
                     eventCursor: source.streamSeq,
                     compilerVersion: CONTEXT_COMPILER_VERSION,
-                    // Phase 6：run-ledger 编译统一走 policy v3（v2 行为保留为
-                    // 回归锚与 shadow 口径）；trigger entry 由此进入 manifest。
-                    contextPolicyRevisionId: CONTEXT_POLICY_REVISION_ID_V3,
+                    // Phase 6：run-ledger 编译统一 v3；Phase 7 切 v4 = v3 +
+                    // legacy transcript entries（未导入的流与 v3 逐字节同输出；
+                    // v2/v3 保留为回归锚与 shadow 口径）。
+                    contextPolicyRevisionId: CONTEXT_POLICY_REVISION_ID_V4,
                     effectiveTime,
                     timezone: CONTEXT_TIMEZONE,
                     // Phase 5：hints 一路透传，coverage 与 manifest 保持一致
@@ -480,6 +486,10 @@ export function createAgent(
               // Phase 6：读路径三态（rollout 关闭 / legacy 快照 → 缺省 legacy）。
               ...(options.contextReadPath && options.contextReadPath !== "legacy"
                 ? { contextReadPath: options.contextReadPath }
+                : {}),
+              // Phase 7：记忆注入三态（缺省 tape；接线层已保证 runLedger 开启）。
+              ...(options.memoryReadPath && options.memoryReadPath !== "tape"
+                ? { memoryReadPath: options.memoryReadPath }
                 : {}),
             }),
           ),

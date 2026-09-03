@@ -70,6 +70,12 @@ export {
   contextDualDiffTotal,
   contextReadFallbackTotal,
   proactiveOutboundTotal,
+  legacyImportTotal,
+  projectionWriteTotal,
+  projectionWriteSkippedTotal,
+  memoryImportTotal,
+  memoryProjectionDiffTotal,
+  replayAuditTotal,
 } from "./metrics/index.js";
 export type { Counter, Histogram, Gauge } from "./metrics/index.js";
 

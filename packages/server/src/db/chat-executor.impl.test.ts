@@ -11,7 +11,7 @@ import type {
   AgentRunStore,
 } from "@clawbot/agent";
 import {
-  CONTEXT_POLICY_REVISION_ID_V3,
+  CONTEXT_POLICY_REVISION_ID_V4,
   createTriggerRunId,
   setAgentRunStore,
   setArtifactRevisionStore,
@@ -20,10 +20,16 @@ import {
 import { createChatExecutor } from "./chat-executor.impl.js";
 import type { RunLedgerRolloutStore } from "./run-ledger-rollout-store.js";
 
-function fakeRollout(enabled: boolean, readPath: "legacy" | "dual" | "canonical" = "legacy") {
+function fakeRollout(
+  enabled: boolean,
+  readPath: "legacy" | "dual" | "canonical" = "legacy",
+  memoryReadPath: "tape" | "dual" | "events" = "tape",
+) {
   return {
     isEnabled: async () => enabled,
     readPath: async () => readPath,
+    legacyWriteMode: async () => "prompt_shaped" as const,
+    memoryReadPath: async () => memoryReadPath,
   } as unknown as RunLedgerRolloutStore;
 }
 
@@ -145,7 +151,7 @@ test("rollout off → Phase 5 shape: no runLedger, no runId, legacy read path", 
   assert.equal(capture.input.contextReadPath, undefined);
 });
 
-test("rollout on → deterministic trigger runId, anchor seq, policy v3 compile closure", async () => {
+test("rollout on → deterministic trigger runId, anchor seq, policy v4 compile closure", async () => {
   fakePorts(5);
   const capture: CapturedCall = { input: {} as ChatTurnInput };
   const compiler = fakeCompiler();
@@ -174,11 +180,11 @@ test("rollout on → deterministic trigger runId, anchor seq, policy v3 compile 
   assert.equal(runLedger.anchorStreamSeq, 5);
   assert.equal(runLedger.contentSink, contentSink);
 
-  // compileContext 走 v3，eventCursor = anchor。
+  // compileContext 走 v4（Phase 7：= v3 + legacy entries），eventCursor = anchor。
   await runLedger.compileContext({});
   assert.equal(compiler.calls.length, 1);
   const compileInput = compiler.calls[0] as Record<string, unknown>;
-  assert.equal(compileInput.contextPolicyRevisionId, CONTEXT_POLICY_REVISION_ID_V3);
+  assert.equal(compileInput.contextPolicyRevisionId, CONTEXT_POLICY_REVISION_ID_V4);
   assert.equal(compileInput.eventCursor, 5);
   assert.equal(compileInput.conversationStreamId, "conv-1");
 });

@@ -4,12 +4,15 @@ export const CONTEXT_POLICY_REVISION_ID = "context-policy-v1" as const;
 export const CONTEXT_POLICY_REVISION_ID_V2 = "context-policy-v2" as const;
 /** Phase 6: v2 + trigger entry derivation for trigger runs (design §7.1). */
 export const CONTEXT_POLICY_REVISION_ID_V3 = "context-policy-v3" as const;
+/** Phase 7: v3 + legacy transcript entries from `legacy_transcript_imported` events (§5.3). */
+export const CONTEXT_POLICY_REVISION_ID_V4 = "context-policy-v4" as const;
 export const CONTEXT_TIMEZONE = "Asia/Shanghai" as const;
 
 export type ContextPolicyRevisionId =
   | typeof CONTEXT_POLICY_REVISION_ID
   | typeof CONTEXT_POLICY_REVISION_ID_V2
-  | typeof CONTEXT_POLICY_REVISION_ID_V3;
+  | typeof CONTEXT_POLICY_REVISION_ID_V3
+  | typeof CONTEXT_POLICY_REVISION_ID_V4;
 
 export interface CompileContextInputV1 {
   accountId: string;
@@ -45,7 +48,7 @@ export interface CanonicalAttachment {
 export interface CanonicalConversationEntryV1 {
   eventId: string;
   streamSeq: number;
-  /** `tool` 条目存在于 v2+（run facts）；`trigger` 条目仅存在于 v3（trigger run prompt）。 */
+  /** `tool` 条目存在于 v2+（run facts）；`trigger` 条目仅存在于 v3+（trigger run prompt）。 */
   role: "user" | "assistant" | "tool" | "trigger";
   occurredAt: string;
   text: string;
@@ -61,6 +64,14 @@ export interface CanonicalConversationEntryV1 {
   toolArguments?: string;
   /** v3 only, `tool` entries: entry derived from a failed tool call. */
   toolError?: boolean;
+  /**
+   * Phase 7 (v4 only): entry derived from a `legacy_transcript_imported` event.
+   * Presence marks the content as a partial, non-authoritative import — the
+   * assembled text is carried opaquely and never parsed back into facts.
+   */
+  reconstructability?: "partial";
+  /** Phase 7 (v4 only): original `messages.seq` inside the legacy import batch. */
+  sourceMessageSeq?: number;
 }
 
 export type ContextCompilerDiagnosticCode =

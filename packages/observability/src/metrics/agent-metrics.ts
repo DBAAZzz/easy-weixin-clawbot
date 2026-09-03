@@ -271,3 +271,41 @@ export const proactiveOutboundTotal = registry.createCounter({
   help: "Proactive push outbound conversation fact writes",
   labelNames: ["result"],
 });
+
+// ── Phase 7：旧路径退役、历史边界与 memory projection ──
+
+export const legacyImportTotal = registry.createCounter({
+  name: "legacy_import_total",
+  help: "Legacy transcript import outcomes per conversation stream",
+  labelNames: ["result"],
+});
+
+export const projectionWriteTotal = registry.createCounter({
+  name: "projection_write_total",
+  help: "Message projection persistence decisions by write mode",
+  labelNames: ["mode"],
+});
+
+export const projectionWriteSkippedTotal = registry.createCounter({
+  name: "projection_write_skipped_total",
+  help: "Message projection writes skipped (suspended mode)",
+  labelNames: ["reason"],
+});
+
+export const memoryImportTotal = registry.createCounter({
+  name: "memory_import_total",
+  help: "Tape snapshot memory import outcomes per branch",
+  labelNames: ["result"],
+});
+
+export const memoryProjectionDiffTotal = registry.createCounter({
+  name: "memory_projection_diff_total",
+  help: "Memory projection dual comparisons and event-path fallbacks",
+  labelNames: ["result"],
+});
+
+export const replayAuditTotal = registry.createCounter({
+  name: "replay_audit_total",
+  help: "Run artifact replay-audit findings per checked artifact",
+  labelNames: ["result"],
+});

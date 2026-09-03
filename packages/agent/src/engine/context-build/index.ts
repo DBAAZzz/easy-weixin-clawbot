@@ -20,3 +20,9 @@ export {
 } from "./dual.js";
 
 export type ContextReadPath = "legacy" | "dual" | "canonical";
+
+/**
+ * Phase 7：记忆注入读取三态（design §7.3）。`tape` 为 Phase 0–6 行为；
+ * `events` 从 memory events 重放投影；`dual` 双跑对比但仍注入 Tape。
+ */
+export type MemoryReadPath = "tape" | "dual" | "events";

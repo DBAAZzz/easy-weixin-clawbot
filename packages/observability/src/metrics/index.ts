@@ -42,4 +42,10 @@ export {
   contextDualDiffTotal,
   contextReadFallbackTotal,
   proactiveOutboundTotal,
+  legacyImportTotal,
+  projectionWriteTotal,
+  projectionWriteSkippedTotal,
+  memoryImportTotal,
+  memoryProjectionDiffTotal,
+  replayAuditTotal,
 } from "./agent-metrics.js";

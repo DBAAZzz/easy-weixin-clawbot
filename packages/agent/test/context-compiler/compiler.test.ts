@@ -304,7 +304,8 @@ test("compiler rejects invalid compile identities instead of guessing", async ()
     { ...compileInput, eventCursor: 2.5 },
     { ...compileInput, compilerVersion: "context-compiler-v2" },
     // Phase 6: context-policy-v3 is supported; an unknown revision is not.
-    { ...compileInput, contextPolicyRevisionId: "context-policy-v4" },
+    // Phase 7: context-policy-v4 is supported, so the unknown case moves to v5.
+    { ...compileInput, contextPolicyRevisionId: "context-policy-v5" },
     { ...compileInput, timezone: "UTC" },
     { ...compileInput, effectiveTime: "not-a-time" },
   ];

@@ -42,42 +42,19 @@ export function createCallId(runId: string, round: number): string {
   return `call-v1:${sha256Hex(runId, String(round))}`;
 }
 
-/** `delivery-v1:<sha256(accountId + NUL + sourceEventId)>` — one delivery per chat reply. */
-export function createDeliveryId(accountId: string, sourceEventId: string): string {
-  return `delivery-v1:${sha256Hex(accountId, sourceEventId)}`;
-}
+// Settle-side identities are pure hash derivations shared across layers; they
+// live in shared/fact-ledger and are re-exported here for existing importers.
+export { createDeliveryId } from "../../shared/fact-ledger/ids.js";
 
 /** `context-manifest-v1:<sha256(accountId + NUL + runId)>` — runId already guarantees uniqueness. */
 export function createManifestId(accountId: string, runId: string): string {
   return `context-manifest-v1:${sha256Hex(accountId, runId)}`;
 }
 
-/**
- * `run-event-v1:<sha256(accountId + NUL + runId + NUL + kind + NUL + localKey)>`.
- *
- * Run Event v1 has no business idempotency key (Phase 1 §11.3); a deterministic
- * eventId gives retries the Store's id-retry semantics instead.
- */
-export function createRunEventId(
-  accountId: string,
-  runId: string,
-  kind: string,
-  localKey: string,
-): string {
-  return `run-event-v1:${sha256Hex(accountId, runId, kind, localKey)}`;
-}
-
-/**
- * `outbound-v1:<sha256(accountId + NUL + sourceEventId + NUL + suffix)>` for
- * outbound conversation facts appended by the settle side.
- */
-export function createOutboundFactEventId(
-  accountId: string,
-  sourceEventId: string,
-  suffix: string,
-): string {
-  return `outbound-v1:${sha256Hex(accountId, sourceEventId, suffix)}`;
-}
+export {
+  createOutboundFactEventId,
+  createRunEventId,
+} from "../../shared/fact-ledger/ids.js";
 
 const STABLE_CODE_PATTERN = /^[a-z0-9][a-z0-9_.-]{0,79}$/;
 

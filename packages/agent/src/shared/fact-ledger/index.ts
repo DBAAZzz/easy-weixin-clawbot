@@ -1,5 +1,6 @@
 export {
   FACT_LEDGER_SCHEMA_VERSION,
+  LEGACY_TRANSCRIPT_MAX_ENTRIES,
   CONVERSATION_EVENT_TYPE,
   AGENT_RUN_EVENT_TYPE,
   MEMORY_EVENT_TYPE,
@@ -44,6 +45,11 @@ export type {
 } from "./contracts.js";
 
 export { canonicalizeJson, sha256CanonicalJson } from "./canonical-json.js";
+export {
+  createDeliveryId,
+  createOutboundFactEventId,
+  createRunEventId,
+} from "./ids.js";
 export {
   FactLedgerIdConflictError,
   FactLedgerIdempotencyConflictError,

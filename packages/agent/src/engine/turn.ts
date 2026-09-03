@@ -8,6 +8,7 @@ import type {
   AgentMessage,
   TextContent,
   TriggerMeta,
+  UserMessage,
   VisualContext,
 } from "../llm/types.js";
 import { randomUUID } from "node:crypto";
@@ -22,15 +23,9 @@ import type { DebugFlags } from "../commands/debug.js";
 import { getMessageStore } from "../ports/message-store.js";
 import { getUsageStore } from "../ports/usage-store.js";
 import { getArtifactRevisionStore } from "../ports/artifact-revision-store.js";
+import { projectionWriteModeFor } from "../ports/projection-write.js";
 import type { ArtifactContentSink } from "../ports/artifact-content-sink.js";
-import {
-  emptyState,
-  recall,
-  compactIfNeeded,
-  formatMemoryForPrompt,
-  fireExtractAndRecord,
-  GLOBAL_BRANCH,
-} from "../memory/index.js";
+import { compactIfNeeded, fireExtractAndRecord } from "../memory/index.js";
 import { extractMediaFromText } from "../shared/media.js";
 import { assembleUserContext } from "../prompts/assembler.js";
 import { PROMPT_PROFILES } from "../prompts/profiles.js";
@@ -58,11 +53,14 @@ import {
   compareDualHistories,
   loadLegacyContext,
   type ContextReadPath,
+  type MemoryReadPath,
 } from "./context-build/index.js";
 import {
   contextDualDiffTotal,
   contextReadFallbackTotal,
   contextReadPathTotal,
+  projectionWriteSkippedTotal,
+  projectionWriteTotal,
 } from "@clawbot/observability";
 
 export interface ChatLog {
@@ -95,6 +93,11 @@ export interface ChatTurnInput {
    * runLedger 依赖（编译闭包）；缺依赖时自动回落 legacy。
    */
   contextReadPath?: ContextReadPath;
+  /**
+   * Phase 7：记忆注入读取三态（design §7.3）。缺省 tape（Phase 0–6 行为）。
+   * server 侧仅在 run ledger 启用时转发非 tape 值。
+   */
+  memoryReadPath?: MemoryReadPath;
   contextShadow?: {
     observer: ContextShadowObserver;
     sourceEventId: string;
@@ -163,7 +166,9 @@ async function loadTurnContext(
   input: ChatTurnInput,
   chatModel: ResolvedModel,
 ): Promise<LoadedContext> {
-  const legacy = await loadLegacyContext(cache, ctx);
+  const legacy = await loadLegacyContext(cache, ctx, {
+    memoryReadPath: input.memoryReadPath,
+  });
   const requested = input.contextReadPath ?? "legacy";
   const effective: ContextReadPath =
     requested !== "legacy" && input.runLedger ? requested : "legacy";
@@ -276,19 +281,69 @@ async function buildUserMessage(
   };
 }
 
-/** Append a message to live history and queue it for persistence. */
+/**
+ * Phase 7 (§6): projection-shaped variant of a user message for
+ * `legacy_write_mode = clean`. The persisted projection carries the original
+ * user text plus the image blocks (asset ids kept for UI display); the
+ * assembled text, visual fallback placeholders and the visualContext sidecar
+ * never reach `messages.payload`. The in-memory message keeps the assembled
+ * form — legacy read paths need it.
+ */
+function buildCleanProjectionUserMessage(
+  message: UserMessage,
+  originalText: string,
+): AgentMessage {
+  const { visualContext: _dropped, ...base } = message;
+  const content = Array.isArray(base.content) ? base.content : [];
+  const imageBlocks = content
+    .filter((block): block is ImageContent => block.type === MESSAGE_CONTENT_TYPE.IMAGE)
+    .map(({ promptReplacementText: _stripped, ...block }) => block);
+  return {
+    ...base,
+    content: [{ type: MESSAGE_CONTENT_TYPE.TEXT, text: originalText }, ...imageBlocks],
+  };
+}
+
+/**
+ * Append a message to live history and queue it for persistence.
+ *
+ * Phase 7 (§6.2): the write mode gates only the *persisted projection* — the
+ * live history array is untouched in every mode, so rollback/seq semantics
+ * stay identical. `clean` persists the original user text for user messages;
+ * `suspended` skips persistence entirely.
+ */
 function appendMessage(
   cache: ConversationCache,
   ctx: RunContext,
   history: AgentMessage[],
   message: AgentMessage,
   sourceConversationEventId?: string,
+  originalText?: string,
 ): void {
   history.push(message);
+  const mode = projectionWriteModeFor(ctx.accountId);
+  projectionWriteTotal.inc({ mode });
+  if (mode === "suspended") {
+    projectionWriteSkippedTotal.inc({ reason: "suspended" });
+    return;
+  }
+  let persistMessage = message;
+  if (mode === "clean" && message.role === MESSAGE_ROLE.USER && originalText !== undefined) {
+    try {
+      persistMessage = buildCleanProjectionUserMessage(message, originalText);
+    } catch (error) {
+      // Projection-variant failure falls back to the existing payload rather
+      // than dropping the row (§11).
+      runLogger(ctx).warn("clean projection variant failed; persisting assembled form", {
+        err: error,
+      });
+      persistMessage = message;
+    }
+  }
   getMessageStore().queuePersistMessage({
     accountId: ctx.accountId,
     conversationId: ctx.conversationId,
-    message,
+    message: persistMessage,
     seq: cache.nextSeq(ctx.accountId, ctx.conversationId),
     sourceConversationEventId,
   });
@@ -330,12 +385,21 @@ function createMessageTracker(
       state.messagesAddedInRun++;
 
       if (!isEmptyAssistant) {
-        messageStore.queuePersistMessage({
-          accountId,
-          conversationId,
-          message,
-          seq: cache.nextSeq(accountId, conversationId),
-        });
+        // Phase 7 (§6.2): `suspended` keeps the live history but stops the
+        // messages projection writes; `clean` does not change the
+        // assistant/tool payload shape.
+        const writeMode = projectionWriteModeFor(accountId);
+        if (writeMode === "suspended") {
+          projectionWriteSkippedTotal.inc({ reason: "suspended" });
+        } else {
+          projectionWriteTotal.inc({ mode: writeMode });
+          messageStore.queuePersistMessage({
+            accountId,
+            conversationId,
+            message,
+            seq: cache.nextSeq(accountId, conversationId),
+          });
+        }
       }
 
       if (message.role === MESSAGE_ROLE.ASSISTANT) {
@@ -570,7 +634,14 @@ export async function runChatTurn(
         triggerMeta: input.triggerMeta,
         effectiveTime,
       });
-      appendMessage(cache, ctx, history, userMessage, input.sourceConversationEventId);
+      appendMessage(
+        cache,
+        ctx,
+        history,
+        userMessage,
+        input.sourceConversationEventId,
+        input.inputRole === "trigger" ? undefined : input.text,
+      );
 
       let shadowHandle: PendingContextShadowHandle | undefined;
       if (input.contextShadow) {

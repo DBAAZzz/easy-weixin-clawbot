@@ -24,7 +24,11 @@ import {
   AGENT_RUN_EVENT_TYPE,
   CONVERSATION_EVENT_TYPE,
 } from "../shared/fact-ledger/contracts.js";
-import { createDeliveryId, createOutboundFactEventId, createRunEventId } from "../engine/run-ledger/ids.js";
+import {
+  createDeliveryId,
+  createOutboundFactEventId,
+  createRunEventId,
+} from "../shared/fact-ledger/ids.js";
 
 export interface ProactiveOutboundInput {
   accountId: string;

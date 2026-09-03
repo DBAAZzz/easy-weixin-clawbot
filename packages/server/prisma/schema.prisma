@@ -251,6 +251,10 @@ model RunLedgerRollout {
   enabled   Boolean  @default(false)
   /// Phase 6：canonical 上下文读取路径三态（legacy | dual | canonical）
   readPath  String   @default("legacy") @map("read_path") @db.Text
+  /// Phase 7：messages 投影写路径三态（prompt_shaped | clean | suspended）
+  legacyWriteMode String @default("prompt_shaped") @map("legacy_write_mode") @db.Text
+  /// Phase 7：记忆注入读取三态（tape | dual | events）
+  memoryReadPath  String @default("tape") @map("memory_read_path") @db.Text
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
   account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
 

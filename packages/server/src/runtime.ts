@@ -10,7 +10,20 @@ import { createModuleLogger, log } from "./logger.js";
 import { PrismaContextCompilerShadowRolloutStore } from "./db/context-compiler-shadow-rollout-store.js";
 import { RunLedgerRolloutStore } from "./db/run-ledger-rollout-store.js";
 import { createServerContextShadowObserver } from "./context-shadow-observer.js";
+import {
+  setProjectionWriteModeResolver,
+  type ProjectionWriteMode,
+} from "@clawbot/agent";
 import type { ContextShadowObserver } from "@clawbot/agent";
+
+/**
+ * Phase 7 (§6.3): per-account projection write mode snapshot, refreshed at
+ * each account start. The resolver is process-global because the write gate
+ * lives inside the agent engine; accounts without a snapshot entry keep the
+ * Phase 0–6 behaviour.
+ */
+const projectionWriteModes = new Map<string, ProjectionWriteMode>();
+setProjectionWriteModeResolver((accountId) => projectionWriteModes.get(accountId) ?? "prompt_shaped");
 
 type RunningAccount = {
   abortController: AbortController;
@@ -74,11 +87,36 @@ export function createBotRuntime(): BotRuntime {
         const runLedgerRolloutStore = new RunLedgerRolloutStore();
         const runLedgerEnabled = await runLedgerRolloutStore.isEnabled(accountId);
         const contextReadPath = await runLedgerRolloutStore.readPath(accountId);
+        // Phase 7 (§6.3): `clean`/`suspended` writes require the canonical
+        // read path — otherwise the persisted user text would no longer match
+        // what the legacy/dual model context assembles. Non-canonical accounts
+        // keep prompt_shaped regardless of the rollout column.
+        const configuredWriteMode = await runLedgerRolloutStore.legacyWriteMode(accountId);
+        const legacyWriteMode: ProjectionWriteMode =
+          contextReadPath === "canonical" ? configuredWriteMode : "prompt_shaped";
+        if (configuredWriteMode !== "prompt_shaped" && legacyWriteMode === "prompt_shaped") {
+          runtimeLogger.warn(
+            { accountId, configuredWriteMode, readPath: contextReadPath },
+            "legacy_write_mode requires read_path=canonical; downgraded to prompt_shaped",
+          );
+        }
+        projectionWriteModes.set(accountId, legacyWriteMode);
+        // Phase 7 (§7.3): memory injection needs ledger evidence; without run
+        // events there is nothing to replay, so non-ledger accounts stay on Tape.
+        let memoryReadPath = await runLedgerRolloutStore.memoryReadPath(accountId);
+        if (memoryReadPath !== "tape" && !runLedgerEnabled) {
+          runtimeLogger.warn(
+            { accountId, memoryReadPath },
+            "memory_read_path requires the run ledger; staying on tape",
+          );
+          memoryReadPath = "tape";
+        }
         contextShadowObserver = shadowEnabled ? createServerContextShadowObserver() : undefined;
         const agent = createAgent(accountId, {
           contextShadowObserver,
           runLedgerEnabled,
           contextReadPath,
+          memoryReadPath,
         });
         const syncBuf = await syncStateStore.load(accountId);
 

@@ -24,7 +24,7 @@ import type {
 } from "@clawbot/agent";
 import {
   CONTEXT_COMPILER_VERSION,
-  CONTEXT_POLICY_REVISION_ID_V3,
+  CONTEXT_POLICY_REVISION_ID_V4,
   CONTEXT_TIMEZONE,
   createRunLedgerRecorder,
   createTriggerRunId,
@@ -66,6 +66,10 @@ export function createChatExecutor(chatEngine: ChatEngine, deps: ChatExecutorDep
           const ledgerEnabled =
             req.triggerIdentity !== undefined && (await rolloutStore.isEnabled(req.accountId));
           const readPath = ledgerEnabled ? await rolloutStore.readPath(req.accountId) : "legacy";
+          // Phase 7 (§7.3): memory injection path — needs ledger evidence.
+          const memoryReadPath = ledgerEnabled
+            ? await rolloutStore.memoryReadPath(req.accountId)
+            : "tape";
 
           let anchorStreamSeq: number | undefined;
           let runId: string | undefined;
@@ -112,7 +116,8 @@ export function createChatExecutor(chatEngine: ChatEngine, deps: ChatExecutorDep
                   // 空执行流（如 scheduler 会话首轮）→ cursor 0（空窗口合法）。
                   eventCursor: anchorStreamSeq ?? 0,
                   compilerVersion: CONTEXT_COMPILER_VERSION,
-                  contextPolicyRevisionId: CONTEXT_POLICY_REVISION_ID_V3,
+                  // Phase 7：trigger 编译同样切 v4（= v3 + legacy entries）。
+                  contextPolicyRevisionId: CONTEXT_POLICY_REVISION_ID_V4,
                   effectiveTime,
                   timezone: CONTEXT_TIMEZONE,
                   ...(hints.coverageHints ? { coverageHints: hints.coverageHints } : {}),
@@ -129,6 +134,7 @@ export function createChatExecutor(chatEngine: ChatEngine, deps: ChatExecutorDep
             triggerMeta: req.triggerMeta,
             ...(runLedger ? { runLedger } : {}),
             ...(readPath !== "legacy" ? { contextReadPath: readPath } : {}),
+            ...(memoryReadPath !== "tape" ? { memoryReadPath } : {}),
           });
           if (runLedger) {
             // Trigger runs have no ingress settle path to drain the FIFO; give

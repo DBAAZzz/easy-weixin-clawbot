@@ -38,6 +38,7 @@ const RANK = {
   "capabilities/scheduler": 4,
   "capabilities/heartbeat": 4,
   "capabilities/tools": 4,
+  "capabilities/outbound-facts.ts": 4,
   memory: 3,
   "context-compiler": 3,
   llm: 2,

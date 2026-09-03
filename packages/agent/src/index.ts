@@ -191,6 +191,7 @@ export {
   CONTEXT_POLICY_REVISION_ID,
   CONTEXT_POLICY_REVISION_ID_V2,
   CONTEXT_POLICY_REVISION_ID_V3,
+  CONTEXT_POLICY_REVISION_ID_V4,
   CONTEXT_TIMEZONE,
   ContextCompilerError,
   CONTEXT_COMPILER_SHADOW_DIFF_CATEGORIES,
@@ -275,6 +276,9 @@ export {
   buildSummaryDocument,
   putSummaryArtifact,
   appendMemoryAnchorCreated,
+  GLOBAL_BRANCH,
+  serializeState,
+  deserializeState,
 } from "./memory/index.js";
 export type {
   TapeState,
@@ -339,7 +343,20 @@ export type {
   ContextReadPath,
   DualComparison,
   DualDiffDimension,
+  MemoryReadPath,
 } from "./engine/context-build/index.js";
+
+// ── Memory projection from events (Phase 7) ────────────────────────
+export { MemoryProjectionError, replayMemoryProjection } from "./memory/memory-projection.js";
+export type { MemoryProjectionFailureCode } from "./memory/memory-projection.js";
+
+// ── Projection write mode (Phase 7) ────────────────────────────────
+export {
+  projectionWriteModeFor,
+  resetProjectionWriteModeResolver,
+  setProjectionWriteModeResolver,
+} from "./ports/projection-write.js";
+export type { ProjectionWriteMode } from "./ports/projection-write.js";
 
 // ── Chat orchestration ──────────────────────────────────────────────
 export { createChatEngine, type ChatEngine, type ChatLog } from "./engine/chat-engine.js";
@@ -397,6 +414,7 @@ export {
   artifactRevisionSchema,
   UnsupportedFactLedgerSchemaVersionError,
   parseJsonValue,
+  LEGACY_TRANSCRIPT_MAX_ENTRIES,
   parseAppendConversationEventInput,
   parseAppendAgentRunEventInput,
   parseAppendMemoryEventInput,

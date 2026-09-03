@@ -8,6 +8,8 @@
 import type { AgentMessage } from "../../llm/types.js";
 import { MESSAGE_CONTENT_TYPE, MESSAGE_ROLE } from "@clawbot/shared";
 import { getMessageStore } from "../../ports/message-store.js";
+import { projectionWriteModeFor } from "../../ports/projection-write.js";
+import { projectionWriteSkippedTotal, projectionWriteTotal } from "@clawbot/observability";
 
 export interface ConversationCacheOptions {
   /** Max number of conversations kept in memory before LRU eviction. Default 500. */
@@ -239,12 +241,20 @@ export function createConversationCache(opts: ConversationCacheOptions = {}): Co
       };
 
       get(accountId, conversationId).push(message);
-      getMessageStore().queuePersistMessage({
-        accountId,
-        conversationId,
-        message,
-        seq: nextSeq(accountId, conversationId),
-      });
+      // Phase 7 (§6.2): suspended keeps the live history but stops the
+      // messages projection write.
+      const writeMode = projectionWriteModeFor(accountId);
+      if (writeMode === "suspended") {
+        projectionWriteSkippedTotal.inc({ reason: "suspended" });
+      } else {
+        projectionWriteTotal.inc({ mode: writeMode });
+        getMessageStore().queuePersistMessage({
+          accountId,
+          conversationId,
+          message,
+          seq: nextSeq(accountId, conversationId),
+        });
+      }
     });
   }
 

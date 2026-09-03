@@ -21,6 +21,8 @@ export const CONVERSATION_EVENT_TYPE = {
   OUTBOUND_MESSAGE_DELIVERY_FAILED: "outbound_message_delivery_failed",
   REACTION_RECEIVED: "reaction_received",
   REACTION_DELIVERED: "reaction_delivered",
+  /** Phase 7：ledger 启用前的旧 messages 投影整体导入（partial，不拆分组装文本）。 */
+  LEGACY_TRANSCRIPT_IMPORTED: "legacy_transcript_imported",
 } as const;
 
 /**
@@ -56,6 +58,8 @@ export const MEMORY_EVENT_TYPE = {
   MEMORY_RETRACTED: "memory_retracted",
   MEMORY_CORRECTED_BY_USER: "memory_corrected_by_user",
   MEMORY_ANCHOR_CREATED: "memory_anchor_created",
+  /** Phase 7：Tape 存量状态固化为可重放基线（partial，覆盖账本启用前的缺口）。 */
+  MEMORY_IMPORTED: "memory_imported",
 } as const;
 
 /**
@@ -233,6 +237,39 @@ const reactionPayloadSchema = z
   .strict();
 
 /**
+ * Phase 7：legacy 投影条目——旧 messages 行的 opaque 导入形态。
+ *
+ * `text` 是当时的组装文本原样（可能含 Tape/时间/视觉注入），契约不拆分、
+ * 不清洗：拆分属于脆弱正则，`reconstructability=partial` 已声明其非权威性。
+ */
+const legacyTranscriptEntrySchema = z
+  .object({
+    sourceMessageSeq: z.number().int().nonnegative(),
+    role: z.enum(["user", "assistant", "trigger", "tool"]),
+    occurredAt: timestampSchema,
+    text: z.string().max(65_536),
+    attachmentRefs: z.array(idSchema).optional(),
+    callId: idSchema.optional(),
+    toolName: idSchema.optional(),
+    toolArguments: z.string().optional(),
+    toolError: z.boolean().optional(),
+  })
+  .strict();
+
+/** 单批条目上限与编译体积 bound（Phase 7 设计 §5.1）；超出省略最旧条目并计数。 */
+export const LEGACY_TRANSCRIPT_MAX_ENTRIES = 2000;
+
+const legacyTranscriptImportedPayloadSchema = z
+  .object({
+    source: z.literal("messages_projection"),
+    reconstructability: z.literal("partial"),
+    boundaryMessageSeq: z.number().int().nonnegative(),
+    omittedEntryCount: z.number().int().nonnegative(),
+    entries: z.array(legacyTranscriptEntrySchema).max(LEGACY_TRANSCRIPT_MAX_ENTRIES),
+  })
+  .strict();
+
+/**
  * Conversation Event v1 的严格判别联合。
  *
  * 每种事件只接受对应 payload，额外字段会被拒绝，从契约层阻止运行时派生内容污染会话事实。
@@ -273,6 +310,10 @@ export const conversationEventSchema = z.discriminatedUnion("eventType", [
   conversationEnvelopeSchema.extend({
     eventType: z.literal(CONVERSATION_EVENT_TYPE.REACTION_DELIVERED),
     payload: reactionPayloadSchema,
+  }),
+  conversationEnvelopeSchema.extend({
+    eventType: z.literal(CONVERSATION_EVENT_TYPE.LEGACY_TRANSCRIPT_IMPORTED),
+    payload: legacyTranscriptImportedPayloadSchema,
   }),
 ]);
 
@@ -555,6 +596,22 @@ const memoryAnchorCreatedPayloadSchema = z
   .strict();
 
 /**
+ * Phase 7：Tape 存量记忆的导入基线。
+ *
+ * `snapshotArtifactId` 指向 `{ state: SerializedTapeState }` 形态的
+ * MEMORY_SNAPSHOT 制品；重放时以该状态为 base，仅应用
+ * `memorySeq > throughMemorySeq` 的后续事件。
+ */
+const memoryImportedPayloadSchema = z
+  .object({
+    source: z.literal("tape_projection"),
+    reconstructability: z.literal("partial"),
+    snapshotArtifactId: idSchema,
+    throughMemorySeq: z.number().int().nonnegative(),
+  })
+  .strict();
+
+/**
  * Memory Event v1 的严格判别联合。
  *
  * 用户纠正、撤回和 supersede 都追加新事件，不通过覆盖旧断言修改历史。
@@ -579,6 +636,10 @@ export const memoryEventSchema = z.discriminatedUnion("eventType", [
   memoryEnvelopeSchema.extend({
     eventType: z.literal(MEMORY_EVENT_TYPE.MEMORY_ANCHOR_CREATED),
     payload: memoryAnchorCreatedPayloadSchema,
+  }),
+  memoryEnvelopeSchema.extend({
+    eventType: z.literal(MEMORY_EVENT_TYPE.MEMORY_IMPORTED),
+    payload: memoryImportedPayloadSchema,
   }),
 ]);
 

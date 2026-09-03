@@ -22,6 +22,7 @@ import {
   CONTEXT_POLICY_REVISION_ID,
   CONTEXT_POLICY_REVISION_ID_V2,
   CONTEXT_POLICY_REVISION_ID_V3,
+  CONTEXT_POLICY_REVISION_ID_V4,
   CONTEXT_TIMEZONE,
   ContextCompilerError,
   type CanonicalContextV1,
@@ -47,7 +48,8 @@ function validateInput(input: CompileContextInputV1): void {
   if (
     input.contextPolicyRevisionId !== CONTEXT_POLICY_REVISION_ID &&
     input.contextPolicyRevisionId !== CONTEXT_POLICY_REVISION_ID_V2 &&
-    input.contextPolicyRevisionId !== CONTEXT_POLICY_REVISION_ID_V3
+    input.contextPolicyRevisionId !== CONTEXT_POLICY_REVISION_ID_V3 &&
+    input.contextPolicyRevisionId !== CONTEXT_POLICY_REVISION_ID_V4
   ) {
     throw new ContextCompilerError("unsupported_context_policy_revision");
   }
@@ -177,7 +179,11 @@ export function createContextCompilerV1(deps: {
   return {
     async compile(input) {
       validateInput(input);
-      const policyV3 = input.contextPolicyRevisionId === CONTEXT_POLICY_REVISION_ID_V3;
+      // v3 extras (trigger entries, tool arguments, anchors) apply to v4 as
+      // well — v4 = v3 + legacy transcript entries.
+      const policyV3 =
+        input.contextPolicyRevisionId === CONTEXT_POLICY_REVISION_ID_V3 ||
+        input.contextPolicyRevisionId === CONTEXT_POLICY_REVISION_ID_V4;
       const runFactsEnabled =
         input.contextPolicyRevisionId === CONTEXT_POLICY_REVISION_ID_V2 || policyV3;
       if (runFactsEnabled && !deps.agentRunStore) {
@@ -187,7 +193,18 @@ export function createContextCompilerV1(deps: {
         throw new ContextCompilerError("missing_artifact_revision_store");
       }
       const events = await readThroughCursor(deps.conversationEventStore, input);
-      const reduced = reduceConversationEvents(events, input.eventCursor);
+      const policyV4 = input.contextPolicyRevisionId === CONTEXT_POLICY_REVISION_ID_V4;
+      const reducedEvents = reduceConversationEvents(events, input.eventCursor);
+      // Phase 7 (§5.3): legacy transcript entries exist only under policy v4+.
+      // v1–v3 outputs stay byte-identical to their regression anchors.
+      const reduced = {
+        ...reducedEvents,
+        entries: policyV4
+          ? reducedEvents.entries
+          : reducedEvents.entries.filter(
+              (entry) => entry.reconstructability === undefined,
+            ),
+      };
 
       let mergedEntries: Array<
         CanonicalConversationEntryV1 & { attachmentSourceRefs?: string[] }

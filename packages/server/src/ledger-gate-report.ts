@@ -129,6 +129,96 @@ async function countTriggerRunsMissingAnchor(
   return { triggerRuns: triggerRuns.length, missingAnchor };
 }
 
+/**
+ * Conversations whose pre-ledger messages are not yet imported
+ * (Phase 7 design §5.2/§10 check 6). A conversation "needs import" when it
+ * still has legacy rows under the import CLI's boundary rules — messages below
+ * the smallest persisted projection link, or everything when the stream never
+ * had events — and carries no `legacy_transcript_imported` event yet. Cleared
+ * streams are excluded by design (boundary semantics win).
+ */
+async function countMissingLegacyImports(
+  prisma: ReturnType<typeof getPrisma>,
+  accountId: string,
+): Promise<{ conversationsWithLegacy: number; imported: number; missing: number; samples: string[] }> {
+  const conversations = await prisma.message.groupBy({
+    by: ["conversationId"],
+    where: { accountId },
+    _count: { _all: true },
+    orderBy: { conversationId: "asc" },
+  });
+
+  const importedStreams = new Set(
+    (
+      await prisma.conversationEvent.findMany({
+        where: { accountId, eventType: "legacy_transcript_imported" },
+        select: { streamId: true },
+      })
+    ).map((row) => row.streamId),
+  );
+  const clearedStreams = new Set(
+    (
+      await prisma.conversationEvent.findMany({
+        where: { accountId, eventType: "session_rotated" },
+        select: { streamId: true },
+      })
+    ).map((row) => row.streamId),
+  );
+  const headByStream = new Map(
+    (
+      await prisma.conversationStreamHead.findMany({
+        where: { accountId },
+        select: { streamId: true, lastSeq: true },
+      })
+    ).map((head) => [head.streamId, head.lastSeq]),
+  );
+  const earliestLinks = await prisma.legacyMessageProjectionLink.groupBy({
+    by: ["conversationId"],
+    where: { accountId, state: "persisted" },
+    _min: { messageSeq: true },
+  });
+  const minLinkByConversation = new Map(
+    earliestLinks
+      .filter((row) => row._min.messageSeq !== null)
+      .map((row) => [row.conversationId, row._min.messageSeq as number]),
+  );
+
+  let imported = 0;
+  let missing = 0;
+  const samples: string[] = [];
+  for (const conversation of conversations) {
+    const streamId = conversation.conversationId;
+    if (importedStreams.has(streamId)) {
+      imported += 1;
+      continue;
+    }
+    if (clearedStreams.has(streamId)) continue;
+
+    const minLink = minLinkByConversation.get(streamId);
+    let hasLegacyRows: boolean;
+    if (minLink !== undefined) {
+      const below = await prisma.message.findFirst({
+        where: { accountId, conversationId: streamId, seq: { lt: minLink } },
+        select: { seq: true },
+      });
+      hasLegacyRows = below !== null;
+    } else {
+      hasLegacyRows = (headByStream.get(streamId) ?? 0) === 0;
+    }
+    if (!hasLegacyRows) continue;
+
+    missing += 1;
+    if (samples.length < 10) samples.push(streamId);
+  }
+
+  return {
+    conversationsWithLegacy: imported + missing,
+    imported,
+    missing,
+    samples,
+  };
+}
+
 export async function buildGateReport(
   accountId: string,
   options: { windowDays?: number } = {},
@@ -216,6 +306,16 @@ export async function buildGateReport(
     mode: "automatic",
     passed: anchors.missingAnchor === 0,
     detail: anchors,
+  });
+
+  // 6. Legacy transcript import coverage (Phase 7 §10) — canonical context
+  // must not silently lose the pre-ledger era; run ledger:legacy-import first.
+  const legacyImport = await countMissingLegacyImports(prisma, accountId);
+  checks.push({
+    check: "legacy_import_coverage",
+    mode: "automatic",
+    passed: legacyImport.missing === 0,
+    detail: legacyImport,
   });
 
   return {

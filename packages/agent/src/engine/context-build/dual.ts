@@ -7,7 +7,7 @@
 
 import { createHash } from "node:crypto";
 import type { AgentMessage } from "../../llm/types.js";
-import { MESSAGE_CONTENT_TYPE, MESSAGE_ROLE } from "@clawbot/shared";
+import { MESSAGE_CONTENT_TYPE } from "@clawbot/shared";
 
 export type DualDiffDimension = "entry_count" | "role_order" | "text_mismatch" | "media_missing";
 

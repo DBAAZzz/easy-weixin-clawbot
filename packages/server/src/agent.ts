@@ -4,11 +4,7 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 import {
   contextCompilerShadowTotal,
-  contextManifestTotal,
-  artifactPutTotal,
   runLedgerTotal,
-  runLedgerEventTotal,
-  runLedgerInlineLatencyMs,
   getActiveTrace,
   runWithTrace,
   withSpan,
@@ -18,28 +14,27 @@ import type { Agent, ChatRequest, ChatResponse } from "@clawbot/weixin-agent-sdk
 import {
   CommandRegistry,
   CONTEXT_COMPILER_VERSION,
-  CONTEXT_POLICY_REVISION_ID_V2,
+  CONTEXT_POLICY_REVISION_ID_V3,
   CONTEXT_TIMEZONE,
   createHandoffAnchors,
   createRunId,
   createRunLedgerRecorder,
-  createContextCompilerV1,
   getAgentRunStore,
   getArtifactRevisionStore,
   isLLMProviderNotConfiguredError,
   notePulseActivity,
-  type RunLedgerMetrics,
 } from "@clawbot/agent";
 import type { ChatMedia as AgentChatMedia, RunContext } from "@clawbot/agent";
 import type { ContextShadowObserver, ConversationEvent } from "@clawbot/agent";
 import { getPushService, getSchedulerStore } from "@clawbot/agent/ports";
 import { chatEngine } from "./ai.js";
 import { getAssetService } from "./assets/index.js";
-import { PrismaConversationEventStore } from "./db/conversation-event-store.impl.js";
-import { createLocalArtifactContentSink } from "./db/artifact-content-sink.js";
 import { recordAttachmentArtifactMapping } from "./db/conversation-attachment-artifacts.js";
-import { createPrismaAttachmentArtifactResolver } from "./db/prisma-attachment-artifact-resolver.js";
-import { FACT_LEDGER_ARTIFACTS_DIR } from "./paths.js";
+import {
+  createServerRunLedgerCompiler,
+  factLedgerContentSink,
+  runLedgerMetrics,
+} from "./db/fact-ledger-runtime.js";
 import {
   getConversationTitle,
   setConversationTitleIfEmpty,
@@ -285,27 +280,6 @@ export interface ServerWeixinAgent extends Agent {
   clearFromIngress(receiptId: string, wechatConversationId: string): Promise<void>;
 }
 
-/** Run-ledger metrics adapter shared by all account agents. */
-const runLedgerMetrics: RunLedgerMetrics = {
-  total(result) {
-    runLedgerTotal.inc({ result });
-  },
-  event(eventType) {
-    runLedgerEventTotal.inc({ event_type: eventType });
-  },
-  inlineLatencyMs(duration) {
-    runLedgerInlineLatencyMs.observe({}, duration);
-  },
-  artifactPut(kind, result) {
-    artifactPutTotal.inc({ kind, result });
-  },
-  manifest(result) {
-    contextManifestTotal.inc({ result });
-  },
-};
-
-const factLedgerContentSink = createLocalArtifactContentSink(FACT_LEDGER_ARTIFACTS_DIR);
-
 /** Create an Agent bound to a specific WeChat account. */
 export function createAgent(
   accountId: string,
@@ -313,17 +287,11 @@ export function createAgent(
     contextShadowObserver?: ContextShadowObserver;
     /** Startup snapshot from RunLedgerRolloutStore (Phase 4). */
     runLedgerEnabled?: boolean;
+    /** Phase 6：startup snapshot of read_path（rollout 关闭时无意义）。 */
+    contextReadPath?: "legacy" | "dual" | "canonical";
   } = {},
 ): ServerWeixinAgent {
-  const runLedgerCompiler = createContextCompilerV1({
-    conversationEventStore: new PrismaConversationEventStore(),
-    agentRunStore: getAgentRunStore(),
-    artifactRevisionStore: getArtifactRevisionStore(),
-    contentSink: factLedgerContentSink,
-    attachmentArtifactResolver: createPrismaAttachmentArtifactResolver({
-      artifactRevisionStore: getArtifactRevisionStore(),
-    }),
-  });
+  const runLedgerCompiler = createServerRunLedgerCompiler();
 
   async function chat(
     req: ChatRequest,
@@ -473,7 +441,9 @@ export function createAgent(
                     conversationStreamId: source.streamId,
                     eventCursor: source.streamSeq,
                     compilerVersion: CONTEXT_COMPILER_VERSION,
-                    contextPolicyRevisionId: CONTEXT_POLICY_REVISION_ID_V2,
+                    // Phase 6：run-ledger 编译统一走 policy v3（v2 行为保留为
+                    // 回归锚与 shadow 口径）；trigger entry 由此进入 manifest。
+                    contextPolicyRevisionId: CONTEXT_POLICY_REVISION_ID_V3,
                     effectiveTime,
                     timezone: CONTEXT_TIMEZONE,
                     // Phase 5：hints 一路透传，coverage 与 manifest 保持一致
@@ -507,6 +477,10 @@ export function createAgent(
                   }
                 : {}),
               ...(runLedgerInput && source ? { runLedger: runLedgerInput } : {}),
+              // Phase 6：读路径三态（rollout 关闭 / legacy 快照 → 缺省 legacy）。
+              ...(options.contextReadPath && options.contextReadPath !== "legacy"
+                ? { contextReadPath: options.contextReadPath }
+                : {}),
             }),
           ),
         );

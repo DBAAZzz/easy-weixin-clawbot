@@ -299,10 +299,12 @@ test("compiler rejects invalid compile identities instead of guessing", async ()
   const cases = [
     { ...compileInput, accountId: "  " },
     { ...compileInput, conversationStreamId: "" },
-    { ...compileInput, eventCursor: 0 },
+    // Phase 6: cursor 0 is legal for trigger runs on fresh execution streams.
+    { ...compileInput, eventCursor: -1 },
     { ...compileInput, eventCursor: 2.5 },
     { ...compileInput, compilerVersion: "context-compiler-v2" },
-    { ...compileInput, contextPolicyRevisionId: "context-policy-v3" },
+    // Phase 6: context-policy-v3 is supported; an unknown revision is not.
+    { ...compileInput, contextPolicyRevisionId: "context-policy-v4" },
     { ...compileInput, timezone: "UTC" },
     { ...compileInput, effectiveTime: "not-a-time" },
   ];

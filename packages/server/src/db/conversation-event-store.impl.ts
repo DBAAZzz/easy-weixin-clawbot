@@ -137,6 +137,15 @@ export class PrismaConversationEventStore implements ConversationEventStore {
     return rows.map(conversationEventFromRow);
   }
 
+  /** Phase 6：读取流水位（head 表的 last_seq 即最后已分配 streamSeq，§5.1）。 */
+  async getStreamHeadSeq(accountId: string, streamId: string): Promise<number | undefined> {
+    const head = await this.prisma.conversationStreamHead.findUnique({
+      where: { accountId_streamId: { accountId, streamId } },
+      select: { lastSeq: true },
+    });
+    return head && head.lastSeq > 0 ? head.lastSeq : undefined;
+  }
+
   private resolveIdRetry(
     stored: ConversationEvent,
     input: AppendConversationEventInput,

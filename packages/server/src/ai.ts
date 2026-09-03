@@ -48,6 +48,10 @@ import { PrismaSchedulerStore } from "./db/scheduler-store.impl.js";
 import { PrismaModelConfigStore } from "./db/model-config-store.impl.js";
 import { PrismaHeartbeatStore } from "./db/heartbeat-store.impl.js";
 import { createChatExecutor } from "./db/chat-executor.impl.js";
+import {
+  createServerRunLedgerCompiler,
+  factLedgerContentSink,
+} from "./db/fact-ledger-runtime.js";
 import { createModuleLogger, getErrorFields, log } from "./logger.js";
 import {
   DOWNLOADS_DIR,
@@ -175,4 +179,9 @@ export const chatEngine = createChatEngine({
 });
 
 setPushService(createProactivePush(chatEngine.conversations));
-setChatExecutor(createChatExecutor(chatEngine));
+setChatExecutor(
+  createChatExecutor(chatEngine, {
+    compiler: createServerRunLedgerCompiler(),
+    contentSink: factLedgerContentSink,
+  }),
+);

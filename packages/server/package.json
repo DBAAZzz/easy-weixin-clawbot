@@ -15,6 +15,7 @@
     "ingress:stuck": "tsx --conditions development src/ingress-admin.ts stuck",
     "ingress:resolve": "tsx --conditions development src/ingress-admin.ts resolve",
     "ingress:repair-clear": "tsx --conditions development src/ingress-admin.ts repair-clear",
+    "ledger:gate": "tsx --conditions development src/ledger-gate-report.ts",
     "prisma:generate": "tsx src/prisma-cli.ts generate --schema prisma/schema.prisma",
     "prisma:validate": "tsx src/prisma-cli.ts validate --schema prisma/schema.prisma",
     "prisma:migrate:deploy": "tsx src/prisma-cli.ts migrate deploy --schema prisma/schema.prisma",

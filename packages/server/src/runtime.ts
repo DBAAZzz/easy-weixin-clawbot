@@ -71,9 +71,15 @@ export function createBotRuntime(): BotRuntime {
         const shadowEnabled = await new PrismaContextCompilerShadowRolloutStore().isEnabled(
           accountId,
         );
-        const runLedgerEnabled = await new RunLedgerRolloutStore().isEnabled(accountId);
+        const runLedgerRolloutStore = new RunLedgerRolloutStore();
+        const runLedgerEnabled = await runLedgerRolloutStore.isEnabled(accountId);
+        const contextReadPath = await runLedgerRolloutStore.readPath(accountId);
         contextShadowObserver = shadowEnabled ? createServerContextShadowObserver() : undefined;
-        const agent = createAgent(accountId, { contextShadowObserver, runLedgerEnabled });
+        const agent = createAgent(accountId, {
+          contextShadowObserver,
+          runLedgerEnabled,
+          contextReadPath,
+        });
         const syncBuf = await syncStateStore.load(accountId);
 
         await monitorWeixinProvider({

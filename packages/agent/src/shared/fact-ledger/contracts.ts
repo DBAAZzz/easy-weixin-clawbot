@@ -300,6 +300,8 @@ const runStartedPayloadSchema = z
   .object({
     runKind: z.enum(["chat", "scheduler", "heartbeat"]),
     triggerEventId: idSchema.optional(),
+    /** Phase 6：trigger run 发起时执行流的最后 streamSeq（trigger entry 排序锚点）。 */
+    anchorStreamSeq: z.number().int().nonnegative().optional(),
   })
   .strict();
 

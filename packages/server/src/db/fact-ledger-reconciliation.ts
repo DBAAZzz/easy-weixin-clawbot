@@ -136,10 +136,15 @@ export async function reconcileWeixinIngress(
     }
   }
 
-  // Delivered outbound facts must correlate to a terminal run of the same
-  // stream. Missing delivery_requested with delivery_succeeded is NOT flagged:
-  // that is the documented degraded-run shape (ledger degradation), visible via
-  // `run_interrupted{ledger_degraded}` instead.
+  // Delivered outbound facts must correlate to a terminal run. Two shapes are
+  // legitimate (Phase 6 design §12):
+  // - ingress settle facts: causationId = receipt id AND the run started on the
+  //   SAME stream (the receipt-triggered run);
+  // - proactive facts (heartbeat/scheduler push): causationId = runId —
+  //   correlated by run identity alone, because the run's execution stream
+  //   (scheduler:{seq}) legitimately differs from the target conversation.
+  // Missing delivery_requested with delivery_succeeded is NOT flagged: that is
+  // the documented degraded-run shape, visible via run_interrupted instead.
   const deliveredFacts = await prisma.conversationEvent.findMany({
     where: { accountId, eventType: "outbound_message_delivered" },
     select: { eventId: true, causationId: true, streamId: true },
@@ -179,9 +184,53 @@ export async function reconcileWeixinIngress(
         .filter((start) => start.causationId && terminalRunIds.has(start.runId))
         .map((start) => `${start.causationId}\u0000${start.conversationStreamId}`),
     );
+    const uncorrelated = deliveredFacts.filter(
+      (fact) =>
+        fact.causationId !== null &&
+        !correlatedTriggers.has(`${fact.causationId}\u0000${fact.streamId}`),
+    );
+    // Proactive shape: causationId IS the runId of a terminal run (§12 —
+    // streamId deliberately not compared, because a scheduler run executes in
+    // its isolated conversation and delivers into the target conversation).
+    const proactiveCandidates = [
+      ...new Set(
+        uncorrelated
+          .map((fact) => fact.causationId!)
+          .filter((id) => id.length > 0),
+      ),
+    ];
+    const proactiveStarts =
+      proactiveCandidates.length === 0
+        ? []
+        : await prisma.agentRunEvent.findMany({
+            where: { accountId, eventType: "run_started", runId: { in: proactiveCandidates } },
+            select: { runId: true },
+            distinct: ["runId"],
+          });
+    const proactiveTerminalRunIds = new Set(
+      proactiveStarts.length === 0
+        ? []
+        : (
+            await prisma.agentRunEvent.findMany({
+              where: {
+                accountId,
+                runId: { in: proactiveStarts.map((start) => start.runId) },
+                eventType: { in: ["run_completed", "run_interrupted"] },
+              },
+              select: { runId: true },
+              distinct: ["runId"],
+            })
+          ).map((run) => run.runId),
+    );
+    const proactiveCorrelated = new Set(
+      uncorrelated
+        .map((fact) => fact.causationId!)
+        .filter((runId) => proactiveTerminalRunIds.has(runId)),
+    );
     for (const fact of deliveredFacts) {
       if (!fact.causationId) continue;
       if (correlatedTriggers.has(`${fact.causationId}\u0000${fact.streamId}`)) continue;
+      if (proactiveCorrelated.has(fact.causationId)) continue;
       observations.push({ eventId: fact.eventId, accountId, result: "unexpected" });
     }
   }

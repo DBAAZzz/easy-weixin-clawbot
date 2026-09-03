@@ -22,6 +22,21 @@ export function createRunId(accountId: string, sourceEventId: string): string {
   return `run-v1:${sha256Hex(accountId, sourceEventId)}`;
 }
 
+/**
+ * `run-v1:<sha256(accountId + NUL + source + NUL + entityId + NUL + fireAtISO)>`
+ * for trigger runs (Phase 6 design §5.1). Deterministic so an at-least-once
+ * re-execution of the same (heartbeat tick / scheduler fire) converges on the
+ * same run chain instead of forking a second one.
+ */
+export function createTriggerRunId(
+  accountId: string,
+  source: "heartbeat" | "scheduler",
+  entityId: string,
+  fireAtISO: string,
+): string {
+  return `run-v1:${sha256Hex(accountId, source, entityId, fireAtISO)}`;
+}
+
 /** `call-v1:<sha256(runId + NUL + round)>` — one deterministic id per model call. */
 export function createCallId(runId: string, round: number): string {
   return `call-v1:${sha256Hex(runId, String(round))}`;

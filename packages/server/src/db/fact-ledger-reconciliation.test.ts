@@ -111,3 +111,76 @@ test("reconciliation rejects a completed clear receipt without its causation bou
   const healthy = await reconcileWeixinIngress("account-1", {}, prisma);
   assert.deepEqual(healthy.issues, []);
 });
+
+test("proactive outbound facts correlate by runId across streams (Phase 6 §12)", async () => {
+  const runId = "run-v1:abc";
+  const delivered = [
+    {
+      eventId: "fact-proactive",
+      accountId: "account-1",
+      causationId: runId,
+      // scheduler 场景：run 执行流(scheduler:1) ≠ 目标会话(target-conv)。
+      streamId: "target-conv",
+    },
+  ];
+  const prisma = {
+    weixinIngressDispatch: { findMany: async () => [] },
+    legacyMessageProjectionLink: { findMany: async () => [] },
+    conversationEvent: { findMany: async () => delivered },
+    agentRunEvent: {
+      findMany: async (args: { where: Record<string, unknown> }) => {
+        const eventType = args.where.eventType;
+        const eventTypeIn =
+          typeof eventType === "object" && eventType !== null && "in" in eventType
+            ? (eventType as { in: string[] }).in
+            : eventType;
+        const isStarted = eventTypeIn === "run_started";
+        const isTerminal =
+          Array.isArray(eventTypeIn) &&
+          eventTypeIn.includes("run_completed") &&
+          eventTypeIn.includes("run_interrupted");
+        const hasCausation = "causationId" in args.where;
+        const runIdFilter = args.where.runId as { in?: string[] } | string | undefined;
+        const requestedRunIds = Array.isArray(runIdFilter)
+          ? runIdFilter
+          : typeof runIdFilter === "object" && runIdFilter !== null
+            ? (runIdFilter.in ?? [])
+            : runIdFilter === undefined
+              ? []
+              : [runIdFilter];
+        if (isStarted && hasCausation) return []; // receipt-keyed starts: none
+        if (isStarted && requestedRunIds.includes(runId)) return [{ runId }];
+        if (isTerminal && requestedRunIds.includes(runId)) return [{ runId }];
+        return [];
+      },
+    },
+  } as unknown as PrismaClient;
+
+  const report = await reconcileWeixinIngress("account-1", {}, prisma);
+  assert.equal(report.summary.unexpected, 0, "proactive fact with terminal run is expected");
+  assert.equal(
+    report.issues.some((issue) => issue.eventId === "fact-proactive"),
+    false,
+  );
+});
+
+test("proactive outbound fact without a terminal run is unexpected", async () => {
+  const delivered = [
+    {
+      eventId: "fact-orphan",
+      accountId: "account-1",
+      causationId: "run-v1:ghost",
+      streamId: "target-conv",
+    },
+  ];
+  const prisma = {
+    weixinIngressDispatch: { findMany: async () => [] },
+    legacyMessageProjectionLink: { findMany: async () => [] },
+    conversationEvent: { findMany: async () => delivered },
+    agentRunEvent: { findMany: async () => [] },
+  } as unknown as PrismaClient;
+
+  const report = await reconcileWeixinIngress("account-1", {}, prisma);
+  assert.equal(report.summary.unexpected, 1);
+  assert.equal(report.issues[0]?.eventId, "fact-orphan");
+});

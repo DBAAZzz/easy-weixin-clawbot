@@ -31,8 +31,11 @@ export interface RunLedgerRecorderOptions {
 
 export interface RunStartInput {
   conversationStreamId: string;
-  sourceEventId: string;
+  /** Ingress run 的对话出处；trigger run（heartbeat/scheduler）缺省。 */
+  sourceEventId?: string;
   occurredAt: string;
+  /** Phase 6：trigger run 发起时执行流的最后 streamSeq（run_started 排序锚点）。 */
+  anchorStreamSeq?: number;
 }
 
 /**
@@ -104,7 +107,7 @@ export function createRunLedgerRecorder(options: RunLedgerRecorderOptions): RunL
       }
     : undefined;
 
-  let stream: { conversationStreamId: string; sourceEventId: string } | undefined;
+  let stream: { conversationStreamId: string; sourceEventId?: string } | undefined;
   let degraded = false;
   let lastResponseArtifactId: string | undefined;
   let tail: Promise<unknown> = Promise.resolve();
@@ -141,6 +144,7 @@ export function createRunLedgerRecorder(options: RunLedgerRecorderOptions): RunL
     // tail (forced past the degraded gate) so it can never interleave with an
     // in-flight write.
     if (stream) {
+      const degradedSource = stream.sourceEventId ?? stream.conversationStreamId;
       void enqueueForce(async () => {
         try {
           await options.agentRunStore.append({
@@ -150,8 +154,8 @@ export function createRunLedgerRecorder(options: RunLedgerRecorderOptions): RunL
             conversationStreamId: stream!.conversationStreamId,
             runId: options.runId,
             occurredAt: new Date(now()).toISOString(),
-            causationId: stream!.sourceEventId,
-            correlationId: stream!.sourceEventId,
+            causationId: degradedSource,
+            correlationId: degradedSource,
             eventId: createRunEventId(
               options.accountId,
               options.runId,
@@ -173,7 +177,7 @@ export function createRunLedgerRecorder(options: RunLedgerRecorderOptions): RunL
     kind: (typeof AGENT_RUN_EVENT_TYPE)[keyof typeof AGENT_RUN_EVENT_TYPE],
     localKey: string,
     payload: unknown,
-    opts: { causationId: string; occurredAt?: string },
+    opts: { causationId?: string; occurredAt?: string },
   ): Promise<boolean> {
     if (!stream) return Promise.resolve(false);
     const input = {
@@ -183,8 +187,10 @@ export function createRunLedgerRecorder(options: RunLedgerRecorderOptions): RunL
       conversationStreamId: stream.conversationStreamId,
       runId: options.runId,
       occurredAt: opts.occurredAt ?? new Date(now()).toISOString(),
-      causationId: opts.causationId,
-      correlationId: stream.sourceEventId,
+      // Trigger runs (no ingress source) fall back to the execution stream so
+      // the non-optional correlation chain stays populated (design §5.1).
+      causationId: opts.causationId ?? stream.sourceEventId,
+      correlationId: stream.sourceEventId ?? stream.conversationStreamId,
       eventId: createRunEventId(options.accountId, options.runId, kind, localKey),
       payload,
     } as AppendAgentRunEventInput;
@@ -207,15 +213,29 @@ export function createRunLedgerRecorder(options: RunLedgerRecorderOptions): RunL
     async start(input) {
       stream = {
         conversationStreamId: input.conversationStreamId,
-        sourceEventId: input.sourceEventId,
+        ...(input.sourceEventId !== undefined ? { sourceEventId: input.sourceEventId } : {}),
       };
       const startedAt = now();
+      // Phase 6：trigger run（无 ingress 出处）→ payload 不含 triggerEventId、
+      // envelope causationId 省略、correlation 取执行流；anchorStreamSeq 落 payload。
+      const isTrigger = input.sourceEventId === undefined;
+      const payload: Record<string, unknown> = isTrigger
+        ? {
+            runKind: "chat",
+            ...(input.anchorStreamSeq !== undefined
+              ? { anchorStreamSeq: input.anchorStreamSeq }
+              : {}),
+          }
+        : { runKind: "chat", triggerEventId: input.sourceEventId };
       const ok = await enqueue(() =>
         appendEvent(
           AGENT_RUN_EVENT_TYPE.RUN_STARTED,
           "1",
-          { runKind: "chat", triggerEventId: input.sourceEventId },
-          { causationId: input.sourceEventId, occurredAt: input.occurredAt },
+          payload,
+          {
+            ...(input.sourceEventId !== undefined ? { causationId: input.sourceEventId } : {}),
+            occurredAt: input.occurredAt,
+          },
         ),
       );
       options.metrics?.inlineLatencyMs(now() - startedAt);

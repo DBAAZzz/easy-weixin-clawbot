@@ -21,6 +21,17 @@ export interface ReduceRunFactsInput {
   triggerStreamSeqByEventId: Map<string, number>;
   /** artifact id → extracted text, pre-resolved by the compiler from the artifact store. */
   artifactTextById: Map<string, string>;
+  /**
+   * v3+：为 trigger run 派生 trigger entry 并增强 tool 配对（design §7.1/§7.3）。
+   * v2 输入下这些字段必须缺省——v2 hash 回归锚不允许变化。
+   */
+  policyV3?: boolean;
+  /** v3：trigger runId → 排序锚（anchorStreamSeq 或时钟近似落位）。 */
+  triggerRunAnchors?: Map<string, { streamSeq: number; anchored: boolean }>;
+  /** v3：round-1 CANONICAL_REQUEST 制品 id → 派生的 trigger prompt 文本。 */
+  round1RequestTextById?: Map<string, string>;
+  /** v3：TOOL_ARGUMENTS 制品 id → 序列化 arguments JSON。 */
+  toolArgumentsJsonById?: Map<string, string>;
 }
 
 export interface RunFactReduction {
@@ -47,6 +58,30 @@ export function extractArtifactText(inlineJson: unknown): string | undefined {
     }
   }
   return parts.join("\n");
+}
+
+/**
+ * v3：从 round-1 CANONICAL_REQUEST 文档派生 trigger prompt（design §7.1）。
+ *
+ * 取最后一条 `role: "user" | "trigger"` 消息的完整组装文本（含时间/记忆注入，
+ * 即 legacy TRIGGER 消息的同一 `assembleUserContext` 产物——双侧都不剥离注入片段，
+ * dual 期 hash 对比才有意义）。
+ */
+export function extractRound1TriggerPrompt(requestDoc: unknown): string | undefined {
+  if (!requestDoc || typeof requestDoc !== "object" || Array.isArray(requestDoc)) {
+    return undefined;
+  }
+  const messages = (requestDoc as { messages?: unknown }).messages;
+  if (!Array.isArray(messages)) return undefined;
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (!message || typeof message !== "object" || Array.isArray(message)) continue;
+    const role = (message as { role?: unknown }).role;
+    if (role !== "user" && role !== "trigger") continue;
+    const text = extractArtifactText(message);
+    return text;
+  }
+  return undefined;
 }
 
 interface RunGroup {
@@ -85,12 +120,87 @@ export function reduceRunFacts(input: ReduceRunFactsInput): RunFactReduction {
     // (rollback / abort / ledger degradation) never produce entries.
     if (!group.started || group.interrupted || !group.completed) continue;
 
-    const startedPayload = group.started.payload as { triggerEventId?: string };
+    const startedPayload = group.started.payload as {
+      triggerEventId?: string;
+      anchorStreamSeq?: number;
+    };
     const triggerEventId = startedPayload.triggerEventId;
-    if (!triggerEventId) continue;
-    const triggerStreamSeq = input.triggerStreamSeqByEventId.get(triggerEventId);
-    // The trigger must be a conversation event inside the compile window.
-    if (triggerStreamSeq === undefined) continue;
+    let anchorStreamSeq: number;
+    if (triggerEventId !== undefined) {
+      const triggerStreamSeq = input.triggerStreamSeqByEventId.get(triggerEventId);
+      // The trigger must be a conversation event inside the compile window.
+      if (triggerStreamSeq === undefined) continue;
+      anchorStreamSeq = triggerStreamSeq;
+    } else {
+      // Trigger run (Phase 6 design §7.2): no ingress trigger — position comes
+      // from the anchor resolved by the compiler (anchorStreamSeq, or the
+      // documented local-clock approximation which is dual-only).
+      if (!input.policyV3) continue;
+      const anchor = input.triggerRunAnchors?.get(group.runId);
+      if (!anchor) continue;
+      if (!anchor.anchored) {
+        diagnostics.push({
+          eventId: group.started.eventId,
+          streamSeq: anchor.streamSeq,
+          code: "run_anchor_missing",
+        });
+      }
+      anchorStreamSeq = anchor.streamSeq;
+
+      // Trigger entry (design §7.1): the run's opening prompt, derived from the
+      // round-1 CANONICAL_REQUEST artifact. Missing artifact → empty entry +
+      // diagnostic (no guessing), same degradation family as §10.2.
+      const round1 = group.events.find(
+        (event) =>
+          event.eventType === AGENT_RUN_EVENT_TYPE.MODEL_CALL_STARTED &&
+          (event.payload as { round?: number }).round === 1,
+      );
+      const requestArtifactId = round1
+        ? (round1.payload as { requestArtifactId?: string }).requestArtifactId
+        : undefined;
+      const promptText =
+        requestArtifactId !== undefined
+          ? input.round1RequestTextById?.get(requestArtifactId)
+          : undefined;
+      if (promptText === undefined) {
+        diagnostics.push({
+          eventId: round1?.eventId ?? group.started.eventId,
+          streamSeq: anchorStreamSeq,
+          code: "run_request_artifact_missing",
+        });
+      }
+      entries.push({
+        eventId: group.started.eventId,
+        streamSeq: anchorStreamSeq,
+        role: "trigger",
+        occurredAt: group.started.occurredAt,
+        text: promptText ?? "",
+        attachments: [],
+        runId: group.runId,
+        runSeq: group.started.runSeq,
+      });
+    }
+
+    // v3 tool enrichment: join each completed/failed tool call back to its
+    // requested event for toolName + serialized arguments (design §7.3).
+    const requestedByToolCallId = new Map<
+      string,
+      { toolName: string; argumentsArtifactId: string }
+    >();
+    if (input.policyV3) {
+      for (const event of group.events) {
+        if (event.eventType !== AGENT_RUN_EVENT_TYPE.TOOL_CALL_REQUESTED) continue;
+        const payload = event.payload as {
+          toolCallId: string;
+          toolName: string;
+          argumentsArtifactId: string;
+        };
+        requestedByToolCallId.set(payload.toolCallId, {
+          toolName: payload.toolName,
+          argumentsArtifactId: payload.argumentsArtifactId,
+        });
+      }
+    }
 
     for (const event of group.events) {
       if (event.eventType === AGENT_RUN_EVENT_TYPE.MODEL_CALL_COMPLETED) {
@@ -99,13 +209,13 @@ export function reduceRunFacts(input: ReduceRunFactsInput): RunFactReduction {
         if (text === undefined) {
           diagnostics.push({
             eventId: event.eventId,
-            streamSeq: triggerStreamSeq,
+            streamSeq: anchorStreamSeq,
             code: "run_response_artifact_missing",
           });
         }
         entries.push({
           eventId: event.eventId,
-          streamSeq: triggerStreamSeq,
+          streamSeq: anchorStreamSeq,
           role: "assistant",
           occurredAt: event.occurredAt,
           text: text ?? "",
@@ -134,19 +244,31 @@ export function reduceRunFacts(input: ReduceRunFactsInput): RunFactReduction {
         if (text === undefined) {
           diagnostics.push({
             eventId: event.eventId,
-            streamSeq: triggerStreamSeq,
+            streamSeq: anchorStreamSeq,
             code: "run_result_artifact_missing",
           });
         }
+        const requested = input.policyV3
+          ? requestedByToolCallId.get(payload.toolCallId)
+          : undefined;
+        const toolArguments =
+          requested !== undefined
+            ? input.toolArgumentsJsonById?.get(requested.argumentsArtifactId)
+            : undefined;
         entries.push({
           eventId: event.eventId,
-          streamSeq: triggerStreamSeq,
+          streamSeq: anchorStreamSeq,
           role: "tool",
           occurredAt: event.occurredAt,
           text: text ?? "",
           attachments: [],
           runId: group.runId,
           runSeq: event.runSeq,
+          ...(input.policyV3
+            ? { callId: payload.toolCallId, toolError: event.eventType === AGENT_RUN_EVENT_TYPE.TOOL_CALL_FAILED }
+            : {}),
+          ...(requested !== undefined ? { toolName: requested.toolName } : {}),
+          ...(toolArguments !== undefined ? { toolArguments } : {}),
         });
       }
     }

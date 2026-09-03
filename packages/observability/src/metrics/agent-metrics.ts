@@ -245,3 +245,29 @@ export const summaryArtifactTotal = registry.createCounter({
   help: "SUMMARY artifacts created by compaction",
   labelNames: [],
 });
+
+// ── Phase 6：读取切换与主动推送事实 ──
+
+export const contextReadPathTotal = registry.createCounter({
+  name: "context_read_path_total",
+  help: "Per-turn context read path",
+  labelNames: ["account", "path"],
+});
+
+export const contextDualDiffTotal = registry.createCounter({
+  name: "context_dual_diff_total",
+  help: "Dual-period canonical vs legacy assembly comparison results",
+  labelNames: ["result", "dimension"],
+});
+
+export const contextReadFallbackTotal = registry.createCounter({
+  name: "context_read_fallback_total",
+  help: "Canonical read-path builds that fell back to legacy for the turn",
+  labelNames: ["reason"],
+});
+
+export const proactiveOutboundTotal = registry.createCounter({
+  name: "proactive_outbound_total",
+  help: "Proactive push outbound conversation fact writes",
+  labelNames: ["result"],
+});

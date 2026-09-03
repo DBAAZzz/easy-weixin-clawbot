@@ -38,6 +38,9 @@ test("controller appends, claims, resolves source event, and settles", async () 
     async listStream() {
       return stored ? [stored] : [];
     },
+    async getStreamHeadSeq() {
+      return stored ? 1 : undefined;
+    },
   };
   const dispatchStore = {
     async createAndClaim() {

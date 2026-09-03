@@ -190,6 +190,7 @@ export {
   CONTEXT_COMPILER_VERSION,
   CONTEXT_POLICY_REVISION_ID,
   CONTEXT_POLICY_REVISION_ID_V2,
+  CONTEXT_POLICY_REVISION_ID_V3,
   CONTEXT_TIMEZONE,
   ContextCompilerError,
   CONTEXT_COMPILER_SHADOW_DIFF_CATEGORIES,
@@ -198,6 +199,7 @@ export {
   reduceRunFacts,
   compareCanonicalEntries,
   extractArtifactText,
+  extractRound1TriggerPrompt,
   buildTriggerSeqIndex,
   buildCanonicalRequestDocument,
   buildContextManifestDocument,
@@ -237,6 +239,7 @@ export {
   readSummaryArtifactIds,
   putDocumentArtifact,
   createRunId,
+  createTriggerRunId,
   createCallId,
   createDeliveryId,
   createManifestId,
@@ -317,8 +320,30 @@ export type {
   PulseDecision,
 } from "./capabilities/heartbeat/types.js";
 
+// ── Proactive outbound facts (Phase 6) ─────────────────────────────
+export { recordProactiveOutbound } from "./capabilities/outbound-facts.js";
+export type { ProactiveOutboundInput } from "./capabilities/outbound-facts.js";
+
+// ── Context build / read switch (Phase 6) ──────────────────────────
+export {
+  buildCanonicalHistory,
+  CanonicalContextBuildError,
+  canonicalMessagesHash,
+  compareDualHistories,
+  DEFAULT_MEDIA_REPLAY_LIMIT,
+  loadLegacyContext,
+} from "./engine/context-build/index.js";
+export type {
+  CanonicalHistoryBuild,
+  CanonicalHistoryBuildDeps,
+  ContextReadPath,
+  DualComparison,
+  DualDiffDimension,
+} from "./engine/context-build/index.js";
+
 // ── Chat orchestration ──────────────────────────────────────────────
 export { createChatEngine, type ChatEngine, type ChatLog } from "./engine/chat-engine.js";
+export { type ChatTurnInput } from "./engine/turn.js";
 export { type RunContext, toolContextFrom } from "./engine/context.js";
 export {
   createContextShadowObserver,

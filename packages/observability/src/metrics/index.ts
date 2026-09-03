@@ -38,4 +38,8 @@ export {
   mediaMappingTotal,
   visualObservationTotal,
   summaryArtifactTotal,
+  contextReadPathTotal,
+  contextDualDiffTotal,
+  contextReadFallbackTotal,
+  proactiveOutboundTotal,
 } from "./agent-metrics.js";

@@ -21,6 +21,8 @@ import type { ChatResponse, ChatMedia } from "../shared/types.js";
 import type { DebugFlags } from "../commands/debug.js";
 import { getMessageStore } from "../ports/message-store.js";
 import { getUsageStore } from "../ports/usage-store.js";
+import { getArtifactRevisionStore } from "../ports/artifact-revision-store.js";
+import type { ArtifactContentSink } from "../ports/artifact-content-sink.js";
 import {
   emptyState,
   recall,
@@ -33,6 +35,7 @@ import { extractMediaFromText } from "../shared/media.js";
 import { assembleUserContext } from "../prompts/assembler.js";
 import { PROMPT_PROFILES } from "../prompts/profiles.js";
 import { prepareUserVisualContent } from "../llm/vision.js";
+import { modelSupportsVision } from "../llm/model-meta.js";
 import {
   extractAssistantText,
   extractToolResultText,
@@ -44,12 +47,23 @@ import type {
 } from "./context-shadow/observer.js";
 import { ARTIFACT_KIND } from "../shared/fact-ledger/contracts.js";
 import { putDocumentArtifact } from "./run-ledger/revisions.js";
-import { getArtifactRevisionStore } from "../ports/artifact-revision-store.js";
 import { getPromptAssets } from "../prompts/port.js";
 import { createDeliveryId, toStableErrorCode } from "./run-ledger/ids.js";
 import type { RunLedgerRecorder } from "./run-ledger/recorder.js";
 import type { RunnerLedger } from "./runner.js";
 import type { CompiledContextV1 } from "../context-compiler/types.js";
+import {
+  buildCanonicalHistory,
+  CanonicalContextBuildError,
+  compareDualHistories,
+  loadLegacyContext,
+  type ContextReadPath,
+} from "./context-build/index.js";
+import {
+  contextDualDiffTotal,
+  contextReadFallbackTotal,
+  contextReadPathTotal,
+} from "@clawbot/observability";
 
 export interface ChatLog {
   llm(accountId: string, round: number): void;
@@ -76,6 +90,11 @@ export interface ChatTurnInput {
   sourceConversationEventId?: string;
   /** Request-local clock captured once and shared with legacy and shadow compilation. */
   effectiveTime?: string;
+  /**
+   * Phase 6：上下文读取三态（design §8）。缺省 legacy。dual/canonical 需要
+   * runLedger 依赖（编译闭包）；缺依赖时自动回落 legacy。
+   */
+  contextReadPath?: ContextReadPath;
   contextShadow?: {
     observer: ContextShadowObserver;
     sourceEventId: string;
@@ -90,7 +109,12 @@ export interface ChatTurnInput {
       coverageHints?: { memoryFacts?: boolean; immutableMediaArtifacts?: boolean };
     }) => Promise<CompiledContextV1>;
     conversationStreamId: string;
-    sourceEventId: string;
+    /** Ingress run 的出处事件；trigger run（heartbeat/scheduler）缺省（Phase 6）。 */
+    sourceEventId?: string;
+    /** Phase 6：trigger run 发起时执行流的最后 streamSeq（run_started 排序锚点，§5.1）。 */
+    anchorStreamSeq?: number;
+    /** Phase 6：canonical 媒体重放读取 MEDIA_ASSET 字节的 sink（§7.3）。 */
+    contentSink?: ArtifactContentSink;
   };
 }
 
@@ -119,33 +143,76 @@ function createUsageRequestId(): string {
   return traceId === "no-trace" ? `chat:${randomUUID()}` : traceId;
 }
 
+interface LoadedContext {
+  history: AgentMessage[];
+  memoryContext: string;
+  /** canonical 覆写 cache 数组前的 legacy 视图快照（shadow 观察仍然对比 legacy）。 */
+  legacyHistorySnapshot?: AgentMessage[];
+}
+
 /**
- * Load message history and tape memory (session + global) in parallel, returning
- * the live history array and the formatted memory block for prompt injection.
+ * Read-path dispatch (Phase 6 design §8): legacy keeps the live cache array;
+ * dual compares the parallel canonical build against it and keeps feeding
+ * legacy; canonical overwrites the live cache array in place so appends,
+ * persistence and rollback stay coherent. Memory injection always comes from
+ * Tape recall (§1.7) — only history source switches.
  */
-async function loadConversationContext(
+async function loadTurnContext(
   cache: ConversationCache,
   ctx: RunContext,
-): Promise<{ history: AgentMessage[]; memoryContext: string }> {
-  const [, [sessionMemory, globalMemory]] = await Promise.all([
-    withSpan("history.load", { conversationId: ctx.conversationId, accountId: ctx.accountId }, () =>
-      cache.ensureLoaded(ctx.accountId, ctx.conversationId),
-    ),
-    withSpan("tape.recall", { conversationId: ctx.conversationId, accountId: ctx.accountId }, () =>
-      Promise.all([
-        recall(ctx.accountId, ctx.conversationId),
-        recall(ctx.accountId, GLOBAL_BRANCH),
-      ]).catch((err) => {
-        runLogger(ctx).warn("tape recall failed, proceeding without memory", { err });
-        return [emptyState(), emptyState()] as const;
-      }),
-    ),
-  ]);
+  input: ChatTurnInput,
+  chatModel: ResolvedModel,
+): Promise<LoadedContext> {
+  const legacy = await loadLegacyContext(cache, ctx);
+  const requested = input.contextReadPath ?? "legacy";
+  const effective: ContextReadPath =
+    requested !== "legacy" && input.runLedger ? requested : "legacy";
+  contextReadPathTotal.inc({ account: ctx.accountId, path: effective });
+  if (requested !== "legacy" && !input.runLedger) {
+    contextReadFallbackTotal.inc({ reason: "ledger_missing" });
+  }
+  if (effective === "legacy") return legacy;
 
-  return {
-    history: cache.get(ctx.accountId, ctx.conversationId),
-    memoryContext: formatMemoryForPrompt(globalMemory, sessionMemory),
-  };
+  try {
+    const canonical = await buildCanonicalHistory({
+      accountId: ctx.accountId,
+      compileContext: input.runLedger!.compileContext,
+      artifactRevisionStore: getArtifactRevisionStore(),
+      contentSink: input.runLedger!.contentSink,
+      supportsImageInput: modelSupportsVision(chatModel.meta),
+    });
+
+    if (effective === "dual") {
+      const comparison = compareDualHistories(legacy.history, canonical.messages);
+      contextDualDiffTotal.inc({
+        result: comparison.result,
+        dimension: comparison.result === "same" ? "none" : (comparison.dimensions[0] ?? "none"),
+      });
+      if (comparison.result === "different") {
+        runLogger(ctx).warn("context dual diff", {
+          dimensions: comparison.dimensions,
+          firstDivergenceIndex: comparison.firstDivergenceIndex ?? -1,
+          entryCount: legacy.history.length,
+        });
+      }
+      return legacy;
+    }
+
+    // canonical：原位覆盖 cache 数组，append/rollback/persist 语义保持不变。
+    const live = cache.get(ctx.accountId, ctx.conversationId);
+    const legacyHistorySnapshot = [...live];
+    live.length = 0;
+    live.push(...canonical.messages);
+    return { history: live, memoryContext: legacy.memoryContext, legacyHistorySnapshot };
+  } catch (error) {
+    // 读路径 fail-open 回 legacy：只影响当次组装（§8.3）。
+    contextReadFallbackTotal.inc({
+      reason:
+        error instanceof CanonicalContextBuildError ? error.code : "build_failed",
+    });
+    runLogger(ctx).warn("canonical context build failed; falling back to legacy", { err: error });
+    return legacy;
+  }
 }
 
 /**
@@ -487,7 +554,12 @@ export async function runChatTurn(
     "agent.chat",
     { model: chatModel.modelId, hasMedia: Boolean(input.media) },
     async () => {
-      const { history, memoryContext } = await loadConversationContext(cache, ctx);
+      const { history, memoryContext, legacyHistorySnapshot } = await loadTurnContext(
+        cache,
+        ctx,
+        input,
+        chatModel,
+      );
 
       const userMessage = await buildUserMessage(ctx, {
         text: input.text,
@@ -512,7 +584,7 @@ export async function runChatTurn(
             timezone: "Asia/Shanghai",
             compilerVersion: "context-compiler-v1",
             contextPolicyRevisionId: "context-policy-v2",
-            legacyMessages: history,
+            legacyMessages: legacyHistorySnapshot ?? history,
           });
         } catch (error) {
           // The observer guards itself; this net keeps any throw from a
@@ -523,12 +595,15 @@ export async function runChatTurn(
 
       // Run Ledger (Phase 4): run_started is an inline queue write before the
       // runner starts; its failure degrades the run and the turn proceeds.
+      // Phase 6：trigger run 无 sourceEventId（envelope causation 省略），
+      // anchorStreamSeq 落 run_started payload（§5.1）。
       let runnerLedger: RunnerLedger | undefined;
       if (input.runLedger) {
         const { recorder } = input.runLedger;
         const started = await recorder.start({
           conversationStreamId: input.runLedger.conversationStreamId,
           sourceEventId: input.runLedger.sourceEventId,
+          anchorStreamSeq: input.runLedger.anchorStreamSeq,
           occurredAt: new Date().toISOString(),
         });
         if (started && !recorder.isDegraded()) {
@@ -606,6 +681,9 @@ export async function runChatTurn(
 
         if (input.runLedger) {
           const { recorder, sourceEventId } = input.runLedger;
+          // Ingress: delivery keyed by the receipt; trigger runs (§5.2) key by
+          // the runId itself — delivery-v1:<sha256(accountId + runId)>.
+          const deliveryTargetId = sourceEventId ?? recorder.runId;
           if (committed) {
             // run_completed precedes delivery_requested in the queue (design §5.2).
             await recorder.finishCompleted({
@@ -613,7 +691,7 @@ export async function runChatTurn(
               finalResponseArtifactId: recorder.getFinalResponseArtifactId(),
             });
             await recorder.recordDeliveryRequested({
-              deliveryId: createDeliveryId(ctx.accountId, sourceEventId),
+              deliveryId: createDeliveryId(ctx.accountId, deliveryTargetId),
             });
           } else {
             // Design §5.3: aborted turns are their own reason — only a

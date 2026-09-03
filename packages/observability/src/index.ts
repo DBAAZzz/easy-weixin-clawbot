@@ -66,6 +66,10 @@ export {
   mediaMappingTotal,
   visualObservationTotal,
   summaryArtifactTotal,
+  contextReadPathTotal,
+  contextDualDiffTotal,
+  contextReadFallbackTotal,
+  proactiveOutboundTotal,
 } from "./metrics/index.js";
 export type { Counter, Histogram, Gauge } from "./metrics/index.js";
 

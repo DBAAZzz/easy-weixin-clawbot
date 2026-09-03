@@ -2,11 +2,14 @@ export const CONTEXT_COMPILER_VERSION = "context-compiler-v1" as const;
 export const CONTEXT_POLICY_REVISION_ID = "context-policy-v1" as const;
 /** Phase 4: enables conversation facts + prior terminal run facts (design §10.1). */
 export const CONTEXT_POLICY_REVISION_ID_V2 = "context-policy-v2" as const;
+/** Phase 6: v2 + trigger entry derivation for trigger runs (design §7.1). */
+export const CONTEXT_POLICY_REVISION_ID_V3 = "context-policy-v3" as const;
 export const CONTEXT_TIMEZONE = "Asia/Shanghai" as const;
 
 export type ContextPolicyRevisionId =
   | typeof CONTEXT_POLICY_REVISION_ID
-  | typeof CONTEXT_POLICY_REVISION_ID_V2;
+  | typeof CONTEXT_POLICY_REVISION_ID_V2
+  | typeof CONTEXT_POLICY_REVISION_ID_V3;
 
 export interface CompileContextInputV1 {
   accountId: string;
@@ -42,8 +45,8 @@ export interface CanonicalAttachment {
 export interface CanonicalConversationEntryV1 {
   eventId: string;
   streamSeq: number;
-  /** `tool` entries only exist under context-policy-v2 (run facts, design §10.2). */
-  role: "user" | "assistant" | "tool";
+  /** `tool` 条目存在于 v2+（run facts）；`trigger` 条目仅存在于 v3（trigger run prompt）。 */
+  role: "user" | "assistant" | "tool" | "trigger";
   occurredAt: string;
   text: string;
   attachments: CanonicalAttachment[];
@@ -52,13 +55,21 @@ export interface CanonicalConversationEntryV1 {
   runId?: string;
   runSeq?: number;
   callId?: string;
+  /** v3 only, `tool` entries: the requested tool name (design §7.3 tool-call 配对重建). */
+  toolName?: string;
+  /** v3 only, `tool` entries: serialized arguments document of the requested call. */
+  toolArguments?: string;
+  /** v3 only, `tool` entries: entry derived from a failed tool call. */
+  toolError?: boolean;
 }
 
 export type ContextCompilerDiagnosticCode =
   | "dangling_edit_target"
   | "dangling_delete_target"
   | "run_response_artifact_missing"
-  | "run_result_artifact_missing";
+  | "run_result_artifact_missing"
+  | "run_request_artifact_missing"
+  | "run_anchor_missing";
 
 export interface ContextCompilerDiagnostic {
   eventId: string;

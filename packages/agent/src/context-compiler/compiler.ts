@@ -14,12 +14,14 @@ import {
   buildTriggerSeqIndex,
   compareCanonicalEntries,
   extractArtifactText,
+  extractRound1TriggerPrompt,
   reduceRunFacts,
 } from "./run-facts.js";
 import {
   CONTEXT_COMPILER_VERSION,
   CONTEXT_POLICY_REVISION_ID,
   CONTEXT_POLICY_REVISION_ID_V2,
+  CONTEXT_POLICY_REVISION_ID_V3,
   CONTEXT_TIMEZONE,
   ContextCompilerError,
   type CanonicalContextV1,
@@ -34,7 +36,9 @@ function validateInput(input: CompileContextInputV1): void {
   if (!input.accountId.trim() || !input.conversationStreamId.trim()) {
     throw new ContextCompilerError("invalid_compiler_identity");
   }
-  if (!Number.isInteger(input.eventCursor) || input.eventCursor <= 0) {
+  // 0 is legal for trigger runs on a fresh execution stream (Phase 6 §5.1):
+  // the compile window is empty and the run_started anchor is absent.
+  if (!Number.isInteger(input.eventCursor) || input.eventCursor < 0) {
     throw new ContextCompilerError("invalid_event_cursor");
   }
   if (input.compilerVersion !== CONTEXT_COMPILER_VERSION) {
@@ -42,7 +46,8 @@ function validateInput(input: CompileContextInputV1): void {
   }
   if (
     input.contextPolicyRevisionId !== CONTEXT_POLICY_REVISION_ID &&
-    input.contextPolicyRevisionId !== CONTEXT_POLICY_REVISION_ID_V2
+    input.contextPolicyRevisionId !== CONTEXT_POLICY_REVISION_ID_V2 &&
+    input.contextPolicyRevisionId !== CONTEXT_POLICY_REVISION_ID_V3
   ) {
     throw new ContextCompilerError("unsupported_context_policy_revision");
   }
@@ -95,6 +100,28 @@ async function readRunEventsByStream(
   return all;
 }
 
+/** Load an artifact document by id: inline JSON or read through the content sink. */
+async function loadArtifactDocument(
+  store: ArtifactRevisionStore,
+  contentSink: ArtifactContentSink | undefined,
+  artifactId: string,
+): Promise<unknown | undefined> {
+  const artifact = await store.getById(artifactId);
+  if (!artifact) return undefined;
+  if (artifact.inlineJson !== undefined) return artifact.inlineJson;
+  if (artifact.storageRef && contentSink) {
+    const bytes = await contentSink.get(artifact.storageRef.key).catch(() => null);
+    if (!bytes) return undefined;
+    try {
+      return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
+    } catch {
+      // Corrupt sink content → treated as missing, consistent with §10.2.
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 /** Load entry-source artifact texts for the run-facts reducer (missing → empty text + diagnostic). */
 async function resolveArtifactTexts(
   store: ArtifactRevisionStore,
@@ -119,26 +146,10 @@ async function resolveArtifactTexts(
 
   const texts = new Map<string, string>();
   for (const artifactId of artifactIds) {
-    const artifact = await store.getById(artifactId);
-    if (!artifact) continue;
-    if (artifact.inlineJson !== undefined) {
-      const text = extractArtifactText(artifact.inlineJson);
-      if (text !== undefined) texts.set(artifactId, text);
-      continue;
-    }
-    // Oversized artifacts live behind the content sink (design §8); the v2
-    // compiler must read them back or large replies would degrade to empty
-    // entries in every canonical context.
-    if (artifact.storageRef && contentSink) {
-      const bytes = await contentSink.get(artifact.storageRef.key).catch(() => null);
-      if (!bytes) continue;
-      try {
-        const text = extractArtifactText(JSON.parse(new TextDecoder().decode(bytes)) as unknown);
-        if (text !== undefined) texts.set(artifactId, text);
-      } catch {
-        // Corrupt sink content → treated as missing, consistent with §10.2.
-      }
-    }
+    const document = await loadArtifactDocument(store, contentSink, artifactId);
+    if (document === undefined) continue;
+    const text = extractArtifactText(document);
+    if (text !== undefined) texts.set(artifactId, text);
   }
   return texts;
 }
@@ -166,11 +177,13 @@ export function createContextCompilerV1(deps: {
   return {
     async compile(input) {
       validateInput(input);
-      const policyV2 = input.contextPolicyRevisionId === CONTEXT_POLICY_REVISION_ID_V2;
-      if (policyV2 && !deps.agentRunStore) {
+      const policyV3 = input.contextPolicyRevisionId === CONTEXT_POLICY_REVISION_ID_V3;
+      const runFactsEnabled =
+        input.contextPolicyRevisionId === CONTEXT_POLICY_REVISION_ID_V2 || policyV3;
+      if (runFactsEnabled && !deps.agentRunStore) {
         throw new ContextCompilerError("missing_run_store");
       }
-      if (policyV2 && !deps.artifactRevisionStore) {
+      if (runFactsEnabled && !deps.artifactRevisionStore) {
         throw new ContextCompilerError("missing_artifact_revision_store");
       }
       const events = await readThroughCursor(deps.conversationEventStore, input);
@@ -181,13 +194,85 @@ export function createContextCompilerV1(deps: {
       > = reduced.entries;
       let diagnostics = reduced.diagnostics;
       let runEntrySourceIds: string[] = [];
-      if (policyV2) {
+      if (runFactsEnabled) {
         const runEvents = await readRunEventsByStream(deps.agentRunStore!, input);
         const artifactTextById = await resolveArtifactTexts(
           deps.artifactRevisionStore!,
           runEvents,
           deps.contentSink,
         );
+
+        // v3 extras (design §7.1/§7.2): round-1 request prompts for trigger
+        // entries, serialized tool arguments for pairing, and per-run anchors.
+        const round1RequestTextById = new Map<string, string>();
+        const toolArgumentsJsonById = new Map<string, string>();
+        const triggerRunAnchors = new Map<string, { streamSeq: number; anchored: boolean }>();
+        if (policyV3) {
+          for (const event of runEvents) {
+            if (event.eventType === "model_call_started") {
+              const payload = event.payload as {
+                round?: number;
+                requestArtifactId?: string;
+              };
+              if (payload.round === 1 && payload.requestArtifactId) {
+                const document = await loadArtifactDocument(
+                  deps.artifactRevisionStore!,
+                  deps.contentSink,
+                  payload.requestArtifactId,
+                );
+                if (document === undefined) continue;
+                const prompt = extractRound1TriggerPrompt(document);
+                if (prompt !== undefined) {
+                  round1RequestTextById.set(payload.requestArtifactId, prompt);
+                }
+              }
+            }
+            if (event.eventType === "tool_call_requested") {
+              const payload = event.payload as { argumentsArtifactId?: string };
+              if (payload.argumentsArtifactId) {
+                const document = await loadArtifactDocument(
+                  deps.artifactRevisionStore!,
+                  deps.contentSink,
+                  payload.argumentsArtifactId,
+                );
+                if (document !== undefined) {
+                  toolArgumentsJsonById.set(
+                    payload.argumentsArtifactId,
+                    JSON.stringify(document),
+                  );
+                }
+              }
+            }
+            if (event.eventType === "run_started") {
+              const payload = event.payload as {
+                triggerEventId?: string;
+                anchorStreamSeq?: number;
+              };
+              if (payload.triggerEventId !== undefined) continue;
+              if (typeof payload.anchorStreamSeq === "number") {
+                triggerRunAnchors.set(event.runId, {
+                  streamSeq: payload.anchorStreamSeq,
+                  anchored: true,
+                });
+                continue;
+              }
+              // Dual-only approximation (§7.2): fall back to the local-clock
+              // position of run_started within the conversation window. The
+              // canonical gate (§6.5) rejects windows containing these runs.
+              const startedMs = Date.parse(event.occurredAt);
+              let fallbackSeq = 0;
+              for (const conversationEvent of events) {
+                if (Date.parse(conversationEvent.occurredAt) <= startedMs) {
+                  fallbackSeq = conversationEvent.streamSeq;
+                } else {
+                  break;
+                }
+              }
+              triggerRunAnchors.set(event.runId, { streamSeq: fallbackSeq, anchored: false });
+            }
+          }
+        }
+
         const runReduction = reduceRunFacts({
           runEvents,
           triggerStreamSeqByEventId: buildTriggerSeqIndex(
@@ -197,6 +282,9 @@ export function createContextCompilerV1(deps: {
               : reduced.sessionBoundaryStreamSeq + 1,
           ),
           artifactTextById,
+          ...(policyV3
+            ? { policyV3, round1RequestTextById, toolArgumentsJsonById, triggerRunAnchors }
+            : {}),
         });
         runEntrySourceIds = runReduction.entries.map((entry) => entry.eventId);
         diagnostics = [...diagnostics, ...runReduction.diagnostics];
@@ -252,8 +340,8 @@ export function createContextCompilerV1(deps: {
         runtimeContext: { effectiveTime: input.effectiveTime, timezone: CONTEXT_TIMEZONE },
         coverage: {
           conversationFacts: true,
-          assistantRunFacts: policyV2,
-          toolRunFacts: policyV2,
+          assistantRunFacts: runFactsEnabled,
+          toolRunFacts: runFactsEnabled,
           // Phase 5：memory 由 bootstrap 实际产出驱动；media 缺省按 resolver
           // 实际解析结果推导（bootstrap 可用 visualObservationIds 覆盖）。
           memoryFacts: input.coverageHints?.memoryFacts ?? false,
@@ -266,7 +354,7 @@ export function createContextCompilerV1(deps: {
         diagnostics,
         canonicalContextHash: hashCanonicalValue(context),
         conversationEventIds: events.map((event) => event.eventId),
-        ...(policyV2 ? { runEntrySourceIds } : {}),
+        ...(runFactsEnabled ? { runEntrySourceIds } : {}),
       };
     },
   };

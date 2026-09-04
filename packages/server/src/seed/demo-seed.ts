@@ -602,10 +602,30 @@ export interface DemoSeedSummary {
 }
 
 /**
+ * Fast check for the "seed already done" case. Serverless deployments call the
+ * seed on every cold start; without this guard, a rebuild on one instance
+ * would briefly delete rows another warm instance is serving.
+ */
+export async function isDemoDataPresent(): Promise<boolean> {
+  const count = await getPrisma().account.count({
+    where: { id: { startsWith: DEMO_ACCOUNT_PREFIX } },
+  });
+  return count >= DEMO_PERSONAS.length;
+}
+
+/**
  * Rebuild all demo rows. Only ever touches demo-namespaced data, so it is safe
  * to re-run on every boot of a demo deployment and cannot damage real data.
+ * Pass `skipIfPresent` to make an existing complete dataset a no-op.
  */
-export async function seedDemoData(): Promise<DemoSeedSummary> {
+export async function seedDemoData(
+  options?: { skipIfPresent?: boolean },
+): Promise<DemoSeedSummary | null> {
+  if (options?.skipIfPresent && (await isDemoDataPresent())) {
+    demoLogger.info("演示数据已存在，跳过重建");
+    return null;
+  }
+
   const prisma = getPrisma();
 
   await clearDemoData(prisma);

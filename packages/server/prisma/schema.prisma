@@ -1,5 +1,8 @@
 generator client {
   provider = "prisma-client-js"
+  // rhel-openssl-3.0.x = Vercel/Amazon Linux serverless runtime; native keeps
+  // local dev and the Docker image on the platform-default engine.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {

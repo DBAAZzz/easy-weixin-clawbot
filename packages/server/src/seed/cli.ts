@@ -11,9 +11,13 @@ async function main(): Promise<void> {
   }
 
   const summary = await seedDemoData();
-  console.log(
-    `[demo-seed] 完成：账号 ${summary.accounts}，会话 ${summary.conversations}，消息 ${summary.messages}，定时任务 ${summary.scheduledTasks}`,
-  );
+  if (summary) {
+    console.log(
+      `[demo-seed] 完成：账号 ${summary.accounts}，会话 ${summary.conversations}，消息 ${summary.messages}，定时任务 ${summary.scheduledTasks}`,
+    );
+  } else {
+    console.log("[demo-seed] 演示数据已存在，本次跳过重建");
+  }
 }
 
 try {

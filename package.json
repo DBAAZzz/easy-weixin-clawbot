@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@10.30.0",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "postinstall": "pnpm -F @clawbot/server prisma:generate",
     "dev": "pnpm -F @clawbot/observability dev & pnpm -F @clawbot/exec dev & pnpm -F @clawbot/agent dev & pnpm -F @clawbot/server dev & pnpm -F @clawbot/web dev",

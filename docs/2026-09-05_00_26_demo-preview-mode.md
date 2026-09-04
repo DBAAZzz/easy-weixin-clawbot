@@ -17,6 +17,12 @@ API 服务内注册一个**本地模拟 OpenAI 兼容端点**。演示 LLM Provi
 - 演示账号没有微信凭据，运行时会跳过连接（日志可见「账号缺少已绑定凭据，跳过启动」）；
 - `/api/health` 返回 `demo_mode` 字段，Web 侧边栏据此显示「演示数据」徽标。
 
+## 快速开始（Vercel 在线演示）
+
+想给一个可直接分享的链接？把演示环境部署到 Vercel（无需自己运行数据库，
+使用免费的 Supabase/Neon Postgres）：
+[Vercel 演示部署指南](./2026-09-05_00_34_vercel-demo-deployment.md)。
+
 ## 快速开始（Docker）
 
 ```bash

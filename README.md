@@ -108,6 +108,8 @@ docker compose --env-file docker/demo.env \
 
 本地开发同理：`DEMO_MODE=true pnpm dev:server`，或手动 `pnpm -F @clawbot/server demo:seed`。
 
+也可以把演示环境托管到 Vercel，得到一个可直接分享的在线链接（API 跑成 serverless 函数，数据库用免费的 Supabase/Neon，无需自己运行数据库）：见 [Vercel 演示部署指南](./docs/2026-09-05_00_34_vercel-demo-deployment.md)。
+
 ## 配置约定
 
 项目现在只保留一个配置入口：仓库根目录 `.env`。

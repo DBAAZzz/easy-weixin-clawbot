@@ -18,6 +18,7 @@ import { registerAccountRoutes } from "./routes/accounts.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerConversationRoutes } from "./routes/conversations.js";
 import { registerDemoLlmRoutes } from "./routes/demo-llm.js";
+import { registerDemoSeedRoutes } from "./routes/demo-seed.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerLoginRoutes } from "./routes/login.js";
 import { registerMcpRoutes } from "./routes/mcp.js";
@@ -116,6 +117,7 @@ export function createApiApp(dependencies: ApiDependencies) {
   registerHealthRoutes(app, dependencies);
   if (isDemoMode()) {
     registerDemoLlmRoutes(app);
+    registerDemoSeedRoutes(app);
   }
   registerAccountRoutes(app);
   registerConversationRoutes(app);

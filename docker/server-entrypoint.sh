@@ -3,7 +3,7 @@ set -e
 
 # ============================================================================
 # ClawBot Server Entrypoint
-# Handles: PostgreSQL readiness → Prisma push → data init → server start
+# Handles: PostgreSQL readiness → Prisma migrations → data init → server start
 # ============================================================================
 
 echo "[entrypoint] Starting ClawBot Server..."
@@ -86,13 +86,13 @@ init_data_layout() {
 }
 
 # --------------------------------------------------------------------------
-# 3. Run Prisma DB push (schema sync)
+# 3. Apply Prisma migrations (migration-first; no db push)
 # --------------------------------------------------------------------------
-run_prisma_push() {
-  echo "[entrypoint] Running Prisma schema push..."
+run_prisma_migrate() {
+  echo "[entrypoint] Applying Prisma migrations..."
   cd /app
-  pnpm -F @clawbot/server prisma:push
-  echo "[entrypoint] Prisma schema push complete."
+  pnpm -F @clawbot/server prisma:migrate:deploy
+  echo "[entrypoint] Prisma migrations complete."
 }
 
 # --------------------------------------------------------------------------
@@ -115,7 +115,7 @@ init_config() {
 wait_for_postgres
 init_data_layout
 init_config
-run_prisma_push
+run_prisma_migrate
 
 echo "[entrypoint] Starting server..."
 cd /app/packages/server

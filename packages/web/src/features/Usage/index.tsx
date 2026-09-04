@@ -84,7 +84,13 @@ export function UsagePage() {
       />
 
       <div className="flex">
-        <Select value={accountId} onChange={setAccountId} options={accountOptions} size="sm" />
+        <Select
+          value={accountId}
+          onChange={setAccountId}
+          options={accountOptions}
+          size="sm"
+          className="w-full md:w-account-search"
+        />
       </div>
 
       {error ? <ErrorNotice>{error}</ErrorNotice> : null}

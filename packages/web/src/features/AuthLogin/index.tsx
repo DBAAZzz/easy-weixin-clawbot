@@ -1,22 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@clawbot/ui";
+import { Button, toast } from "@clawbot/ui";
 import { Card } from "@clawbot/ui";
 import { Input } from "@clawbot/ui";
 import { login } from "@/api/auth-login.js";
 import logoUrl from "../../assets/images/logo.png";
-import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function AuthLoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -24,7 +21,7 @@ export function AuthLoginPage() {
       localStorage.setItem("auth_token", token);
       navigate("/", { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      toast.error(err instanceof Error ? err.message : "登录失败");
     } finally {
       setLoading(false);
     }
@@ -44,8 +41,6 @@ export function AuthLoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          {error && <ErrorNotice className="px-3 py-2">{error}</ErrorNotice>}
-
           <Input
             type="text"
             placeholder="用户名"

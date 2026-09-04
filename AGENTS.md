@@ -259,4 +259,5 @@ activation: on-demand    # always-on | on-demand
 | JWT 认证 | [docs/2026-04-21_00_11_jwt-authentication.md](docs/2026-04-21_00_11_jwt-authentication.md) |
 | 进程执行统一出口 | [docs/2026-07-23_21_30_exec-package-design.md](docs/2026-07-23_21_30_exec-package-design.md) |
 | 演示模式（Demo Seed） | [docs/2026-09-05_00_26_demo-preview-mode.md](docs/2026-09-05_00_26_demo-preview-mode.md) |
-| Vercel 演示部署 | [docs/2026-09-05_00_34_vercel-demo-deployment.md](docs/2026-09-05_00_34_vercel-demo-deployment.md) |
+| Vercel 静态演示（MSW） | [docs/2026-09-05_01_40_vercel-static-demo.md](docs/2026-09-05_01_40_vercel-static-demo.md) |
+| Vercel serverless 部署 | [docs/2026-09-05_00_34_vercel-demo-deployment.md](docs/2026-09-05_00_34_vercel-demo-deployment.md) |

@@ -19,9 +19,12 @@ API 服务内注册一个**本地模拟 OpenAI 兼容端点**。演示 LLM Provi
 
 ## 快速开始（Vercel 在线演示）
 
-想给一个可直接分享的链接？把演示环境部署到 Vercel（无需自己运行数据库，
-使用免费的 Supabase/Neon Postgres）：
-[Vercel 演示部署指南](./2026-09-05_00_34_vercel-demo-deployment.md)。
+两种在线托管形态，按需选择：
+
+- **纯静态 MSW mock（推荐）**：零后端零数据库，会话内交互生效、刷新重置。
+  见 [Vercel 静态演示部署](./2026-09-05_01_40_vercel-static-demo.md)。
+- **serverless 真后端**：交互完全真实，需要免费云 Postgres。
+  见 [Vercel serverless 部署](./2026-09-05_00_34_vercel-demo-deployment.md)。
 
 ## 快速开始（Docker）
 

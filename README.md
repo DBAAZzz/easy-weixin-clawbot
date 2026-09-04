@@ -97,18 +97,30 @@ docker compose down
 
 ## 演示模式（给他人预览用）
 
-不想绑真实微信、配真实模型，只想给别人看看整个后台的样子？一条命令拉起带演示数据的环境：
+三种给他人预览的方式，按场景选择：
+
+**1. 在线静态演示（推荐，零后端零数据库）**：Web 内置 MSW mock 层，纯静态托管到 Vercel，别人打开链接即可浏览带演示数据的完整后台（会话内交互生效，刷新重置）：
+
+```bash
+# Vercel 导入仓库，Root Directory 设为 packages/web，环境变量 VITE_API_MOCK=1 即可
+# 本地体验：
+VITE_API_MOCK=1 pnpm dev:web
+```
+
+见 [在线演示部署指南](./docs/2026-09-05_01_40_vercel-static-demo.md)。
+
+**2. Docker 本地/服务器演示（真实全栈）**：一条命令拉起带演示数据的真实环境：
 
 ```bash
 docker compose --env-file docker/demo.env \
   -f docker-compose.yml -f docker-compose.demo.yml up -d
 ```
 
-打开 `http://localhost:8080`，用 `admin` / `demo-admin-2026` 登录即可。环境内置演示账号、会话消息、记忆、定时任务、用量与调用链数据，以及一个本地模拟 LLM 端点（交互可真实跑通）；Web 侧边栏会显示「演示数据」徽标。详见 [演示模式文档](./docs/2026-09-05_00_26_demo-preview-mode.md)。
+打开 `http://localhost:8080`，用 `admin` / `demo-admin-2026` 登录。内置演示账号、会话消息、记忆、定时任务、用量与调用链数据，以及一个本地模拟 LLM 端点（交互可真实跑通）；Web 侧边栏会显示「演示数据」徽标。
+
+**3. Vercel serverless（交互全真，需免费云数据库）**：API 跑成 serverless 函数 + Supabase/Neon 免费档，见 [Vercel serverless 部署指南](./docs/2026-09-05_00_34_vercel-demo-deployment.md)。
 
 本地开发同理：`DEMO_MODE=true pnpm dev:server`，或手动 `pnpm -F @clawbot/server demo:seed`。
-
-也可以把演示环境托管到 Vercel，得到一个可直接分享的在线链接（API 跑成 serverless 函数，数据库用免费的 Supabase/Neon，无需自己运行数据库）：见 [Vercel 演示部署指南](./docs/2026-09-05_00_34_vercel-demo-deployment.md)。
 
 ## 配置约定
 

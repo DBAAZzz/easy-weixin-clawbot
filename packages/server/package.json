@@ -12,6 +12,7 @@
     "test:typecheck": "tsc --noEmit && tsc --noEmit -p tests/tsconfig.json",
     "start": "node dist/index.js",
     "demo:seed": "tsx --conditions development src/seed/cli.ts",
+    "demo:snapshot-fixtures": "tsx --conditions development src/snapshot-demo-fixtures.ts",
     "assets:migrate-local-to-s3": "tsx --conditions development src/assets/migrate-local-to-s3.ts",
     "ingress:stuck": "tsx --conditions development src/ingress-admin.ts stuck",
     "ingress:resolve": "tsx --conditions development src/ingress-admin.ts resolve",

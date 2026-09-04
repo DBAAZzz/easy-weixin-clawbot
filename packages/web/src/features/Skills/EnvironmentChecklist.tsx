@@ -14,7 +14,9 @@ function ChecklistRow(props: { name: string; meta?: string; status: RowStatus })
         <p className="truncate font-mono text-xs font-semibold text-ink">{props.name}</p>
         {props.meta ? <p className="mt-0.5 truncate text-xs text-muted">{props.meta}</p> : null}
       </div>
-      <span className={cn("min-w-14 text-right text-xs font-semibold", tone.text)}>{tone.label}</span>
+      <span className={cn("min-w-14 text-right text-xs font-semibold", tone.text)}>
+        {tone.label}
+      </span>
     </div>
   );
 }

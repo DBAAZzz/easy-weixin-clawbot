@@ -152,9 +152,7 @@ export function NetworkSearchSettingsPanel() {
         </div>
       </header>
 
-      {error ? (
-        <ErrorNotice>加载网络搜索配置失败：{error}</ErrorNotice>
-      ) : null}
+      {error ? <ErrorNotice>加载网络搜索配置失败：{error}</ErrorNotice> : null}
 
       {loading ? (
         <div className="rounded-card border border-line bg-pane-74 px-4 py-3 text-base text-muted-strong">
@@ -163,69 +161,69 @@ export function NetworkSearchSettingsPanel() {
       ) : null}
 
       {NETWORK_SEARCH_PROVIDER_ORDER.map((providerType) => {
-          const draft = drafts[providerType];
-          const meta = PROVIDER_META[providerType];
-          const Icon = meta.icon;
-          const inputId = `${providerType}-api-key`;
+        const draft = drafts[providerType];
+        const meta = PROVIDER_META[providerType];
+        const Icon = meta.icon;
+        const inputId = `${providerType}-api-key`;
 
-          return (
-            <section
-              key={providerType}
-              className="rounded-panel border border-line bg-panel px-4 py-4 shadow-card md:px-5 md:py-5"
-            >
-              <div className="flex flex-col gap-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-card border border-line bg-pane-95 text-accent shadow-btn-soft">
-                      <Icon className="size-4" />
-                    </span>
-                    <div className="flex min-w-0 flex-col gap-1">
-                      <h4 className="text-md font-semibold text-ink">{meta.label}</h4>
-                      <Badge tone={draft.apiKeySet ? "online" : "offline"} className="w-fit">
-                        {draft.apiKeySet ? "已配置" : "未配置"}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 self-end lg:self-start">
-                    <span className="text-sm text-muted-strong">
-                      {draft.enabled ? "已启用" : "已停用"}
-                    </span>
-                    <CardToggle
-                      enabled={draft.enabled}
-                      label={draft.enabled ? `停用 ${meta.label}` : `启用 ${meta.label}`}
-                      onToggle={() =>
-                        updateDraft(providerType, (current) => ({
-                          ...current,
-                          enabled: !current.enabled,
-                        }))
-                      }
-                    />
+        return (
+          <section
+            key={providerType}
+            className="rounded-panel border border-line bg-panel px-4 py-4 shadow-card md:px-5 md:py-5"
+          >
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-card border border-line bg-pane-95 text-accent shadow-btn-soft">
+                    <Icon className="size-4" />
+                  </span>
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <h4 className="text-md font-semibold text-ink">{meta.label}</h4>
+                    <Badge tone={draft.apiKeySet ? "online" : "offline"} className="w-fit">
+                      {draft.apiKeySet ? "已配置" : "未配置"}
+                    </Badge>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2.5">
-                  <label htmlFor={inputId} className="text-sm font-medium text-muted-strong">
-                    API Key
-                  </label>
-                  <Input
-                    id={inputId}
-                    type="password"
-                    value={draft.apiKey}
-                    onChange={(event) =>
+                <div className="flex items-center gap-3 self-end lg:self-start">
+                  <span className="text-sm text-muted-strong">
+                    {draft.enabled ? "已启用" : "已停用"}
+                  </span>
+                  <CardToggle
+                    enabled={draft.enabled}
+                    label={draft.enabled ? `停用 ${meta.label}` : `启用 ${meta.label}`}
+                    onToggle={() =>
                       updateDraft(providerType, (current) => ({
                         ...current,
-                        apiKey: event.target.value,
+                        enabled: !current.enabled,
                       }))
                     }
-                    placeholder={draft.apiKeySet ? "已设置，留空则不修改" : meta.inputPlaceholder}
-                    className="rounded-control"
                   />
                 </div>
               </div>
-            </section>
-          );
-        })}
+
+              <div className="flex flex-col gap-2.5">
+                <label htmlFor={inputId} className="text-sm font-medium text-muted-strong">
+                  API Key
+                </label>
+                <Input
+                  id={inputId}
+                  type="password"
+                  value={draft.apiKey}
+                  onChange={(event) =>
+                    updateDraft(providerType, (current) => ({
+                      ...current,
+                      apiKey: event.target.value,
+                    }))
+                  }
+                  placeholder={draft.apiKeySet ? "已设置，留空则不修改" : meta.inputPlaceholder}
+                  className="rounded-control"
+                />
+              </div>
+            </div>
+          </section>
+        );
+      })}
 
       <div className="flex justify-end pt-2">
         <Button size="sm" disabled={saving || loading} onClick={() => void handleSave()}>

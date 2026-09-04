@@ -52,9 +52,12 @@ export function isMarkdownBlockBoundary(line: string) {
 }
 
 export function formatDependencyStatus(status: SkillDependencyStatus) {
-  if (status === "ok") return { label: "已满足", dot: "bg-account-success-dot", text: "text-account-success-fg" };
-  if (status === "outdated") return { label: "版本不符", dot: "bg-account-warning-dot", text: "text-account-warning-fg" };
-  if (status === "missing") return { label: "未安装", dot: "bg-danger", text: "text-danger-strong" };
+  if (status === "ok")
+    return { label: "已满足", dot: "bg-account-success-dot", text: "text-account-success-fg" };
+  if (status === "outdated")
+    return { label: "版本不符", dot: "bg-account-warning-dot", text: "text-account-warning-fg" };
+  if (status === "missing")
+    return { label: "未安装", dot: "bg-danger", text: "text-danger-strong" };
   return { label: "无法检测", dot: "bg-account-muted-faint", text: "text-account-muted" };
 }
 

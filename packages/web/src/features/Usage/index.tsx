@@ -83,14 +83,8 @@ export function UsagePage() {
         onRefresh={refresh}
       />
 
-      <div className="flex">
-        <Select
-          value={accountId}
-          onChange={setAccountId}
-          options={accountOptions}
-          size="sm"
-          className="w-full md:w-account-search"
-        />
+      <div className="w-full md:w-account-search">
+        <Select value={accountId} onChange={setAccountId} options={accountOptions} size="sm" />
       </div>
 
       {error ? <ErrorNotice>{error}</ErrorNotice> : null}

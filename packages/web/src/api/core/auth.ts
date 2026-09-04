@@ -4,6 +4,8 @@ export function getAuthToken(): string | null {
 
 export function clearAuthAndRedirect(): never {
   localStorage.removeItem("auth_token");
-  window.location.href = "/auth/login";
+  if (window.location.pathname !== "/auth/login") {
+    window.location.href = "/auth/login";
+  }
   throw new Error("Unauthorized");
 }

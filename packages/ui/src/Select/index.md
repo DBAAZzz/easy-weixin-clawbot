@@ -8,6 +8,8 @@ description: 用于少量离散选项。选项过多时优先考虑搜索或过�
 
 用于少量离散选项。选项过多时优先考虑搜索或过滤控件。
 
+浮层默认最高 `280px`（短视口下自动收缩到可用空间）并在内部滚动；选项文本（含 `renderOption` 自定义渲染）默认单行展示、超长自动省略。需要多行选项时，在自定义内容上自行覆盖 `white-space`。
+
 ## Playground
 
 <code src="./demos/playground.tsx" nopadding></code>
@@ -16,21 +18,21 @@ description: 用于少量离散选项。选项过多时优先考虑搜索或过�
 
 ### Select
 
-| 属性          | 描述                 | 类型                                  | 默认值      |
-| ------------- | -------------------- | ------------------------------------- | ----------- |
-| value         | 当前选中值。         | `string`                              | -           |
-| options       | 选项列表。           | `SelectOption[]`                      | -           |
-| onChange      | 选中值变化回调。     | `(value: string) => void`             | -           |
-| placeholder   | 未选中时的占位文本。 | `string`                              | `'请选择'`  |
-| disabled      | 是否禁用。           | `boolean`                             | `false`     |
-| fullWidth     | 是否撑满容器宽度。   | `boolean`                             | `true`      |
-| size          | 选择器尺寸。         | `'default' \| 'sm'`                   | `'default'` |
-| variant       | 选择器视觉样式。     | `'default' \| 'subtle'`               | `'default'` |
-| prefix        | 触发器左侧前缀内容。 | `ReactNode`                           | -           |
-| renderValue   | 自定义选中值展示。   | `(option: SelectOption) => ReactNode` | -           |
-| renderOption  | 自定义下拉选项展示。 | `(option: SelectOption) => ReactNode` | -           |
-| showIndicator | 是否展示选中标记。   | `boolean`                             | `true`      |
-| className     | 自定义类名。         | `string`                              | -           |
+| 属性          | 描述                               | 类型                                  | 默认值      |
+| ------------- | ---------------------------------- | ------------------------------------- | ----------- |
+| value         | 当前选中值。                       | `string`                              | -           |
+| options       | 选项列表。                         | `SelectOption[]`                      | -           |
+| onChange      | 选中值变化回调。                   | `(value: string) => void`             | -           |
+| placeholder   | 未选中时的占位文本。               | `string`                              | `'请选择'`  |
+| disabled      | 是否禁用。                         | `boolean`                             | `false`     |
+| fullWidth     | 是否撑满容器宽度。                 | `boolean`                             | `true`      |
+| size          | 选择器尺寸。                       | `'default' \| 'sm'`                   | `'default'` |
+| variant       | 选择器视觉样式。                   | `'default' \| 'subtle'`               | `'default'` |
+| prefix        | 触发器左侧前缀内容。               | `ReactNode`                           | -           |
+| renderValue   | 自定义选中值展示。                 | `(option: SelectOption) => ReactNode` | -           |
+| renderOption  | 自定义下拉选项展示，默认单行省略。 | `(option: SelectOption) => ReactNode` | -           |
+| showIndicator | 是否展示选中标记。                 | `boolean`                             | `true`      |
+| className     | 自定义类名。                       | `string`                              | -           |
 
 ### SelectOption
 

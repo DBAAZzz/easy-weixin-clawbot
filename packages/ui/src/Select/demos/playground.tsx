@@ -24,6 +24,16 @@ const options = [
     ),
   },
   { value: "ops", label: "运维 Agent", icon: <ActivityIcon /> },
+  {
+    value: "long-title",
+    label:
+      "超长会话标题：[当前时间: 2026/04/29 周三 11:55] <memory> ## 已知事实 - 对 AI 付费的认知误区，用户误以为使用本 AI 需要按月付费",
+  },
+  { value: "session-meal", label: "会话：健康饮食提醒" },
+  { value: "session-weekly", label: "会话：周报汇总" },
+  { value: "session-mcp", label: "会话：MCP 工具排查" },
+  { value: "session-tape", label: "会话：Tape 记忆折叠" },
+  { value: "session-rss", label: "会话：RSS 订阅配置" },
 ];
 
 export default function SelectPlayground() {

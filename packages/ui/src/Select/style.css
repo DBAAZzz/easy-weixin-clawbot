@@ -142,7 +142,8 @@
   .cb-select-popup {
     width: var(--anchor-width);
     box-sizing: border-box;
-    max-height: 280px;
+    /* 280px 为浮层默认高度上限（脱离 spacing 刻度的破格值）；短视口下收缩到 Base UI 定位的可用高度 */
+    max-height: min(280px, var(--available-height, 280px));
     overflow-y: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--color-line-strong);
@@ -197,6 +198,9 @@
   .cb-select-item-custom {
     min-width: 0;
     flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .cb-select-option-content {

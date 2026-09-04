@@ -21,7 +21,11 @@ export function AuthLoginPage() {
       localStorage.setItem("auth_token", token);
       navigate("/", { replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "登录失败");
+      toast.error(
+        err instanceof Error && err.message === "Unauthorized"
+          ? "用户名或密码错误"
+          : "登录失败，请稍后重试",
+      );
     } finally {
       setLoading(false);
     }

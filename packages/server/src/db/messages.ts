@@ -12,6 +12,9 @@ type StoredMessageRecord = Omit<MessageRow, "id" | "created_at">;
 type QueueItem = {
   record: StoredMessageRecord;
   attempts: number;
+  sourceConversationEventId?: string;
+  completion: Promise<void>;
+  resolveCompletion: () => void;
 };
 
 type StoredImageContent = ImageContent & {
@@ -32,6 +35,7 @@ type DisplayAssetRef = {
 };
 
 const queue: QueueItem[] = [];
+const pendingByConversation = new Map<string, Set<Promise<void>>>();
 let flushing = false;
 let retryTimer: NodeJS.Timeout | null = null;
 
@@ -250,7 +254,22 @@ async function hydrateMessage(payload: Record<string, unknown>): Promise<AgentMe
   return legacyPayloadToAgentMessage(clone as unknown as Record<string, unknown>);
 }
 
-async function persistRecord(record: StoredMessageRecord): Promise<void> {
+export function isDuplicateMessageSequenceError(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+    return false;
+  }
+  const target = error.meta?.target;
+  if (Array.isArray(target)) {
+    return ["account_id", "conversation_id", "seq"].every((field) => target.includes(field));
+  }
+  return typeof target === "string"
+    && target.includes("messages_account_id_conversation_id_seq_key");
+}
+
+async function persistRecord(
+  record: StoredMessageRecord,
+  sourceConversationEventId?: string,
+): Promise<void> {
   const prisma = getPrisma();
 
   try {
@@ -261,7 +280,7 @@ async function persistRecord(record: StoredMessageRecord): Promise<void> {
         create: { id: record.account_id },
       });
 
-      await tx.message.create({
+      const message = await tx.message.create({
         data: {
           accountId: record.account_id,
           conversationId: record.conversation_id,
@@ -272,6 +291,19 @@ async function persistRecord(record: StoredMessageRecord): Promise<void> {
           mediaType: record.media_type,
         },
       });
+
+      if (sourceConversationEventId) {
+        if (record.role !== "user") throw new Error("projection_link_requires_user_message");
+        await tx.legacyMessageProjectionLink.create({
+          data: {
+            eventId: sourceConversationEventId,
+            accountId: record.account_id,
+            conversationId: record.conversation_id,
+            messageSeq: record.seq,
+            messageId: message.id,
+          },
+        });
+      }
 
       await tx.conversation.upsert({
         where: {
@@ -295,7 +327,7 @@ async function persistRecord(record: StoredMessageRecord): Promise<void> {
       });
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (isDuplicateMessageSequenceError(error)) {
       log.error(
         `persistRecord(${record.account_id}/${record.conversation_id}#${record.seq})`,
         `Duplicate seq=${record.seq} — likely stale in-memory history after restart`,
@@ -319,8 +351,9 @@ async function flushQueue(): Promise<void> {
     const current = queue[0];
 
     try {
-      await persistRecord(current.record);
+      await persistRecord(current.record, current.sourceConversationEventId);
       queue.shift();
+      current.resolveCompletion();
     } catch (error) {
       current.attempts += 1;
       const backoffMs = Math.min(30_000, 1_000 * 2 ** Math.min(current.attempts, 5));
@@ -346,8 +379,10 @@ export function queuePersistMessage(params: {
   message: AgentMessage;
   seq: number;
   mediaSourcePath?: string;
+  sourceConversationEventId?: string;
 }): void {
-  void (async () => {
+  const conversationKey = `${params.accountId}\0${params.conversationId}`;
+  const task = (async () => {
     const record: StoredMessageRecord = {
       account_id: params.accountId,
       conversation_id: params.conversationId,
@@ -363,14 +398,40 @@ export function queuePersistMessage(params: {
       media_type: extractMediaType(params.message),
     };
 
-    queue.push({ record, attempts: 0 });
+    let resolveCompletion!: () => void;
+    const completion = new Promise<void>((resolve) => { resolveCompletion = resolve; });
+    queue.push({
+      record,
+      attempts: 0,
+      sourceConversationEventId: params.sourceConversationEventId,
+      completion,
+      resolveCompletion,
+    });
     await flushQueue();
-  })().catch((error) => {
+    await completion;
+  })();
+  const pending = pendingByConversation.get(conversationKey) ?? new Set<Promise<void>>();
+  pending.add(task);
+  pendingByConversation.set(conversationKey, pending);
+  void task.catch((error) => {
     log.error(
       `queuePersistMessage(${params.accountId}/${params.conversationId}#${params.seq})`,
       error
     );
+  }).finally(() => {
+    pending.delete(task);
+    if (pending.size === 0) pendingByConversation.delete(conversationKey);
   });
+}
+
+export async function waitForConversationMessageWrites(
+  accountId: string,
+  conversationId: string,
+): Promise<void> {
+  const key = `${accountId}\0${conversationId}`;
+  while (pendingByConversation.has(key)) {
+    await Promise.all(pendingByConversation.get(key)!);
+  }
 }
 
 export interface RestoredHistory {
@@ -475,20 +536,21 @@ export async function listMessages(
 }
 
 export function getPendingMessageWriteCount(): number {
-  return queue.length;
+  let count = 0;
+  for (const pending of pendingByConversation.values()) count += pending.size;
+  return count;
 }
 
 export async function drainMessageQueue(timeoutMs = 5_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
 
-  while (queue.length > 0 && Date.now() < deadline) {
+  while (getPendingMessageWriteCount() > 0 && Date.now() < deadline) {
     await flushQueue();
-    if (queue.length > 0) {
-      await delay(100);
-    }
+    if (getPendingMessageWriteCount() > 0) await delay(100);
   }
 
-  if (queue.length > 0) {
-    throw new Error(`Timed out draining message queue; pending=${queue.length}`);
+  const pending = getPendingMessageWriteCount();
+  if (pending > 0) {
+    throw new Error(`Timed out draining message queue; pending=${pending}`);
   }
 }

@@ -2,6 +2,7 @@ import { TimeoutError } from "../../shared/errors.js";
 import { getChatExecutor } from "../../ports/chat-executor.js";
 import { getPushService } from "../../ports/push-service.js";
 import { getScheduledTaskHandler } from "../../ports/scheduled-task-handler.js";
+import { recordProactiveOutbound } from "../outbound-facts.js";
 import {
   getSchedulerStore,
   type RunStatus,
@@ -55,7 +56,7 @@ async function runChatTask(
   task: ScheduledTaskRow,
   executionConvId: string,
   signal: AbortSignal,
-): Promise<string | undefined> {
+): Promise<{ text?: string; runId?: string }> {
   const execResult = await getChatExecutor().execute({
     accountId: task.accountId,
     conversationId: executionConvId,
@@ -63,13 +64,19 @@ async function runChatTask(
     prompt: task.prompt,
     runKind: "scheduler",
     signal,
+    // Phase 6：确定性 trigger runId——同一 (task, fireAt) 重执行幂等吸收（§5.1）。
+    triggerIdentity: {
+      source: "scheduler",
+      entityId: task.id.toString(),
+      fireAtISO: (task.nextRunAt ?? new Date()).toISOString(),
+    },
   });
 
   if (execResult.status === "error") {
     throw new Error(execResult.error ?? "chat executor failed");
   }
 
-  return execResult.text ?? undefined;
+  return { text: execResult.text ?? undefined, runId: execResult.runId };
 }
 
 /**
@@ -89,6 +96,7 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
   const executionConvId = schedulerConversationId(task.seq);
 
   let result: string | undefined;
+  let chatRunId: string | undefined;
   let error: string | undefined;
   let status: RunStatus = "success";
   let pushed = false;
@@ -112,11 +120,13 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
       pushed = handlerResult.pushed;
     } else {
       // Execute AI chat with timeout
-      result = await runWithDeadline(
+      const chatResult = await runWithDeadline(
         `Scheduled task #${task.seq}`,
         EXECUTION_TIMEOUT_MS,
         (signal) => runChatTask(task, executionConvId, signal),
       );
+      result = chatResult.text;
+      chatRunId = chatResult.runId;
 
       // Try to push the result
       if (result) {
@@ -124,10 +134,30 @@ export async function executeTask(task: ScheduledTaskRow): Promise<void> {
           const pushService = getPushService();
           await pushService.sendProactiveMessage(task.accountId, task.conversationId, result);
           pushed = true;
+          // run stream = scheduler:{seq} 隔离执行会话；outbound fact stream =
+          // 真实目标会话 task.conversationId——两者不同（§5.2）。
+          await recordProactiveOutbound({
+            accountId: task.accountId,
+            executionStreamId: executionConvId,
+            targetConversationId: task.conversationId,
+            runId: chatRunId,
+            text: result,
+            pushSucceeded: true,
+          });
         } catch (pushErr) {
+          const reason = (pushErr as Error).message;
           console.warn(
-            `[scheduler] push failed for task #${task.seq} (${task.accountId}): ${(pushErr as Error).message}`,
+            `[scheduler] push failed for task #${task.seq} (${task.accountId}): ${reason}`,
           );
+          await recordProactiveOutbound({
+            accountId: task.accountId,
+            executionStreamId: executionConvId,
+            targetConversationId: task.conversationId,
+            runId: chatRunId,
+            text: result,
+            pushSucceeded: false,
+            failureReason: reason,
+          });
         }
       }
     }

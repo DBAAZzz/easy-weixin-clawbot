@@ -19,6 +19,8 @@ export interface TapeAnchorRow {
   snapshot: unknown;
   lastEntryEid: string | null;
   createdAt: Date;
+  /** Phase 5：该 checkpoint 对应的 SUMMARY 制品（历史 anchor 为 null）。 */
+  summaryArtifactId?: string | null;
 }
 
 export interface CreateEntryParams {
@@ -61,6 +63,17 @@ export interface TapeStore {
     accountId: string,
     branch: string,
   ): Promise<TapeAnchorRow | null>;
+
+  /** Phase 5：按时间倒序列出 branch 的 anchor（manifest summaryArtifactIds 用）。 */
+  listAnchors(accountId: string, branch: string, limit: number): Promise<TapeAnchorRow[]>;
+
+  /** Phase 5：checkpoint 落 SUMMARY 制品后回填关联 id。 */
+  attachAnchorSummary(
+    accountId: string,
+    branch: string,
+    aid: string,
+    summaryArtifactId: string,
+  ): Promise<void>;
 
   createAnchor(params: CreateAnchorParams): Promise<string>;
 

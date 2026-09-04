@@ -42,6 +42,10 @@ function createEmptyTapeStore(): TapeStore {
     async purgeCompacted() {
       return 0;
     },
+    async listAnchors() {
+      return [];
+    },
+    async attachAnchorSummary() {},
   };
 }
 

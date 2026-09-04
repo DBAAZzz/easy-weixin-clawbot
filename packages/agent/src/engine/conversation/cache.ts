@@ -8,6 +8,8 @@
 import type { AgentMessage } from "../../llm/types.js";
 import { MESSAGE_CONTENT_TYPE, MESSAGE_ROLE } from "@clawbot/shared";
 import { getMessageStore } from "../../ports/message-store.js";
+import { projectionWriteModeFor } from "../../ports/projection-write.js";
+import { projectionWriteSkippedTotal, projectionWriteTotal } from "@clawbot/observability";
 
 export interface ConversationCacheOptions {
   /** Max number of conversations kept in memory before LRU eviction. Default 500. */
@@ -26,7 +28,7 @@ export interface ConversationCache {
   /** Evict a conversation from memory only — DB is untouched. */
   evict(accountId: string, conversationId: string): void;
   /** Evict from memory and clear DB — used when a conversation is corrupted/reset. */
-  clear(accountId: string, conversationId: string): void;
+  clear(accountId: string, conversationId: string): Promise<void>;
   /** Remove the last N messages from both in-memory history and DB. */
   rollback(accountId: string, conversationId: string, count: number): Promise<void>;
   appendAssistantText(accountId: string, conversationId: string, text: string): Promise<void>;
@@ -205,14 +207,9 @@ export function createConversationCache(opts: ConversationCacheOptions = {}): Co
     if (lruIdx !== -1) lruOrder.splice(lruIdx, 1);
   }
 
-  function clear(accountId: string, conversationId: string): void {
+  async function clear(accountId: string, conversationId: string): Promise<void> {
     evict(accountId, conversationId);
-
-    // Also clear from DB so corrupted messages don't get reloaded
-    const messageStore = getMessageStore();
-    messageStore.clearMessages(accountId, conversationId).catch((err) => {
-      console.error(`[conversation] clearMessages DB error (${accountId}/${conversationId}):`, err);
-    });
+    await getMessageStore().clearMessages(accountId, conversationId);
   }
 
   async function rollback(accountId: string, conversationId: string, count: number): Promise<void> {
@@ -244,12 +241,20 @@ export function createConversationCache(opts: ConversationCacheOptions = {}): Co
       };
 
       get(accountId, conversationId).push(message);
-      getMessageStore().queuePersistMessage({
-        accountId,
-        conversationId,
-        message,
-        seq: nextSeq(accountId, conversationId),
-      });
+      // Phase 7 (§6.2): suspended keeps the live history but stops the
+      // messages projection write.
+      const writeMode = projectionWriteModeFor(accountId);
+      if (writeMode === "suspended") {
+        projectionWriteSkippedTotal.inc({ reason: "suspended" });
+      } else {
+        projectionWriteTotal.inc({ mode: writeMode });
+        getMessageStore().queuePersistMessage({
+          accountId,
+          conversationId,
+          message,
+          seq: nextSeq(accountId, conversationId),
+        });
+      }
     });
   }
 

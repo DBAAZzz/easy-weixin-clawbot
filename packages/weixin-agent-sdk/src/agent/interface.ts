@@ -10,7 +10,7 @@ export interface Agent {
   /** Process a single message and return a reply. */
   chat(request: ChatRequest): Promise<ChatResponse>;
   /** Clear/reset the session for a given conversation. */
-  clearSession?(conversationId: string): void;
+  clearSession?(conversationId: string): void | Promise<void>;
 }
 
 export interface ChatRequest {
@@ -30,6 +30,27 @@ export interface ChatRequest {
   };
   /** Context token for this conversation (valid for 24h, can be cached for proactive push). */
   contextToken?: string;
+}
+
+export interface WeixinIngressLifecycle {
+  accept(input: import("../messaging/inbound-validation.js").ValidatedWeixinInbound): Promise<{
+    receiptId: string;
+    disposition: "process" | "skip";
+  }>;
+  invokeAgent(input: { receiptId: string; request: ChatRequest }): Promise<ChatResponse>;
+  invokeClear(input: { receiptId: string; conversationId: string }): Promise<void>;
+  settle(input: {
+    receiptId: string;
+    outcome: "chat" | "command" | "failed";
+    errorCode?: string;
+    /** Platform delivery outcome; recorded as outbound facts by the server (Phase 4). */
+    deliveryReport?: {
+      ok: boolean;
+      channelMessageId?: string;
+      textSent?: string;
+      error?: string;
+    };
+  }): Promise<void>;
 }
 
 export interface ChatResponse {

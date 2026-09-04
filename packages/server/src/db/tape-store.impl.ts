@@ -2,7 +2,7 @@
  * Prisma implementation of TapeStore interface from @clawbot/agent.
  */
 
-import type { Prisma } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import type {
   TapeStore,
   TapeEntryRow,
@@ -13,8 +13,19 @@ import type {
 import { getPrisma } from "./prisma.js";
 
 export class PrismaTapeStore implements TapeStore {
+  private readonly injectedPrisma?: PrismaClient;
+
+  /** 测试/CLI 可注入独立连接；缺省用全局 getPrisma()。 */
+  constructor(injectedPrisma?: PrismaClient) {
+    this.injectedPrisma = injectedPrisma;
+  }
+
+  private get prisma(): PrismaClient {
+    return this.injectedPrisma ?? getPrisma();
+  }
+
   async createEntry(params: CreateEntryParams): Promise<string> {
-    const entry = await getPrisma().tapeEntry.create({
+    const entry = await this.prisma.tapeEntry.create({
       data: {
         accountId: params.accountId,
         branch: params.branch,
@@ -33,7 +44,7 @@ export class PrismaTapeStore implements TapeStore {
     branch: string,
     afterDate?: Date,
   ): Promise<TapeEntryRow[]> {
-    const rows = await getPrisma().tapeEntry.findMany({
+    const rows = await this.prisma.tapeEntry.findMany({
       where: {
         accountId,
         branch,
@@ -52,7 +63,7 @@ export class PrismaTapeStore implements TapeStore {
   }
 
   async findAllEntries(accountId: string, branch: string): Promise<TapeEntryRow[]> {
-    const rows = await getPrisma().tapeEntry.findMany({
+    const rows = await this.prisma.tapeEntry.findMany({
       where: {
         accountId,
         ...(branch === "*" ? {} : { branch }),
@@ -71,12 +82,12 @@ export class PrismaTapeStore implements TapeStore {
 
   async listBranches(accountId: string): Promise<string[]> {
     const [entryBranches, anchorBranches] = await Promise.all([
-      getPrisma().tapeEntry.findMany({
+      this.prisma.tapeEntry.findMany({
         where: { accountId },
         distinct: ["branch"],
         select: { branch: true },
       }),
-      getPrisma().tapeAnchor.findMany({
+      this.prisma.tapeAnchor.findMany({
         where: { accountId },
         distinct: ["branch"],
         select: { branch: true },
@@ -90,7 +101,7 @@ export class PrismaTapeStore implements TapeStore {
     accountId: string,
     branch: string,
   ): Promise<TapeAnchorRow | null> {
-    const anchor = await getPrisma().tapeAnchor.findFirst({
+    const anchor = await this.prisma.tapeAnchor.findFirst({
       where: { accountId, branch },
       orderBy: { createdAt: "desc" },
     });
@@ -100,11 +111,39 @@ export class PrismaTapeStore implements TapeStore {
       snapshot: anchor.snapshot,
       lastEntryEid: anchor.lastEntryEid,
       createdAt: anchor.createdAt,
+      summaryArtifactId: anchor.summaryArtifactId,
     };
   }
 
+  async listAnchors(accountId: string, branch: string, limit: number): Promise<TapeAnchorRow[]> {
+    const anchors = await this.prisma.tapeAnchor.findMany({
+      where: { accountId, branch },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+    return anchors.map((anchor) => ({
+      aid: anchor.aid,
+      snapshot: anchor.snapshot,
+      lastEntryEid: anchor.lastEntryEid,
+      createdAt: anchor.createdAt,
+      summaryArtifactId: anchor.summaryArtifactId,
+    }));
+  }
+
+  async attachAnchorSummary(
+    accountId: string,
+    branch: string,
+    aid: string,
+    summaryArtifactId: string,
+  ): Promise<void> {
+    await this.prisma.tapeAnchor.update({
+      where: { aid },
+      data: { summaryArtifactId },
+    });
+  }
+
   async createAnchor(params: CreateAnchorParams): Promise<string> {
-    const anchor = await getPrisma().tapeAnchor.create({
+    const anchor = await this.prisma.tapeAnchor.create({
       data: {
         accountId: params.accountId,
         branch: params.branch,
@@ -119,7 +158,7 @@ export class PrismaTapeStore implements TapeStore {
   }
 
   async markCompacted(entryIds: bigint[]): Promise<void> {
-    await getPrisma().tapeEntry.updateMany({
+    await this.prisma.tapeEntry.updateMany({
       where: { id: { in: entryIds } },
       data: { compacted: true },
     });
@@ -129,7 +168,7 @@ export class PrismaTapeStore implements TapeStore {
     anchorParams: CreateAnchorParams,
     _entryEids: bigint[],
   ): Promise<void> {
-    const prisma = getPrisma();
+    const prisma = this.prisma;
 
     // We need to find the actual entry IDs by eid strings
     // The entryEids passed from service are actually eid strings (not bigint)
@@ -161,7 +200,7 @@ export class PrismaTapeStore implements TapeStore {
 
   async purgeCompacted(retentionDays: number): Promise<number> {
     const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
-    const result = await getPrisma().tapeEntry.deleteMany({
+    const result = await this.prisma.tapeEntry.deleteMany({
       where: {
         compacted: true,
         createdAt: { lt: cutoff },

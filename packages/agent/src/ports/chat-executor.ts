@@ -29,12 +29,25 @@ export interface ChatExecutionRequest {
   inputRole?: "user" | "trigger";
   /** Required when inputRole is "trigger". */
   triggerMeta?: TriggerMeta;
+  /**
+   * Phase 6：trigger run 的确定性身份（design §5.1）。存在时实现方据此构造
+   * run ledger trigger run；缺省（或 rollout 关闭）→ 行为回落 Phase 5。
+   * fireAt 是本次触发的既定时刻（heartbeat 的 due 水位 / scheduler 的
+   * nextRunAt），同一 (entity, fireAt) 重执行收敛到同一 run 链。
+   */
+  triggerIdentity?: {
+    source: "heartbeat" | "scheduler";
+    entityId: string;
+    fireAtISO: string;
+  };
 }
 
 export interface ChatExecutionResult {
   text?: string;
   status: "completed" | "error";
   error?: string;
+  /** Phase 6：trigger run 的 runId（run ledger 启用且未降级时存在）。 */
+  runId?: string;
 }
 
 export interface ChatExecutorPort {

@@ -24,6 +24,16 @@ model Account {
   credential     WeixinAccountCredential?
   allowFromList  WeixinAccountAllowFrom[]
   syncState      WeixinSyncState?
+  conversationStreamHeads ConversationStreamHead[]
+  agentRunHeads            AgentRunHead[]
+  memoryStreamHeads        MemoryStreamHead[]
+  weixinIngressDispatches  WeixinIngressDispatch[]
+  weixinIngressRollout     WeixinIngressRollout?
+  legacyProjectionLinks    LegacyMessageProjectionLink[]
+  contextCompilerShadowRollout ContextCompilerShadowRollout?
+  contextCompilerShadowResults ContextCompilerShadowResult[]
+  runLedgerRollout             RunLedgerRollout?
+  attachmentArtifacts          ConversationAttachmentArtifact[]
 
   @@map("accounts")
 }
@@ -138,10 +148,274 @@ model Message {
   mediaType      String?  @map("media_type") @db.Text
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  projectionLink LegacyMessageProjectionLink?
 
   @@unique([accountId, conversationId, seq], map: "messages_account_id_conversation_id_seq_key")
   @@index([accountId, conversationId, id], map: "idx_messages_lookup")
   @@map("messages")
+}
+
+model ConversationSummary {
+  id             BigInt   @id @default(autoincrement())
+  accountId      String   @map("account_id") @db.Text
+  conversationId String   @map("conversation_id") @db.Text
+  seqStart       Int      @map("seq_start")
+  seqEnd         Int      @map("seq_end")
+  summary        String   @db.Text
+  model          String   @db.Text
+  promptVersion  Int      @map("prompt_version")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([accountId, conversationId, seqStart])
+  @@index([accountId, conversationId, seqEnd])
+  @@map("conversation_summaries")
+}
+
+// Fact-ledger CHECK constraints, the partial idempotency index, and append-only
+// triggers live in the reviewed migration because Prisma cannot model them.
+model ConversationStreamHead {
+  accountId String   @map("account_id") @db.Text
+  streamId  String   @map("stream_id") @db.Text
+  lastSeq   Int      @default(0) @map("last_seq")
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  events    ConversationEvent[]
+
+  @@id([accountId, streamId])
+  @@map("conversation_stream_heads")
+}
+
+model ConversationEvent {
+  eventId        String   @id @map("event_id") @db.Text
+  accountId      String   @map("account_id") @db.Text
+  streamId       String   @map("stream_id") @db.Text
+  streamSeq      Int      @map("stream_seq")
+  eventType      String   @map("event_type") @db.Text
+  schemaVersion  Int      @map("schema_version")
+  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(6)
+  receivedAt     DateTime @map("received_at") @db.Timestamptz(6)
+  recordedAt     DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  actorKind      String   @map("actor_kind") @db.Text
+  actorId        String?  @map("actor_id") @db.Text
+  causationId    String?  @map("causation_id") @db.Text
+  correlationId  String?  @map("correlation_id") @db.Text
+  idempotencyKey String?  @map("idempotency_key") @db.Text
+  payload        Json
+  head            ConversationStreamHead @relation(fields: [accountId, streamId], references: [accountId, streamId], onDelete: Restrict)
+  ingressDispatch WeixinIngressDispatch?
+  projectionLink  LegacyMessageProjectionLink?
+  contextCompilerShadowResults ContextCompilerShadowResult[]
+
+  @@unique([accountId, streamId, streamSeq], map: "conversation_events_stream_seq_key")
+  @@unique([eventId, accountId], map: "conversation_events_event_account_key")
+  @@index([causationId], map: "idx_conversation_events_causation")
+  @@index([correlationId], map: "idx_conversation_events_correlation")
+  @@map("conversation_events")
+}
+
+model WeixinIngressDispatch {
+  eventId           String    @id @map("event_id") @db.Text
+  accountId         String    @map("account_id") @db.Text
+  status            String    @default("pending") @db.Text
+  outcome           String?   @db.Text
+  attemptCount      Int       @default(0) @map("attempt_count")
+  claimedAt         DateTime? @map("claimed_at") @db.Timestamptz(6)
+  completedAt       DateTime? @map("completed_at") @db.Timestamptz(6)
+  errorCode         String?   @map("error_code") @db.Text
+  commandName       String?   @map("command_name") @db.Text
+  recoveryOperator String?   @map("recovery_operator") @db.Text
+  recoveryReason   String?   @map("recovery_reason") @db.Text
+  recoveredAt      DateTime? @map("recovered_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  event             ConversationEvent @relation(fields: [eventId, accountId], references: [eventId, accountId], onDelete: Restrict)
+  account           Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@unique([eventId, accountId], map: "weixin_ingress_dispatches_event_account_key")
+  @@index([accountId, status], map: "idx_weixin_ingress_dispatches_account_status")
+  @@index([status, claimedAt], map: "idx_weixin_ingress_dispatches_stuck")
+  @@map("weixin_ingress_dispatches")
+}
+
+model ContextCompilerShadowRollout {
+  accountId String   @id @map("account_id") @db.Text
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("context_compiler_shadow_rollouts")
+}
+
+model RunLedgerRollout {
+  accountId String   @id @map("account_id") @db.Text
+  enabled   Boolean  @default(false)
+  /// Phase 6：canonical 上下文读取路径三态（legacy | dual | canonical）
+  readPath  String   @default("legacy") @map("read_path") @db.Text
+  /// Phase 7：messages 投影写路径三态（prompt_shaped | clean | suspended）
+  legacyWriteMode String @default("prompt_shaped") @map("legacy_write_mode") @db.Text
+  /// Phase 7：记忆注入读取三态（tape | dual | events）
+  memoryReadPath  String @default("tape") @map("memory_read_path") @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("run_ledger_rollouts")
+}
+
+model ContextCompilerShadowResult {
+  sourceEventId              String   @map("source_event_id") @db.Text
+  accountId                  String   @map("account_id") @db.Text
+  compilerVersion            String   @map("compiler_version") @db.Text
+  contextPolicyRevisionId    String   @map("context_policy_revision_id") @db.Text
+  eventCursor                Int      @map("event_cursor")
+  effectiveTime              DateTime @map("effective_time") @db.Timestamptz(6)
+  timezone                   String   @db.Text
+  canonicalContextHash       String?  @map("canonical_context_hash") @db.Text
+  canonicalMemoryInputHash   String?  @map("canonical_memory_input_hash") @db.Text
+  legacySummaryHash          String?  @map("legacy_summary_hash") @db.Text
+  canonicalEntryCount        Int?     @map("canonical_entry_count")
+  legacyEntryCount           Int?     @map("legacy_entry_count")
+  diffCounts                 Json     @map("diff_counts")
+  status                     String   @db.Text
+  errorCode                  String?  @map("error_code") @db.Text
+  createdAt                  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  event                      ConversationEvent @relation(fields: [sourceEventId, accountId], references: [eventId, accountId], onDelete: Restrict)
+  account                    Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@id([sourceEventId, compilerVersion, contextPolicyRevisionId])
+  @@index([accountId, status], map: "idx_context_compiler_shadow_results_account_status")
+  @@map("context_compiler_shadow_results")
+}
+
+/// Phase 5: attachment source ref → immutable MEDIA_ASSET 制品映射。
+/// ref 派生含 accountId，天然账户隔离；同 ref 重复资产化幂等（upsert）。
+model ConversationAttachmentArtifact {
+  accountId  String   @map("account_id") @db.Text
+  sourceRef  String   @map("source_ref") @db.Text
+  artifactId String   @map("artifact_id") @db.Text
+  mimeType   String?  @map("mime_type") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, sourceRef])
+  @@index([artifactId], map: "idx_attachment_artifacts_artifact")
+  @@map("conversation_attachment_artifacts")
+}
+
+model WeixinIngressRollout {
+  accountId String   @id @map("account_id") @db.Text
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("weixin_ingress_rollouts")
+}
+
+model LegacyMessageProjectionLink {
+  eventId       String    @id @map("event_id") @db.Text
+  accountId     String    @map("account_id") @db.Text
+  conversationId String  @map("conversation_id") @db.Text
+  messageSeq    Int       @map("message_seq")
+  messageId     BigInt?   @unique @map("message_id")
+  state         String    @default("persisted") @db.Text
+  linkedAt      DateTime  @default(now()) @map("linked_at") @db.Timestamptz(6)
+  clearedAt     DateTime? @map("cleared_at") @db.Timestamptz(6)
+  event         ConversationEvent @relation(fields: [eventId], references: [eventId], onDelete: Restrict)
+  account       Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  message       Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([accountId, conversationId], map: "idx_legacy_projection_links_conversation")
+  @@map("legacy_message_projection_links")
+}
+
+model AgentRunHead {
+  runId                String   @id @map("run_id") @db.Text
+  accountId            String   @map("account_id") @db.Text
+  conversationStreamId String   @map("conversation_stream_id") @db.Text
+  lastSeq              Int      @default(0) @map("last_seq")
+  updatedAt            DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  account              Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  events               AgentRunEvent[]
+
+  @@unique([runId, accountId, conversationStreamId], map: "agent_run_heads_identity_key")
+  @@map("agent_run_heads")
+}
+
+model AgentRunEvent {
+  eventId              String   @id @map("event_id") @db.Text
+  runId                String   @map("run_id") @db.Text
+  runSeq               Int      @map("run_seq")
+  accountId            String   @map("account_id") @db.Text
+  conversationStreamId String   @map("conversation_stream_id") @db.Text
+  eventType            String   @map("event_type") @db.Text
+  schemaVersion        Int      @map("schema_version")
+  occurredAt           DateTime @map("occurred_at") @db.Timestamptz(6)
+  recordedAt           DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  causationId          String?  @map("causation_id") @db.Text
+  correlationId        String?  @map("correlation_id") @db.Text
+  payload              Json
+  head                 AgentRunHead @relation(fields: [runId, accountId, conversationStreamId], references: [runId, accountId, conversationStreamId], onDelete: Restrict)
+
+  @@unique([runId, runSeq], map: "agent_run_events_run_seq_key")
+  @@index([accountId, conversationStreamId, recordedAt], map: "idx_agent_run_events_conversation")
+  @@index([causationId], map: "idx_agent_run_events_causation")
+  @@index([correlationId], map: "idx_agent_run_events_correlation")
+  @@map("agent_run_events")
+}
+
+model MemoryStreamHead {
+  accountId String   @map("account_id") @db.Text
+  branch    String   @db.Text
+  lastSeq   Int      @default(0) @map("last_seq")
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  events    MemoryEvent[]
+
+  @@id([accountId, branch])
+  @@map("memory_stream_heads")
+}
+
+model MemoryEvent {
+  eventId       String   @id @map("event_id") @db.Text
+  accountId     String   @map("account_id") @db.Text
+  branch        String   @db.Text
+  memorySeq     Int      @map("memory_seq")
+  eventType     String   @map("event_type") @db.Text
+  schemaVersion Int      @map("schema_version")
+  occurredAt    DateTime @map("occurred_at") @db.Timestamptz(6)
+  recordedAt    DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  actorKind     String   @map("actor_kind") @db.Text
+  actorId       String?  @map("actor_id") @db.Text
+  causationId   String?  @map("causation_id") @db.Text
+  correlationId String?  @map("correlation_id") @db.Text
+  payload       Json
+
+  // Phase 5 冗余列：仅 memory_asserted 行写入，服务 findLiveAssertionByKey 索引查询
+  category      String?  @db.Text
+  key           String?  @db.Text
+
+  head          MemoryStreamHead @relation(fields: [accountId, branch], references: [accountId, branch], onDelete: Restrict)
+
+  @@unique([accountId, branch, memorySeq], map: "memory_events_branch_seq_key")
+  @@index([accountId, branch, category, key, memorySeq], map: "idx_memory_events_live_lookup")
+  @@index([causationId], map: "idx_memory_events_causation")
+  @@index([correlationId], map: "idx_memory_events_correlation")
+  @@map("memory_events")
+}
+
+model ArtifactRevision {
+  artifactId         String   @id @map("artifact_id") @db.Text
+  kind               String   @db.Text
+  sha256             String   @db.Text
+  schemaVersion      Int      @map("schema_version")
+  contentLocation    String   @map("content_location") @db.Text
+  inlineJson         Json?    @map("inline_json")
+  storageRef         Json?    @map("storage_ref")
+  encryptionMetadata Json?    @map("encryption_metadata")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([kind, schemaVersion, sha256], map: "artifact_revisions_content_key")
+  @@map("artifact_revisions")
 }
 
 model WebhookToken {
@@ -441,6 +715,9 @@ model TapeAnchor {
 
   // Last Entry eid covered by this anchor (recall incremental start point)
   lastEntryEid   String?  @map("last_entry_eid") @db.Uuid
+
+  // Phase 5: SUMMARY artifact backing this checkpoint (null for legacy anchors)
+  summaryArtifactId String? @map("summary_artifact_id") @db.Text
 
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)

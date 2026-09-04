@@ -6,7 +6,14 @@
 
 import { estimateTextTokens } from "../llm/token-estimator.js";
 import { getTapeStore } from "../ports/tape-store.js";
+import { getArtifactRevisionStore } from "../ports/artifact-revision-store.js";
+import { getMemoryEventStore } from "../ports/memory-event-store.js";
 import { deserializeState, emptyState, fold, serializeState } from "./fold.js";
+import {
+  appendMemoryAnchorCreated,
+  buildSummaryDocument,
+  putSummaryArtifact,
+} from "./summary-artifacts.js";
 import type { RecordParams, TapeState } from "./types.js";
 
 /**
@@ -127,6 +134,39 @@ export async function compactIfNeeded(
     // We let the store impl handle the conversion at the boundary.
     entryEids as unknown as bigint[],
   );
+
+  // Phase 5：checkpoint 固化为 SUMMARY 制品 + memory_anchor_created 事件
+  // （设计 §8.2）。失败 fail-open——anchor 照常，制品/事件缺口由指标暴露。
+  try {
+    const anchor = await store.findLatestAnchor(accountId, branch);
+    if (anchor) {
+      const summaryDoc = buildSummaryDocument({
+        accountId,
+        branch,
+        anchorType: "checkpoint",
+        state: serializeState(withBoundedDecisions(currentState)),
+        entryIds: entryEids,
+        createdAt: new Date().toISOString(),
+      });
+      const summaryId = await putSummaryArtifact(
+        { artifactRevisionStore: getArtifactRevisionStore() },
+        summaryDoc,
+      );
+      if (summaryId) {
+        await store.attachAnchorSummary(accountId, branch, anchor.aid, summaryId);
+        await appendMemoryAnchorCreated({
+          memoryEventStore: getMemoryEventStore(),
+          accountId,
+          branch,
+          anchorAid: anchor.aid,
+          snapshotArtifactId: summaryId,
+          throughMemorySeq: await getMemoryEventStore().headSeq(accountId, branch),
+        });
+      }
+    }
+  } catch (error) {
+    console.error(`[tape] summary artifact error (${accountId}/${branch}):`, error);
+  }
 
   return true;
 }

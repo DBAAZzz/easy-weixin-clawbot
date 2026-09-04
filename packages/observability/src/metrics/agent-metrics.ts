@@ -122,3 +122,190 @@ export const activeConversations = registry.createGauge({
   help: "Currently active conversations",
   labelNames: [],
 });
+
+export const weixinIngressIdentityTotal = registry.createCounter({
+  name: "weixin_ingress_identity_total",
+  help: "Validated Weixin ingress identities",
+  labelNames: ["source"],
+});
+
+export const weixinIngressAppendTotal = registry.createCounter({
+  name: "weixin_ingress_append_total",
+  help: "Conversation event append results for Weixin ingress",
+  labelNames: ["result"],
+});
+
+export const weixinIngressDispatchTotal = registry.createCounter({
+  name: "weixin_ingress_dispatch_total",
+  help: "Weixin ingress dispatch outcomes",
+  labelNames: ["result"],
+});
+
+export const weixinIngressReconcileTotal = registry.createCounter({
+  name: "weixin_ingress_reconcile_total",
+  help: "Weixin ingress reconciliation results",
+  labelNames: ["result"],
+});
+
+export const contextCompilerShadowTotal = registry.createCounter({
+  name: "context_compiler_shadow_total",
+  help: "Context compiler shadow outcomes",
+  labelNames: ["result"],
+});
+
+export const contextCompilerDiffTotal = registry.createCounter({
+  name: "context_compiler_diff_total",
+  help: "Context compiler fixed-category differences",
+  labelNames: ["category"],
+});
+
+export const contextCompilerEntries = registry.createHistogram({
+  name: "context_compiler_entries",
+  help: "Context entry counts by comparison side",
+  labelNames: ["side"],
+  buckets: [0, 1, 2, 5, 10, 20, 50, 100, 200],
+});
+
+export const contextCompilerUnresolvedAttachmentTotal = registry.createCounter({
+  name: "context_compiler_unresolved_attachment_total",
+  help: "Unresolved canonical attachments",
+  labelNames: [],
+});
+
+export const contextCompilerDurationMs = registry.createHistogram({
+  name: "context_compiler_duration_ms",
+  help: "Context compiler shadow duration",
+  labelNames: [],
+  buckets: [1, 5, 10, 25, 50, 100, 250, 500, 1000, 5000],
+});
+
+export const runLedgerTotal = registry.createCounter({
+  name: "run_ledger_total",
+  help: "Run ledger outcomes per run",
+  labelNames: ["result"],
+});
+
+export const runLedgerEventTotal = registry.createCounter({
+  name: "run_ledger_event_total",
+  help: "Run ledger events appended by type",
+  labelNames: ["event_type"],
+});
+
+export const runLedgerInlineLatencyMs = registry.createHistogram({
+  name: "run_ledger_inline_latency_ms",
+  help: "Inline run-ledger write latency (run_started, manifest, context_compiled, delivery_requested)",
+  labelNames: [],
+  buckets: [1, 5, 10, 25, 50, 100, 250, 500, 1000],
+});
+
+export const artifactPutTotal = registry.createCounter({
+  name: "artifact_put_total",
+  help: "Artifact revision puts by kind and result",
+  labelNames: ["kind", "result"],
+});
+
+export const contextManifestTotal = registry.createCounter({
+  name: "context_manifest_total",
+  help: "Context manifest builds per run",
+  labelNames: ["result"],
+});
+
+export const memoryEventTotal = registry.createCounter({
+  name: "memory_event_total",
+  help: "Memory fact ledger writes per outcome",
+  labelNames: ["result"],
+});
+
+export const memorySupersededTotal = registry.createCounter({
+  name: "memory_superseded_total",
+  help: "Memory superseded events per outcome",
+  labelNames: ["result"],
+});
+
+export const mediaArtifactTotal = registry.createCounter({
+  name: "media_artifact_total",
+  help: "MEDIA_ASSET artifact puts per result",
+  labelNames: ["result"],
+});
+
+export const mediaMappingTotal = registry.createCounter({
+  name: "media_mapping_total",
+  help: "Attachment source-ref mapping writes per result",
+  labelNames: ["result"],
+});
+
+export const visualObservationTotal = registry.createCounter({
+  name: "visual_observation_total",
+  help: "VISUAL_OBSERVATION artifacts pinned per run",
+  labelNames: [],
+});
+
+export const summaryArtifactTotal = registry.createCounter({
+  name: "summary_artifact_total",
+  help: "SUMMARY artifacts created by compaction",
+  labelNames: [],
+});
+
+// ── Phase 6：读取切换与主动推送事实 ──
+
+export const contextReadPathTotal = registry.createCounter({
+  name: "context_read_path_total",
+  help: "Per-turn context read path",
+  labelNames: ["account", "path"],
+});
+
+export const contextDualDiffTotal = registry.createCounter({
+  name: "context_dual_diff_total",
+  help: "Dual-period canonical vs legacy assembly comparison results",
+  labelNames: ["result", "dimension"],
+});
+
+export const contextReadFallbackTotal = registry.createCounter({
+  name: "context_read_fallback_total",
+  help: "Canonical read-path builds that fell back to legacy for the turn",
+  labelNames: ["reason"],
+});
+
+export const proactiveOutboundTotal = registry.createCounter({
+  name: "proactive_outbound_total",
+  help: "Proactive push outbound conversation fact writes",
+  labelNames: ["result"],
+});
+
+// ── Phase 7：旧路径退役、历史边界与 memory projection ──
+
+export const legacyImportTotal = registry.createCounter({
+  name: "legacy_import_total",
+  help: "Legacy transcript import outcomes per conversation stream",
+  labelNames: ["result"],
+});
+
+export const projectionWriteTotal = registry.createCounter({
+  name: "projection_write_total",
+  help: "Message projection persistence decisions by write mode",
+  labelNames: ["mode"],
+});
+
+export const projectionWriteSkippedTotal = registry.createCounter({
+  name: "projection_write_skipped_total",
+  help: "Message projection writes skipped (suspended mode)",
+  labelNames: ["reason"],
+});
+
+export const memoryImportTotal = registry.createCounter({
+  name: "memory_import_total",
+  help: "Tape snapshot memory import outcomes per branch",
+  labelNames: ["result"],
+});
+
+export const memoryProjectionDiffTotal = registry.createCounter({
+  name: "memory_projection_diff_total",
+  help: "Memory projection dual comparisons and event-path fallbacks",
+  labelNames: ["result"],
+});
+
+export const replayAuditTotal = registry.createCounter({
+  name: "replay_audit_total",
+  help: "Run artifact replay-audit findings per checked artifact",
+  labelNames: ["result"],
+});

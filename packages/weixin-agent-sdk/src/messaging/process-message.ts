@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import type { Agent, ChatRequest } from "../agent/interface.js";
+import type { Agent, ChatRequest, WeixinIngressLifecycle } from "../agent/interface.js";
 import { sendTyping } from "../api/api.js";
 import type { WeixinMessage, MessageItem } from "../api/types.js";
 import { MessageItemType, TypingStatus } from "../api/types.js";
@@ -51,7 +51,28 @@ export type ProcessMessageDeps = {
   workDirs?: WeixinSdkWorkDirs;
   log: (msg: string) => void;
   errLog: (msg: string) => void;
+  ingressLifecycle?: WeixinIngressLifecycle;
+  receiptId?: string;
+  receivedAtMs?: number;
 };
+
+/** Delivery report produced by the actual platform sends (Phase 4 design §6.2). */
+export interface ProcessMessageDeliveryReport {
+  ok: boolean;
+  /** Platform message id of the last successful send (the SDK client id). */
+  channelMessageId?: string;
+  /** The converted text actually handed to the platform. */
+  textSent?: string;
+  /** Stable failure marker; never carries reply content. */
+  error?: string;
+}
+
+export interface ProcessMessageOutcome {
+  status: "chat" | "command" | "failed";
+  errorCode?: string;
+  /** Present only when a reply send was actually attempted. */
+  deliveryReport?: ProcessMessageDeliveryReport;
+}
 
 /** Extract raw text from item_list (for slash command detection). */
 function extractTextBody(itemList?: MessageItem[]): string {
@@ -107,9 +128,9 @@ function findMediaItem(itemList?: MessageItem[]): MessageItem | undefined {
 export async function processOneMessage(
   full: WeixinMessage,
   deps: ProcessMessageDeps,
-): Promise<void> {
+): Promise<ProcessMessageOutcome> {
   const workDirs = deps.workDirs ?? resolveWeixinSdkWorkDirs();
-  const receivedAt = Date.now();
+  const receivedAt = deps.receivedAtMs ?? Date.now();
   const textBody = extractTextBody(full.item_list);
 
   // --- Slash commands ---
@@ -125,12 +146,20 @@ export async function processOneMessage(
         accountId: deps.accountId,
         log: deps.log,
         errLog: deps.errLog,
-        onClear: () => deps.agent.clearSession?.(conversationId),
+        onClear: () =>
+          deps.ingressLifecycle && deps.receiptId
+            ? deps.ingressLifecycle.invokeClear({
+                receiptId: deps.receiptId,
+                conversationId,
+              })
+            : deps.agent.clearSession?.(conversationId),
       },
       receivedAt,
       full.create_time_ms,
     );
-    if (slashResult.handled) return;
+    if (slashResult.handled) {
+      return { status: slashResult.failed ? "failed" : "command" };
+    }
   }
 
   // --- Store context token ---
@@ -209,44 +238,74 @@ export async function processOneMessage(
   }
 
   // --- Call agent & send reply ---
+  let deliveryReport: ProcessMessageDeliveryReport | undefined;
   try {
-    const response = await deps.agent.chat(request);
+    const response =
+      deps.ingressLifecycle && deps.receiptId
+        ? await deps.ingressLifecycle.invokeAgent({ receiptId: deps.receiptId, request })
+        : await deps.agent.chat(request);
 
-    if (response.media) {
-      let filePath: string;
-      const mediaUrl = response.media.url;
-      if (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) {
-        filePath = await downloadRemoteImageToTemp(
-          mediaUrl,
-          workDirs.mediaOutboundDir,
-        );
+    const textSent = response.text ? markdownToPlainText(response.text) : undefined;
+    try {
+      let channelMessageId: string | undefined;
+      if (response.media) {
+        let filePath: string;
+        const mediaUrl = response.media.url;
+        if (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) {
+          filePath = await downloadRemoteImageToTemp(mediaUrl, workDirs.mediaOutboundDir);
+        } else {
+          filePath = path.isAbsolute(mediaUrl) ? mediaUrl : path.resolve(mediaUrl);
+        }
+        const sent = await sendWeixinMediaFile({
+          filePath,
+          to,
+          text: textSent ?? "",
+          opts: { baseUrl: deps.baseUrl, token: deps.token, contextToken },
+          cdnBaseUrl: deps.cdnBaseUrl,
+        });
+        channelMessageId = sent.messageId;
+      } else if (response.text) {
+        const sent = await sendMessageWeixin({
+          to,
+          text: textSent ?? "",
+          opts: { baseUrl: deps.baseUrl, token: deps.token, contextToken },
+        });
+        channelMessageId = sent.messageId;
       } else {
-        filePath = path.isAbsolute(mediaUrl) ? mediaUrl : path.resolve(mediaUrl);
+        // Nothing was sent on the platform — no delivery fact to report.
+        return { status: "chat" };
       }
-      await sendWeixinMediaFile({
-        filePath,
-        to,
-        text: response.text ? markdownToPlainText(response.text) : "",
-        opts: { baseUrl: deps.baseUrl, token: deps.token, contextToken },
-        cdnBaseUrl: deps.cdnBaseUrl,
-      });
-    } else if (response.text) {
-      await sendMessageWeixin({
-        to,
-        text: markdownToPlainText(response.text),
-        opts: { baseUrl: deps.baseUrl, token: deps.token, contextToken },
-      });
+      deliveryReport = {
+        ok: true,
+        channelMessageId,
+        ...(textSent ? { textSent } : {}),
+      };
+    } catch (sendErr) {
+      deliveryReport = {
+        ok: false,
+        ...(textSent ? { textSent } : {}),
+        error: "reply_send_failed",
+      };
+      throw sendErr;
     }
+    return { status: "chat", deliveryReport };
   } catch (err) {
-    logger.error(`processOneMessage: agent or send failed: ${err instanceof Error ? err.stack ?? err.message : JSON.stringify(err)}`);
-    void sendWeixinErrorNotice({
+    logger.error(
+      `processOneMessage: agent or send failed: ${err instanceof Error ? (err.stack ?? err.message) : JSON.stringify(err)}`,
+    );
+    await sendWeixinErrorNotice({
       to,
       contextToken,
       message: `⚠️ 处理消息失败：${err instanceof Error ? err.message : JSON.stringify(err)}`,
       baseUrl: deps.baseUrl,
       token: deps.token,
       errLog: deps.errLog,
-    });
+    }).catch(() => undefined);
+    return {
+      status: "failed",
+      errorCode: "business_processing_failed",
+      ...(deliveryReport ? { deliveryReport } : {}),
+    };
   } finally {
     // --- Typing indicator (cancel) ---
     if (typingTimer) clearInterval(typingTimer);

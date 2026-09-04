@@ -4,7 +4,26 @@ import { credentialStore, syncStateStore } from "./credentials/index.js";
 import { getActiveAccountIds as getNonDeprecatedAccountIds, upsertAccount } from "./db/accounts.js";
 import { drainMessageQueue } from "./db/messages.js";
 import { drainUsageQueue } from "./db/usage.js";
+import { WeixinIngressRolloutStore } from "./db/weixin-ingress-rollout-store.js";
+import { createWeixinIngressLifecycle } from "./weixin/ingress-controller.js";
 import { createModuleLogger, log } from "./logger.js";
+import { PrismaContextCompilerShadowRolloutStore } from "./db/context-compiler-shadow-rollout-store.js";
+import { RunLedgerRolloutStore } from "./db/run-ledger-rollout-store.js";
+import { createServerContextShadowObserver } from "./context-shadow-observer.js";
+import {
+  setProjectionWriteModeResolver,
+  type ProjectionWriteMode,
+} from "@clawbot/agent";
+import type { ContextShadowObserver } from "@clawbot/agent";
+
+/**
+ * Phase 7 (§6.3): per-account projection write mode snapshot, refreshed at
+ * each account start. The resolver is process-global because the write gate
+ * lives inside the agent engine; accounts without a snapshot entry keep the
+ * Phase 0–6 behaviour.
+ */
+const projectionWriteModes = new Map<string, ProjectionWriteMode>();
+setProjectionWriteModeResolver((accountId) => projectionWriteModes.get(accountId) ?? "prompt_shaped");
 
 type RunningAccount = {
   abortController: AbortController;
@@ -21,6 +40,19 @@ export interface BotRuntime {
 
 const runtimeLogger = createModuleLogger("runtime");
 
+async function drainContextShadow(observer: ContextShadowObserver): Promise<void> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<"timeout">((resolve) => {
+    timeout = setTimeout(() => resolve("timeout"), 5_000);
+    timeout.unref?.();
+  });
+  const result = await Promise.race([observer.drain().then(() => "drained" as const), timedOut]);
+  if (timeout) clearTimeout(timeout);
+  if (result === "timeout") {
+    runtimeLogger.warn({}, "Context compiler shadow drain timed out");
+  }
+}
+
 export function createBotRuntime(): BotRuntime {
   const startedAt = Date.now();
   const running = new Map<string, RunningAccount>();
@@ -36,20 +68,56 @@ export function createBotRuntime(): BotRuntime {
   ): Promise<void> {
     return (async () => {
       runtimeLogger.info({ accountId }, "开始启动账号运行时");
+      let contextShadowObserver: ContextShadowObserver | undefined;
 
       try {
         const credential = await credentialStore.getDecrypted(accountId);
         if (!credential) {
-          runtimeLogger.warn(
-            { accountId },
-            "账号缺少已绑定凭据，跳过启动",
-          );
+          runtimeLogger.warn({ accountId }, "账号缺少已绑定凭据，跳过启动");
           return;
         }
 
         await upsertAccount(accountId);
 
-        // Load sync buf from DB
+        // Load rollout once per account start; a restart applies operator changes.
+        const ingressEnabled = await new WeixinIngressRolloutStore().isEnabled(accountId);
+        const shadowEnabled = await new PrismaContextCompilerShadowRolloutStore().isEnabled(
+          accountId,
+        );
+        const runLedgerRolloutStore = new RunLedgerRolloutStore();
+        const runLedgerEnabled = await runLedgerRolloutStore.isEnabled(accountId);
+        const contextReadPath = await runLedgerRolloutStore.readPath(accountId);
+        // Phase 7 (§6.3): `clean`/`suspended` writes require the canonical
+        // read path — otherwise the persisted user text would no longer match
+        // what the legacy/dual model context assembles. Non-canonical accounts
+        // keep prompt_shaped regardless of the rollout column.
+        const configuredWriteMode = await runLedgerRolloutStore.legacyWriteMode(accountId);
+        const legacyWriteMode: ProjectionWriteMode =
+          contextReadPath === "canonical" ? configuredWriteMode : "prompt_shaped";
+        if (configuredWriteMode !== "prompt_shaped" && legacyWriteMode === "prompt_shaped") {
+          runtimeLogger.warn(
+            { accountId, configuredWriteMode, readPath: contextReadPath },
+            "legacy_write_mode requires read_path=canonical; downgraded to prompt_shaped",
+          );
+        }
+        projectionWriteModes.set(accountId, legacyWriteMode);
+        // Phase 7 (§7.3): memory injection needs ledger evidence; without run
+        // events there is nothing to replay, so non-ledger accounts stay on Tape.
+        let memoryReadPath = await runLedgerRolloutStore.memoryReadPath(accountId);
+        if (memoryReadPath !== "tape" && !runLedgerEnabled) {
+          runtimeLogger.warn(
+            { accountId, memoryReadPath },
+            "memory_read_path requires the run ledger; staying on tape",
+          );
+          memoryReadPath = "tape";
+        }
+        contextShadowObserver = shadowEnabled ? createServerContextShadowObserver() : undefined;
+        const agent = createAgent(accountId, {
+          contextShadowObserver,
+          runLedgerEnabled,
+          contextReadPath,
+          memoryReadPath,
+        });
         const syncBuf = await syncStateStore.load(accountId);
 
         await monitorWeixinProvider({
@@ -57,20 +125,26 @@ export function createBotRuntime(): BotRuntime {
           cdnBaseUrl: getDefaultCdnBaseUrl(),
           token: credential.token,
           accountId,
-          agent: createAgent(accountId),
+          agent,
           abortSignal: abortController.signal,
           syncBufInitial: syncBuf,
-          onSyncBufUpdate: (buf) => {
-            void syncStateStore.save(accountId, buf).catch((err) => {
-              log.error(`syncStateStore.save(${accountId})`, err);
-            });
-          },
+          onSyncBufUpdate: (buf) => syncStateStore.save(accountId, buf),
+          ...(ingressEnabled
+            ? {
+                ingressLifecycle: createWeixinIngressLifecycle({
+                  accountId,
+                  rolloutEnabled: ingressEnabled,
+                  agent,
+                }),
+              }
+            : {}),
         });
       } catch (error) {
         if (!abortController.signal.aborted) {
           log.error(`start(${accountId})`, error);
         }
       } finally {
+        if (contextShadowObserver) await drainContextShadow(contextShadowObserver);
         // Only retract our own registration. A newer launch may already own this
         // accountId (restart during teardown), and deleting its entry would leave
         // a live session unreachable — and a later ensureAccountStarted would then
@@ -80,10 +154,7 @@ export function createBotRuntime(): BotRuntime {
         }
 
         if (!abortController.signal.aborted) {
-          runtimeLogger.info(
-            { accountId },
-            "账号连接已断开",
-          );
+          runtimeLogger.info({ accountId }, "账号连接已断开");
         }
       }
     })();
@@ -127,7 +198,7 @@ export function createBotRuntime(): BotRuntime {
 
   async function shutdown(): Promise<void> {
     const startPromises = [...running.values()].map((entry) => entry.startPromise);
-    for (const id of [...running.keys()]) {
+    for (const id of running.keys()) {
       stopAccount(id);
     }
     await Promise.allSettled(startPromises);

@@ -16,6 +16,7 @@ import { createLogger } from "@clawbot/observability";
 import { getHeartbeatStore } from "../../ports/heartbeat-store.js";
 import { getPushService } from "../../ports/push-service.js";
 import { getChatExecutor } from "../../ports/chat-executor.js";
+import { recordProactiveOutbound } from "../outbound-facts.js";
 import { evaluatePulse, applyPulseGuards, localDateKey } from "./evaluator.js";
 import {
   type PulseRow,
@@ -65,6 +66,12 @@ async function speak(pulse: PulseRow, prompt: string): Promise<boolean> {
     runKind: "heartbeat",
     inputRole: "trigger",
     triggerMeta: { kind: "pulse" },
+    // Phase 6：确定性 trigger runId——同一 tick 水位重执行幂等吸收（§5.1）。
+    triggerIdentity: {
+      source: "heartbeat",
+      entityId: pulse.id.toString(),
+      fireAtISO: pulse.nextEvalAt.toISOString(),
+    },
   });
 
   if (result.status === "error") {
@@ -94,12 +101,30 @@ async function speak(pulse: PulseRow, prompt: string): Promise<boolean> {
       text,
       { recordHistory: false },
     );
+    // 执行流即目标会话（heartbeat），两个 stream 相同（§5.2）。
+    await recordProactiveOutbound({
+      accountId: pulse.accountId,
+      executionStreamId: pulse.conversationId,
+      targetConversationId: pulse.conversationId,
+      runId: result.runId,
+      text,
+      pushSucceeded: true,
+    });
     return true;
   } catch (err) {
     logger.warn("pulse push failed", {
       accountId: pulse.accountId,
       conversationId: pulse.conversationId,
       error: err,
+    });
+    await recordProactiveOutbound({
+      accountId: pulse.accountId,
+      executionStreamId: pulse.conversationId,
+      targetConversationId: pulse.conversationId,
+      runId: result.runId,
+      text,
+      pushSucceeded: false,
+      failureReason: (err as Error).message,
     });
     return false;
   }
@@ -151,8 +176,11 @@ async function evaluateOne(
   });
 }
 
-async function tick(evaluate: PulseEvaluator = evaluatePulse): Promise<void> {
-  const now = new Date();
+async function tick(
+  evaluate: PulseEvaluator = evaluatePulse,
+  /** Injectable clock so tests can escape quiet hours deterministically. */
+  now: Date = new Date(),
+): Promise<void> {
   const due = await getHeartbeatStore().findDuePulses(now, PULSE_TICK_BATCH_SIZE);
 
   for (const pulse of due) {

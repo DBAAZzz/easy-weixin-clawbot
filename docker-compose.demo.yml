@@ -1,0 +1,16 @@
+# ============================================================================
+# ClawBot 演示/预览环境 overlay
+#
+# 在官方 docker-compose.yml 之上叠加，用于一键拉起带演示数据的环境：
+#
+#   docker compose --env-file docker/demo.env \
+#     -f docker-compose.yml -f docker-compose.demo.yml up -d
+#
+# demo.env 提供演示用途的 POSTGRES_PASSWORD / CLAWBOT_CREDENTIAL_KEY /
+# AUTH_* 等必填变量，全部为公开的演示值，请勿用于生产。
+# ============================================================================
+services:
+  server:
+    environment:
+      NODE_ENV: production
+      DEMO_MODE: "true"

@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { pinoLogger } from "hono-pino";
 import { loadAuthConfig } from "../config/auth.js";
+import { isDemoMode } from "../config/demo-mode.js";
 import type { LoginManager } from "../login/login-manager.js";
 import { createModuleLogger, getErrorFields, logger } from "../logger.js";
 import type { McpManager } from "../mcp/manager.js";
@@ -16,6 +17,7 @@ import { createAuthMiddleware } from "./middleware/auth.js";
 import { registerAccountRoutes } from "./routes/accounts.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerConversationRoutes } from "./routes/conversations.js";
+import { registerDemoLlmRoutes } from "./routes/demo-llm.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerLoginRoutes } from "./routes/login.js";
 import { registerMcpRoutes } from "./routes/mcp.js";
@@ -112,6 +114,9 @@ export function createApiApp(dependencies: ApiDependencies) {
   }
 
   registerHealthRoutes(app, dependencies);
+  if (isDemoMode()) {
+    registerDemoLlmRoutes(app);
+  }
   registerAccountRoutes(app);
   registerConversationRoutes(app);
   registerMessageRoutes(app);

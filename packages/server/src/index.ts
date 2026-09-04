@@ -10,6 +10,7 @@ import {
 } from "@clawbot/agent";
 import { purgeCompacted } from "@clawbot/agent/tape";
 import { createApiApp } from "./api/index.js";
+import { isDemoMode } from "./config/demo-mode.js";
 import { mcpToolRegistry, skillInstaller, runtimeProvisioner, validateConfig, chatEngine } from "./ai.js";
 import { commandRegistry } from "./agent.js";
 import { rssTaskHandler } from "./api/routes/rss.js";
@@ -22,6 +23,7 @@ import { createMcpManager } from "./mcp/manager.js";
 import { observabilityService } from "./observability/service.js";
 import { createBotRuntime } from "./runtime.js";
 import { rssService } from "./rss/service.js";
+import { seedDemoData } from "./seed/demo-seed.js";
 import { appSettingsService } from "./settings/service.js";
 
 validateConfig();
@@ -48,6 +50,19 @@ await skillInstaller.initialize(SKILLS_BUILTIN_DIR, SKILLS_USER_DIR);
 
 const runtime = createBotRuntime();
 await runtime.bootstrap();
+
+// Demo data must exist before the scheduler reads tasks, but after
+// runtime.bootstrap so the (credential-less) demo accounts are not picked up
+// as runtime sessions.
+if (isDemoMode()) {
+  await seedDemoData().catch((error) => {
+    bootstrapLogger.error(
+      { ...getErrorFields(error), subsystem: "demo-seed" },
+      "演示数据初始化失败",
+    );
+  });
+}
+
 await schedulerManager.bootstrap().catch((error) => {
   bootstrapLogger.warn(
     { ...getErrorFields(error), subsystem: "scheduler" },

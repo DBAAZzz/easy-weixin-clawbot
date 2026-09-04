@@ -95,6 +95,19 @@ docker compose down
 
 更完整的部署说明见 [docs/readme/2026-05-25_21_36_docker-deployment.md](./docs/readme/2026-05-25_21_36_docker-deployment.md)。
 
+## 演示模式（给他人预览用）
+
+不想绑真实微信、配真实模型，只想给别人看看整个后台的样子？一条命令拉起带演示数据的环境：
+
+```bash
+docker compose --env-file docker/demo.env \
+  -f docker-compose.yml -f docker-compose.demo.yml up -d
+```
+
+打开 `http://localhost:8080`，用 `admin` / `demo-admin-2026` 登录即可。环境内置演示账号、会话消息、记忆、定时任务、用量与调用链数据，以及一个本地模拟 LLM 端点（交互可真实跑通）；Web 侧边栏会显示「演示数据」徽标。详见 [演示模式文档](./docs/2026-09-05_00_26_demo-preview-mode.md)。
+
+本地开发同理：`DEMO_MODE=true pnpm dev:server`，或手动 `pnpm -F @clawbot/server demo:seed`。
+
 ## 配置约定
 
 项目现在只保留一个配置入口：仓库根目录 `.env`。

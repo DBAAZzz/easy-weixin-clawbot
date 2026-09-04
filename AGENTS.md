@@ -258,3 +258,4 @@ activation: on-demand    # always-on | on-demand
 | Webhook | [docs/2026-04-21_00_11_webhook-integration.md](docs/2026-04-21_00_11_webhook-integration.md) |
 | JWT 认证 | [docs/2026-04-21_00_11_jwt-authentication.md](docs/2026-04-21_00_11_jwt-authentication.md) |
 | 进程执行统一出口 | [docs/2026-07-23_21_30_exec-package-design.md](docs/2026-07-23_21_30_exec-package-design.md) |
+| 演示模式（Demo Seed） | [docs/2026-09-05_00_26_demo-preview-mode.md](docs/2026-09-05_00_26_demo-preview-mode.md) |

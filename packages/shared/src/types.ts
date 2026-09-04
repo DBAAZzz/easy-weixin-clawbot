@@ -229,6 +229,8 @@ export interface HealthStatus {
   pending_message_writes: number;
   pending_trace_writes: number;
   pending_usage_writes: number;
+  /** True when the deployment runs with DEMO_MODE and serves seeded demo data. */
+  demo_mode?: boolean;
 }
 
 export interface UsageOverview {

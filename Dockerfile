@@ -9,8 +9,11 @@ ARG REGISTRY=
 # ============================================================================
 FROM ${REGISTRY}node:22-slim AS builder
 
-# 安装 pnpm (利用 Node.js 自带的 corepack)
-RUN corepack enable && corepack prepare pnpm@10.30.0 --activate
+# 安装 pnpm (利用 Node.js 自带的 corepack) 和 openssl
+# (slim 镜像无 libssl，prisma generate 检测不到时会生成 1.1.x 引擎，与运行阶段 libssl3 不匹配)
+RUN corepack enable && corepack prepare pnpm@10.30.0 --activate \
+    && apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # 设置工作目录
 WORKDIR /app
@@ -81,6 +84,8 @@ COPY --from=builder /app/node_modules/      /app/node_modules/
 # 拷贝各软件包的编译产物和必要源码
 COPY --from=builder /app/packages/shared/      /app/packages/shared/
 COPY --from=builder /app/packages/observability/ /app/packages/observability/
+COPY --from=builder /app/packages/exec/        /app/packages/exec/
+COPY --from=builder /app/packages/asset/       /app/packages/asset/
 COPY --from=builder /app/packages/agent/       /app/packages/agent/
 COPY --from=builder /app/packages/server/      /app/packages/server/
 COPY --from=builder /app/packages/weixin-agent-sdk/ /app/packages/weixin-agent-sdk/

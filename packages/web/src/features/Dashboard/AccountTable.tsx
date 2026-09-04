@@ -2,7 +2,6 @@ import type { AccountSummary } from "@clawbot/shared";
 import { Link } from "react-router-dom";
 import { ScanIcon, buttonClassName } from "@clawbot/ui";
 import { AccountCard } from "./AccountCard.js";
-import { PAGE_SIZE } from "./types.js";
 
 export function AccountTable({
   accounts,
@@ -25,7 +24,7 @@ export function AccountTable({
             <div key={index} className="ui-skeleton h-3 rounded-pill" />
           ))}
         </div>
-        {Array.from({ length: PAGE_SIZE }).map((_, index) => (
+        {Array.from({ length: 5 }).map((_, index) => (
           <div
             key={index}
             className="grid gap-3 border-b border-account-line-soft px-6 py-4 last:border-b-0 lg:account-table-grid"

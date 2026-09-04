@@ -179,7 +179,7 @@ export function SkillsPage() {
 
           {loading ? (
             <section className="grid gap-4 p-4 xl:grid-cols-2 xl:p-5">
-              {Array.from({ length: 6 }).map((_, index) => (
+              {Array.from({ length: 2 }).map((_, index) => (
                 <div
                   key={index}
                   className="overflow-hidden rounded-card border border-account-line bg-account-card px-4 py-4"

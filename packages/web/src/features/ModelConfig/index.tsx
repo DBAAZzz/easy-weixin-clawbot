@@ -53,7 +53,7 @@ export function ModelConfigPage() {
 
           {loading ? (
             <div className="grid gap-4 xl:grid-cols-2">
-              {Array.from({ length: 4 }).map((_, index) => (
+              {Array.from({ length: 2 }).map((_, index) => (
                 <ProviderConfigCardSkeleton key={index} />
               ))}
             </div>
@@ -101,7 +101,7 @@ export function ModelConfigPage() {
 
           {loading ? (
             <div className="grid gap-4 xl:grid-cols-2">
-              {Array.from({ length: 4 }).map((_, index) => (
+              {Array.from({ length: 2 }).map((_, index) => (
                 <ModelConfigCardSkeleton key={index} />
               ))}
             </div>
@@ -208,12 +208,16 @@ function CardSkeletonMetricGrid({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-line",
+        "grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-line bg-line",
         className,
       )}
     >
-      <div className="ui-skeleton h-14" />
-      <div className="ui-skeleton h-14" />
+      {[0, 1].map((index) => (
+        <div key={index} className="bg-pane-82 px-3 py-3">
+          <div className="ui-skeleton h-3 w-16 rounded-full" />
+          <div className="ui-skeleton mt-2 h-3.5 w-10 rounded-full" />
+        </div>
+      ))}
     </div>
   );
 }

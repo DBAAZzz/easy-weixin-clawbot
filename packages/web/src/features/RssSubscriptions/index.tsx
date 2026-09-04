@@ -102,7 +102,7 @@ export function RssSubscriptionsPage() {
 
       {loading ? (
         <section className="grid gap-4 xl:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, index) => (
+          {Array.from({ length: 2 }).map((_, index) => (
             <div key={index} className="rounded-lg border border-line bg-glass-80 px-5 py-5">
               <div className="ui-skeleton h-5 rounded-lg" />
               <div className="mt-3 ui-skeleton h-4 rounded-lg" />

@@ -16,8 +16,10 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        "@clawbot/ui/style.css": path.resolve(__dirname, "../ui/src/style.css"),
-        "@clawbot/ui/sonner.css": path.resolve(__dirname, "../ui/src/sonner.css"),
+        // 必须指向 dist 的完整捆绑产物（bundle-css.mjs 会 glob 收集全部组件样式）；
+        // src/style.css 只含 tokens + shared，会让 web 丢失所有组件样式。
+        "@clawbot/ui/style.css": path.resolve(__dirname, "../ui/dist/style.css"),
+        "@clawbot/ui/sonner.css": path.resolve(__dirname, "../ui/dist/sonner.css"),
         "@clawbot/ui": path.resolve(__dirname, "../ui/src/index.ts"),
         "@": path.resolve(__dirname, "src"),
       },

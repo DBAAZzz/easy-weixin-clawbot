@@ -141,6 +141,8 @@
 
   .cb-select-popup {
     width: var(--anchor-width);
+    /* 320px 为浮层默认宽度上限（脱离 spacing 刻度的破格值）：fullWidth 触发器下弹层不再跟随撑满；窄视口收缩到可用宽度 */
+    max-width: min(320px, var(--available-width, 320px));
     box-sizing: border-box;
     /* 280px 为浮层默认高度上限（脱离 spacing 刻度的破格值）；短视口下收缩到 Base UI 定位的可用高度 */
     max-height: min(280px, var(--available-height, 280px));

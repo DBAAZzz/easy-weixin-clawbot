@@ -71,13 +71,12 @@ export function ScheduledTasksPage() {
       <StatsGrid stats={scheduledTaskStats} />
 
       <section className="space-y-3">
-        <div className="flex items-center gap-2">
+        <div className="w-full md:w-account-search">
           <Input
             type="text"
             placeholder="搜索任务名称、账号或 Cron..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full md:w-account-search"
           />
         </div>
       </section>
@@ -86,7 +85,7 @@ export function ScheduledTasksPage() {
 
       {loading ? (
         <section className="grid gap-4 xl:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, index) => (
+          {Array.from({ length: 2 }).map((_, index) => (
             <div
               key={index}
               className="overflow-hidden rounded-lg border border-line bg-glass-80 px-4 py-4 md:px-5"

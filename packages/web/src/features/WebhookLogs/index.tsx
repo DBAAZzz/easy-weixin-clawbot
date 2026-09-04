@@ -170,7 +170,7 @@ export function WebhookLogsPage() {
 
         {logsLoading || tokensLoading || accountsLoading ? (
           <div className="mt-4 grid gap-3">
-            {Array.from({ length: 6 }).map((_, index) => (
+            {Array.from({ length: 3 }).map((_, index) => (
               <div key={index} className="rounded-section border border-line bg-white/80 px-4 py-4">
                 <div className="ui-skeleton h-4 rounded-lg" />
                 <div className="mt-3 ui-skeleton h-3 rounded-lg" />

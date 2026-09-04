@@ -156,9 +156,7 @@ export function AssetStorageSettingsPanel() {
         </div>
       </header>
 
-      {error ? (
-        <ErrorNotice>加载资产存储设置失败：{error}</ErrorNotice>
-      ) : null}
+      {error ? <ErrorNotice>加载资产存储设置失败：{error}</ErrorNotice> : null}
 
       {loading ? (
         <div className="rounded-card border border-line bg-pane-74 px-4 py-3 text-base text-muted-strong">
@@ -167,195 +165,193 @@ export function AssetStorageSettingsPanel() {
       ) : null}
 
       <section className="rounded-panel border border-line bg-panel px-4 py-4 shadow-card md:px-5 md:py-5">
+        <div className="flex flex-col gap-5">
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 items-center justify-center rounded-card border border-line bg-pane-95 text-accent shadow-btn-soft">
+              <StackIcon className="size-4" />
+            </span>
+            <div>
+              <h4 className="text-md font-semibold text-ink">存储后端</h4>
+              <p className="text-sm leading-5 text-muted-strong">
+                保存后新收到的媒体会写入所选存储；旧资产仍按原记录读取。
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="flex flex-col gap-2.5">
+              <label className="text-sm font-medium text-muted-strong">Provider</label>
+              <Select
+                size="sm"
+                value={provider}
+                onChange={(value) => setProvider(value as AssetStorageProvider)}
+                options={STORAGE_OPTIONS}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <label className="text-sm font-medium text-muted-strong">本地目录（可选）</label>
+              <Input
+                value={localBaseDir}
+                onChange={(event) => setLocalBaseDir(event.target.value)}
+                placeholder="留空则使用 data/assets"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {provider === "s3-compatible" ? (
+        <section className="rounded-panel border border-line bg-panel px-4 py-4 shadow-card md:px-5 md:py-5">
           <div className="flex flex-col gap-5">
-            <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-card border border-line bg-pane-95 text-accent shadow-btn-soft">
-                <StackIcon className="size-4" />
-              </span>
-              <div>
-                <h4 className="text-md font-semibold text-ink">存储后端</h4>
-                <p className="text-sm leading-5 text-muted-strong">
-                  保存后新收到的媒体会写入所选存储；旧资产仍按原记录读取。
-                </p>
-              </div>
+            <div className="flex min-w-0 flex-col gap-1">
+              <h4 className="text-md font-semibold text-ink">Cloudflare R2</h4>
+              <p className="text-sm leading-5 text-muted-strong">
+                R2 使用 S3-compatible API。Endpoint 通常形如
+                https://账号ID.r2.cloudflarestorage.com。
+              </p>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-2.5">
-                <label className="text-sm font-medium text-muted-strong">Provider</label>
-                <Select
-                  size="sm"
-                  value={provider}
-                  onChange={(value) => setProvider(value as AssetStorageProvider)}
-                  options={STORAGE_OPTIONS}
+                <label className="text-sm font-medium text-muted-strong">名称</label>
+                <Input
+                  value={s3Name}
+                  onChange={(event) => setS3Name(event.target.value)}
+                  placeholder="cloudflare-r2"
                 />
               </div>
 
               <div className="flex flex-col gap-2.5">
-                <label className="text-sm font-medium text-muted-strong">本地目录（可选）</label>
+                <label className="text-sm font-medium text-muted-strong">Region</label>
                 <Input
-                  value={localBaseDir}
-                  onChange={(event) => setLocalBaseDir(event.target.value)}
-                  placeholder="留空则使用 data/assets"
+                  value={s3Region}
+                  onChange={(event) => setS3Region(event.target.value)}
+                  placeholder="auto"
                 />
               </div>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <label className="text-sm font-medium text-muted-strong">Endpoint</label>
+              <Input
+                value={s3Endpoint}
+                onChange={(event) => setS3Endpoint(event.target.value)}
+                placeholder="https://<account-id>.r2.cloudflarestorage.com"
+              />
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="flex flex-col gap-2.5">
+                <label className="text-sm font-medium text-muted-strong">Bucket</label>
+                <Input
+                  value={s3Bucket}
+                  onChange={(event) => setS3Bucket(event.target.value)}
+                  placeholder="clawbot-assets"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2.5">
+                <label className="text-sm font-medium text-muted-strong">Access Key ID</label>
+                <Input
+                  value={s3AccessKeyId}
+                  onChange={(event) => setS3AccessKeyId(event.target.value)}
+                  placeholder="R2 Access Key ID"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <label className="text-sm font-medium text-muted-strong">Secret Access Key</label>
+              <Input
+                type="password"
+                value={s3SecretAccessKey}
+                onChange={(event) => {
+                  setS3SecretAccessKey(event.target.value);
+                  if (event.target.value) {
+                    setClearS3SecretAccessKey(false);
+                  }
+                }}
+                placeholder={
+                  settings?.asset_s3_secret_access_key_set
+                    ? "已设置，留空则不修改"
+                    : "R2 Secret Access Key"
+                }
+              />
+              {settings?.asset_s3_secret_access_key_set ? (
+                <div className="flex items-center justify-between gap-3 text-sm text-muted-strong">
+                  <span>
+                    {clearS3SecretAccessKey
+                      ? "保存后将清空已保存 Secret"
+                      : accessKeyIdChanged
+                        ? "Access Key ID 已变化，请重新填写配套 Secret"
+                        : "当前已保存 Secret"}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setClearS3SecretAccessKey((current) => !current);
+                      setS3SecretAccessKey("");
+                    }}
+                  >
+                    {clearS3SecretAccessKey ? "撤销清空" : "清空 Secret"}
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <label className="text-sm font-medium text-muted-strong">
+                Public Base URL（可选）
+              </label>
+              <Input
+                value={s3PublicBaseUrl}
+                onChange={(event) => setS3PublicBaseUrl(event.target.value)}
+                placeholder="https://assets.example.com"
+              />
+              <p className="text-xs leading-5 text-muted">
+                留空时后端会生成短期签名 URL；配置公开域名后可直接返回 CDN URL。
+              </p>
             </div>
           </div>
         </section>
-
-        {provider === "s3-compatible" ? (
-          <section className="rounded-panel border border-line bg-panel px-4 py-4 shadow-card md:px-5 md:py-5">
-            <div className="flex flex-col gap-5">
-              <div className="flex min-w-0 flex-col gap-1">
-                <h4 className="text-md font-semibold text-ink">Cloudflare R2</h4>
-                <p className="text-sm leading-5 text-muted-strong">
-                  R2 使用 S3-compatible API。Endpoint 通常形如
-                  https://账号ID.r2.cloudflarestorage.com。
-                </p>
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="flex flex-col gap-2.5">
-                  <label className="text-sm font-medium text-muted-strong">名称</label>
-                  <Input
-                    value={s3Name}
-                    onChange={(event) => setS3Name(event.target.value)}
-                    placeholder="cloudflare-r2"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2.5">
-                  <label className="text-sm font-medium text-muted-strong">Region</label>
-                  <Input
-                    value={s3Region}
-                    onChange={(event) => setS3Region(event.target.value)}
-                    placeholder="auto"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2.5">
-                <label className="text-sm font-medium text-muted-strong">Endpoint</label>
-                <Input
-                  value={s3Endpoint}
-                  onChange={(event) => setS3Endpoint(event.target.value)}
-                  placeholder="https://<account-id>.r2.cloudflarestorage.com"
-                />
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="flex flex-col gap-2.5">
-                  <label className="text-sm font-medium text-muted-strong">Bucket</label>
-                  <Input
-                    value={s3Bucket}
-                    onChange={(event) => setS3Bucket(event.target.value)}
-                    placeholder="clawbot-assets"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2.5">
-                  <label className="text-sm font-medium text-muted-strong">Access Key ID</label>
-                  <Input
-                    value={s3AccessKeyId}
-                    onChange={(event) => setS3AccessKeyId(event.target.value)}
-                    placeholder="R2 Access Key ID"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2.5">
-                <label className="text-sm font-medium text-muted-strong">Secret Access Key</label>
-                <Input
-                  type="password"
-                  value={s3SecretAccessKey}
-                  onChange={(event) => {
-                    setS3SecretAccessKey(event.target.value);
-                    if (event.target.value) {
-                      setClearS3SecretAccessKey(false);
-                    }
-                  }}
-                  placeholder={
-                    settings?.asset_s3_secret_access_key_set
-                      ? "已设置，留空则不修改"
-                      : "R2 Secret Access Key"
-                  }
-                />
-                {settings?.asset_s3_secret_access_key_set ? (
-                  <div className="flex items-center justify-between gap-3 text-sm text-muted-strong">
-                    <span>
-                      {clearS3SecretAccessKey
-                        ? "保存后将清空已保存 Secret"
-                        : accessKeyIdChanged
-                          ? "Access Key ID 已变化，请重新填写配套 Secret"
-                          : "当前已保存 Secret"}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setClearS3SecretAccessKey((current) => !current);
-                        setS3SecretAccessKey("");
-                      }}
-                    >
-                      {clearS3SecretAccessKey ? "撤销清空" : "清空 Secret"}
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="flex flex-col gap-2.5">
-                <label className="text-sm font-medium text-muted-strong">
-                  Public Base URL（可选）
-                </label>
-                <Input
-                  value={s3PublicBaseUrl}
-                  onChange={(event) => setS3PublicBaseUrl(event.target.value)}
-                  placeholder="https://assets.example.com"
-                />
-                <p className="text-xs leading-5 text-muted">
-                  留空时后端会生成短期签名 URL；配置公开域名后可直接返回 CDN URL。
-                </p>
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-      {saveError ? (
-        <ErrorNotice>{saveError}</ErrorNotice>
       ) : null}
 
+      {saveError ? <ErrorNotice>{saveError}</ErrorNotice> : null}
+
       <div className="flex flex-wrap justify-end gap-2 pt-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={!settings || loading || saving}
-            onClick={() => {
-              if (!settings) {
-                return;
-              }
-              setProvider(settings.asset_storage_provider);
-              setLocalBaseDir(settings.asset_local_base_dir ?? "");
-              setS3Name(settings.asset_s3_name ?? "cloudflare-r2");
-              setS3Endpoint(settings.asset_s3_endpoint ?? "");
-              setS3Region(settings.asset_s3_region ?? "auto");
-              setS3Bucket(settings.asset_s3_bucket ?? "");
-              setS3AccessKeyId(settings.asset_s3_access_key_id ?? "");
-              setS3SecretAccessKey("");
-              setClearS3SecretAccessKey(false);
-              setS3PublicBaseUrl(settings.asset_s3_public_base_url ?? "");
-              setSaveError(null);
-            }}
-          >
-            重置
-          </Button>
-          <Button
-            size="sm"
-            disabled={saving || loading || !isDirty || !hasRequiredS3Fields}
-            onClick={() => void handleSave()}
-          >
-            {saving ? "保存中..." : "保存"}
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={!settings || loading || saving}
+          onClick={() => {
+            if (!settings) {
+              return;
+            }
+            setProvider(settings.asset_storage_provider);
+            setLocalBaseDir(settings.asset_local_base_dir ?? "");
+            setS3Name(settings.asset_s3_name ?? "cloudflare-r2");
+            setS3Endpoint(settings.asset_s3_endpoint ?? "");
+            setS3Region(settings.asset_s3_region ?? "auto");
+            setS3Bucket(settings.asset_s3_bucket ?? "");
+            setS3AccessKeyId(settings.asset_s3_access_key_id ?? "");
+            setS3SecretAccessKey("");
+            setClearS3SecretAccessKey(false);
+            setS3PublicBaseUrl(settings.asset_s3_public_base_url ?? "");
+            setSaveError(null);
+          }}
+        >
+          重置
+        </Button>
+        <Button
+          size="sm"
+          disabled={saving || loading || !isDirty || !hasRequiredS3Fields}
+          onClick={() => void handleSave()}
+        >
+          {saving ? "保存中..." : "保存"}
+        </Button>
+      </div>
     </div>
   );
 }

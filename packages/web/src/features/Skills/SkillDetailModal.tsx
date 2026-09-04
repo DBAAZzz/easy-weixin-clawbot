@@ -5,11 +5,7 @@ import type {
   SkillProvisionPlan,
 } from "@clawbot/shared";
 import { Button, DialogFrame } from "@clawbot/ui";
-import {
-  formatActivationLabel,
-  formatOriginLabel,
-  isEnvironmentReady,
-} from "./types.js";
+import { formatActivationLabel, formatOriginLabel, isEnvironmentReady } from "./types.js";
 import type { SkillDetailTab } from "./types.js";
 import { CommandPreview } from "./CommandPreview.js";
 import { CompactMetaStrip } from "./CompactMetaStrip.js";

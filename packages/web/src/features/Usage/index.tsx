@@ -83,7 +83,7 @@ export function UsagePage() {
         onRefresh={refresh}
       />
 
-      <div className="flex">
+      <div className="w-full md:w-account-search">
         <Select value={accountId} onChange={setAccountId} options={accountOptions} size="sm" />
       </div>
 

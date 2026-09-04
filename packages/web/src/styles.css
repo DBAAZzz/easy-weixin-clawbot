@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import "./fonts.css";
 @import "tailwindcss";
 @import "@clawbot/ui/style.css";
 @import "@clawbot/ui/sonner.css";
@@ -255,6 +255,11 @@
 /* ===== Runtime Variables ===== */
 :root {
   color-scheme: light;
+  /* 覆盖 @clawbot/ui 里非 layer 的 --font-sans（其 Hanken Grotesk 无 @font-face，会静默
+     回退到系统字体）；无 layer 规则在级联中优先于 @layer theme，故必须在此处声明。 */
+  --font-sans:
+    "Outfit", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", "Menlo", "Monaco", monospace;
 }
 
 * {
@@ -434,8 +439,8 @@ pre {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
-  animation: shimmer 1.7s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: shimmer 2s linear infinite;
 }
 
 .reveal-up {
@@ -508,4 +513,3 @@ pre {
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
   }
 }
-

@@ -248,7 +248,7 @@ function ToolsTableSkeleton() {
           <div key={index} className="ui-skeleton h-3 rounded-pill" />
         ))}
       </div>
-      {Array.from({ length: 6 }).map((_, index) => (
+      {Array.from({ length: 5 }).map((_, index) => (
         <div
           key={index}
           className="grid gap-3 border-b border-account-line-soft px-6 py-4 last:border-b-0 lg:tools-table-grid"

@@ -10,8 +10,6 @@ import fixturesJson from "./fixtures.json";
  * API contract, not hand-maintained guesses.
  */
 
-type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
-
 function group<T>(value: unknown): T {
   return (value as { data: T }).data;
 }
@@ -137,5 +135,3 @@ export function createDemoState(): DemoState {
     traceDetails: unwrapAll(fixtures.traceDetails),
   };
 }
-
-export type { Json };

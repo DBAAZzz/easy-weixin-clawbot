@@ -52,6 +52,21 @@ function findAccount(accountId: string): Record<string, unknown> | undefined {
   return state.accounts.find((account) => account.id === accountId);
 }
 
+/** Backfill template metadata from the templates list so config rows render fully. */
+function withTemplateMeta(row: Record<string, unknown>): Record<string, unknown> {
+  const template = state.templates.find((item) => String(item.id) === String(row.template_id));
+  return {
+    ...row,
+    template_name:
+      (template?.name as string | null) ?? (row.template_name as string | null) ?? null,
+    provider: (template?.provider as string | null) ?? (row.provider as string | null) ?? null,
+    template_enabled:
+      (template?.enabled as boolean | undefined) ??
+      (row.template_enabled as boolean | undefined) ??
+      true,
+  };
+}
+
 export const handlers = [
   // ── health / auth ─────────────────────────────────────────────────────
   http.get("/api/health", () => ok({ ...state.health, uptime_ms: 1, started_at: nowIso() })),
@@ -80,6 +95,11 @@ export const handlers = [
     const body = await readBody(request);
     if (typeof body.alias === "string" || body.alias === null) {
       account.alias = body.alias;
+      // Conversation rows carry a denormalized account_alias; keep them in sync
+      // so the conversation list reflects the rename immediately.
+      for (const conversation of state.conversations[seg(params.accountId)] ?? []) {
+        conversation.account_alias = body.alias;
+      }
     }
     return ok({ success: true });
   }),
@@ -157,6 +177,31 @@ export const handlers = [
     state.rssSources = state.rssSources.filter((item) => item.id !== seg(params.id));
     return ok({ success: true });
   }),
+  http.get("/api/rss/sources/:id/preview", ({ params }) => {
+    const row = state.rssSources.find((item) => item.id === seg(params.id));
+    if (!row) return notFound();
+    return ok({
+      source: { id: row.id, name: row.name },
+      items: demoRssPreviewItems(row),
+    });
+  }),
+  http.post("/api/rss/sources/:id/test", ({ params }) => {
+    const row = state.rssSources.find((item) => item.id === seg(params.id));
+    if (!row) return notFound();
+    return ok({
+      source: { id: row.id, name: row.name },
+      items: demoRssPreviewItems(row),
+    });
+  }),
+  http.post("/api/rss/settings/test", () =>
+    ok({
+      reachable: true,
+      status_code: 200,
+      latency_ms: 42,
+      base_url: null,
+      message: "演示环境：连接测试直接通过",
+    }),
+  ),
 
   // ── RSS tasks ─────────────────────────────────────────────────────────
   http.get("/api/rss/tasks", ({ request }) => {
@@ -212,29 +257,37 @@ export const handlers = [
 
   // ── model configs ─────────────────────────────────────────────────────
   http.get("/api/model-configs", () => ok(state.modelConfigs)),
-  http.post("/api/model-configs", async ({ request }) => {
+  http.put("/api/model-configs", async ({ request }) => {
     const body = await readBody(request);
+    const existing = state.modelConfigs.find(
+      (item) =>
+        item.scope === body.scope &&
+        item.scope_key === body.scope_key &&
+        item.purpose === body.purpose,
+    );
+    if (existing) {
+      Object.assign(existing, body);
+      return ok(withTemplateMeta(existing));
+    }
     const row = cloneRow(state.modelConfigs, {
       scope: body.scope ?? "global",
       scope_key: body.scope_key ?? "*",
       purpose: body.purpose ?? "chat",
       template_id: body.template_id ?? null,
-      template_name: body.template_name ?? null,
-      provider: body.provider ?? null,
       model_id: body.model_id ?? null,
-      model_ids: Array.isArray(body.model_ids) ? body.model_ids : [],
+      model_ids: [],
       supports_image_input_override: body.supports_image_input_override ?? "default",
       enabled: body.enabled ?? true,
       priority: body.priority ?? 0,
     });
-    state.modelConfigs.push(row);
+    state.modelConfigs.push(withTemplateMeta(row));
     return ok(row);
   }),
   http.patch("/api/model-configs/:id", async ({ request, params }) => {
     const row = state.modelConfigs.find((item) => item.id === seg(params.id));
     if (!row) return notFound();
     Object.assign(row, await readBody(request));
-    return ok(row);
+    return ok(withTemplateMeta(row));
   }),
   http.delete("/api/model-configs/:id", ({ params }) => {
     state.modelConfigs = state.modelConfigs.filter((item) => item.id !== seg(params.id));

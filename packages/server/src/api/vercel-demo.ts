@@ -60,7 +60,16 @@ async function buildDemoApp(): Promise<Hono> {
     });
   }
 
-  await skillInstaller.initialize(SKILLS_BUILTIN_DIR, SKILLS_USER_DIR);
+  // The installer writes state.json next to the skill dirs; on a read-only
+  // filesystem (Vercel) this degrades to fixture-backed skill pages.
+  try {
+    await skillInstaller.initialize(SKILLS_BUILTIN_DIR, SKILLS_USER_DIR);
+  } catch (error) {
+    serverlessLogger.warn(
+      { ...getErrorFields(error), subsystem: "skills" },
+      "技能安装器初始化失败（只读文件系统时属预期），技能页面按降级展示",
+    );
+  }
 
   const dependencies: ApiDependencies = {
     // Constructed but never bootstrapped: no WeChat connections are started.

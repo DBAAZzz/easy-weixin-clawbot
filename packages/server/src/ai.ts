@@ -59,7 +59,15 @@ import {
 import { createProactivePush } from "./proactive-push.js";
 import { createWebToolService } from "./web-tools/service.js";
 
-mkdirSync(DOWNLOADS_DIR, { recursive: true });
+// Read-only filesystems (Vercel serverless) cannot host the downloads dir;
+// asset writes degrade there instead of failing module load.
+try {
+  mkdirSync(DOWNLOADS_DIR, { recursive: true });
+} catch (error) {
+  console.warn(
+    `[ai] 下载目录创建失败（只读文件系统时属预期）: ${error instanceof Error ? error.message : String(error)}`,
+  );
+}
 
 const aiLogger = createModuleLogger("ai");
 

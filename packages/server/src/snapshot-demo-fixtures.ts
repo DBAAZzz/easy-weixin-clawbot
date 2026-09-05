@@ -72,7 +72,6 @@ async function main(): Promise<void> {
   await snap("modelConfigs", "/api/model-configs");
   await snap("scheduledTasks", "/api/scheduled-tasks?taskKind=prompt");
   await snap("rssSources", "/api/rss/sources");
-  await snap("rssTasks", "/api/rss/tasks");
   await snap("mcpServers", "/api/mcp/servers");
   await snap("mcpTools", "/api/mcp/tools");
   await snap("webhookTokens", "/api/webhooks/tokens");

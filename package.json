@@ -12,6 +12,7 @@
     "dev:agent": "pnpm -F @clawbot/agent dev",
     "dev:server": "pnpm -F @clawbot/server dev",
     "dev:web": "pnpm -F @clawbot/web dev",
+    "preview": "VITE_API_MOCK=1 pnpm -F @clawbot/web dev",
     "build": "pnpm -F @clawbot/weixin-agent-sdk build && pnpm -F @clawbot/shared build && pnpm -F @clawbot/asset build && pnpm -F @clawbot/observability build && pnpm -F @clawbot/exec build && pnpm -F @clawbot/agent build && pnpm -F @clawbot/server build && pnpm -F @clawbot/ui build && pnpm -F @clawbot/web build",
     "check:fence": "bash scripts/check-child-process-fence.sh",
     "test:agent": "pnpm -F @clawbot/agent test",

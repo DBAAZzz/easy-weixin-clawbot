@@ -6,9 +6,11 @@ import { Input } from "@clawbot/ui";
 import { login } from "@/api/auth-login.js";
 import logoUrl from "../../assets/images/logo.png";
 
+const previewMode = import.meta.env.VITE_API_MOCK === "1";
+
 export function AuthLoginPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState(previewMode ? "admin" : "");
+  const [password, setPassword] = useState(previewMode ? "demo-admin-2026" : "");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 

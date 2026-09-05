@@ -428,6 +428,14 @@ pre {
   }
 }
 
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 .ui-skeleton {
   position: relative;
   overflow: hidden;

@@ -5,7 +5,7 @@ import type { SidebarNavProps } from "./sidebarVariants.js";
 
 export function SettingsSidebarNav({ collapsed }: SidebarNavProps) {
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="scrollbar-none h-full overflow-y-auto">
       <MenuSection label="设置" collapsed={collapsed}>
         <NavItem
           to="/"

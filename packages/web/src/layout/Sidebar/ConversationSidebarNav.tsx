@@ -27,7 +27,7 @@ export function ConversationSidebarNav({ collapsed }: SidebarNavProps) {
   // 折叠态：返回图标 + 首字母徽标按钮，仍可点击切换会话（hover 出原生 title 提示）。
   if (collapsed) {
     return (
-      <div className="flex h-full flex-col items-center gap-1 overflow-y-auto py-1">
+      <div className="scrollbar-none flex h-full flex-col items-center gap-1 overflow-y-auto py-1">
         <NavItem
           to="/"
           label="返回账号列表"

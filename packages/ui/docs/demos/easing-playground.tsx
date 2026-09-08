@@ -77,13 +77,15 @@ const formatValue = (value: number) => String(Math.round(value * 1000) / 1000);
 
 const ACTIVE_PRESET_DEFAULT = PRESETS[3];
 
+const RUN_WINDOW_MS = 900;
+
 export default function EasingPlayground() {
   const [p1, setP1] = useState<ControlPoint>(ACTIVE_PRESET_DEFAULT.points[0]);
   const [p2, setP2] = useState<ControlPoint>(ACTIVE_PRESET_DEFAULT.points[1]);
   const [activePreset, setActivePreset] = useState<string | null>(ACTIVE_PRESET_DEFAULT.key);
   const [durationKey, setDurationKey] = useState<DurationKey>("base");
   const [reduced, setReduced] = useState(false);
-  const [played, setPlayed] = useState(false);
+  const [running, setRunning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const [dragging, setDragging] = useState<HandleId | null>(null);
@@ -93,23 +95,29 @@ export default function EasingPlayground() {
   const bezierCss = `cubic-bezier(${formatValue(p1.x)}, ${formatValue(p1.y)}, ${formatValue(p2.x)}, ${formatValue(p2.y)})`;
   const snippet = `transition: transform var(${durationToken}) ${bezierCss});`;
 
+  /* 播放 → 动画结束后无过渡归位，静止态保持干净的起点。 */
   const replay = useCallback(() => {
-    setPlayed(false);
+    setRunning(false);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        setPlayed(true);
+        setRunning(true);
+        window.setTimeout(() => {
+          setRunning(false);
+        }, RUN_WINDOW_MS);
       });
     });
   }, []);
 
   useEffect(() => {
-    replay();
-  }, [replay, activePreset, durationKey]);
+    const timer = window.setTimeout(replay, 400);
+    return () => window.clearTimeout(timer);
+  }, [replay]);
 
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
     setP1(preset.points[0]);
     setP2(preset.points[1]);
     setActivePreset(preset.key);
+    replay();
   };
 
   const eventToSvg = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -196,16 +204,17 @@ export default function EasingPlayground() {
     }
   };
 
+  /* 入场：静止在左，播放滑到右；退场：静止在右，播放滑向左。 */
   const trackStyle = (direction: "entrance" | "exit") => ({
     transform:
       direction === "entrance"
-        ? played
-          ? "translateX(calc(100% - 18px))"
+        ? running
+          ? "translateX(calc(100% - 26px))"
           : "translateX(0)"
-        : played
+        : running
           ? "translateX(0)"
-          : "translateX(calc(100% - 18px))",
-    transitionDuration: reduced ? "1ms" : `var(${durationToken})`,
+          : "translateX(calc(100% - 26px))",
+    transitionDuration: running ? (reduced ? "1ms" : `var(${durationToken})`) : "0ms",
     transitionProperty: "transform",
     transitionTimingFunction: bezierCss,
   });
@@ -231,7 +240,7 @@ export default function EasingPlayground() {
           {[0.25, 0.5, 0.75].map((step) => (
             <g key={step}>
               <line
-                stroke="var(--color-line)"
+                stroke="var(--clawbot-doc-border)"
                 stroke-width="1"
                 x1={toSvgX(step)}
                 x2={toSvgX(step)}
@@ -239,7 +248,7 @@ export default function EasingPlayground() {
                 y2={toSvgY(1)}
               />
               <line
-                stroke="var(--color-line)"
+                stroke="var(--clawbot-doc-border)"
                 stroke-width="1"
                 x1={toSvgX(0)}
                 x2={toSvgX(1)}
@@ -253,14 +262,14 @@ export default function EasingPlayground() {
           <rect
             fill="none"
             height={PLOT}
-            stroke="var(--color-control-border-strong)"
+            stroke="var(--clawbot-doc-border-strong)"
             stroke-width="1.5"
             width={PLOT}
             x={PAD_X}
             y={toSvgY(1)}
           />
           <line
-            stroke="var(--color-muted)"
+            stroke="var(--clawbot-doc-subtle)"
             stroke-dasharray="4 5"
             stroke-width="1"
             x1={toSvgX(0)}
@@ -271,7 +280,7 @@ export default function EasingPlayground() {
 
           {/* control arms */}
           <line
-            stroke="var(--color-accent-soft-border)"
+            stroke="rgb(29 110 84 / 30%)"
             stroke-width="1.5"
             x1={toSvgX(0)}
             x2={toSvgX(p1.x)}
@@ -279,7 +288,7 @@ export default function EasingPlayground() {
             y2={toSvgY(p1.y)}
           />
           <line
-            stroke="var(--color-accent-soft-border)"
+            stroke="rgb(29 110 84 / 30%)"
             stroke-width="1.5"
             x1={toSvgX(1)}
             x2={toSvgX(p2.x)}
@@ -291,19 +300,34 @@ export default function EasingPlayground() {
           <path
             d={curvePath}
             fill="none"
-            stroke="var(--color-accent)"
+            stroke="var(--color-accent, #1d6e54)"
             stroke-linecap="round"
             stroke-width="3"
           />
 
           {/* axis labels */}
-          <text fill="var(--color-muted)" font-size="11" x={toSvgX(0) - 10} y={toSvgY(0) + 4}>
+          <text
+            fill="var(--clawbot-doc-subtle)"
+            font-size="11"
+            x={toSvgX(0) - 10}
+            y={toSvgY(0) + 4}
+          >
             0
           </text>
-          <text fill="var(--color-muted)" font-size="11" x={toSvgX(0) - 20} y={toSvgY(1) + 4}>
+          <text
+            fill="var(--clawbot-doc-subtle)"
+            font-size="11"
+            x={toSvgX(0) - 20}
+            y={toSvgY(1) + 4}
+          >
             1
           </text>
-          <text fill="var(--color-muted)" font-size="11" x={toSvgX(1) - 6} y={toSvgY(0) + 20}>
+          <text
+            fill="var(--clawbot-doc-subtle)"
+            font-size="11"
+            x={toSvgX(1) - 6}
+            y={toSvgY(0) + 20}
+          >
             1
           </text>
 
@@ -311,9 +335,9 @@ export default function EasingPlayground() {
           <circle
             cx={toSvgX(p1.x)}
             cy={toSvgY(p1.y)}
-            fill="var(--color-claw-0)"
+            fill="var(--clawbot-doc-surface)"
             r="6.5"
-            stroke="var(--color-accent)"
+            stroke="var(--color-accent, #1d6e54)"
             stroke-width="2.5"
           />
           <circle
@@ -330,9 +354,9 @@ export default function EasingPlayground() {
           <circle
             cx={toSvgX(p2.x)}
             cy={toSvgY(p2.y)}
-            fill="var(--color-claw-0)"
+            fill="var(--clawbot-doc-surface)"
             r="6.5"
-            stroke="var(--color-accent)"
+            stroke="var(--color-accent, #1d6e54)"
             stroke-width="2.5"
           />
           <circle
@@ -348,7 +372,7 @@ export default function EasingPlayground() {
           />
         </svg>
         <p className="ui-motion-ep__canvas-note">
-          横轴时间、纵轴进度；虚线为 linear 对照。控制点可拖拽（也支持方向键微调， Shift 加速）。y
+          横轴时间、纵轴进度，虚线为 linear 对照；控制点可拖拽，也支持方向键微调（Shift 加速），y
           超出 1 即过冲区间。
         </p>
       </div>
@@ -380,7 +404,10 @@ export default function EasingPlayground() {
                 aria-pressed={durationKey === option.key}
                 className="ui-motion-ep__chip"
                 key={option.key}
-                onClick={() => setDurationKey(option.key)}
+                onClick={() => {
+                  setDurationKey(option.key);
+                  replay();
+                }}
                 type="button"
               >
                 {option.key}
@@ -405,7 +432,7 @@ export default function EasingPlayground() {
 
         <div className="ui-motion-ep__tracks">
           <div className="ui-motion-ep__track-row">
-            <span className="ui-motion-ep__track-label">入场（entrance 语义）</span>
+            <span className="ui-motion-ep__track-label">入场 · entrance 语义</span>
             <div className="ui-motion-ep__track">
               <div className="ui-motion-ep__travel" style={trackStyle("entrance")}>
                 <span className="ui-motion-ep__dot" />
@@ -413,7 +440,7 @@ export default function EasingPlayground() {
             </div>
           </div>
           <div className="ui-motion-ep__track-row">
-            <span className="ui-motion-ep__track-label">退场（exit 语义）</span>
+            <span className="ui-motion-ep__track-label">退场 · exit 语义（从右侧离开）</span>
             <div className="ui-motion-ep__track">
               <div className="ui-motion-ep__travel" style={trackStyle("exit")}>
                 <span className="ui-motion-ep__dot" />

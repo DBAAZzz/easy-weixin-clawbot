@@ -32,6 +32,7 @@ export default function DocLayout() {
   const { frontmatter, toc } = useRouteMeta();
   const isHomepage = frontmatter.homepage === true;
   const isComponentPage = pathname.startsWith("/components/");
+  const isMotionPage = pathname.startsWith("/motion");
   const showSidebar = frontmatter.sidebar !== false && Boolean(sidebar?.length);
   const showToc = frontmatter.toc !== false && toc.some((item) => item.depth > 1 && item.depth < 4);
 
@@ -53,6 +54,7 @@ export default function DocLayout() {
     <div
       className="dumi-default-doc-layout"
       data-component-page={isComponentPage || undefined}
+      data-motion-page={isMotionPage || undefined}
       data-mobile-sidebar-active={activateSidebar || undefined}
       onClick={() => updateActivateSidebar(false)}
     >

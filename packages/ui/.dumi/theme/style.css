@@ -785,6 +785,196 @@ textarea {
   border-color: var(--clawbot-doc-border) !important;
 }
 
+/* ---------------------------------------------------------------------------
+ * Motion spec page (/motion): standalone editorial layout, same warm paper
+ * language as component pages (hairline borders, mono kickers, no card chrome)
+ * ------------------------------------------------------------------------- */
+
+.dumi-default-doc-layout[data-motion-page] > main {
+  display: block;
+  width: 100%;
+  /* 321 行的全局规则 max-width: none 带 !important，这里必须同权覆盖 */
+  max-width: 1060px !important;
+  margin: 0 auto;
+  padding: 0 32px !important;
+}
+
+.dumi-default-doc-layout[data-motion-page] .dumi-default-content {
+  width: 100%;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 44px 0 110px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.clawbot-motion-hero {
+  position: relative;
+  isolation: isolate;
+  margin-bottom: 26px;
+  padding-top: 34px;
+}
+
+.clawbot-motion-hero::before {
+  position: absolute;
+  z-index: -1;
+  top: -60px;
+  left: -110px;
+  width: 420px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgb(255 209 131 / 18%) 0,
+    rgb(255 144 103 / 9%) 42%,
+    transparent 72%
+  );
+  content: "";
+  filter: blur(16px);
+  pointer-events: none;
+}
+
+.clawbot-motion-hero__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+  color: var(--clawbot-doc-muted);
+  font-family: var(--clawbot-doc-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.clawbot-motion-hero__kicker i {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-accent, #1d6e54);
+  box-shadow: 0 0 0 3px rgb(29 110 84 / 14%);
+}
+
+.clawbot-motion-hero__title {
+  margin: 0;
+  color: var(--clawbot-doc-text);
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.05em;
+}
+
+.clawbot-motion-hero__description {
+  max-width: 640px;
+  margin: 16px 0 0;
+  color: var(--clawbot-doc-muted);
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.clawbot-motion-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 26px;
+}
+
+.clawbot-motion-hero__meta span {
+  padding: 6px 11px;
+  border: 1px solid var(--clawbot-doc-border);
+  border-radius: 999px;
+  background: rgb(252 252 250 / 72%);
+  color: var(--clawbot-doc-muted);
+  font-family: var(--clawbot-doc-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.clawbot-motion-content {
+  counter-reset: motion-section;
+}
+
+.clawbot-motion-content .markdown > h1:first-child {
+  display: none;
+}
+
+.clawbot-motion-content .markdown > h2 {
+  counter-increment: motion-section;
+}
+
+.clawbot-motion-content .markdown > h2::before {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--clawbot-doc-subtle);
+  content: counter(motion-section, decimal-leading-zero);
+  font-family: var(--clawbot-doc-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+}
+
+.clawbot-motion-content .markdown > h2 {
+  margin: 64px 0 14px !important;
+}
+
+.clawbot-motion-content .markdown > h2:first-of-type {
+  margin-top: 18px !important;
+}
+
+.clawbot-motion-content .markdown > h2 + p,
+.clawbot-motion-content .markdown > h3 + p {
+  margin-top: 0 !important;
+}
+
+/* 正文收紧行宽，与 hero 描述的阅读宽度对齐 */
+.clawbot-motion-content .markdown p,
+.clawbot-motion-content .markdown li {
+  max-width: 680px;
+}
+
+/* 表格按内容自适应宽度，避免拉伸全宽导致列间距失衡 */
+.clawbot-motion-content .markdown .dumi-default-table {
+  margin-top: 18px;
+}
+
+.clawbot-motion-content .markdown table {
+  width: auto;
+  min-width: 560px;
+  max-width: 100%;
+}
+
+.clawbot-motion-content .markdown ol,
+.clawbot-motion-content .markdown ul {
+  max-width: 680px;
+  padding-left: 22px;
+}
+
+.clawbot-motion-content .clawbot-previewer {
+  margin-top: 26px;
+}
+
+.clawbot-motion-content .markdown pre {
+  margin-top: 18px;
+  border: 1px solid var(--clawbot-doc-border);
+  border-radius: 12px;
+}
+
+@media (max-width: 767px) {
+  .dumi-default-doc-layout[data-motion-page] > main {
+    padding: 0 18px !important;
+  }
+
+  .clawbot-motion-hero__title {
+    font-size: 33px;
+  }
+
+  .clawbot-motion-hero__description {
+    font-size: 15px;
+  }
+}
+
 .dumi-default-previewer-actions {
   min-height: 42px;
   background: rgb(248 247 243 / 72%);

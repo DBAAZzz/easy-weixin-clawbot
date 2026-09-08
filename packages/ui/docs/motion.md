@@ -1,16 +1,15 @@
 ---
 title: 动效 Motion
-description: Clawbot UI 的动效 token 体系：4 档语义时长、4 条语义缓动曲线与全局 reduced-motion 降级。
+description: Clawbot UI 的动效 token 体系：语义时长、缓动曲线与全局动效降级。
 sidebar: false
 ---
 
 # 动效 Motion
 
-动效和颜色一样是 token，不是临场手调值。组件 CSS 中不出现字面量时长——所有
-`transition` / `animation` 的 duration 一律引用 `--duration-*` token，缓动引用
-`--ease-*` 语义曲线。这让动效具备和配色一致的三个能力：**全局一致**（改一个
-token 全库换挡）、**可审计**（lint 扫描字面量时长归零）、**可降级**（reduced-motion
-收敛为一个媒体查询覆盖）。
+动效和颜色一样是 token：所有 `transition` / `animation` 的 duration 一律引用
+`--duration-*`，缓动引用 `--ease-*` 语义曲线，组件 CSS 中不出现字面量时长。这让动效具备和
+配色一致的三个能力——**全局一致**（改一个 token 全库换挡）、**可审计**（lint 扫描字面量
+时长归零）、**可降级**（reduced-motion 收敛为一个媒体查询覆盖）。
 
 ## 原则
 
@@ -33,7 +32,7 @@ token 全库换挡）、**可审计**（lint 扫描字面量时长归零）、**
 档位约 1.4 倍几何递进（80 → 140 → 200 → 320），符合感知规律，混用时不易"差不多"。
 管理台是高频扫描场景，封顶 320ms，不设更高档位。
 
-<code src="./demos/duration-ladder.tsx" nopadding></code>
+<code src="./demos/duration-ladder.tsx"></code>
 
 ## 缓动曲线
 
@@ -44,14 +43,14 @@ token 全库换挡）、**可审计**（lint 扫描字面量时长归零）、**
 | `--ease-exit`     | `cubic-bezier(0.4, 0, 1, 1)`        | 加速退场                            |
 | `--ease-spring`   | `cubic-bezier(0.34, 1.4, 0.64, 1)`  | 轻微过冲（回弹系数 1.4）            |
 
-<code src="./demos/easing-compare.tsx" nopadding></code>
+<code src="./demos/easing-compare.tsx"></code>
 
 ## 交互式编辑器
 
 拖动控制点调整 `cubic-bezier`，选择时长档位，入场/退场双轨预览，一键复制
 transition 声明。打开"模拟 reduced-motion"可直观看到全局降级的效果。
 
-<code src="./demos/easing-playground.tsx" nopadding></code>
+<code src="./demos/easing-playground.tsx"></code>
 
 ## 组件动效对照
 

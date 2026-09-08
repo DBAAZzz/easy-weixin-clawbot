@@ -9,8 +9,11 @@ const STEPS = [
   { token: "--duration-slow", label: "duration-slow", hint: "Dialog 进出场 · focus" },
 ] as const;
 
+/** 播放 → 动画完成后无过渡归位，静止态保持干净的起点。 */
+const RUN_WINDOW_MS = 900;
+
 export default function DurationLadder() {
-  const [played, setPlayed] = useState(false);
+  const [running, setRunning] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -22,23 +25,22 @@ export default function DurationLadder() {
     setValues(next);
   }, []);
 
-  const replay = useCallback(() => {
-    setPlayed(false);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setPlayed(true);
-      });
-    });
+  const play = useCallback(() => {
+    setRunning(true);
+    window.setTimeout(() => {
+      setRunning(false);
+    }, RUN_WINDOW_MS);
   }, []);
 
   useEffect(() => {
-    replay();
-  }, [replay]);
+    const timer = window.setTimeout(play, 400);
+    return () => window.clearTimeout(timer);
+  }, [play]);
 
   return (
     <div className="ui-motion-demo">
       <div className="ui-motion-demo__toolbar">
-        <button className="ui-motion-demo__play" onClick={replay} type="button">
+        <button className="ui-motion-demo__play" onClick={play} type="button">
           播放
         </button>
         <span className="ui-motion-demo__note">同一缓动（standard），仅时长不同</span>
@@ -56,8 +58,8 @@ export default function DurationLadder() {
             <div
               className="ui-motion-demo__travel"
               style={{
-                transform: played ? "translateX(calc(100% - 18px))" : "translateX(0)",
-                transitionDuration: `var(${step.token})`,
+                transform: running ? "translateX(calc(100% - 26px))" : "translateX(0)",
+                transitionDuration: running ? `var(${step.token})` : "0ms",
                 transitionProperty: "transform",
                 transitionTimingFunction: "var(--ease-standard)",
               }}

@@ -63,7 +63,6 @@ const VB_H = 316;
 const BOX_LEFT = 36;
 const PLOT = 180;
 const BOX_BOTTOM = 282;
-const BOX_TOP = BOX_BOTTOM - PLOT;
 const BOX_RIGHT = BOX_LEFT + PLOT;
 
 const X_MIN = 0;

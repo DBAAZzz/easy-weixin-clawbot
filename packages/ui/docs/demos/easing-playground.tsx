@@ -55,20 +55,23 @@ const DURATION_OPTIONS = [
 
 type DurationKey = (typeof DURATION_OPTIONS)[number]["key"];
 
-/* Canvas geometry in SVG user units. y may overshoot above 1 (spring), so the
- * viewBox reserves headroom above the unit box. */
-const VB_W = 280;
-const VB_H = 320;
-const PAD_X = 40;
-const PLOT = 200;
-const BOX_BOTTOM = 280;
+/* Canvas geometry in SVG user units. Margins are derived so the y=1.4
+ * overshoot handle (ring r≈8) and the y=-0.1 undershoot both stay inside the
+ * viewBox — nothing ever clips. The band above y=1 is tinted as 过冲区. */
+const VB_W = 264;
+const VB_H = 316;
+const BOX_LEFT = 36;
+const PLOT = 180;
+const BOX_BOTTOM = 282;
+const BOX_TOP = BOX_BOTTOM - PLOT;
+const BOX_RIGHT = BOX_LEFT + PLOT;
 
 const X_MIN = 0;
 const X_MAX = 1;
-const Y_MIN = -0.2;
+const Y_MIN = -0.1;
 const Y_MAX = 1.4;
 
-const toSvgX = (x: number) => PAD_X + x * PLOT;
+const toSvgX = (x: number) => BOX_LEFT + x * PLOT;
 const toSvgY = (y: number) => BOX_BOTTOM - y * PLOT;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -159,7 +162,7 @@ export default function EasingPlayground() {
       return;
     }
     movePoint(dragging, {
-      x: clamp((point.x - PAD_X) / PLOT, X_MIN, X_MAX),
+      x: clamp((point.x - BOX_LEFT) / PLOT, X_MIN, X_MAX),
       y: clamp((BOX_BOTTOM - point.y) / PLOT, Y_MIN, Y_MAX),
     });
   };
@@ -236,6 +239,25 @@ export default function EasingPlayground() {
           role="img"
           viewBox={`0 0 ${VB_W} ${VB_H}`}
         >
+          {/* overshoot band above y=1 — the headroom is a named region, not blank space */}
+          <rect
+            fill="rgb(29 110 84 / 5%)"
+            height={toSvgY(1) - toSvgY(Y_MAX)}
+            width={PLOT}
+            x={BOX_LEFT}
+            y={toSvgY(Y_MAX)}
+          />
+          <text
+            fill="rgb(29 110 84 / 55%)"
+            font-size="9"
+            letter-spacing="0.12em"
+            text-anchor="end"
+            x={BOX_RIGHT - 6}
+            y={toSvgY(Y_MAX) + 14}
+          >
+            过冲区
+          </text>
+
           {/* quarter grid inside the unit box */}
           {[0.25, 0.5, 0.75].map((step) => (
             <g key={step}>
@@ -265,7 +287,7 @@ export default function EasingPlayground() {
             stroke="var(--clawbot-doc-border-strong)"
             stroke-width="1.5"
             width={PLOT}
-            x={PAD_X}
+            x={BOX_LEFT}
             y={toSvgY(1)}
           />
           <line
@@ -302,31 +324,37 @@ export default function EasingPlayground() {
             fill="none"
             stroke="var(--color-accent, #1d6e54)"
             stroke-linecap="round"
-            stroke-width="3"
+            stroke-width="2.5"
           />
 
           {/* axis labels */}
           <text
             fill="var(--clawbot-doc-subtle)"
-            font-size="11"
-            x={toSvgX(0) - 10}
-            y={toSvgY(0) + 4}
+            font-family="var(--clawbot-doc-mono)"
+            font-size="10"
+            text-anchor="end"
+            x={BOX_LEFT - 8}
+            y={toSvgY(0) + 3}
           >
             0
           </text>
           <text
             fill="var(--clawbot-doc-subtle)"
-            font-size="11"
-            x={toSvgX(0) - 20}
-            y={toSvgY(1) + 4}
+            font-family="var(--clawbot-doc-mono)"
+            font-size="10"
+            text-anchor="end"
+            x={BOX_LEFT - 8}
+            y={toSvgY(1) + 3}
           >
             1
           </text>
           <text
             fill="var(--clawbot-doc-subtle)"
-            font-size="11"
-            x={toSvgX(1) - 6}
-            y={toSvgY(0) + 20}
+            font-family="var(--clawbot-doc-mono)"
+            font-size="10"
+            text-anchor="middle"
+            x={toSvgX(1)}
+            y={toSvgY(0) + 16}
           >
             1
           </text>
@@ -371,10 +399,6 @@ export default function EasingPlayground() {
             tabIndex={0}
           />
         </svg>
-        <p className="ui-motion-ep__canvas-note">
-          横轴时间、纵轴进度，虚线为 linear 对照；控制点可拖拽，也支持方向键微调（Shift 加速），y
-          超出 1 即过冲区间。
-        </p>
       </div>
 
       <div className="ui-motion-ep__side">

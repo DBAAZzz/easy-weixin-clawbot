@@ -2,6 +2,7 @@
 title: 动效 Motion
 description: 动效和颜色一样是 token——时长与缓动各有语义档位，全库共享，一次降级。
 sidebar: false
+toc: false
 ---
 
 # 动效 Motion

@@ -20,19 +20,12 @@
 
 .ui-motion-ep__svg {
   width: 100%;
-  aspect-ratio: 280 / 320;
+  aspect-ratio: 264 / 316;
   border: 1px solid var(--clawbot-doc-border);
   border-radius: 14px;
   background: var(--clawbot-doc-surface-muted);
   touch-action: none;
   user-select: none;
-}
-
-.ui-motion-ep__canvas-note {
-  margin: 0;
-  color: var(--clawbot-doc-subtle);
-  font-size: 11.5px;
-  line-height: 1.6;
 }
 
 .ui-motion-ep__side {

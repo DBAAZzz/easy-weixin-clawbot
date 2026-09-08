@@ -567,102 +567,6 @@
   font-size: 9px;
 }
 
-.clawbot-home-systems {
-  display: grid;
-  gap: 22px;
-  padding: 56px var(--home-content-gutter) 64px;
-  border-bottom: 1px solid var(--home-border);
-  background: #fff;
-}
-
-.clawbot-home-systems-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  max-width: var(--home-content-max-width);
-  margin: 0 auto;
-}
-
-.clawbot-home-system-card {
-  position: relative;
-  display: grid;
-  gap: 8px;
-  padding: 22px 22px 20px;
-  border: 1px solid var(--home-border);
-  border-radius: 14px;
-  background: #fbfbf9;
-  color: var(--home-ink);
-  text-decoration: none;
-  transition:
-    border-color var(--duration-fast) var(--ease-standard),
-    box-shadow var(--duration-fast) var(--ease-standard),
-    transform var(--duration-base) var(--ease-standard);
-}
-
-.clawbot-home-system-card:hover {
-  border-color: #d5d4cd;
-  box-shadow: 0 14px 34px -26px rgb(25 26 23 / 35%);
-  transform: translateY(-2px);
-}
-
-.clawbot-home-system-card > span[aria-hidden] {
-  justify-self: end;
-  color: var(--home-muted);
-  font-size: 13px;
-}
-
-.clawbot-home-system-card strong {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.clawbot-home-system-card small {
-  color: var(--home-muted);
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.clawbot-home-system-dot,
-.clawbot-home-system-glyph {
-  display: inline-flex;
-  width: 30px;
-  height: 30px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  font-size: 13px;
-}
-
-.clawbot-home-system-glyph {
-  border: 1px solid #e2e2dd;
-  background: #fff;
-  color: var(--home-muted);
-}
-
-.clawbot-home-system-dot {
-  border: 1px solid rgb(29 110 84 / 18%);
-  background: rgb(29 110 84 / 7%);
-  color: var(--color-accent-strong, #185b46);
-  animation: clawbot-home-breathe 2.8s var(--ease-standard) infinite;
-}
-
-@keyframes clawbot-home-breathe {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgb(29 110 84 / 22%);
-  }
-
-  50% {
-    box-shadow: 0 0 0 7px rgb(29 110 84 / 0%);
-  }
-}
-
-@media (max-width: 900px) {
-  .clawbot-home-systems-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 .clawbot-home-catalog {
   padding: 92px var(--home-content-gutter) 100px;
   scroll-margin-top: 88px;
@@ -1100,12 +1004,7 @@
     animation: none;
   }
 
-  .clawbot-home-system-dot {
-    animation: none;
-  }
-
   .clawbot-home-cta,
-  .clawbot-home-system-card,
   .clawbot-home-component-links a span {
     transition: none;
   }

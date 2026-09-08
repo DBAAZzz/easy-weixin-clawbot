@@ -1,6 +1,5 @@
 import { Link, useFullSidebarData } from "dumi";
 import { useEffect, useMemo } from "react";
-import "../../../../src/style.css";
 import "./style.css";
 
 type CatalogItem = {
@@ -188,34 +187,6 @@ export default function HomePage() {
         <code>@clawbot/ui · private</code>
       </aside>
 
-      <section className="clawbot-home-systems">
-        <p className="clawbot-home-section-label">Design system</p>
-        <div className="clawbot-home-systems-grid">
-          <Link className="clawbot-home-system-card" to="/motion">
-            <span className="clawbot-home-system-dot" aria-hidden="true" />
-            <strong>动效系统</strong>
-            <small>4 档语义时长 · 4 条缓动曲线 · reduced-motion 全局降级</small>
-            <span aria-hidden="true">→</span>
-          </Link>
-          <Link className="clawbot-home-system-card" to="/components/button">
-            <span className="clawbot-home-system-glyph" aria-hidden="true">
-              ▤
-            </span>
-            <strong>组件目录</strong>
-            <small>21 个组件 · Playground 交互式文档</small>
-            <span aria-hidden="true">→</span>
-          </Link>
-          <a className="clawbot-home-system-card" href="#principle">
-            <span className="clawbot-home-system-glyph" aria-hidden="true">
-              ✦
-            </span>
-            <strong>设计原则</strong>
-            <small>让复杂留在系统里，让界面保持安静</small>
-            <span aria-hidden="true">→</span>
-          </a>
-        </div>
-      </section>
-
       <section className="clawbot-home-catalog" id="components">
         <p className="clawbot-home-section-label">Component catalog</p>
         <div className="clawbot-home-catalog-heading">
@@ -243,7 +214,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="clawbot-home-principle" id="principle">
+      <section className="clawbot-home-principle">
         <div className="clawbot-home-principle-grid" aria-hidden="true" />
         <div className="clawbot-home-principle-glow" aria-hidden="true" />
         <div>

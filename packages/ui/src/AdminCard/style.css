@@ -29,10 +29,10 @@
     color: var(--color-icon-muted);
     cursor: pointer;
     transition:
-      background-color 0.2s var(--ease-expo),
-      border-color 0.2s var(--ease-expo),
-      color 0.2s var(--ease-expo),
-      box-shadow 0.2s var(--ease-expo);
+      background-color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard);
   }
 
   .cb-card-action-group {
@@ -44,7 +44,7 @@
     align-items: center;
     gap: var(--spacing-2);
     opacity: 1;
-    transition: opacity 0.2s var(--ease-expo);
+    transition: opacity var(--duration-fast) var(--ease-standard);
   }
 
   .cb-card-action-button:hover,
@@ -93,6 +93,22 @@
     padding: var(--spacing-3);
     box-shadow: var(--shadow-menu);
     backdrop-filter: blur(8px);
+    transform-origin: var(--transform-origin);
+    transition:
+      opacity var(--duration-fast) var(--ease-entrance),
+      transform var(--duration-fast) var(--ease-entrance);
+  }
+
+  .cb-card-menu-popup[data-ending-style] {
+    transition:
+      opacity var(--duration-instant) var(--ease-exit),
+      transform var(--duration-instant) var(--ease-exit);
+  }
+
+  .cb-card-menu-popup[data-starting-style],
+  .cb-card-menu-popup[data-ending-style] {
+    opacity: 0;
+    transform: scale(0.97);
   }
 
   .cb-card-menu-item {
@@ -110,8 +126,8 @@
     cursor: pointer;
     outline: none;
     transition:
-      background-color 0.2s var(--ease-expo),
-      color 0.2s var(--ease-expo);
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
   }
 
   .cb-card-menu-item:hover,

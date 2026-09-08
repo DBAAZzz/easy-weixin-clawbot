@@ -189,8 +189,8 @@
   line-height: 1;
   outline: none;
   transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease;
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
 }
 
 .clawbot-playground__input {
@@ -229,7 +229,7 @@
   border-top: var(--spacing-3) solid var(--color-muted, #66717c);
   border-right: var(--spacing-2) solid transparent;
   border-left: var(--spacing-2) solid transparent;
-  transition: transform 160ms ease;
+  transition: transform var(--duration-base) var(--ease-entrance);
 }
 
 .clawbot-playground__select-trigger[data-popup-open] .clawbot-playground__select-icon {
@@ -301,9 +301,9 @@
   cursor: pointer;
   outline: none;
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease;
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
 }
 
 .clawbot-playground__switch[data-checked] {
@@ -317,7 +317,7 @@
   border-radius: 999px;
   background: var(--color-surface-raised, #fff);
   box-shadow: var(--shadow-btn, 0 1px 3px rgb(18 28 38 / 18%));
-  transition: transform 160ms ease;
+  transition: transform var(--duration-base) var(--ease-spring);
 }
 
 .clawbot-playground__switch-thumb[data-checked] {
@@ -343,15 +343,5 @@
   .clawbot-playground__controls {
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: var(--spacing-6);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .clawbot-playground *,
-  .clawbot-playground *::before,
-  .clawbot-playground *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
   }
 }

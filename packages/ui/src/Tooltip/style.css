@@ -35,8 +35,14 @@
     box-shadow: var(--shadow-popover);
     transform-origin: var(--transform-origin);
     transition:
-      opacity 0.15s var(--ease-expo),
-      transform 0.15s var(--ease-expo);
+      opacity var(--duration-fast) var(--ease-entrance),
+      transform var(--duration-fast) var(--ease-entrance);
+  }
+
+  .cb-tooltip-popup[data-ending-style] {
+    transition:
+      opacity var(--duration-fast) var(--ease-exit),
+      transform var(--duration-fast) var(--ease-exit);
   }
 
   .cb-tooltip-popup[data-starting-style],

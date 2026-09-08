@@ -26,8 +26,8 @@
     color: var(--color-breadcrumb-muted);
     outline: none;
     transition:
-      color 0.2s var(--ease-expo),
-      transform 0.2s var(--ease-expo);
+      color var(--duration-fast) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-standard);
   }
 
   .cb-breadcrumb-back svg {
@@ -69,7 +69,7 @@
     text-decoration: none;
     text-overflow: ellipsis;
     white-space: nowrap;
-    transition: color 0.2s var(--ease-expo);
+    transition: color var(--duration-fast) var(--ease-standard);
   }
 
   .cb-breadcrumb-link:hover {

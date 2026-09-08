@@ -17,7 +17,7 @@
     padding: var(--spacing-6) var(--spacing-7);
     text-align: left;
     cursor: pointer;
-    transition: background-color 0.2s var(--ease-expo);
+    transition: background-color var(--duration-fast) var(--ease-standard);
   }
 
   .cb-accordion-trigger:hover {
@@ -45,7 +45,7 @@
   }
 
   .cb-accordion-chevron {
-    transition: transform 0.2s var(--ease-expo);
+    transition: transform var(--duration-base) var(--ease-entrance);
   }
 
   .cb-accordion-trigger[data-panel-open] .cb-accordion-chevron {

@@ -15,6 +15,16 @@
     z-index: 50;
     background: var(--color-overlay);
     backdrop-filter: blur(2px);
+    transition: opacity var(--duration-slow) var(--ease-standard);
+  }
+
+  .cb-dialog-overlay[data-ending-style] {
+    transition: opacity var(--duration-fast) var(--ease-exit);
+  }
+
+  .cb-dialog-overlay[data-starting-style],
+  .cb-dialog-overlay[data-ending-style] {
+    opacity: 0;
   }
 
   .cb-dialog-viewport {
@@ -41,8 +51,14 @@
     box-shadow: var(--shadow-menu);
     outline: none;
     transition:
-      opacity 0.2s var(--ease-expo),
-      transform 0.2s var(--ease-expo);
+      opacity var(--duration-slow) var(--ease-entrance),
+      transform var(--duration-slow) var(--ease-entrance);
+  }
+
+  .cb-dialog-content[data-ending-style] {
+    transition:
+      opacity var(--duration-fast) var(--ease-exit),
+      transform var(--duration-fast) var(--ease-exit);
   }
 
   .cb-dialog-content[data-ending-style],
@@ -77,9 +93,9 @@
     color: var(--color-muted);
     cursor: pointer;
     transition:
-      background-color 0.2s var(--ease-expo),
-      border-color 0.2s var(--ease-expo),
-      color 0.2s var(--ease-expo);
+      background-color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
   }
 
   .cb-dialog-close:hover {

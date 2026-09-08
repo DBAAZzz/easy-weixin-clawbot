@@ -14,8 +14,8 @@
     color: var(--color-ink);
     outline: none;
     transition:
-      border-color 0.3s var(--ease-expo),
-      box-shadow 0.3s var(--ease-expo);
+      border-color var(--duration-slow) var(--ease-standard),
+      box-shadow var(--duration-slow) var(--ease-standard);
   }
 
   .cb-input--sm {

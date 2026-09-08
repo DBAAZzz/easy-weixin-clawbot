@@ -92,7 +92,7 @@ export default function EasingCompare() {
         <button className="ui-motion-demo__play" onClick={play} type="button">
           播放
         </button>
-        <span className="ui-motion-demo__note">同一时长（duration-base 200ms），仅缓动不同</span>
+        <span className="ui-motion-demo__note">同一时长，只变缓动</span>
       </div>
 
       {CURVES.map((curve) => (

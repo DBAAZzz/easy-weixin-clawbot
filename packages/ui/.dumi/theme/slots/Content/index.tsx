@@ -87,12 +87,6 @@ export default function Content(props: { children: ReactNode }) {
           {frontmatter.description ? (
             <p className="clawbot-motion-hero__description">{frontmatter.description}</p>
           ) : null}
-          <div className="clawbot-motion-hero__meta">
-            <span>4 档语义时长</span>
-            <span>4 条缓动曲线</span>
-            <span>standard = M3 emphasized</span>
-            <span>reduced-motion 单点降级</span>
-          </div>
         </section>
       ) : null}
       <div

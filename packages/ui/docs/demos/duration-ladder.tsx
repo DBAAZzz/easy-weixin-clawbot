@@ -43,7 +43,7 @@ export default function DurationLadder() {
         <button className="ui-motion-demo__play" onClick={play} type="button">
           播放
         </button>
-        <span className="ui-motion-demo__note">同一缓动（standard），仅时长不同</span>
+        <span className="ui-motion-demo__note">同一缓动，只变时长</span>
       </div>
 
       {STEPS.map((step) => (

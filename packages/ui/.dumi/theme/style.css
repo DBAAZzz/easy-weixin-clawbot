@@ -867,29 +867,11 @@ textarea {
 }
 
 .clawbot-motion-hero__description {
-  max-width: 640px;
+  max-width: 560px;
   margin: 16px 0 0;
   color: var(--clawbot-doc-muted);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.7;
-}
-
-.clawbot-motion-hero__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 26px;
-}
-
-.clawbot-motion-hero__meta span {
-  padding: 6px 11px;
-  border: 1px solid var(--clawbot-doc-border);
-  border-radius: 999px;
-  background: rgb(252 252 250 / 72%);
-  color: var(--clawbot-doc-muted);
-  font-family: var(--clawbot-doc-mono);
-  font-size: 10px;
-  letter-spacing: 0.04em;
 }
 
 .clawbot-motion-content {
@@ -916,7 +898,7 @@ textarea {
 }
 
 .clawbot-motion-content .markdown > h2 {
-  margin: 64px 0 14px !important;
+  margin: 104px 0 16px !important;
 }
 
 .clawbot-motion-content .markdown > h2:first-of-type {

@@ -7,8 +7,8 @@
    * max-content 撑破容器（代码输出行的不可断行长文本会吹大 1fr 列）。 */
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(280px, 400px) minmax(0, 1fr);
-  gap: 32px;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 40px;
 }
 
 .ui-motion-ep__canvas {

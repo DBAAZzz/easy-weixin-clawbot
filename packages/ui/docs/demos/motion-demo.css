@@ -51,7 +51,7 @@
   grid-template-columns: 172px minmax(0, 1fr);
   align-items: center;
   gap: 20px;
-  padding: 11px 0;
+  padding: 14px 0;
 }
 
 .ui-motion-demo__row--with-spark {

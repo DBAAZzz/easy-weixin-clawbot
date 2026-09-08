@@ -19,5 +19,5 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src", ".dumirc.ts", ".dumi/theme"]
+  "include": ["src", "docs", ".dumirc.ts", ".dumi/theme"]
 }

@@ -1,6 +1,7 @@
 # Motion Token 体系与动效规范
 
-> 状态：设计定稿，待实施。分支：`feat/ui-motion-system`。
+> 状态：**已实施**（2026-09-09）。Phase 1 提交 `8f7e518`，Phase 2 提交 `57de794`。分支：`feat/ui-motion-system`。
+> 实施偏差：EasingPlayground 及 motion demo 落在 `docs/demos/`（dumi 约定的 demo 位置）而非原计划的 `.dumi/theme/builtins/`；首页"设计系统"入口卡为三卡（动效 / 组件目录 / 设计原则锚点），Icons 卡因无独立页面改为组件目录卡。
 > 修订：2026-09-09 新增「生态对标与选型」一节，时长/缓动数值经 Carbon、Material 3 校准。
 >
 > 范围：`packages/ui` 动效 token 体系、全库动效迁移、`prefers-reduced-motion` 全局降级、文档站动效规范页与交互式缓动编辑器。

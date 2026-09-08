@@ -1,6 +1,7 @@
 # Motion Token 体系与动效规范
 
 > 状态：设计定稿，待实施。分支：`feat/ui-motion-system`。
+> 修订：2026-09-09 新增「生态对标与选型」一节，时长/缓动数值经 Carbon、Material 3 校准。
 >
 > 范围：`packages/ui` 动效 token 体系、全库动效迁移、`prefers-reduced-motion` 全局降级、文档站动效规范页与交互式缓动编辑器。
 
@@ -23,10 +24,50 @@
 3. **少而准**：4 档时长、4 条缓动曲线封顶。出现第 5 档需求时先回到场景判断，不扩表。
 4. **可全局降级**：所有动效引用 token 后，`prefers-reduced-motion` 的处理收敛为对 token 的媒体查询覆盖，不需要 `!important` 扫射。
 5. **归置遵循既有规则**：动效 token 属于基础/语义层 → `src/style.css`；不新增平行文件（keyframes 目前无需求，按需再引入）。
+6. **CSS 优先，不重复造引擎**：本库全部动效场景用 CSS transition 覆盖；JS 动画引擎属于业务层选型，不进组件库依赖（见第 3.2 节）。
 
-## 3. Token 设计
+## 3. 生态对标与选型
 
-### 3.1 时长档位（新增到 `src/style.css`）
+自己实现的只有约 40 行 CSS 变量；动效语言对标成熟设计系统，动效引擎按需采用业界标准库。分层如下。
+
+### 3.1 动效语言：对标 Carbon 与 Material 3
+
+| 我方 token | 值 | Carbon 对标 | Material 3 对标 |
+| --- | --- | --- | --- |
+| `--duration-instant` 80ms | 按压/高亮 | `duration-fast-01` 70ms（按钮微交互） | short 档 50–100ms |
+| `--duration-fast` 140ms | hover/颜色 | `duration-fast-02` 110ms（fade）～ `moderate-01` 150ms | short 150ms |
+| `--duration-base` 200ms | 位移/小浮层 | `moderate-01` 150ms ～ `moderate-02` 240ms | short4 200ms |
+| `--duration-slow` 320ms | 大浮层/focus | `moderate-02` 240ms ～ `slow-01` 400ms | medium 250–300ms |
+| `--ease-standard` `cubic-bezier(0.2, 0, 0, 1)` | 中性对称 | standard-productive `cubic-bezier(0.2, 0, 0.38, 0.9)` | **emphasized `cubic-bezier(0.2, 0, 0, 1)`，数值完全一致** |
+| `--ease-entrance` `cubic-bezier(0.22, 0.61, 0.36, 1)` | 减速入场 | entrance-productive `cubic-bezier(0, 0, 0.38, 0.9)` | emphasized-decelerate `cubic-bezier(0.05, 0.7, 0.1, 1)` |
+| `--ease-exit` `cubic-bezier(0.4, 0, 1, 1)` | 加速退场 | exit-productive `cubic-bezier(0.2, 0, 1, 0.9)` | emphasized-accelerate `cubic-bezier(0.3, 0, 0.8, 0.15)` |
+| `--ease-spring` `cubic-bezier(0.34, 1.4, 0.64, 1)` | 微量过冲 | —（expressive 系列承担此角色） | M3 Expressive 的物理 spring |
+
+采纳与校准结论：
+
+- **语义命名被验证**：Carbon 的 `standard / entrance / exit` 三分类与本方案命名一一对应；时长档位落在 Carbon 与 M3 档位之间，1.4 倍几何递进成立。数值在文档站实机演示后允许 ±20ms 微调，档位结构不变。
+- **采纳 Carbon 的使用规则**：退场后仍停留在视口附近的元素（侧面板、折叠区）用 `standard` 而非 `exit`——`exit` 只给"永久消失"的元素。
+- **productive/expressive 二分**：Carbon 以 productive（快、少修饰）为主、expressive（慢、有性格）点缀，对应本库"管理台以 standard/entrance/exit 为主，spring 只给物理控件微量表达"的定位。
+- **spring 的诚实边界**：CSS `cubic-bezier` 过冲只是物理弹簧的近似（无速度连续性）；真 spring 留给业务层的 Motion（见 3.2）。文档站如实标注这一点。
+
+### 3.2 动效引擎：分层选型
+
+| 场景 | 工具 | 归属 |
+| --- | --- | --- |
+| hover、颜色/阴影、thumb 位移、浮层进出场 | CSS transition + 本方案 token | 组件库（0 依赖） |
+| 布局 FLIP、手势、列表编排、图表数据插值 | [Motion](https://motion.dev/docs/react-reduce-bundle-size)（`motion/react`，原 framer-motion；官方 `m` 组件 + `LazyMotion` 可大幅瘦身） | 业务层 opt-in，**不进 `@clawbot/ui` 依赖树** |
+| 文档站页面切换演示 | View Transitions API | 文档站（渐进增强，组件库不依赖） |
+| 列表 insert/remove 微动画 | auto-animate 或 Motion | 业务层 opt-in |
+
+不引入引擎进组件库的理由：
+
+- Base UI 的进出场协调（`data-starting-style` / `data-ending-style` + 卸载时机）与 Motion 的 `AnimatePresence` 是两套卸载机制，同库并用必然打架。
+- 本库全部现存场景（约 26 处 transition）CSS 已覆盖，引擎是纯增量成本。
+- 不选 GSAP：命令式时间线范式与 React 声明式相性差，且形成第二套动效心智。不选 react-spring：维护节奏放缓。不用 `framer-motion` 旧包名：官方已改名 `motion`。
+
+## 4. Token 设计
+
+### 4.1 时长档位（新增到 `src/style.css`）
 
 | Token | 值 | 语义场景 | 吸收的现状值 |
 | --- | --- | --- | --- |
@@ -37,22 +78,22 @@
 
 命名与取值理由：
 
-- 档位差保持约 1.4 倍几何递进（80 → 140 → 200 → 320），符合 Weber-Fechner 感知规律，混用时不易"差不多"。
+- 档位差保持约 1.4 倍几何递进（80 → 140 → 200 → 320），符合 Weber-Fechner 感知规律，混用时不易"差不多"；对标关系见 3.1。
 - 后台管理台是高频扫描场景，整体密度偏紧，封顶 320ms；不设 `slow` 以上档位。
 
-### 3.2 缓动曲线（语义化，替换 `--ease-expo`）
+### 4.2 缓动曲线（语义化，替换 `--ease-expo`）
 
 | Token | 值 | 语义 | 用于 |
 | --- | --- | --- | --- |
-| `--ease-standard` | `cubic-bezier(0.2, 0, 0, 1)` | 中性对称 | 颜色/边框/阴影等无方向属性 |
+| `--ease-standard` | `cubic-bezier(0.2, 0, 0, 1)` | 中性对称（= M3 emphasized） | 颜色/边框/阴影等无方向属性；退场后停留在附近的元素 |
 | `--ease-entrance` | `cubic-bezier(0.22, 0.61, 0.36, 1)` | 减速入场（= 现 `--ease-expo`） | 浮层入场、展开、图标旋入 |
-| `--ease-exit` | `cubic-bezier(0.4, 0, 1, 1)` | 加速退场 | 浮层退场、收起 |
+| `--ease-exit` | `cubic-bezier(0.4, 0, 1, 1)` | 加速退场 | 浮层退场、永久消失的元素 |
 | `--ease-spring` | `cubic-bezier(0.34, 1.4, 0.64, 1)` | 轻微过冲（回弹系数 1.4，克制） | Switch/Slider/ToggleGroup 的 thumb 物理感 |
 
 - `--ease-expo` **删除**，不保留别名。迁移后 grep 确认 `var(--ease-expo)` 归零。
-- 过冲系数取 1.4 而非经典的 1.56：管理台场景的物理感要"稳中带一点俏皮"，不能玩具化。
+- 过冲系数取 1.4 而非经典的 1.56：管理台场景的物理感要"稳中带一点俏皮"，不能玩具化；真物理弹簧由业务层 Motion 承担（3.2）。
 
-### 3.3 `prefers-reduced-motion` 全局降级
+### 4.3 `prefers-reduced-motion` 全局降级
 
 迁移完成后，在 `src/style.css` 的 token 定义之后追加：
 
@@ -71,13 +112,13 @@
 
 关键前置条件：**组件 CSS 里的时长必须全部 token 化**，否则字面量时长不受媒体查询影响——这也是本次迁移的验收标准之一。
 
-### 3.4 明确不做
+### 4.4 明确不做
 
 - **不新增 keyframes 库**：现有浮层进出场全部由 Base UI 的 `data-starting-style` / `data-ending-style` + transition 驱动（Dialog 已是范例），没有需要 keyframes 的场景。出现循环动画（如骨架屏）需求时再按需引入 `motion.css`。
-- **不做 JS 驱动的 spring**（motion/framer 等依赖）：CSS 曲线足够，库保持零动效依赖。
+- **不做 JS 驱动的 spring 进组件库**：CSS 曲线覆盖组件库全部场景，库保持零动效依赖；业务层需要真物理 spring 时 opt-in Motion（3.2）。
 - **不做暗色主题**：另行立项（`color-scheme` 写死 light 是独立问题）。
 
-## 4. 迁移清单（逐文件）
+## 5. 迁移清单（逐文件）
 
 现状盘点 → 目标映射。规则：**时长与缓动成对出现**，写 `var(--duration-x) var(--ease-y)`。
 
@@ -107,23 +148,24 @@
 | `Switch/style.css:65`（thumb 位移） | transform `0.2s expo` | `--duration-base` + `--ease-spring` |
 | `Playground/Playground.css:191/232/303/320` | `160ms ease` 等 | `--duration-base` + `--ease-standard`（文档站工具一并收敛） |
 | `Playground/Playground.css:353-355` | reduced-motion `!important` 扫射 | 删除（token 覆盖已全局生效） |
-| `style.css:144` | `--ease-expo` | 删除，替换为 3.2 的语义曲线组 |
+| `style.css:144` | `--ease-expo` | 删除，替换为 4.2 的语义曲线组 |
 
-## 5. 文档站方案（作品集呈现）
+## 6. 文档站方案（作品集呈现）
 
 文档站已有自定义 dumi 主题（首页组件目录、Header/Sidebar/Previewer 均已定制），本轮在此基础上新增"动效"板块。
 
-### 5.1 动效规范页 `docs/motion.md`
+### 6.1 动效规范页 `docs/motion.md`
 
 新增 `packages/ui/docs/motion.md`，进入侧边栏"设计规范"分组，内容：
 
-1. 动效原则（3.1–3.3 的浓缩版，面向使用者）。
-2. 时长档位表 + 每档的实时演示（hover 我一次就能感到 80/140/200/320 的差异）。
+1. 动效原则（4.1–4.3 的浓缩版，面向使用者）。
+2. 时长档位表 + 每档的实时演示（hover 一次就能感到 80/140/200/320 的差异）。
 3. 缓动曲线语义表，每条曲线配"入场/退场"对照演示。
-4. 组件动效对照表（哪个组件用哪组 token，与第 4 节迁移表同步维护）。
-5. `prefers-reduced-motion` 声明与演示开关。
+4. 生态对标表（3.1）：token 与 Carbon / M3 的对应关系，注明"standard 即 M3 emphasized"。
+5. 组件动效对照表（哪个组件用哪组 token，与第 5 节迁移表同步维护）。
+6. `prefers-reduced-motion` 声明与演示开关。
 
-### 5.2 交互式缓动编辑器（signature piece）
+### 6.2 交互式缓动编辑器（signature piece）
 
 `EasingPlayground`，纯 React + SVG 实现，零新依赖，放在 `docs/motion.md` 内：
 
@@ -134,12 +176,12 @@
 - **reduced-motion 模拟**：开关打开后预览退化为瞬时切换，直观展示降级效果。
 - 实现位置：`.dumi/theme/builtins/EasingPlayground/`（文档站工具，样式内联/局部 CSS，不进组件库导出）。
 
-### 5.3 首页强化
+### 6.3 首页强化
 
 - hero 区新增"设计系统"入口卡组：Design Tokens / Motion / Icons 三卡，Motion 卡内嵌一个 token 驱动的循环微动效（呼吸的 accent 圆点）。
 - 组件目录（已有）保持不动。
 
-## 6. 校验与验收标准
+## 7. 校验与验收标准
 
 除 SKILL.md 既有校验（`typecheck / fmt:check / lint / build / docs:build` + 两条 token 违规扫描）外，新增第三条动效违规扫描，命中应为空：
 
@@ -159,10 +201,10 @@ rg -n 'transition(-property|-duration)?\s*:|animation(-duration)?\s*:' packages/
 4. `docs:build` 通过，`docs/motion.md` 与 EasingPlayground 正常渲染、可交互。
 5. 迁移不改变任何组件的 DOM 结构与 API（纯 CSS 变更 + 文档站新增）。
 
-## 7. 实施步骤
+## 8. 实施步骤
 
-1. **Phase 1 — motion token 体系**：`style.css` 新增时长/缓动 token + reduced-motion 覆盖块 → 按第 4 节逐文件迁移 → 补 Select popup / Dialog overlay 缺失的进出场 → Playground.css 收敛 → 全量校验 → commit。
-2. **Phase 2 — 文档站**：`docs/motion.md` + EasingPlayground + 首页入口卡 → `docs:build` 验证 → commit。
-3. **Phase 3 — 后续立项（不在本分支）**：暗色主题、Playwright 视觉回归、签名数据可视化组件。
+1. **Phase 1 — motion token 体系**：`style.css` 新增时长/缓动 token + reduced-motion 覆盖块 → 按第 5 节逐文件迁移 → 补 Select popup / Dialog overlay 缺失的进出场 → Playground.css 收敛 → 全量校验 → commit。
+2. **Phase 2 — 文档站**：`docs/motion.md`（含生态对标表）+ EasingPlayground + 首页入口卡 → `docs:build` 验证 → commit。
+3. **Phase 3 — 后续立项（不在本分支）**：暗色主题、Playwright 视觉回归、签名数据可视化组件；业务层复杂编排（图表数据插值、列表 FLIP）届时 opt-in Motion。
 
 同步动作：SKILL.md 的「Tailwind Token 使用规则」补充动效 token 归置说明与第三条扫描命令，保持规范与实现一致。

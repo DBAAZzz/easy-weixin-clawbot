@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
@@ -76,6 +77,10 @@ export class ControlsStore {
 
   getSnapshot = () => this.version;
 
+  isEmpty() {
+    return Object.keys(this.controls).length === 0;
+  }
+
   getState() {
     return {
       controls: this.controls,
@@ -101,7 +106,22 @@ export class ControlsStore {
   setControls(controls: Controls) {
     const defaults = getDefaults(controls);
     const nextValues = Object.fromEntries(
-      Object.entries(defaults).map(([name, value]) => [name, this.values[name] ?? value]),
+      Object.entries(defaults).map(([name, defaultValue]) => {
+        const existingValue = this.values[name];
+        if (existingValue === undefined) {
+          return [name, defaultValue];
+        }
+
+        const control = controls[name];
+        if (control.type === "select") {
+          const valid = control.options.some((opt) =>
+            typeof opt === "string" ? opt === existingValue : opt.value === existingValue,
+          );
+          return [name, valid ? existingValue : defaultValue];
+        }
+
+        return [name, existingValue];
+      }),
     );
 
     if (
@@ -124,6 +144,12 @@ export class ControlsStore {
     this.emit();
   }
 
+  clear() {
+    this.controls = {};
+    this.values = {};
+    this.emit();
+  }
+
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -137,7 +163,7 @@ export class ControlsStore {
   }
 }
 
-const defaultStore = new ControlsStore();
+let currentRenderStore: ControlsStore | null = null;
 
 export function useCreateStore() {
   return useMemo(() => new ControlsStore(), []);
@@ -147,12 +173,32 @@ export function useControls<TSchema extends ControlsSchema>(
   schema: TSchema,
   options?: { store?: ControlsStore },
 ) {
-  const store = options?.store ?? defaultStore;
+  const storeRef = useRef<ControlsStore | null>(null);
+  if (!storeRef.current) {
+    storeRef.current = options?.store ?? new ControlsStore();
+  }
+  const store = options?.store ?? storeRef.current;
+  currentRenderStore = store;
+
   const controls = useMemo(() => normalizeControls(schema), [schema]);
+
+  if (store.isEmpty()) {
+    store.setControls(controls);
+  }
 
   useEffect(() => {
     store.setControls(controls);
   }, [controls, store]);
+
+  useEffect(() => {
+    return () => {
+      store.clear();
+    };
+  }, [store]);
+
+  useEffect(() => {
+    currentRenderStore = null;
+  });
 
   useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
@@ -160,37 +206,48 @@ export function useControls<TSchema extends ControlsSchema>(
 }
 
 export function useSetControl(options?: { store?: ControlsStore }) {
-  const store = options?.store ?? defaultStore;
+  const storeRef = useRef<ControlsStore | null>(null);
+  if (!storeRef.current) {
+    storeRef.current = options?.store ?? currentRenderStore ?? new ControlsStore();
+  }
+  const store = options?.store ?? storeRef.current;
 
   return useCallback((name: string, value: ControlValue) => store.setValue(name, value), [store]);
 }
 
 export function StoryBook(props: { children: ReactNode; store?: ControlsStore; title?: string }) {
-  const store = props.store ?? defaultStore;
+  const storeRef = useRef<ControlsStore | null>(null);
+  if (!storeRef.current) {
+    storeRef.current = props.store ?? currentRenderStore ?? new ControlsStore();
+  }
+  const store = props.store ?? storeRef.current;
   const [panelOpen, setPanelOpen] = useState(true);
   useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
   const { controls, values } = store.getState();
+  const hasControls = Object.keys(controls).length > 0;
 
   return (
     <div className="clawbot-playground">
       <div className="clawbot-playground__preview">{props.children}</div>
-      {panelOpen ? (
-        <ControlsPanel
-          controls={controls}
-          title={props.title}
-          values={values}
-          onChange={(name, nextValue) => store.setValue(name, nextValue)}
-          onClose={() => setPanelOpen(false)}
-        />
-      ) : (
-        <button
-          className="clawbot-playground__open"
-          type="button"
-          onClick={() => setPanelOpen(true)}
-        >
-          Tweaks
-        </button>
-      )}
+      {hasControls ? (
+        panelOpen ? (
+          <ControlsPanel
+            controls={controls}
+            title={props.title}
+            values={values}
+            onChange={(name, nextValue) => store.setValue(name, nextValue)}
+            onClose={() => setPanelOpen(false)}
+          />
+        ) : (
+          <button
+            className="clawbot-playground__open"
+            type="button"
+            onClick={() => setPanelOpen(true)}
+          >
+            Tweaks
+          </button>
+        )
+      ) : null}
     </div>
   );
 }
@@ -288,8 +345,10 @@ function ControlField(props: {
 
   if (props.control.type === "boolean") {
     return (
-      <label className="clawbot-playground__switch-field">
-        <span className="clawbot-playground__label">{label}</span>
+      <label className="clawbot-playground__field clawbot-playground__field--switch">
+        <span className="clawbot-playground__label" title={label}>
+          {label}
+        </span>
         <BaseSwitch.Root
           aria-label={label}
           checked={Boolean(props.value)}
@@ -309,8 +368,10 @@ function ControlField(props: {
     const selected = options.find((option) => option.value === String(props.value));
 
     return (
-      <div className="clawbot-playground__field">
-        <span className="clawbot-playground__label">{label}</span>
+      <div className="clawbot-playground__field clawbot-playground__field--select">
+        <span className="clawbot-playground__label" title={label}>
+          {label}
+        </span>
         <BaseSelect.Root
           items={options}
           modal={false}
@@ -331,7 +392,7 @@ function ControlField(props: {
             <BaseSelect.Positioner
               alignItemWithTrigger={false}
               className="clawbot-playground__select-positioner"
-              sideOffset={8}
+              sideOffset={4}
             >
               <BaseSelect.Popup className="clawbot-playground__select-popup">
                 {options.map((option) => (
@@ -356,8 +417,10 @@ function ControlField(props: {
   }
 
   return (
-    <label className="clawbot-playground__field">
-      <span className="clawbot-playground__label">{label}</span>
+    <label className="clawbot-playground__field clawbot-playground__field--input">
+      <span className="clawbot-playground__label" title={label}>
+        {label}
+      </span>
       <input
         className="clawbot-playground__input"
         max={props.control.type === "number" ? props.control.max : undefined}

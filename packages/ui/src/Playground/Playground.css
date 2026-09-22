@@ -1,31 +1,33 @@
 :root {
   --color-playground-stage: #fcfcfa;
-  --color-playground-deck: #f5f4f0;
-  --color-playground-line: #e5e2dc;
+  --color-playground-deck: #f7f6f2;
+  --color-playground-line: #e6e3dd;
   --color-playground-glow-warm: rgb(255 170 103 / 19%);
   --color-playground-glow-gold: rgb(255 218 125 / 22%);
 }
 
 .clawbot-playground {
   position: relative;
-  display: grid;
+  display: flex;
   min-width: 0;
+  min-height: 380px;
   overflow: hidden;
-  border: 0;
-  border-radius: 0;
+  border: 1px solid var(--color-playground-line);
+  border-radius: var(--radius-card, 10px);
   background: var(--color-playground-stage);
 }
 
 .clawbot-playground__preview {
   position: relative;
   isolation: isolate;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 0;
-  min-height: 300px;
+  min-height: 380px;
   overflow: hidden;
-  padding: var(--spacing-13) var(--spacing-12);
+  padding: var(--spacing-12) var(--spacing-10);
   background: var(--color-playground-stage);
 }
 
@@ -62,36 +64,35 @@
 .clawbot-playground__panel {
   position: relative;
   z-index: 2;
-  display: grid;
-  grid-template-columns: 108px minmax(0, 1fr);
-  gap: var(--spacing-8);
-  width: auto;
-  max-height: none;
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  flex-shrink: 0;
   box-sizing: border-box;
-  padding: var(--spacing-7) var(--spacing-8) var(--spacing-8);
-  overflow: visible;
-  border: 0;
-  border-top: 1px solid var(--color-playground-line);
-  border-radius: 0;
+  border-left: 1px solid var(--color-playground-line);
   background: var(--color-playground-deck);
   box-shadow: none;
 }
 
 .clawbot-playground__panel-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-4);
-  padding: var(--spacing-2) 0 0;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 var(--spacing-7);
+  border-bottom: 1px solid var(--color-playground-line);
+  flex-shrink: 0;
 }
 
 .clawbot-playground__title {
   margin: 0;
   color: var(--color-ink, #1a2128);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   line-height: 1.3;
-  letter-spacing: -0.01em;
+  letter-spacing: var(--tracking-tag, 0.08em);
+  text-transform: uppercase;
 }
 
 .clawbot-playground__close {
@@ -105,6 +106,12 @@
   background: transparent;
   color: var(--color-muted, #66717c);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background var(--duration-fast) var(--ease-standard);
 }
 
 .clawbot-playground__close::before,
@@ -129,55 +136,73 @@
 
 .clawbot-playground__close:hover {
   color: var(--color-ink, #1a2128);
+  background: var(--color-ghost-hover, rgb(26 33 40 / 4%));
 }
 
 .clawbot-playground__open {
-  position: relative;
-  z-index: 2;
-  justify-self: end;
-  height: var(--spacing-11);
-  margin: var(--spacing-5) var(--spacing-7);
+  position: absolute;
+  top: var(--spacing-6);
+  right: var(--spacing-6);
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  height: var(--spacing-10);
   padding: 0 var(--spacing-6);
   border: 1px solid var(--color-playground-line);
   border-radius: 999px;
-  background: var(--color-playground-deck);
+  background: var(--color-surface-raised, #fff);
+  box-shadow: var(--shadow-btn-soft, 0 1px 2px rgb(18 28 38 / 5%));
   color: var(--color-ink, #1a2128);
   font: inherit;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.clawbot-playground__open:hover {
+  background: var(--color-surface, #f5f7f9);
+  border-color: var(--color-line-strong, rgb(26 33 40 / 16%));
 }
 
 .clawbot-playground__controls {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
-  gap: var(--spacing-7);
-  min-width: 0;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-6) var(--spacing-7);
+  overflow-y: auto;
+  flex: 1;
 }
 
 .clawbot-playground__field {
-  display: grid;
-  align-content: start;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--spacing-4);
-  min-width: 0;
+  min-height: var(--spacing-10);
 }
 
 .clawbot-playground__label {
+  min-width: 0;
+  flex: 1;
   overflow: hidden;
   color: var(--color-muted-strong, #4a535b);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
-  line-height: 1.2;
-  letter-spacing: 0.02em;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .clawbot-playground__input,
 .clawbot-playground__select-trigger {
-  width: 100%;
-  height: var(--spacing-11);
+  width: 140px;
+  height: var(--spacing-10);
+  flex-shrink: 0;
   box-sizing: border-box;
   border: 1px solid var(--color-line-strong, rgb(26 33 40 / 16%));
   border-radius: var(--radius-xs, 3px);
@@ -194,15 +219,15 @@
 }
 
 .clawbot-playground__input {
-  padding: 0 var(--spacing-6);
+  padding: 0 var(--spacing-5);
 }
 
 .clawbot-playground__select-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-5);
-  padding: 0 var(--spacing-6);
+  gap: var(--spacing-3);
+  padding: 0 var(--spacing-5);
   cursor: pointer;
 }
 
@@ -226,6 +251,7 @@
 .clawbot-playground__select-icon {
   width: 0;
   height: 0;
+  flex-shrink: 0;
   border-top: var(--spacing-3) solid var(--color-muted, #66717c);
   border-right: var(--spacing-2) solid transparent;
   border-left: var(--spacing-2) solid transparent;
@@ -242,6 +268,7 @@
 
 .clawbot-playground__select-popup {
   min-width: var(--anchor-width);
+  max-width: 240px;
   max-height: 220px;
   overflow-y: auto;
   box-sizing: border-box;
@@ -257,8 +284,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-5);
-  min-height: var(--spacing-11);
+  gap: var(--spacing-4);
+  min-height: var(--spacing-10);
   padding: 0 var(--spacing-5);
   border-radius: var(--radius-xs, 3px);
   color: var(--color-ink, #1a2128);
@@ -280,17 +307,10 @@
   font-size: 11px;
 }
 
-.clawbot-playground__switch-field {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-6);
-  min-height: var(--spacing-11);
-}
-
 .clawbot-playground__switch {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   width: 38px;
   height: var(--spacing-9);
   box-sizing: border-box;
@@ -324,24 +344,25 @@
   transform: translateX(16px);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 768px) {
+  .clawbot-playground {
+    flex-direction: column;
+    min-height: 0;
+  }
+
   .clawbot-playground__preview {
     min-height: 260px;
-    padding: var(--spacing-12) var(--spacing-8);
+    padding: var(--spacing-10) var(--spacing-6);
   }
 
   .clawbot-playground__panel {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-6);
-    padding: var(--spacing-7);
-  }
-
-  .clawbot-playground__panel-header {
-    padding: 0;
+    width: 100%;
+    border-left: 0;
+    border-top: 1px solid var(--color-playground-line);
   }
 
   .clawbot-playground__controls {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: var(--spacing-6);
+    padding: var(--spacing-5) var(--spacing-6);
+    gap: var(--spacing-4);
   }
 }

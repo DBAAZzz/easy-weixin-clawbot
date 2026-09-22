@@ -13,6 +13,7 @@
     background: var(--color-panel-strong);
     color: var(--color-ink);
     outline: none;
+    text-overflow: ellipsis;
     transition:
       border-color var(--duration-slow) var(--ease-standard),
       box-shadow var(--duration-slow) var(--ease-standard);
@@ -48,9 +49,11 @@
 
   .cb-input::placeholder {
     color: var(--color-muted);
+    text-overflow: ellipsis;
   }
 
   .cb-input:focus {
+    text-overflow: clip;
     border-color: var(--color-accent);
     box-shadow: var(--shadow-focus-accent);
   }

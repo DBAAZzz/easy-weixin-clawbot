@@ -11,10 +11,13 @@ export function Input({
   leftIcon,
   rightIcon,
   size = "md",
+  title,
   ...props
 }: InputProps) {
   const hasLeftIcon = Boolean(leftIcon);
   const hasRightIcon = Boolean(rightIcon);
+  const resolvedTitle =
+    title ?? (typeof props.placeholder === "string" ? props.placeholder : undefined);
 
   return (
     <span
@@ -31,6 +34,7 @@ export function Input({
         </span>
       ) : null}
       <BaseInput
+        title={resolvedTitle}
         className={cn(
           "cb-input",
           size === "sm" ? "cb-input--sm" : "cb-input--md",

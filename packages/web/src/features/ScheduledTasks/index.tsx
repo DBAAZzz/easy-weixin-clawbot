@@ -74,6 +74,7 @@ export function ScheduledTasksPage() {
         <div className="w-full md:w-account-search">
           <Input
             type="text"
+            size="sm"
             placeholder="搜索任务名称、账号或 Cron..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

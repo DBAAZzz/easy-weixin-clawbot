@@ -1,8 +1,4 @@
-import { toast } from "@clawbot/ui";
-import { Button } from "@clawbot/ui";
-import { Input } from "@clawbot/ui";
-import { Select } from "@clawbot/ui";
-import { LinkIcon, StackIcon } from "@clawbot/ui";
+import { Input, Select, StackIcon, toast } from "@clawbot/ui";
 import { toggleScheduledTask } from "@/api/scheduled-tasks.js";
 import { formatCount } from "../../lib/format.js";
 import { DashboardHeader } from "@/components/DashboardHeader.js";
@@ -25,7 +21,6 @@ export function TaskCenterPage() {
     error,
     filteredTasks,
     loading,
-    navigate,
     preview,
     previewOpen,
     refresh,
@@ -103,6 +98,7 @@ export function TaskCenterPage() {
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_160px]">
           <Input
             value={searchQuery}
+            size="sm"
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="搜索任务名称、账号或订阅源..."
           />
@@ -124,10 +120,6 @@ export function TaskCenterPage() {
               })),
             ]}
           />
-          <Button size="sm" variant="secondary" onClick={() => navigate("/rss-subscriptions")}>
-            <LinkIcon className="size-4" />
-            管理订阅
-          </Button>
         </div>
       </section>
 

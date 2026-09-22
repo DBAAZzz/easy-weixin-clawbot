@@ -40,7 +40,6 @@ export function useSkillsPage() {
   const [onlyEnabled, setOnlyEnabled] = useState(false);
   const [activeSkillName, setActiveSkillName] = useState<string | null>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<SkillDetailTab>("markdown");
-  const [notice, setNotice] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [pendingToggleName, setPendingToggleName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -171,7 +170,6 @@ export function useSkillsPage() {
   ];
 
   async function handleRefresh() {
-    setNotice(null);
     setMutationError(null);
     setUploadCheck(null);
     refresh();
@@ -182,7 +180,6 @@ export function useSkillsPage() {
     if (!file) return;
     event.target.value = "";
 
-    setNotice(null);
     setMutationError(null);
     setUploadCheck(null);
     setUploading(true);
@@ -231,7 +228,7 @@ export function useSkillsPage() {
       });
       await handleRefresh();
       if (!failed) {
-        setNotice(
+        toast.success(
           mode === "reprovision"
             ? `技能 "${skill.name}" 已完成重装`
             : `技能 "${skill.name}" 运行时安装完成`,
@@ -255,15 +252,13 @@ export function useSkillsPage() {
   }
 
   async function handleToggle(skill: SkillInfo) {
-    setNotice(null);
-    setMutationError(null);
     setPendingToggleName(skill.name);
 
     try {
       const result = skill.enabled ? await disable(skill.name) : await enable(skill.name);
-      setNotice(`${result.name} 已${result.enabled ? "启用" : "停用"}`);
+      toast.success(`${result.name} 已${result.enabled ? "启用" : "停用"}`);
     } catch (reason) {
-      setMutationError(reason instanceof Error ? reason.message : String(reason));
+      toast.error(reason instanceof Error ? reason.message : "操作失败");
     } finally {
       setPendingToggleName(null);
     }
@@ -284,7 +279,6 @@ export function useSkillsPage() {
     setActiveSkillName,
     activeDetailTab,
     setActiveDetailTab,
-    notice,
     mutationError,
     pendingToggleName,
     uploading,

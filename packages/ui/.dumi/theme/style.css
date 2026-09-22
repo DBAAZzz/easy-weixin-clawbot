@@ -21,6 +21,7 @@
   --clawbot-doc-radius: 16px;
   --clawbot-doc-font: "Geist Variable", "Noto Sans SC Variable", "PingFang SC", sans-serif;
   --clawbot-doc-mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+  --clawbot-doc-skeleton-speed: 1400ms;
 }
 
 html,
@@ -1213,6 +1214,230 @@ body {
     flex: 1 1 0;
     max-width: calc(50% - 8px);
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Loading skeleton（路由 chunk / demo chunk 加载占位）：替代白屏，避免被当成无响应
+ * ------------------------------------------------------------------------- */
+
+.clawbot-skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 7px;
+  background: var(--clawbot-doc-surface-muted);
+}
+
+.clawbot-skeleton::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 72%), transparent);
+  animation: clawbot-skeleton-shimmer var(--clawbot-doc-skeleton-speed) infinite;
+}
+
+@keyframes clawbot-skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* 路由级：对齐 DocLayout 的页头 / 侧栏 / 正文三段结构 */
+
+.clawbot-loading {
+  min-height: 100vh;
+  background: var(--clawbot-doc-bg);
+  font-family: var(--clawbot-doc-font);
+}
+
+.clawbot-loading__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: var(--clawbot-doc-header-height);
+  padding: 0 32px;
+  border-bottom: 1px solid rgb(228 226 220 / 82%);
+  background: rgb(252 252 250 / 88%);
+}
+
+.clawbot-loading__logo {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.clawbot-loading__brand {
+  width: 84px;
+  height: 14px;
+}
+
+.clawbot-loading__nav {
+  display: flex;
+  gap: 24px;
+  margin-left: 56px;
+}
+
+.clawbot-loading__nav i {
+  width: 44px;
+  height: 13px;
+}
+
+.clawbot-loading__search {
+  width: 220px;
+  height: 38px;
+  margin-left: auto;
+  border-radius: 9px;
+}
+
+.clawbot-loading__body {
+  display: grid;
+  grid-template-columns: var(--clawbot-doc-sidebar-width) minmax(0, 1fr);
+  gap: var(--clawbot-doc-layout-gap);
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 42px 32px;
+}
+
+.clawbot-loading__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding-top: 4px;
+}
+
+.clawbot-loading__sidebar i {
+  height: 15px;
+}
+
+.clawbot-loading__sidebar i:nth-child(1) {
+  width: 46%;
+  height: 12px;
+  margin-bottom: 6px;
+}
+
+.clawbot-loading__sidebar i:nth-child(2) {
+  width: 88%;
+}
+
+.clawbot-loading__sidebar i:nth-child(3) {
+  width: 72%;
+}
+
+.clawbot-loading__sidebar i:nth-child(4) {
+  width: 80%;
+}
+
+.clawbot-loading__sidebar i:nth-child(5) {
+  width: 64%;
+}
+
+.clawbot-loading__sidebar i:nth-child(6) {
+  width: 58%;
+}
+
+.clawbot-loading__article {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  max-width: 760px;
+}
+
+.clawbot-loading__title {
+  width: 46%;
+  height: 32px;
+  border-radius: 9px;
+}
+
+.clawbot-loading__lead {
+  height: 14px;
+}
+
+.clawbot-loading__canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 300px;
+  margin-top: 18px;
+  border: 1px solid var(--clawbot-doc-border);
+  border-radius: var(--clawbot-doc-radius);
+  background: var(--clawbot-doc-surface);
+}
+
+.clawbot-loading__pill {
+  width: 104px;
+  height: 34px;
+  border-radius: 999px;
+}
+
+.clawbot-loading__line {
+  width: 42%;
+  height: 12px;
+}
+
+.clawbot-loading__block {
+  width: 62%;
+  height: 72px;
+  border-radius: 10px;
+}
+
+@media (max-width: 767px) {
+  .clawbot-loading__header {
+    padding: 0 16px;
+  }
+
+  .clawbot-loading__nav,
+  .clawbot-loading__search {
+    display: none;
+  }
+
+  .clawbot-loading__body {
+    display: block;
+    padding: 28px 18px;
+  }
+
+  .clawbot-loading__sidebar {
+    display: none;
+  }
+}
+
+/* demo 级：Previewer 画布内占位；nopadding（StoryBook Playground）时对齐 380px 画布高度 */
+
+.clawbot-demo-skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 108px;
+  padding: 4px 0;
+}
+
+.clawbot-previewer[data-nopadding="true"] .clawbot-demo-skeleton {
+  min-height: 380px;
+}
+
+.clawbot-demo-skeleton__pill {
+  width: 104px;
+  height: 34px;
+  border-radius: 999px;
+}
+
+.clawbot-demo-skeleton__line {
+  width: 46%;
+  max-width: 300px;
+  height: 12px;
+}
+
+.clawbot-demo-skeleton__block {
+  width: 62%;
+  max-width: 380px;
+  height: 64px;
+  border-radius: 10px;
 }
 
 @media (prefers-reduced-motion: reduce) {

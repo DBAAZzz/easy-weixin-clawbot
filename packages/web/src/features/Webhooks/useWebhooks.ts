@@ -35,7 +35,7 @@ export function useWebhooks() {
     tokensError instanceof Error ? tokensError.message : tokensError ? String(tokensError) : null;
   const activeTestToken = tokens.find((token) => token.source === activeTestSource) ?? null;
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: queryKeys.webhookTokens });
+    return queryClient.invalidateQueries({ queryKey: queryKeys.webhookTokens });
   };
   const enabledCount = tokens.filter((token) => token.enabled).length;
   const disabledCount = tokens.length - enabledCount;

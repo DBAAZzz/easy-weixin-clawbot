@@ -33,7 +33,7 @@ export function ToolsPage() {
           title="工具"
           description="管理已安装工具能力，查看来源、参数与启用状态"
           refreshLabel="刷新列表"
-          onRefresh={() => void handleRefresh()}
+          onRefresh={handleRefresh}
         />
         <StatsGrid stats={stats} />
 

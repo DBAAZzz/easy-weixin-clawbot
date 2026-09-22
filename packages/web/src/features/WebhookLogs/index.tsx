@@ -1,8 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Badge } from "@clawbot/ui";
-import { Button } from "@clawbot/ui";
-import { ActivityIcon, RefreshIcon, WebhookIcon } from "@clawbot/ui";
+import { Badge, Button, RefreshIcon, WebhookIcon, toast } from "@clawbot/ui";
+import { cn } from "../../lib/cn.js";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchWebhookLogs, fetchWebhookTokens } from "@/api/webhooks.js";
 import { queryKeys } from "../../lib/query-keys.js";
@@ -40,9 +39,25 @@ export function WebhookLogsPage() {
         ? String(logsRawError)
         : null;
 
-  const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: queryKeys.webhookLogs(source, 200) });
-    void queryClient.invalidateQueries({ queryKey: queryKeys.webhookTokens });
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.webhookLogs(source, 200) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.webhookTokens }),
+    ]);
+
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refresh();
+      toast.success("刷新成功");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "刷新失败");
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const logs = logsResp?.data ?? [];
@@ -82,9 +97,9 @@ export function WebhookLogsPage() {
             <Button size="sm" variant="secondary" onClick={() => navigate("/webhooks")}>
               返回 Webhooks
             </Button>
-            <Button size="sm" variant="secondary" onClick={refresh}>
-              <ActivityIcon className="size-4" />
-              刷新日志
+            <Button size="sm" variant="secondary" onClick={handleRefresh} disabled={isRefreshing}>
+              <RefreshIcon className={cn("size-4", isRefreshing && "animate-spin")} />
+              {isRefreshing ? "刷新中…" : "刷新日志"}
             </Button>
           </div>
         </div>
@@ -161,9 +176,9 @@ export function WebhookLogsPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
             <Badge tone="muted">活跃账号 {formatCount(activeAccountCount)}</Badge>
-            <Button size="sm" variant="ghost" onClick={refresh}>
-              <RefreshIcon className="size-3.5" />
-              刷新
+            <Button size="sm" variant="ghost" onClick={handleRefresh} disabled={isRefreshing}>
+              <RefreshIcon className={cn("size-3.5", isRefreshing && "animate-spin")} />
+              {isRefreshing ? "刷新中…" : "刷新"}
             </Button>
           </div>
         </div>

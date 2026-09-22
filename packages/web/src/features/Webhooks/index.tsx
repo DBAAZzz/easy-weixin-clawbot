@@ -1,5 +1,7 @@
-import { Badge, Button } from "@clawbot/ui";
-import { WebhookIcon, ActivityIcon, PlusIcon } from "@clawbot/ui";
+import { useState } from "react";
+import { Badge, Button, RefreshIcon, toast } from "@clawbot/ui";
+import { WebhookIcon, PlusIcon } from "@clawbot/ui";
+import { cn } from "@/lib/cn.js";
 import { formatCount } from "@/lib/format.js";
 import { useWebhooks } from "./useWebhooks.js";
 import { WebhookTokenCard } from "./WebhookTokenCard.js";
@@ -9,6 +11,7 @@ import { TokenCreatedNotice } from "./TokenCreatedNotice.js";
 import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function WebhooksPage() {
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const {
     tokens,
     error,
@@ -31,6 +34,19 @@ export function WebhooksPage() {
     handleOpenLogs,
   } = useWebhooks();
 
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refresh();
+      toast.success("刷新成功");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "刷新失败");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-5 text-account-ink">
       <section className="space-y-3">
@@ -41,9 +57,9 @@ export function WebhooksPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={refresh}>
-              <ActivityIcon className="size-4" />
-              刷新列表
+            <Button size="sm" variant="secondary" onClick={handleRefresh} disabled={isRefreshing}>
+              <RefreshIcon className={cn("size-4", isRefreshing && "animate-spin")} />
+              {isRefreshing ? "刷新中…" : "刷新列表"}
             </Button>
             {!showCreate ? (
               <Button size="sm" onClick={() => setShowCreate(true)}>

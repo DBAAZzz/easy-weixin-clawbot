@@ -75,7 +75,7 @@ export function RssSubscriptionsPage() {
           setDraft(EMPTY_DRAFT);
           setEditorOpen(true);
         }}
-        onRefresh={() => void refresh()}
+        onRefresh={refresh}
       />
 
       <StatsGrid stats={rssStats} />

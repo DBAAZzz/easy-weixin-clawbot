@@ -1,5 +1,6 @@
-import { Button, RefreshIcon, buttonClassName } from "@clawbot/ui";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { Button, RefreshIcon, buttonClassName, toast } from "@clawbot/ui";
+import { cn } from "@/lib/cn.js";
 
 export function DashboardHeader({
   eyebrow = "Accounts",
@@ -18,8 +19,23 @@ export function DashboardHeader({
   primaryLabel?: string;
   refreshLabel?: string;
   onCreate?: () => void;
-  onRefresh?: () => void;
+  onRefresh?: () => void | Promise<unknown>;
 }) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+      toast.success("刷新成功");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "刷新失败");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
@@ -38,12 +54,12 @@ export function DashboardHeader({
             <Button
               variant="secondary"
               size="sm"
-              onClick={onRefresh}
-              disabled={!onRefresh}
+              onClick={handleRefresh}
+              disabled={!onRefresh || isRefreshing}
               className="border-account-line-strong bg-account-card text-account-ink-soft shadow-account-control hover:border-account-control-hover hover:bg-account-table-head hover:text-account-ink-soft"
             >
-              <RefreshIcon className="size-4" />
-              {refreshLabel}
+              <RefreshIcon className={cn("size-4", isRefreshing && "animate-spin")} />
+              {isRefreshing ? "刷新中…" : refreshLabel}
             </Button>
             {onCreate ? (
               <Button

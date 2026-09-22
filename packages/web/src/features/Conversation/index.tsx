@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { MessageList } from "@/components/MessageList.js";
-import { Button } from "@clawbot/ui";
-import { RefreshIcon } from "@clawbot/ui";
+import { Button, RefreshIcon, toast } from "@clawbot/ui";
+import { cn } from "../../lib/cn.js";
 import { formatCount, formatRelativeTime } from "../../lib/format.js";
 import { useConversations } from "../../hooks/useConversations.js";
 import { useMessages } from "../../hooks/useMessages.js";
@@ -13,6 +13,20 @@ export function ConversationPage() {
   const selectedConversationId = searchParams.get("conversation") ?? undefined;
   const { conversations } = useConversations(accountId);
   const messages = useMessages(accountId, selectedConversationId);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshMessages = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await messages.refresh();
+      toast.success("刷新成功");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "刷新失败");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     if (!conversations.length) return;
@@ -53,9 +67,14 @@ export function ConversationPage() {
           </div>
         </div>
 
-        <Button size="sm" variant="secondary" onClick={messages.refresh}>
-          <RefreshIcon className="size-4" />
-          刷新消息
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={handleRefreshMessages}
+          disabled={isRefreshing}
+        >
+          <RefreshIcon className={cn("size-4", isRefreshing && "animate-spin")} />
+          {isRefreshing ? "刷新中…" : "刷新消息"}
         </Button>
       </div>
 

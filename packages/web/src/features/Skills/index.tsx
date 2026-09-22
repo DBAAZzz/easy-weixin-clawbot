@@ -79,7 +79,7 @@ export function SkillsPage() {
           primaryLabel={uploading ? "上传中…" : "上传技能"}
           refreshLabel="刷新列表"
           onCreate={() => uploadInputRef.current?.click()}
-          onRefresh={() => void handleRefresh()}
+          onRefresh={handleRefresh}
         />
         <StatsGrid stats={stats} />
 

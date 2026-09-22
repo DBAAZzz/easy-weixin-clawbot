@@ -46,10 +46,11 @@ export function useMessages(accountId?: string, conversationId?: string) {
     },
     refresh() {
       if (accountId && conversationId) {
-        void queryClient.invalidateQueries({
+        return queryClient.invalidateQueries({
           queryKey: queryKeys.messages(accountId, conversationId),
         });
       }
+      return Promise.resolve();
     },
   };
 }

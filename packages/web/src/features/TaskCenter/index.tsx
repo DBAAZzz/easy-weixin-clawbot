@@ -89,7 +89,7 @@ export function TaskCenterPage() {
           });
           setEditorOpen(true);
         }}
-        onRefresh={() => void refresh()}
+        onRefresh={refresh}
       />
 
       <StatsGrid stats={taskStats} />

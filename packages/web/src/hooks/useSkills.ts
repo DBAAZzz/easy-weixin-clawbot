@@ -23,7 +23,7 @@ export function useSkills() {
   });
 
   function invalidate() {
-    void queryClient.invalidateQueries({ queryKey: queryKeys.skills });
+    return queryClient.invalidateQueries({ queryKey: queryKeys.skills });
   }
 
   return {

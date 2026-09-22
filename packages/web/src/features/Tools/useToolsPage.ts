@@ -82,7 +82,7 @@ export function useToolsPage() {
   ];
 
   function handleRefresh() {
-    refresh();
+    return refresh();
   }
 
   return {

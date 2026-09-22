@@ -172,7 +172,7 @@ export function useSkillsPage() {
   async function handleRefresh() {
     setMutationError(null);
     setUploadCheck(null);
-    refresh();
+    await refresh();
   }
 
   async function handleFileUpload(event: ChangeEvent<HTMLInputElement>) {

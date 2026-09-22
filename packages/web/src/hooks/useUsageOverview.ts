@@ -16,7 +16,7 @@ export function useUsageOverview(accountId?: string) {
     error:
       query.error instanceof Error ? query.error.message : query.error ? String(query.error) : null,
     refresh() {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.usageOverview(accountId) });
+      return queryClient.invalidateQueries({ queryKey: queryKeys.usageOverview(accountId) });
     },
   };
 }

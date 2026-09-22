@@ -58,12 +58,14 @@ export function useObservability(filters: ObservabilityFilters) {
       }
     },
     refresh() {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.observabilityOverview(filters.window),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: ["observabilityTraces"],
-      });
+      return Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.observabilityOverview(filters.window),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["observabilityTraces"],
+        }),
+      ]);
     },
   };
 }

@@ -37,11 +37,15 @@ body {
   text-rendering: optimizelegibility;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+/* 表单元素 font reset 放进 base 层：未分层规则会压过 @layer clawbot 里的字号，
+   导致 Input/Select 等组件的 size 不再生效（placeholder/文本被冻结在继承字号） */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 .dumi-default-header {

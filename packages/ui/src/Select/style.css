@@ -25,7 +25,6 @@
     border-radius: var(--radius-card);
     background: var(--cb-select-trigger-bg);
     color: var(--color-ink);
-    font-size: var(--text-base);
     outline: none;
     transition:
       background-color var(--duration-fast) var(--ease-standard),
@@ -57,11 +56,13 @@
   .cb-select-trigger-size--default {
     height: var(--size-control-md);
     padding-inline: var(--spacing-7);
+    font-size: var(--text-base);
   }
 
   .cb-select-trigger-size--sm {
     height: var(--size-control-sm);
     padding-inline: var(--spacing-6);
+    font-size: var(--text-sm);
   }
 
   .cb-select-trigger svg {

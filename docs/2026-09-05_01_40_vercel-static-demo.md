@@ -31,12 +31,22 @@
 
 ## 本地预览
 
+开发模式（无需启动后端，Windows/Linux/macOS 通用）：
+
 ```bash
-VITE_API_MOCK=1 pnpm -F @clawbot/web build
-pnpm -F @clawbot/web exec vite preview   # http://localhost:4173
+pnpm preview   # 等价于 pnpm -F @clawbot/web dev:mock，http://localhost:5173
 ```
 
-开发模式同样生效：`VITE_API_MOCK=1 pnpm dev:web`（无需启动后端）。
+静态构建预览：
+
+```bash
+pnpm build:web:mock                     # 等价于 vite build --mode mock
+pnpm -F @clawbot/web exec vite preview  # http://localhost:4173
+```
+
+mock 开关由根目录 `.env.mock` 提供（`vite --mode mock` 时加载）。Vercel 部署
+仍用环境变量 `VITE_API_MOCK=1`，真实环境变量的优先级高于 env 文件，两条路径互不干扰。
+旧写法 `VITE_API_MOCK=1 pnpm dev:web` 仍然有效，但那是 Unix shell 语法，Windows cmd 不支持。
 
 ## 维护：API 形状变化后同步 fixtures
 

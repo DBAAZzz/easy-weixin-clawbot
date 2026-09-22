@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "vite --mode mock",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
+    "build:mock": "tsc --noEmit && vite build --mode mock",
     "preview": "vite preview",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",

@@ -962,6 +962,101 @@ textarea {
   background: rgb(248 247 243 / 72%);
 }
 
+/* ---------------------------------------------------------------------------
+ * Content footer (上一篇 / 下一篇)：hairline 分隔 + 箭头外置的双栏翻页导航
+ * ------------------------------------------------------------------------- */
+
+.clawbot-content-footer {
+  margin-top: 56px;
+}
+
+.clawbot-content-footer__meta {
+  margin: 0 0 16px;
+  color: var(--clawbot-doc-subtle);
+  font-family: var(--clawbot-doc-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.clawbot-content-footer__nav {
+  display: flex;
+  gap: 24px;
+  padding-top: 26px;
+  border-top: 1px solid var(--clawbot-doc-border);
+}
+
+.clawbot-content-footer__link {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+  color: var(--clawbot-doc-text);
+  text-decoration: none;
+}
+
+.clawbot-content-footer__link[data-direction="next"] {
+  justify-content: flex-end;
+  margin-inline-start: auto;
+  text-align: end;
+}
+
+.clawbot-content-footer__text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.clawbot-content-footer__text small {
+  color: var(--clawbot-doc-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.clawbot-content-footer__text strong {
+  overflow: hidden;
+  color: var(--clawbot-doc-text);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 160ms ease;
+}
+
+.clawbot-content-footer__arrow {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--clawbot-doc-subtle);
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.clawbot-content-footer__link:hover .clawbot-content-footer__text strong,
+.clawbot-content-footer__link:hover .clawbot-content-footer__arrow {
+  color: var(--clawbot-doc-primary);
+}
+
+.clawbot-content-footer__link[data-direction="next"]:hover .clawbot-content-footer__arrow {
+  transform: translateX(3px);
+}
+
+.clawbot-content-footer__link[data-direction="prev"]:hover .clawbot-content-footer__arrow {
+  transform: translateX(-3px);
+}
+
+.clawbot-content-footer__link:focus-visible {
+  border-radius: 8px;
+  outline: 2px solid var(--clawbot-doc-primary);
+  outline-offset: 4px;
+}
+
 .clawbot-mobile-toc {
   display: none;
 }
@@ -1100,6 +1195,19 @@ textarea {
 
   .markdown .dumi-default-table {
     width: calc(100vw - 36px);
+  }
+
+  .clawbot-content-footer {
+    margin-top: 40px;
+  }
+
+  .clawbot-content-footer__nav {
+    gap: 16px;
+  }
+
+  .clawbot-content-footer__link {
+    flex: 1 1 0;
+    max-width: calc(50% - 8px);
   }
 }
 

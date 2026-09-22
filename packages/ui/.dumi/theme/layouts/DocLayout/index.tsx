@@ -7,15 +7,13 @@ import {
   useSidebarData,
   useSiteData,
 } from "dumi";
-import "@fontsource-variable/geist";
-import "@fontsource-variable/noto-sans-sc";
-import ContentFooter from "dumi/theme-default/slots/ContentFooter";
 import Features from "dumi/theme-default/slots/Features";
 import Footer from "dumi/theme-default/slots/Footer";
 import Header from "dumi/theme-default/slots/Header";
 import Hero from "dumi/theme-default/slots/Hero";
 import { useEffect, useState } from "react";
 import Content from "../../slots/Content/index.js";
+import ContentFooter from "../../slots/ContentFooter/index.js";
 import HomePage from "../../pages/HomePage/index.js";
 import Sidebar from "../../slots/Sidebar/index.js";
 import Toc from "../../slots/Toc/index.js";

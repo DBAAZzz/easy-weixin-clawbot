@@ -11,6 +11,7 @@ import {
   Breadcrumb,
   CardToggle,
   Select,
+  toast,
 } from "@clawbot/ui";
 import type { SelectOption } from "@clawbot/ui";
 import { cn } from "../../lib/cn.js";
@@ -29,7 +30,6 @@ import {
 } from "./providerConfigForm.js";
 import { MODEL_PROVIDER_PRESETS, type ModelProviderPreset } from "./providerPresets.js";
 import { normalizeModelIdList } from "./templateForm.js";
-import { ErrorNotice } from "@/components/ErrorNotice.js";
 
 export function ProviderConfigPage() {
   const navigate = useNavigate();
@@ -39,12 +39,21 @@ export function ProviderConfigPage() {
   const [selectedPreset, setSelectedPreset] = useState<ModelProviderPreset | undefined>();
   const [form, setForm] = useState<ProviderConfigFormState>(() => createProviderConfigForm());
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const { data: providerConfigsData, error: loadError } = useQuery({
     queryKey: queryKeys.modelProviderTemplates,
     queryFn: fetchModelProviderTemplates,
   });
+
+  useEffect(() => {
+    if (loadError) {
+      toast.error(
+        loadError instanceof Error
+          ? `加载供应商配置失败：${loadError.message}`
+          : "加载供应商配置失败",
+      );
+    }
+  }, [loadError]);
 
   const providerConfigs = providerConfigsData ?? [];
   const activeProviderConfig = useMemo(
@@ -94,8 +103,6 @@ export function ProviderConfigPage() {
   }
 
   useEffect(() => {
-    setError(null);
-
     if (isEdit) {
       if (activeProviderConfig) {
         setForm(createProviderConfigFormFromDto(activeProviderConfig));
@@ -119,16 +126,15 @@ export function ProviderConfigPage() {
   async function handleSave() {
     const modelIds = normalizeModelIdList(form.modelIds);
     if (!form.name.trim() || !form.provider.trim()) {
-      setError("配置名称和 Provider 为必填项");
+      toast.error("配置名称和 Provider 为必填项");
       return;
     }
     if (modelIds.length === 0) {
-      setError("请至少维护一个 Model ID");
+      toast.error("请至少维护一个 Model ID");
       return;
     }
 
     setBusy(true);
-    setError(null);
     try {
       if (isEdit && activeProviderConfig) {
         await updateModelProviderTemplate(activeProviderConfig.id, {
@@ -157,7 +163,7 @@ export function ProviderConfigPage() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.modelConfigs });
       navigate("/model-config");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "保存失败");
+      toast.error(err instanceof Error ? err.message : "保存失败");
     } finally {
       setBusy(false);
     }
@@ -175,16 +181,16 @@ export function ProviderConfigPage() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.modelConfigs });
       navigate("/model-config");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "删除失败");
+      toast.error(err instanceof Error ? err.message : "删除失败");
     }
   }
 
   return (
-    <div className="space-y-6 md:space-y-7">
-      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 rounded-control border border-line bg-panel p-4 shadow-card backdrop-blur-xl">
+    <div className="page-bleed-page flex h-dvh flex-col">
+      <div className="page-bleed-header flex h-16 shrink-0 items-center justify-between gap-3 border-b border-line bg-panel px-5 sm:px-6">
         <Breadcrumb
           backHref="/model-config"
-          className="text-base"
+          className="min-w-0 text-base"
           items={[
             { label: "模型配置", href: "/model-config" },
             { label: pageTitle, current: true },
@@ -197,7 +203,7 @@ export function ProviderConfigPage() {
           }}
         />
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {isEdit && activeProviderConfig ? (
             <Button size="sm" variant="danger" onClick={() => void handleDelete()}>
               <TrashIcon className="size-4" />
@@ -213,23 +219,9 @@ export function ProviderConfigPage() {
         </div>
       </div>
 
-      {loadError ? (
-        <ErrorNotice>
-          加载供应商配置失败：
-          {loadError instanceof Error ? loadError.message : String(loadError)}
-        </ErrorNotice>
-      ) : null}
-
-      {error ? <ErrorNotice>{error}</ErrorNotice> : null}
-
-      <div
-        className={cn(
-          "grid overflow-hidden rounded-section border border-line bg-panel shadow-card backdrop-blur-xl",
-          !isEdit && "xl:grid-cols-[280px_minmax(0,1fr)]",
-        )}
-      >
+      <div className="page-bleed-body flex min-h-0 flex-1 flex-col overflow-y-auto bg-panel xl:flex-row xl:divide-x xl:divide-line">
         {!isEdit ? (
-          <aside className="space-y-3 border-b border-line p-5 xl:border-b-0 xl:border-r">
+          <aside className="space-y-3 border-b border-line p-4 xl:sticky xl:top-0 xl:max-h-full xl:w-observability-search xl:self-start xl:overflow-y-auto xl:border-b-0">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-lg font-semibold text-ink">供应商预设</h3>
               {selectedPreset ? (
@@ -253,7 +245,7 @@ export function ProviderConfigPage() {
                     type="button"
                     onClick={() => setSelectedPreset(preset)}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-control border px-3 py-2.5 text-left transition",
+                      "flex w-full items-center gap-2.5 rounded-card border px-2.5 py-2 text-left transition",
                       selected
                         ? "border-accent-border-active bg-accent-mist-strong"
                         : "border-transparent hover:border-line hover:bg-hover-bg",
@@ -261,13 +253,13 @@ export function ProviderConfigPage() {
                   >
                     <span
                       className={cn(
-                        "flex size-10 shrink-0 items-center justify-center rounded-lg border",
+                        "flex size-8 shrink-0 items-center justify-center rounded-lg border",
                         selected
                           ? "border-accent-border-active bg-white"
                           : "border-line bg-hover-bg",
                       )}
                     >
-                      <ProviderBrandIcon provider={preset.provider} className="size-5" />
+                      <ProviderBrandIcon provider={preset.provider} className="size-4" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-md font-semibold text-ink">
@@ -286,7 +278,7 @@ export function ProviderConfigPage() {
         ) : null}
 
         <form
-          className="min-w-0"
+          className="min-w-0 flex-1"
           onSubmit={(event) => {
             event.preventDefault();
             void handleSave();
@@ -295,6 +287,7 @@ export function ProviderConfigPage() {
           <div className="px-5 sm:px-6">
             <FieldRow label="配置名称 *" description="用于在列表中识别该供应商配置">
               <Input
+                size="sm"
                 value={form.name}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -309,6 +302,7 @@ export function ProviderConfigPage() {
             <FieldRow label="Provider *" description="协议适配器，随预设自动填入">
               <Select
                 fullWidth
+                size="sm"
                 value={form.provider}
                 options={providerOptions}
                 onChange={(value) => setForm((current) => ({ ...current, provider: value }))}
@@ -322,6 +316,7 @@ export function ProviderConfigPage() {
                   <div key={index} className="flex items-center gap-2">
                     <Input
                       className="flex-1"
+                      size="sm"
                       value={value}
                       onChange={(event) =>
                         setForm((current) => ({
@@ -360,7 +355,7 @@ export function ProviderConfigPage() {
                       modelIds: [...current.modelIds, ""],
                     }))
                   }
-                  className="flex w-full items-center justify-center gap-1.5 rounded-control border border-dashed border-line-strong px-3 py-2.5 text-base text-muted-strong transition hover:border-accent-border-active hover:text-accent"
+                  className="flex h-8 w-full items-center justify-center gap-1.5 rounded-control border border-dashed border-line-strong px-3 text-base text-muted-strong transition hover:border-accent-border-active hover:text-accent"
                 >
                   <PlusIcon className="size-4" />
                   添加模型
@@ -397,6 +392,7 @@ export function ProviderConfigPage() {
             >
               <Input
                 type="password"
+                size="sm"
                 value={form.apiKey}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -427,6 +423,7 @@ export function ProviderConfigPage() {
 
             <FieldRow label="Base URL" description="自定义 API 端点，留空使用默认地址">
               <Input
+                size="sm"
                 value={form.baseUrl}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -467,12 +464,12 @@ function FieldRow({
   children: ReactNode;
 }) {
   return (
-    <div className="grid gap-x-6 gap-y-2 border-t border-line py-5 first:border-t-0 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
+    <div className="grid gap-x-6 gap-y-2 border-t border-line py-4 first:border-t-0 sm:grid-cols-[minmax(0,240px)_minmax(0,1fr)]">
       <div>
         <label className="text-base font-medium text-ink">{label}</label>
         {description ? <p className="mt-1 text-sm leading-5 text-muted">{description}</p> : null}
       </div>
-      <div className="min-w-0">{children}</div>
+      <div className="min-w-0 max-w-md">{children}</div>
     </div>
   );
 }

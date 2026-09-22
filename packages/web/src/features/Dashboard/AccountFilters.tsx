@@ -59,7 +59,7 @@ export function AccountFilters({
           <Input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="搜索账号名称或 ID"
+            placeholder="搜索账号或 ID"
             leftIcon={<SearchIcon />}
             size="sm"
             inputClassName="rounded-card border-account-line-strong bg-account-card text-base placeholder:text-account-muted-faint focus:border-account-control-hover"

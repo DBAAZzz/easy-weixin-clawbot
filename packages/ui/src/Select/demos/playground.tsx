@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { ActivityIcon, Badge, ChatIcon, NetworkIcon, Select, StackIcon } from "@clawbot/ui";
-import { StoryBook, useControls, useSetControl } from "../../Playground/index.js";
+import { StoryBook, useControls } from "../../Playground/index.js";
 import type { SelectSize, SelectVariant } from "../index.js";
 
 const options = [
@@ -37,11 +38,8 @@ const options = [
 ];
 
 export default function SelectPlayground() {
+  const [value, setValue] = useState("main");
   const controls = useControls({
-    value: {
-      options: options.map((option) => ({ label: option.label, value: option.value })),
-      value: "main",
-    },
     size: {
       options: [
         { label: "default", value: "default" },
@@ -60,7 +58,6 @@ export default function SelectPlayground() {
     fullWidth: true,
     showIndicator: true,
   });
-  const setControl = useSetControl();
 
   return (
     <StoryBook>
@@ -68,7 +65,7 @@ export default function SelectPlayground() {
         <Select
           disabled={controls.disabled}
           fullWidth={controls.fullWidth}
-          onChange={(nextValue) => setControl("value", nextValue)}
+          onChange={setValue}
           options={options}
           prefix={
             <>
@@ -93,7 +90,7 @@ export default function SelectPlayground() {
           )}
           size={controls.size as SelectSize}
           showIndicator={controls.showIndicator}
-          value={controls.value}
+          value={value}
           variant={controls.variant as SelectVariant}
         />
       </div>

@@ -237,7 +237,7 @@ const controls = useControls({
 - 组件 `index.md` 中的 dumi demo 默认使用 `<code src="./demos/playground.tsx" nopadding></code>`，去掉 dumi 外层 padding，避免 dumi 和 `StoryBook` 双重包裹。
 - 如果发现 demo 顶到左上角，优先检查是否漏了 `StoryBook`，不要先移除 `nopadding`。
 - Playground 已覆盖默认状态时，不再额外保留 Basic。
-- 交互型组件（值可变：Input / Select / Slider / Switch 等）的 demo 必须使用 `value` + `onChange` / `onValueChange` 写回 `useSetControl(name, value)`，让预览区组件本身可操作并与 Tweaks 面板实时同步。禁止 `readOnly` + 受控值、`onChange={() => {}}` 这类冻结预览组件的写法；纯展示型组件不强加 `value` 控件。
+- 交互型组件（值可变：Input / Slider / Switch / Toggle 等）的 demo 必须使用 `value` + `onChange` / `onValueChange` 写回 `useSetControl(name, value)`，让预览区组件本身可操作并与 Tweaks 面板实时同步。禁止 `readOnly` + 受控值、`onChange={() => {}}` 这类冻结预览组件的写法；纯展示型组件或复合选择型组件（如 Select 本身已在画布提供选项下拉交互、放入 Tweaks 会造成枚举冗余且干扰面板）不强加 `value` 控件，由 demo 内部 `useState` 维护交互。
 
 ## 文档规范
 

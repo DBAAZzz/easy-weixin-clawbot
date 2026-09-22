@@ -333,11 +333,15 @@ a {
   text-decoration: none;
 }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
+/* 表单元素 font reset 放进 base 层：未分层规则会压过 @layer clawbot 里的字号，
+   导致 Input/Select 等组件的 size 不再生效（placeholder/文本被冻结在继承字号） */
+@layer base {
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
 }
 
 code,
@@ -520,4 +524,42 @@ pre {
   .mcp-editor-split {
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
   }
+}
+
+/* ── Editor-page console layout（ProviderConfig）──
+   将页面区块出血到 AppShell 滚动容器边缘。--page-gutter 镜像 AppShell 的
+   `p-4 md:p-6 xl:p-8`（16/24/32px）；AppShell padding 变更时必须同步此处。 */
+
+:root {
+  --page-gutter: 1rem;
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --page-gutter: 1.5rem;
+  }
+}
+
+@media (min-width: 80rem) {
+  :root {
+    --page-gutter: 2rem;
+  }
+}
+
+/* 编辑页 Console 布局（ProviderConfig）：页面根节点 h-dvh 撑满视口并出血
+   覆盖 AppShell 滚动容器的 padding，顶栏为普通流内元素贴顶，工作区内部滚动。
+   不用 sticky 顶栏——Chrome 会把 sticky 元素压到滚动容器 content box 之内，
+   在带 padding 的滚动容器里无法贴顶。--page-gutter 镜像 AppShell 的
+   `p-4 md:p-6 xl:p-8`（注意根字号 14px）；AppShell padding 变更时须同步。 */
+@utility page-bleed-page {
+  margin-top: calc(var(--page-gutter) * -1);
+  margin-bottom: calc(var(--page-gutter) * -1);
+}
+
+@utility page-bleed-header {
+  margin-inline: calc(var(--page-gutter) * -1);
+}
+
+@utility page-bleed-body {
+  margin-inline: calc(var(--page-gutter) * -1);
 }

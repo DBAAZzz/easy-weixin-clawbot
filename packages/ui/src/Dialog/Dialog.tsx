@@ -69,7 +69,7 @@ export function DialogContent({
   const resolvedLayout = layout ?? context.layout;
 
   return (
-    <div className="cb-dialog-viewport">
+    <BaseDialog.Viewport className="cb-dialog-viewport">
       <BaseDialog.Popup
         aria-labelledby={context.titleId}
         className={cn("cb-dialog-content", `cb-dialog-content--${resolvedLayout}`, className)}
@@ -79,7 +79,7 @@ export function DialogContent({
           {children}
         </DialogContext.Provider>
       </BaseDialog.Popup>
-    </div>
+    </BaseDialog.Viewport>
   );
 }
 

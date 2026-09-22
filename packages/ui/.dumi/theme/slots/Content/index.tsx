@@ -20,6 +20,7 @@ export default function Content(props: { children: ReactNode }) {
   const resetCopyTimer = useRef<number | undefined>(undefined);
   const apiHeaderConfig = themeConfig.apiHeader as ApiHeaderConfig | false | undefined;
   const isComponentPage = pathname.startsWith("/components/");
+  const isMotionPage = pathname.startsWith("/motion");
   const pageTitle = String(frontmatter.title ?? "");
   const componentName = String(frontmatter.atomId ?? COMPONENT_IMPORTS[pageTitle] ?? pageTitle);
   const packageName =
@@ -76,7 +77,27 @@ export default function Content(props: { children: ReactNode }) {
           </div>
         </section>
       ) : null}
-      <div className={isComponentPage ? "clawbot-component-content" : undefined}>
+      {isMotionPage ? (
+        <section className="clawbot-motion-hero">
+          <p className="clawbot-motion-hero__kicker">
+            <i aria-hidden="true" />
+            Design system · Motion
+          </p>
+          <h1 className="clawbot-motion-hero__title">{frontmatter.title}</h1>
+          {frontmatter.description ? (
+            <p className="clawbot-motion-hero__description">{frontmatter.description}</p>
+          ) : null}
+        </section>
+      ) : null}
+      <div
+        className={
+          isComponentPage
+            ? "clawbot-component-content"
+            : isMotionPage
+              ? "clawbot-motion-content"
+              : undefined
+        }
+      >
         {props.children}
       </div>
     </DefaultContent>

@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { CheckIcon, CopyIcon, TerminalIcon } from "@clawbot/ui";
 import { cn } from "../../lib/cn.js";
 import type { MarkdownBlock } from "./types.js";
 import { isMarkdownBlockBoundary, stripMarkdownFrontmatter } from "./types.js";
@@ -228,22 +229,83 @@ export function SkillMarkdownDocument(props: { markdown: string }) {
           );
         }
 
-        return (
-          <div
-            key={`code-${index}`}
-            className="overflow-hidden rounded-section border border-line bg-detail-bg"
-          >
-            {block.language ? (
-              <div className="border-b border-line px-4 py-2 text-sm uppercase tracking-label text-muted">
-                {block.language}
-              </div>
-            ) : null}
-            <pre className="overflow-x-auto px-4 py-4 text-sm leading-6 text-ink-soft">
-              <code>{block.code}</code>
-            </pre>
-          </div>
-        );
+        return <CodeBlock key={`code-${index}`} language={block.language} code={block.code} />;
       })}
     </article>
+  );
+}
+
+function CodeBlock(props: { language: string | null; code: string }) {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopy = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(props.code);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = props.code;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      setCopied(true);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      timerRef.current = setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch {
+      // 容错降级
+    }
+  };
+
+  const displayLanguage = props.language ? props.language.toLowerCase() : "code";
+
+  return (
+    <div className="overflow-hidden rounded-card border border-line bg-white shadow-card">
+      <div className="flex h-8 items-center justify-between border-b border-line bg-surface/50 px-3 select-none">
+        <div className="flex items-center gap-1.5 text-muted">
+          <TerminalIcon className="size-3 shrink-0" />
+          <span className="font-mono text-xs font-medium tracking-mono text-muted uppercase">
+            {displayLanguage}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={handleCopy}
+          aria-label={copied ? "已复制到剪贴板" : "复制代码"}
+          className="inline-flex cursor-pointer items-center gap-1 rounded-card px-2 py-0.5 text-xs font-medium text-muted transition duration-200 ease-expo hover:bg-ghost-hover hover:text-ink focus-visible:outline-none focus-visible:shadow-focus-accent"
+        >
+          {copied ? (
+            <>
+              <CheckIcon className="size-3 text-accent" />
+              <span className="text-accent font-medium">已复制</span>
+            </>
+          ) : (
+            <>
+              <CopyIcon className="size-3" />
+              <span>复制</span>
+            </>
+          )}
+        </button>
+      </div>
+      <pre className="overflow-x-auto p-3.5 font-mono text-xs leading-5 text-ink-soft select-text">
+        <code>{props.code}</code>
+      </pre>
+    </div>
   );
 }

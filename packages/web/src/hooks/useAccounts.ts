@@ -17,7 +17,7 @@ export function useAccounts(options?: { status?: AccountStatusFilter }) {
     loading: isPending,
     error: error instanceof Error ? error.message : error ? String(error) : null,
     refresh() {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.accounts(status) });
+      return queryClient.invalidateQueries({ queryKey: queryKeys.accounts(status) });
     },
   };
 }

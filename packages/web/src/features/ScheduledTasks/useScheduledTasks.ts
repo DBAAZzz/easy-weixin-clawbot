@@ -41,11 +41,10 @@ export function useScheduledTasks() {
     );
   }, [tasks, searchQuery]);
 
-  const refresh = () => {
-    void queryClient.invalidateQueries({
+  const refresh = () =>
+    queryClient.invalidateQueries({
       queryKey: queryKeys.scheduledTasks(undefined, PROMPT_TASK_KIND),
     });
-  };
 
   const stats = useMemo(() => {
     const enabled = tasks.filter((t) => t.enabled).length;

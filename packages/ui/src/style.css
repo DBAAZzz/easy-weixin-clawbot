@@ -141,5 +141,29 @@
   --tracking-tag: 0.08em;
   --tracking-eyebrow: 0.18em;
 
-  --ease-expo: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Motion durations — ~1.4× geometric steps, benchmarked against Carbon
+   * (70/110/150/240/400ms) and Material 3 (short 50–200ms / medium 250–400ms). */
+  --duration-instant: 80ms;
+  --duration-fast: 140ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  /* Motion easings — semantic roles only; standard matches M3 emphasized. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-entrance: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* Global motion degradation: every transition/animation duration references a
+ * --duration-* token, so reduced motion collapses into this single override —
+ * no per-component !important sweeps. Literal durations in component CSS would
+ * silently bypass this block; the motion lint scan exists to keep that at zero. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 1ms;
+    --duration-fast: 1ms;
+    --duration-base: 1ms;
+    --duration-slow: 1ms;
+  }
 }

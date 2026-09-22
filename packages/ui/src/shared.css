@@ -15,11 +15,11 @@
     user-select: none;
     outline: none;
     transition:
-      background-color 0.2s var(--ease-expo),
-      border-color 0.2s var(--ease-expo),
-      color 0.2s var(--ease-expo),
-      box-shadow 0.2s var(--ease-expo),
-      transform 0.2s var(--ease-expo);
+      background-color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-standard);
   }
 
   .cb-button svg,

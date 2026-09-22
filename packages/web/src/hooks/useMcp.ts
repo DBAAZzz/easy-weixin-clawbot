@@ -32,8 +32,10 @@ export function useMcp() {
   const rawError = serversQuery.error || toolsQuery.error;
 
   function invalidateAll() {
-    void queryClient.invalidateQueries({ queryKey: queryKeys.mcpServers });
-    void queryClient.invalidateQueries({ queryKey: queryKeys.mcpTools });
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.mcpServers }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.mcpTools }),
+    ]);
   }
 
   return {

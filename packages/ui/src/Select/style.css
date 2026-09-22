@@ -25,12 +25,11 @@
     border-radius: var(--radius-card);
     background: var(--cb-select-trigger-bg);
     color: var(--color-ink);
-    font-size: var(--text-base);
     outline: none;
     transition:
-      background-color 0.2s var(--ease-expo),
-      border-color 0.2s var(--ease-expo),
-      box-shadow 0.2s var(--ease-expo);
+      background-color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard);
   }
 
   .cb-select-trigger--full-width {
@@ -57,11 +56,13 @@
   .cb-select-trigger-size--default {
     height: var(--size-control-md);
     padding-inline: var(--spacing-7);
+    font-size: var(--text-base);
   }
 
   .cb-select-trigger-size--sm {
     height: var(--size-control-sm);
     padding-inline: var(--spacing-6);
+    font-size: var(--text-sm);
   }
 
   .cb-select-trigger svg {
@@ -93,7 +94,7 @@
   }
 
   .cb-select-icon svg {
-    transition: transform 0.2s var(--ease-expo);
+    transition: transform var(--duration-base) var(--ease-entrance);
   }
 
   .cb-select-icon[data-popup-open] svg,
@@ -141,8 +142,8 @@
 
   .cb-select-popup {
     width: var(--anchor-width);
-    /* 320px 为浮层默认宽度上限（脱离 spacing 刻度的破格值）：fullWidth 触发器下弹层不再跟随撑满；窄视口收缩到可用宽度 */
-    max-width: min(320px, var(--available-width, 320px));
+    /* 窄视口下收缩到 Base UI 定位的可用宽度 */
+    max-width: var(--available-width, 100vw);
     box-sizing: border-box;
     /* 280px 为浮层默认高度上限（脱离 spacing 刻度的破格值）；短视口下收缩到 Base UI 定位的可用高度 */
     max-height: min(280px, var(--available-height, 280px));
@@ -153,6 +154,22 @@
     background: var(--color-claw-0);
     padding: var(--spacing-3);
     box-shadow: var(--shadow-popover);
+    transform-origin: var(--transform-origin);
+    transition:
+      opacity var(--duration-fast) var(--ease-entrance),
+      transform var(--duration-fast) var(--ease-entrance);
+  }
+
+  .cb-select-popup[data-ending-style] {
+    transition:
+      opacity var(--duration-instant) var(--ease-exit),
+      transform var(--duration-instant) var(--ease-exit);
+  }
+
+  .cb-select-popup[data-starting-style],
+  .cb-select-popup[data-ending-style] {
+    opacity: 0;
+    transform: scale(0.97);
   }
 
   .cb-select-item {
@@ -165,7 +182,7 @@
     font-size: var(--text-base);
     cursor: pointer;
     outline: none;
-    transition: background-color 0.1s var(--ease-expo);
+    transition: background-color var(--duration-instant) var(--ease-standard);
   }
 
   .cb-select-item[data-highlighted] {

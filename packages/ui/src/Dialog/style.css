@@ -15,6 +15,16 @@
     z-index: 50;
     background: var(--color-overlay);
     backdrop-filter: blur(2px);
+    transition: opacity var(--duration-base) var(--ease-standard);
+  }
+
+  .cb-dialog-overlay[data-ending-style] {
+    transition: opacity var(--duration-fast) var(--ease-exit);
+  }
+
+  .cb-dialog-overlay[data-starting-style],
+  .cb-dialog-overlay[data-ending-style] {
+    opacity: 0;
   }
 
   .cb-dialog-viewport {
@@ -38,17 +48,24 @@
     border-radius: var(--radius-panel);
     background: var(--color-dialog-bg);
     color: var(--color-ink);
-    box-shadow: var(--shadow-menu);
+    box-shadow: var(--shadow-modal);
     outline: none;
+    transform-origin: center;
     transition:
-      opacity 0.2s var(--ease-expo),
-      transform 0.2s var(--ease-expo);
+      opacity var(--duration-base) var(--ease-entrance),
+      transform var(--duration-base) var(--ease-entrance);
+  }
+
+  .cb-dialog-content[data-ending-style] {
+    transition:
+      opacity var(--duration-fast) var(--ease-exit),
+      transform var(--duration-fast) var(--ease-exit);
   }
 
   .cb-dialog-content[data-ending-style],
   .cb-dialog-content[data-starting-style] {
     opacity: 0;
-    transform: translateY(var(--spacing-4)) scale(0.985);
+    transform: scale(0.95);
   }
 
   .cb-dialog-content--dialog {
@@ -77,9 +94,9 @@
     color: var(--color-muted);
     cursor: pointer;
     transition:
-      background-color 0.2s var(--ease-expo),
-      border-color 0.2s var(--ease-expo),
-      color 0.2s var(--ease-expo);
+      background-color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
   }
 
   .cb-dialog-close:hover {

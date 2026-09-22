@@ -1,0 +1,240 @@
+/* EasingPlayground — interactive cubic-bezier editor for the motion docs page.
+ * Docs-site tooling, not part of the library export. Warm paper palette
+ * (--clawbot-doc-*); the green curve/dot is the library token in focus. */
+
+.ui-motion-ep {
+  /* dumi 的 previewer-demo 是 flex 容器，demo 根元素必须显式占满，否则按
+   * max-content 撑破容器（代码输出行的不可断行长文本会吹大 1fr 列）。 */
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 40px;
+}
+
+.ui-motion-ep__canvas {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+
+.ui-motion-ep__svg {
+  width: 100%;
+  aspect-ratio: 264 / 316;
+  border: 1px solid var(--clawbot-doc-border);
+  border-radius: 14px;
+  background: var(--clawbot-doc-surface-muted);
+  touch-action: none;
+  user-select: none;
+}
+
+.ui-motion-ep__side {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+  min-width: 0;
+}
+
+.ui-motion-ep__group {
+  display: grid;
+  gap: 9px;
+}
+
+.ui-motion-ep__group-label {
+  color: var(--clawbot-doc-subtle);
+  font-family: var(--clawbot-doc-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ui-motion-ep__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ui-motion-ep__chip {
+  padding: 7px 13px;
+  border: 1px solid var(--clawbot-doc-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--clawbot-doc-muted);
+  font-family: var(--clawbot-doc-mono);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.ui-motion-ep__chip:hover {
+  border-color: var(--clawbot-doc-border-strong);
+  color: var(--clawbot-doc-text);
+}
+
+.ui-motion-ep__chip[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--clawbot-doc-sidebar-active);
+  color: var(--clawbot-doc-text);
+  font-weight: 600;
+}
+
+.ui-motion-ep__chip-hint {
+  color: var(--clawbot-doc-subtle);
+  font-size: 11.5px;
+}
+
+.ui-motion-ep__controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+}
+
+.ui-motion-ep__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--clawbot-doc-muted);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.ui-motion-ep__toggle input {
+  accent-color: var(--color-accent, #1d6e54);
+}
+
+.ui-motion-ep__play {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--clawbot-doc-text);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    transform var(--duration-base) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.ui-motion-ep__play:hover {
+  box-shadow: 0 6px 18px -8px rgb(29 30 27 / 55%);
+}
+
+.ui-motion-ep__play:active {
+  transform: scale(0.96);
+}
+
+.ui-motion-ep__tracks {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0 2px;
+  border-top: 1px solid var(--clawbot-doc-border);
+}
+
+.ui-motion-ep__track-row {
+  display: grid;
+  gap: 6px;
+}
+
+.ui-motion-ep__track-label {
+  color: var(--clawbot-doc-subtle);
+  font-family: var(--clawbot-doc-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+.ui-motion-ep__track {
+  position: relative;
+  height: 30px;
+  /* 退场轨道静止在平移终点，裁掉 travel 伸出的隐形溢出 */
+  overflow: hidden;
+  border: 1px solid var(--clawbot-doc-border);
+  border-radius: 999px;
+  background: var(--clawbot-doc-surface-muted);
+}
+
+.ui-motion-ep__travel {
+  position: absolute;
+  inset: 0;
+}
+
+.ui-motion-ep__dot {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-accent, #1d6e54);
+  box-shadow:
+    0 0 0 3px rgb(252 252 250 / 90%),
+    0 2px 6px -2px rgb(29 110 84 / 45%);
+  transform: translateY(-50%);
+}
+
+.ui-motion-ep__output {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.ui-motion-ep__code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid var(--clawbot-doc-border);
+  border-radius: 11px;
+  background: var(--clawbot-doc-surface-muted);
+}
+
+.ui-motion-ep__code pre {
+  min-width: 0;
+  margin: 0;
+  overflow-x: auto;
+  color: var(--clawbot-doc-text);
+  font-family: var(--clawbot-doc-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.ui-motion-ep__copy {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--clawbot-doc-border-strong);
+  border-radius: 999px;
+  background: var(--clawbot-doc-surface);
+  color: var(--clawbot-doc-muted);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.ui-motion-ep__copy:hover {
+  border-color: var(--clawbot-doc-text);
+  color: var(--clawbot-doc-text);
+}
+
+.ui-motion-ep__copy-status {
+  color: var(--clawbot-doc-subtle);
+  font-size: 11px;
+}
+
+@media (max-width: 860px) {
+  .ui-motion-ep {
+    grid-template-columns: 1fr;
+  }
+}

@@ -43,7 +43,7 @@ export function ModelConfigPage() {
           primaryLabel="新建供应商配置"
           refreshLabel="刷新"
           onCreate={() => navigate("/model-config/providers/new")}
-          onRefresh={() => void refresh()}
+          onRefresh={refresh}
         />
 
         {error ? <ErrorNotice>加载模型配置失败：{error}</ErrorNotice> : null}

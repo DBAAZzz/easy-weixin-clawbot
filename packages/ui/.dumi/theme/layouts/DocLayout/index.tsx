@@ -7,15 +7,13 @@ import {
   useSidebarData,
   useSiteData,
 } from "dumi";
-import "@fontsource-variable/geist";
-import "@fontsource-variable/noto-sans-sc";
-import ContentFooter from "dumi/theme-default/slots/ContentFooter";
 import Features from "dumi/theme-default/slots/Features";
 import Footer from "dumi/theme-default/slots/Footer";
 import Header from "dumi/theme-default/slots/Header";
 import Hero from "dumi/theme-default/slots/Hero";
 import { useEffect, useState } from "react";
 import Content from "../../slots/Content/index.js";
+import ContentFooter from "../../slots/ContentFooter/index.js";
 import HomePage from "../../pages/HomePage/index.js";
 import Sidebar from "../../slots/Sidebar/index.js";
 import Toc from "../../slots/Toc/index.js";
@@ -32,6 +30,7 @@ export default function DocLayout() {
   const { frontmatter, toc } = useRouteMeta();
   const isHomepage = frontmatter.homepage === true;
   const isComponentPage = pathname.startsWith("/components/");
+  const isMotionPage = pathname.startsWith("/motion");
   const showSidebar = frontmatter.sidebar !== false && Boolean(sidebar?.length);
   const showToc = frontmatter.toc !== false && toc.some((item) => item.depth > 1 && item.depth < 4);
 
@@ -53,6 +52,7 @@ export default function DocLayout() {
     <div
       className="dumi-default-doc-layout"
       data-component-page={isComponentPage || undefined}
+      data-motion-page={isMotionPage || undefined}
       data-mobile-sidebar-active={activateSidebar || undefined}
       onClick={() => updateActivateSidebar(false)}
     >

@@ -25,7 +25,8 @@ description: Clawbot UI 组件库开发规范。仅当任务涉及 packages/ui�
 1. 组件必须使用组件库 token 定义文件中的 token（`style.css` 基础 / 语义层、`tokens.css` 共享层、组件 `style.css` 专属层），不自造裸值。
 2. 禁止随手使用 Tailwind 任意值，例如 `bg-[#xxx]`、`text-[14px]`、`rounded-[10px]`、`shadow-[...]`。
 3. **禁止使用 Tailwind 默认调色板**（`red-* / rose-* / amber-* / emerald-* / sky-* / slate-* / gray-* / zinc-*` 等）。状态色、强调色一律走语义 token（`accent / danger / muted / notice-* / toggle-*` 等）；缺哪个就先补到对应的 token 定义文件（见「Token 归置」），再用，不要用裸调色板绕过 token 系统。
-4. 禁止在组件内部散落 magic number。颜色、字号、圆角、阴影、间距、动效优先来自 token class。
+4. 禁止在组件内部散落 magic number。颜色、字号、圆角、阴影、间距、**动效时长与缓动**优先来自 token class。
+5. **禁止字面量动效时长**：组件 CSS 中 `transition` / `animation` 的 duration 必须引用 `--duration-*` token，缓动必须引用 `--ease-*` 语义曲线（见「动效 token」），不写 `0.2s`、`160ms` 这类裸值。
 5. 组件 API 必须干净稳定，不为内部历史调用保留旧命名兼容。
 6. 如果旧概念已经不符合组件模型，应直接删除并同步更新调用方。
 7. demo 和文档是组件契约的一部分，不能只改实现不改文档。
@@ -148,6 +149,19 @@ token 按归属放文件，不要全塞进 `tokens.css`：
 - 移动 / 删除 token 后，用 grep 确认没有 `var(--x)` 引用悬空（引用了已不存在的 token），并跑 `build` 确认公共 bundle 仍含对外颜色 token。
 - 编辑器 DX 由 `vscode-css-variables` 插件兜底（`.vscode/settings.json` 的 `cssVariables.lookupFiles` 已限定扫描 `packages/ui/src`，跳转落到库自己的定义）。
 
+### 动效 token（duration 与 ease 必须成对引用）
+
+动效 token 定义在 `src/style.css` 基础 / 语义层，与颜色同级：
+
+- 时长 4 档封顶：`--duration-instant`(80ms) / `--duration-fast`(140ms) / `--duration-base`(200ms) / `--duration-slow`(320ms)。
+- 缓动 4 条封顶：`--ease-standard`（中性，颜色/状态类）/ `--ease-entrance`（减速入场）/ `--ease-exit`（加速退场）/ `--ease-spring`（轻微过冲，仅限 Switch/Slider/ToggleGroup 等 thumb 物理感）。
+- 写法：`transition: transform var(--duration-base) var(--ease-spring);` —— 时长与缓动成对出现，不写裸值。
+- 语义规则：退场后仍停留在视口附近的元素（侧面板、折叠区）用 `standard`，`exit` 只给"永久消失"的元素；`spring` 是 CSS 近似不是真弹簧，不扩散到非 thumb 场景。
+- 浮层进出场基于 Base UI 的 `data-starting-style` / `data-ending-style`（参考 Dialog / Tooltip / Select 的 `style.css`），`[data-ending-style]` 覆盖为更快的退场时长 + `--ease-exit`，popup 记得 `transform-origin: var(--transform-origin)`。
+- `prefers-reduced-motion` 已收敛为 `src/style.css` 对 4 个时长 token 的单一覆盖；正因如此字面量时长是违规（会静默绕过降级），不要在组件里再写 per-component 的 reduced-motion 块。
+- 不新增 keyframes 库；仅循环动画（骨架屏等真实需求出现）时再议。
+- 出现第 5 档时长 / 第 5 条曲线的需求时，先回到场景判断复用现有档位，不扩表。
+
 ### 间距与密度判断
 
 组件库的间距不是审美临场判断，必须先归入密度场景，再落到 `packages/ui/src/style.css` 的 spacing token。新增或修改 `px-*`、`py-*`、`p-*`、`gap-*`、`space-y-*`、`space-x-*`、`h-*`、`w-*`、`size-*`、`max-w-*` 等尺寸类之前，先回答它属于哪种场景：
@@ -223,7 +237,7 @@ const controls = useControls({
 - 组件 `index.md` 中的 dumi demo 默认使用 `<code src="./demos/playground.tsx" nopadding></code>`，去掉 dumi 外层 padding，避免 dumi 和 `StoryBook` 双重包裹。
 - 如果发现 demo 顶到左上角，优先检查是否漏了 `StoryBook`，不要先移除 `nopadding`。
 - Playground 已覆盖默认状态时，不再额外保留 Basic。
-- 交互型组件（值可变：Input / Select / Slider / Switch 等）的 demo 必须使用 `value` + `onChange` / `onValueChange` 写回 `useSetControl(name, value)`，让预览区组件本身可操作并与 Tweaks 面板实时同步。禁止 `readOnly` + 受控值、`onChange={() => {}}` 这类冻结预览组件的写法；纯展示型组件不强加 `value` 控件。
+- 交互型组件（值可变：Input / Slider / Switch / Toggle 等）的 demo 必须使用 `value` + `onChange` / `onValueChange` 写回 `useSetControl(name, value)`，让预览区组件本身可操作并与 Tweaks 面板实时同步。禁止 `readOnly` + 受控值、`onChange={() => {}}` 这类冻结预览组件的写法；纯展示型组件或复合选择型组件（如 Select 本身已在画布提供选项下拉交互、放入 Tweaks 会造成枚举冗余且干扰面板）不强加 `value` 控件，由 demo 内部 `useState` 维护交互。
 
 ## 文档规范
 
@@ -284,6 +298,10 @@ rg -n '(^|\s)(bg|text|border|rounded|shadow|ring|p|px|py|m|mx|my|w|h|min-w|max-w
 
 # 2. 默认调色板：绕过语义 token 的裸 Tailwind 颜色（red-700、emerald-500 等）
 rg -n '\b(bg|text|border|ring|from|to|via|fill|stroke|outline|divide|decoration)-(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-[0-9]{2,3}\b' packages/ui/src --glob '!*.md'
+
+# 3. 字面量时长：绕过动效 token 的裸 duration（0.2s、160ms 等）
+rg -n 'transition(-property|-duration)?\s*:|animation(-duration)?\s*:' packages/ui/src --glob '*.css' \
+  | rg -v 'var\(--duration-' | rg '[0-9.]+m?s'
 ```
 
 扫描不是最终裁决，但命中结果必须人工判断是否合理；状态色命中默认调色板时，应改为语义 token。

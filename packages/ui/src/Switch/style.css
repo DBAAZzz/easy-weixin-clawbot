@@ -1,4 +1,11 @@
 @layer clawbot {
+  .cb-switch-container {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
+
   /* Switch track/thumb dimensions are bespoke (off the spacing scale). */
   .cb-switch {
     position: relative;
@@ -11,9 +18,9 @@
     cursor: pointer;
     outline: none;
     transition:
-      background-color 0.2s var(--ease-expo),
-      border-color 0.2s var(--ease-expo),
-      box-shadow 0.2s var(--ease-expo);
+      background-color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard);
   }
 
   .cb-switch:focus-visible {
@@ -62,7 +69,7 @@
     border-radius: 999px;
     background: var(--color-claw-0);
     box-shadow: var(--shadow-float);
-    transition: transform 0.2s var(--ease-expo);
+    transition: transform var(--duration-base) var(--ease-spring);
   }
 
   .cb-switch--sm .cb-switch-thumb {

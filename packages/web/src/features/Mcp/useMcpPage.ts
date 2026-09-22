@@ -213,7 +213,7 @@ export function useMcpPage() {
   }, [activeServer, editorState]);
 
   async function handleRefreshList() {
-    refresh();
+    await refresh();
   }
 
   async function handleServerAction(server: McpServerInfo, action: () => Promise<unknown>) {

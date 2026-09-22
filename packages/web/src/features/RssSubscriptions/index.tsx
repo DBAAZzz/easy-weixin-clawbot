@@ -1,5 +1,4 @@
-import { Input } from "@clawbot/ui";
-import { LinkIcon, SearchIcon } from "@clawbot/ui";
+import { Input, LinkIcon, SearchIcon } from "@clawbot/ui";
 import { formatCount } from "../../lib/format.js";
 import { DashboardHeader } from "@/components/DashboardHeader.js";
 import { StatsGrid } from "../Dashboard/StatsGrid.js";
@@ -76,21 +75,23 @@ export function RssSubscriptionsPage() {
           setDraft(EMPTY_DRAFT);
           setEditorOpen(true);
         }}
-        onRefresh={() => void refresh()}
+        onRefresh={refresh}
       />
 
       <StatsGrid stats={rssStats} />
 
       <section className="space-y-3">
         <div className="flex items-center gap-2">
-          <Input
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="搜索名称、路由或 URL..."
-          />
-          <span className="inline-flex size-10 items-center justify-center rounded-card border border-line bg-panel-strong text-muted-strong">
-            <SearchIcon className="size-4" />
-          </span>
+          <div className="w-full md:w-account-search">
+            <Input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="搜索名称、路由或 URL..."
+              leftIcon={<SearchIcon />}
+              size="sm"
+              inputClassName="rounded-card border-account-line-strong bg-account-card text-base placeholder:text-account-muted-faint focus:border-account-control-hover"
+            />
+          </div>
         </div>
       </section>
 

@@ -1,0 +1,131 @@
+/* Shared styles for the motion docs demos (duration ladder / easing compare).
+ * Docs-site tooling, not part of the library export. Surfaces follow the doc
+ * site's warm paper palette (--clawbot-doc-*); the green accent dot is the
+ * library token under demonstration. */
+
+.ui-motion-demo {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+}
+
+.ui-motion-demo__toolbar {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.ui-motion-demo__play {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--clawbot-doc-text);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    transform var(--duration-base) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.ui-motion-demo__play:hover {
+  box-shadow: 0 6px 18px -8px rgb(29 30 27 / 55%);
+}
+
+.ui-motion-demo__play:active {
+  transform: scale(0.96);
+}
+
+.ui-motion-demo__note {
+  color: var(--clawbot-doc-subtle);
+  font-size: 12.5px;
+}
+
+.ui-motion-demo__row {
+  display: grid;
+  grid-template-columns: 172px minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  padding: 14px 0;
+}
+
+.ui-motion-demo__row--with-spark {
+  grid-template-columns: 172px 76px minmax(0, 1fr);
+}
+
+.ui-motion-demo__row + .ui-motion-demo__row {
+  border-top: 1px solid var(--clawbot-doc-border);
+}
+
+.ui-motion-demo__meta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ui-motion-demo__name {
+  color: var(--clawbot-doc-text);
+  font-family: var(--clawbot-doc-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ui-motion-demo__value {
+  color: var(--clawbot-doc-subtle);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.ui-motion-demo__spark {
+  display: block;
+  width: 64px;
+  height: 36px;
+  overflow: visible;
+}
+
+.ui-motion-demo__track {
+  position: relative;
+  height: 32px;
+  /* travel 归位/播放的平移会伸出轨道右侧，裁掉隐形溢出 */
+  overflow: hidden;
+  border: 1px solid var(--clawbot-doc-border);
+  border-radius: 999px;
+  background: var(--clawbot-doc-surface-muted);
+}
+
+.ui-motion-demo__travel {
+  position: absolute;
+  inset: 0;
+}
+
+.ui-motion-demo__dot {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-accent, #1d6e54);
+  box-shadow:
+    0 0 0 3px rgb(252 252 250 / 90%),
+    0 2px 6px -2px rgb(29 110 84 / 45%);
+  transform: translateY(-50%);
+}
+
+@media (max-width: 640px) {
+  .ui-motion-demo__row,
+  .ui-motion-demo__row--with-spark {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .ui-motion-demo__spark {
+    display: none;
+  }
+}

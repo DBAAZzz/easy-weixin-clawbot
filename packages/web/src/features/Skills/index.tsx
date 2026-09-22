@@ -36,7 +36,6 @@ export function SkillsPage() {
     activeSkill,
     activeDetailTab,
     setActiveDetailTab,
-    notice,
     mutationError,
     pendingToggleName,
     uploading,
@@ -80,19 +79,13 @@ export function SkillsPage() {
           primaryLabel={uploading ? "上传中…" : "上传技能"}
           refreshLabel="刷新列表"
           onCreate={() => uploadInputRef.current?.click()}
-          onRefresh={() => void handleRefresh()}
+          onRefresh={handleRefresh}
         />
         <StatsGrid stats={stats} />
 
         {error ? <ErrorNotice>加载 skill 列表失败：{error}</ErrorNotice> : null}
 
         {mutationError ? <ErrorNotice>操作失败：{mutationError}</ErrorNotice> : null}
-
-        {notice ? (
-          <div className="rounded-card border border-notice-success-border bg-notice-success-bg px-4 py-3 text-base leading-5 text-accent-strong">
-            {notice}
-          </div>
-        ) : null}
 
         {uploadCheck ? (
           <div className="rounded-card border border-line bg-detail-bg px-4 py-3">

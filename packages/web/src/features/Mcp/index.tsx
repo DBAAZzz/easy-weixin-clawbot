@@ -64,7 +64,7 @@ export function McpPage() {
           primaryLabel="新增"
           refreshLabel="刷新列表"
           onCreate={() => startTransition(() => setEditorState({ mode: "create" }))}
-          onRefresh={() => void handleRefreshList()}
+          onRefresh={handleRefreshList}
         />
         <StatsGrid stats={stats} />
 

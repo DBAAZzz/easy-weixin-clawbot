@@ -11,6 +11,7 @@ type WebpackChainConfig = {
 
 const nav: INavItem[] = [
   { link: "/", title: "首页" },
+  { activePath: "/motion", link: "/motion", title: "动效" },
   { activePath: "/components", link: "/components/button", title: "组件" },
 ];
 

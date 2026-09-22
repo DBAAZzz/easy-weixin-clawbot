@@ -10,7 +10,7 @@ export function useTools() {
   });
 
   function invalidate() {
-    void queryClient.invalidateQueries({ queryKey: queryKeys.tools });
+    return queryClient.invalidateQueries({ queryKey: queryKeys.tools });
   }
 
   return {

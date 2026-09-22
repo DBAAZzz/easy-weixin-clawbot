@@ -11,15 +11,34 @@ export function Switch({
   label,
   size = "md",
   tone = "accent",
+  onClick,
+  onMouseDown,
+  onPointerDown,
   ...props
 }: SwitchProps) {
   return (
-    <BaseSwitch.Root
-      aria-label={ariaLabel ?? label}
-      className={switchClassName({ className, size, tone })}
-      {...props}
+    <span
+      className="cb-switch-container"
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick?.(event as any);
+      }}
+      onMouseDown={(event) => {
+        event.stopPropagation();
+        onMouseDown?.(event as any);
+      }}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        onPointerDown?.(event as any);
+      }}
     >
-      <BaseSwitch.Thumb className="cb-switch-thumb" />
-    </BaseSwitch.Root>
+      <BaseSwitch.Root
+        aria-label={ariaLabel ?? label}
+        className={switchClassName({ className, size, tone })}
+        {...props}
+      >
+        <BaseSwitch.Thumb className="cb-switch-thumb" />
+      </BaseSwitch.Root>
+    </span>
   );
 }

@@ -38,7 +38,7 @@
     height: 100%;
     border-radius: 999px;
     background: var(--color-accent);
-    transition: all 75ms var(--ease-expo);
+    transition: width var(--duration-instant) var(--ease-standard);
   }
 
   .cb-slider-thumb {
@@ -51,9 +51,9 @@
     box-shadow: var(--shadow-btn-soft);
     transform: translateX(-50%);
     transition:
-      border-color 0.2s var(--ease-expo),
-      box-shadow 0.2s var(--ease-expo),
-      transform 0.2s var(--ease-expo);
+      border-color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard),
+      transform var(--duration-base) var(--ease-spring);
   }
 
   .cb-slider-thumb:hover {

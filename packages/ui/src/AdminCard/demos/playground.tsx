@@ -37,7 +37,7 @@ export default function Demo() {
             <CardOverflowMenu
               items={[
                 { label: "编辑", icon: <PencilIcon />, onClick: () => {} },
-                { label: "删除", icon: <TrashIcon />, onClick: () => {} },
+                { label: "删除", icon: <TrashIcon />, tone: "danger", onClick: () => {} },
               ]}
             />
           </div>

@@ -1,4 +1,11 @@
 @layer clawbot {
+  .cb-switch-container {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
+
   /* Switch track/thumb dimensions are bespoke (off the spacing scale). */
   .cb-switch {
     position: relative;

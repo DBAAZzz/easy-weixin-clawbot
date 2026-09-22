@@ -27,6 +27,7 @@ export function CardActionButton(props: {
       aria-label={props.label}
       title={props.label}
       disabled={props.disabled}
+      onPointerDown={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         event.stopPropagation();
@@ -63,6 +64,7 @@ export function CardOverflowMenu(props: {
         type="button"
         aria-label="更多操作"
         title="更多操作"
+        onPointerDown={(event) => event.stopPropagation()}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
         className={cn(cardActionButtonClassName, "cb-card-overflow-trigger", props.className)}
@@ -83,7 +85,10 @@ export function CardOverflowMenu(props: {
                   event.stopPropagation();
                   item.onClick();
                 }}
-                className={cn(cardMenuItemClassName)}
+                className={cn(
+                  cardMenuItemClassName,
+                  item.tone === "danger" && "cb-card-menu-item--danger",
+                )}
               >
                 {item.icon ? <span className={cardIconContainerClassName}>{item.icon}</span> : null}
                 <span>{item.label}</span>
@@ -106,19 +111,23 @@ export function CardToggle(props: {
 }) {
   const { enabled, busy, label, onToggle, className, disabled } = props;
   return (
-    <Switch
-      disabled={busy || disabled}
-      label={label}
-      size="sm"
-      checked={enabled}
-      title={enabled ? "已启用" : "已停用"}
+    <span
+      className={cn("cb-card-toggle", className)}
+      onPointerDown={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
-      onCheckedChange={() => {
-        onToggle();
-      }}
-      className={className}
-    />
+    >
+      <Switch
+        disabled={busy || disabled}
+        label={label}
+        size="sm"
+        checked={enabled}
+        title={enabled ? "已启用" : "已停用"}
+        onCheckedChange={() => {
+          onToggle();
+        }}
+      />
+    </span>
   );
 }
 

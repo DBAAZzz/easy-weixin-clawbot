@@ -29,7 +29,7 @@ toc: false
 | Input / Select focus         | `slow · standard`                         |
 | Switch / Slider thumb        | `base · spring`                           |
 | Select / Tooltip / 菜单浮层  | 入 `fast · entrance`，出 `instant · exit` |
-| Dialog                       | 入 `slow · entrance`，出 `fast · exit`    |
+| Dialog                       | 入 base · entrance，出 fast · exit        |
 | Accordion chevron            | `base · entrance`                         |
 
 ## 降级

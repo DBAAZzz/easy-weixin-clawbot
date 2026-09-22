@@ -5,8 +5,8 @@ import "./motion-demo.css";
 const STEPS = [
   { token: "--duration-instant", label: "duration-instant", hint: "按压反馈 · 菜单高亮" },
   { token: "--duration-fast", label: "duration-fast", hint: "hover · 颜色/边框/阴影" },
-  { token: "--duration-base", label: "duration-base", hint: "图标旋转 · thumb 位移" },
-  { token: "--duration-slow", label: "duration-slow", hint: "Dialog 进出场 · focus" },
+  { token: "--duration-base", label: "duration-base", hint: "Dialog 进场 · thumb 位移" },
+  { token: "--duration-slow", label: "duration-slow", hint: "大面板展开 · focus" },
 ] as const;
 
 /** 播放 → 动画完成后无过渡归位，静止态保持干净的起点。 */

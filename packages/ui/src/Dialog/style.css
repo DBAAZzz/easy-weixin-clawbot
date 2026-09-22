@@ -15,7 +15,7 @@
     z-index: 50;
     background: var(--color-overlay);
     backdrop-filter: blur(2px);
-    transition: opacity var(--duration-slow) var(--ease-standard);
+    transition: opacity var(--duration-base) var(--ease-standard);
   }
 
   .cb-dialog-overlay[data-ending-style] {
@@ -48,11 +48,12 @@
     border-radius: var(--radius-panel);
     background: var(--color-dialog-bg);
     color: var(--color-ink);
-    box-shadow: var(--shadow-menu);
+    box-shadow: var(--shadow-modal);
     outline: none;
+    transform-origin: center;
     transition:
-      opacity var(--duration-slow) var(--ease-entrance),
-      transform var(--duration-slow) var(--ease-entrance);
+      opacity var(--duration-base) var(--ease-entrance),
+      transform var(--duration-base) var(--ease-entrance);
   }
 
   .cb-dialog-content[data-ending-style] {
@@ -64,7 +65,7 @@
   .cb-dialog-content[data-ending-style],
   .cb-dialog-content[data-starting-style] {
     opacity: 0;
-    transform: translateY(var(--spacing-4)) scale(0.985);
+    transform: scale(0.95);
   }
 
   .cb-dialog-content--dialog {

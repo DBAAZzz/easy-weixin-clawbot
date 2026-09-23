@@ -16,9 +16,10 @@
     // TS 7 移除了 baseUrl，paths 必须是相对 tsconfig 所在目录的相对路径。
     // 运行时别名由 vite.config.ts 的 resolve.alias 单独维护，两处需保持一致。
     "paths": {
+      "@clawbot/shared": ["../shared/src/index.ts"],
       "@clawbot/ui": ["../ui/src/index.ts"],
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "vite.config.ts", "../shared/src/constant"]
+  "include": ["src", "vite.config.ts", "../shared/src"]
 }

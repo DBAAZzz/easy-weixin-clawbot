@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:mock": "vite --mode mock",
     "typecheck": "tsc --noEmit",
+    "prebuild": "pnpm --filter @clawbot/ui build",
     "build": "tsc --noEmit && vite build",
     "build:mock": "tsc --noEmit && vite build --mode mock",
     "preview": "vite preview",

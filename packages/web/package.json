@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "prebuild": "pnpm --filter @clawbot/ui build",
     "build": "tsc --noEmit && vite build",
+    "prebuild:mock": "pnpm --filter @clawbot/ui build",
     "build:mock": "tsc --noEmit && vite build --mode mock",
     "preview": "vite preview",
     "fmt": "oxfmt",
